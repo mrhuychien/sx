@@ -14,7 +14,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, getdate
+from frappe.utils import cint, flt
 
 from sx.api.common import QUAN_LY, TO_TRUONG, _guard
 from sx.utils import get_bom_tang_1, get_settings, sinh_ma_lo
@@ -235,6 +235,9 @@ def _tao_wo(doc, item_code, qty, bom_no, source_wh, fg_wh, uom=None):
             "qty": qty,
             "bom_no": bom_no,
             "skip_transfer": 1,
+            # BẮT BUỘC 0: BOM tầng 2 chứa BOT-NC (item có BOM riêng) — multi-level
+            # sẽ explode ngược ra đậu xanh, phá backflush 2 tầng (D1/D3)
+            "use_multi_level_bom": 0,
             "source_warehouse": source_wh,
             "fg_warehouse": fg_wh,
             "wip_warehouse": fg_wh,  # không dùng vì skip_transfer, chỉ để thoả reqd

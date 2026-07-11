@@ -4,11 +4,9 @@ Mọi method: guard role ở dòng đầu (spec mục 3 — method-mediated perm
 Dữ liệu doc chuẩn (Employee, BOM...) chỉ trả về field trong whitelist.
 """
 
-import json
-
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, get_datetime, getdate, nowdate
+from frappe.utils import cint, flt, getdate, nowdate
 
 from sx.api.common import QUAN_LY, TO_TRUONG, TRAM_RANG, _guard
 from sx.utils import get_settings, get_yield_tang_1
