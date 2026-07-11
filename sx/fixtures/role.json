@@ -1,0 +1,35 @@
+[
+ {
+  "doctype": "Role",
+  "name": "SX To Truong",
+  "role_name": "SX To Truong",
+  "desk_access": 0,
+  "disabled": 0,
+  "is_custom": 1,
+  "restrict_to_domain": null,
+  "home_page": null,
+  "two_factor_auth": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "SX Tram Rang",
+  "role_name": "SX Tram Rang",
+  "desk_access": 0,
+  "disabled": 0,
+  "is_custom": 1,
+  "restrict_to_domain": null,
+  "home_page": null,
+  "two_factor_auth": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "SX Quan Ly",
+  "role_name": "SX Quan Ly",
+  "desk_access": 1,
+  "disabled": 0,
+  "is_custom": 1,
+  "restrict_to_domain": null,
+  "home_page": null,
+  "two_factor_auth": 0
+ }
+]
