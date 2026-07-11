@@ -1,0 +1,46 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Sản xuất RVHG{% endblock %}
+
+{% block head_include %}
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- LUẬT VÀNG #1: import map cache-bust MỌI shared module (lib/ + components/).
+     Phải đứng TRƯỚC mọi <script type="module">. Thêm module mới -> THÊM vào đây. -->
+{% set v = asset_version %}
+<script type="importmap">
+{
+  "imports": {
+    "/assets/sx/sx/lib/api.js":            "/assets/sx/sx/lib/api.js?v={{ v }}",
+    "/assets/sx/sx/lib/dom.js":            "/assets/sx/sx/lib/dom.js?v={{ v }}",
+    "/assets/sx/sx/lib/format.js":         "/assets/sx/sx/lib/format.js?v={{ v }}",
+    "/assets/sx/sx/lib/router.js":         "/assets/sx/sx/lib/router.js?v={{ v }}",
+    "/assets/sx/sx/components/toast.js":   "/assets/sx/sx/components/toast.js?v={{ v }}",
+    "/assets/sx/sx/components/modal.js":   "/assets/sx/sx/components/modal.js?v={{ v }}",
+    "/assets/sx/sx/components/numpad.js":  "/assets/sx/sx/components/numpad.js?v={{ v }}"
+  }
+}
+</script>
+<script>window.SX_CONTEXT = {{ sx_context }};</script>
+<link rel="stylesheet" href="/assets/sx/sx/shell.css?v={{ v }}">
+{% endblock %}
+
+{% block page_content %}
+<div id="sx-app" class="sx-app">
+  <div class="sx-boot-loading">Đang tải…</div>
+</div>
+<script type="module" src="/assets/sx/sx/shell.js?v={{ asset_version }}"></script>
+<!-- Handshake build marker: shell cũ (deploy giữa phiên) -> banner đỏ thay vì hỏng ngầm -->
+<script>
+window.addEventListener('load', function () {
+  setTimeout(function () {
+    var expected = "{{ shell_build }}";
+    if (window.SX_APP && window.SX_APP.build && window.SX_APP.build !== expected) {
+      var b = document.createElement('div');
+      b.className = 'sx-stale-banner';
+      b.textContent = 'Trang đang chạy bản cũ do cache — vui lòng tải lại (kéo xuống để refresh).';
+      document.body.prepend(b);
+    }
+  }, 1500);
+});
+</script>
+{% endblock %}
