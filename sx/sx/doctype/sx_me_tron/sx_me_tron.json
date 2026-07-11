@@ -1,0 +1,123 @@
+{
+ "actions": [],
+ "autoname": "TRON-.YYYY.-.#####",
+ "creation": "2026-07-11 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ngay_sx",
+  "me_so",
+  "column_break_head",
+  "san_pham",
+  "bom",
+  "co_me_kg",
+  "section_nl",
+  "nguyen_lieu",
+  "section_ket_qua",
+  "dung_cong_thuc",
+  "tong_lech_pct"
+ ],
+ "fields": [
+  {
+   "fieldname": "ngay_sx",
+   "fieldtype": "Link",
+   "label": "Phiếu ngày",
+   "options": "SX Ngay San Xuat",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "me_so",
+   "fieldtype": "Int",
+   "label": "Mẻ số",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "san_pham",
+   "fieldtype": "Link",
+   "label": "Sản phẩm",
+   "options": "Item",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "BOM",
+   "options": "BOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "co_me_kg",
+   "fieldtype": "Float",
+   "label": "Cỡ mẻ (kg hỗn hợp)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_nl",
+   "fieldtype": "Section Break",
+   "label": "Nguyên liệu"
+  },
+  {
+   "fieldname": "nguyen_lieu",
+   "fieldtype": "Table",
+   "label": "Nguyên liệu",
+   "options": "SX Me Tron NL",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_ket_qua",
+   "fieldtype": "Section Break",
+   "label": "Kết quả"
+  },
+  {
+   "default": "0",
+   "fieldname": "dung_cong_thuc",
+   "fieldtype": "Check",
+   "label": "Đúng công thức",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tong_lech_pct",
+   "fieldtype": "Percent",
+   "label": "Tổng lệch (%)",
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-11 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Me Tron",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1, "write": 1, "create": 1, "delete": 1,
+   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+  },
+  {
+   "role": "SX To Truong",
+   "read": 1, "write": 1, "create": 1, "submit": 1, "print": 1, "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1, "write": 1, "create": 1,
+   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+  }
+ ],
+ "search_fields": "ngay_sx,san_pham",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "san_pham",
+ "track_changes": 1
+}

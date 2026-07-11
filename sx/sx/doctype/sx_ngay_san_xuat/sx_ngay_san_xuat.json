@@ -1,0 +1,219 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-07-11 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "ngay",
+  "column_break_head",
+  "trang_thai",
+  "section_tang_1",
+  "chay_tang_1",
+  "so_bao_dau",
+  "column_break_t1",
+  "kl_bao_kg",
+  "dau_vao_kg",
+  "btp_du_kien_kg",
+  "section_tang_2",
+  "san_pham_tang_2",
+  "section_su_co",
+  "su_co",
+  "section_tong_hop",
+  "btp_thuc_te_kg",
+  "wo_tang_1",
+  "se_tang_1",
+  "column_break_th",
+  "batch_btp",
+  "tong_hop",
+  "tong_luong_sp",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SXN-.YYYY.-.MM.-.DD.-.##",
+   "default": "SXN-.YYYY.-.MM.-.DD.-.##",
+   "hidden": 1,
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "default": "Today",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Đang chạy\nĐã chốt\nĐã huỷ",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_tang_1",
+   "fieldtype": "Section Break",
+   "label": "Tầng 1 — Rang bột"
+  },
+  {
+   "default": "0",
+   "fieldname": "chay_tang_1",
+   "fieldtype": "Check",
+   "label": "Có rang bột hôm nay"
+  },
+  {
+   "depends_on": "chay_tang_1",
+   "mandatory_depends_on": "chay_tang_1",
+   "fieldname": "so_bao_dau",
+   "fieldtype": "Int",
+   "label": "Số bao đậu đưa vào"
+  },
+  {
+   "fieldname": "column_break_t1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "chay_tang_1",
+   "fieldname": "kl_bao_kg",
+   "fieldtype": "Float",
+   "label": "Khối lượng/bao (kg)"
+  },
+  {
+   "depends_on": "chay_tang_1",
+   "fieldname": "dau_vao_kg",
+   "fieldtype": "Float",
+   "label": "Đậu đầu vào (kg)",
+   "read_only": 1
+  },
+  {
+   "depends_on": "chay_tang_1",
+   "fieldname": "btp_du_kien_kg",
+   "fieldtype": "Float",
+   "label": "Bột dự kiến (kg)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_tang_2",
+   "fieldtype": "Section Break",
+   "label": "Tầng 2 — Sản phẩm đóng hộp"
+  },
+  {
+   "fieldname": "san_pham_tang_2",
+   "fieldtype": "Table",
+   "label": "Sản phẩm đóng hộp hôm nay",
+   "options": "SX Ngay SP"
+  },
+  {
+   "fieldname": "section_su_co",
+   "fieldtype": "Section Break",
+   "label": "Sự cố"
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Table",
+   "label": "Sự cố",
+   "options": "SX Su Co Item"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_tong_hop",
+   "fieldtype": "Section Break",
+   "label": "Tổng hợp (điền khi chốt ngày)"
+  },
+  {
+   "fieldname": "btp_thuc_te_kg",
+   "fieldtype": "Float",
+   "label": "Bột nhập kho (kg)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "wo_tang_1",
+   "fieldtype": "Link",
+   "label": "WO tầng 1",
+   "options": "Work Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "se_tang_1",
+   "fieldtype": "Link",
+   "label": "SE tầng 1",
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_th",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "batch_btp",
+   "fieldtype": "Link",
+   "label": "Batch bột",
+   "options": "Batch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tong_hop",
+   "fieldtype": "Int",
+   "label": "Tổng hộp TP",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tong_luong_sp",
+   "fieldtype": "Currency",
+   "label": "Tổng lương sản phẩm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú",
+   "allow_on_submit": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-11 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Ngay San Xuat",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1, "write": 1, "create": 1, "delete": 1,
+   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+  },
+  {
+   "role": "SX To Truong",
+   "read": 1, "write": 1, "create": 1, "submit": 1, "print": 1, "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1, "write": 1, "create": 1,
+   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+  },
+  {
+   "role": "SX Tram Rang",
+   "read": 1
+  }
+ ],
+ "search_fields": "ngay,trang_thai",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "ngay",
+ "track_changes": 1
+}

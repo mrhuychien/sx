@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "autoname": "CCP-.YYYY.-.#####",
+ "creation": "2026-07-11 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ngay_sx",
+  "thoi_diem",
+  "column_break_head",
+  "nhiet_do_c",
+  "dat",
+  "section_xu_ly",
+  "hanh_dong_khac_phuc",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ngay_sx",
+   "fieldtype": "Link",
+   "label": "Phiếu ngày",
+   "options": "SX Ngay San Xuat",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "thoi_diem",
+   "fieldtype": "Datetime",
+   "label": "Thời điểm",
+   "default": "Now",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nhiet_do_c",
+   "fieldtype": "Float",
+   "label": "Nhiệt độ (°C)",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "dat",
+   "fieldtype": "Check",
+   "label": "Đạt",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_xu_ly",
+   "fieldtype": "Section Break",
+   "label": "Xử lý"
+  },
+  {
+   "fieldname": "hanh_dong_khac_phuc",
+   "fieldtype": "Small Text",
+   "label": "Hành động khắc phục",
+   "mandatory_depends_on": "eval:!doc.dat"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "links": [],
+ "modified": "2026-07-11 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Ghi Nhan CCP",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1, "write": 1, "create": 1, "delete": 1, "print": 1, "report": 1, "export": 1
+  },
+  {
+   "role": "SX Tram Rang",
+   "read": 1
+  },
+  {
+   "role": "SX Tram Rang",
+   "read": 1, "write": 1, "create": 1, "if_owner": 1
+  },
+  {
+   "role": "SX To Truong",
+   "read": 1, "write": 1, "create": 1, "print": 1, "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1, "write": 1, "create": 1, "delete": 1, "print": 1, "report": 1, "export": 1
+  }
+ ],
+ "search_fields": "ngay_sx,thoi_diem",
+ "sort_field": "thoi_diem",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

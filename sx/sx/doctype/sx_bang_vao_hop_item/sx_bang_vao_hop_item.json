@@ -1,0 +1,80 @@
+{
+ "actions": [],
+ "creation": "2026-07-11 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "nhan_vien",
+  "ten_nhan_vien",
+  "san_pham",
+  "phuong_thuc",
+  "so_hop",
+  "don_gia",
+  "thanh_tien"
+ ],
+ "fields": [
+  {
+   "fieldname": "nhan_vien",
+   "fieldtype": "Link",
+   "label": "Nhân viên",
+   "options": "Employee",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "ten_nhan_vien",
+   "fieldtype": "Data",
+   "label": "Tên nhân viên",
+   "fetch_from": "nhan_vien.employee_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "san_pham",
+   "fieldtype": "Link",
+   "label": "Sản phẩm",
+   "options": "Item",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "phuong_thuc",
+   "fieldtype": "Select",
+   "label": "Phương thức",
+   "options": "Thủ công\nMáy hỗ trợ",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "so_hop",
+   "fieldtype": "Int",
+   "label": "Số hộp",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "don_gia",
+   "fieldtype": "Currency",
+   "label": "Đơn giá/hộp",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "thanh_tien",
+   "fieldtype": "Currency",
+   "label": "Thành tiền",
+   "read_only": 1,
+   "in_list_view": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-11 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Bang Vao Hop Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

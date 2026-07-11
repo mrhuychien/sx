@@ -1,0 +1,119 @@
+{
+ "actions": [],
+ "creation": "2026-07-11 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_chung",
+  "cong_ty",
+  "item_btp",
+  "column_break_chung",
+  "kho_nvl",
+  "kho_btp",
+  "kho_tp",
+  "section_thong_so",
+  "kl_bao_dau_kg",
+  "me_tron_nguong_canh_bao_pct",
+  "column_break_thong_so",
+  "ccp_nhiet_min",
+  "ccp_nhiet_max",
+  "tan_suat_ghi_ccp_phut"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_chung",
+   "fieldtype": "Section Break",
+   "label": "Chung"
+  },
+  {
+   "fieldname": "cong_ty",
+   "fieldtype": "Link",
+   "label": "Công ty",
+   "options": "Company"
+  },
+  {
+   "fieldname": "item_btp",
+   "fieldtype": "Link",
+   "label": "Item bột BTP",
+   "options": "Item"
+  },
+  {
+   "fieldname": "column_break_chung",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "kho_nvl",
+   "fieldtype": "Link",
+   "label": "Kho NVL",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "kho_btp",
+   "fieldtype": "Link",
+   "label": "Kho BTP",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "kho_tp",
+   "fieldtype": "Link",
+   "label": "Kho TP",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "section_thong_so",
+   "fieldtype": "Section Break",
+   "label": "Thông số"
+  },
+  {
+   "fieldname": "kl_bao_dau_kg",
+   "fieldtype": "Float",
+   "label": "KL bao đậu mặc định (kg)"
+  },
+  {
+   "default": "2",
+   "fieldname": "me_tron_nguong_canh_bao_pct",
+   "fieldtype": "Float",
+   "label": "Ngưỡng cảnh báo lệch trộn (%)"
+  },
+  {
+   "fieldname": "column_break_thong_so",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ccp_nhiet_min",
+   "fieldtype": "Float",
+   "label": "Giới hạn CCP rang min (°C)"
+  },
+  {
+   "fieldname": "ccp_nhiet_max",
+   "fieldtype": "Float",
+   "label": "Giới hạn CCP rang max (°C)"
+  },
+  {
+   "default": "60",
+   "fieldname": "tan_suat_ghi_ccp_phut",
+   "fieldtype": "Int",
+   "label": "Tần suất ghi CCP (phút)"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-11 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1, "write": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1, "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

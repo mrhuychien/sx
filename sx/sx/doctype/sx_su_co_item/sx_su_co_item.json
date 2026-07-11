@@ -1,0 +1,52 @@
+{
+ "actions": [],
+ "creation": "2026-07-11 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "thoi_diem",
+  "loai",
+  "mo_ta",
+  "phut_dung"
+ ],
+ "fields": [
+  {
+   "fieldname": "thoi_diem",
+   "fieldtype": "Datetime",
+   "label": "Thời điểm",
+   "default": "Now",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "loai",
+   "fieldtype": "Select",
+   "label": "Loại",
+   "options": "Hỏng máy\nThiếu NVL\nMất điện\nChất lượng\nKhác",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "mo_ta",
+   "fieldtype": "Small Text",
+   "label": "Mô tả",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "phut_dung",
+   "fieldtype": "Int",
+   "label": "Phút dừng chuyền",
+   "in_list_view": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-11 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Su Co Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
