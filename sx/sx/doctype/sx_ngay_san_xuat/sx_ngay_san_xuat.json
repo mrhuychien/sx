@@ -28,7 +28,8 @@
   "batch_btp",
   "tong_hop",
   "tong_luong_sp",
-  "ghi_chu"
+  "ghi_chu",
+  "salary_products_json"
  ],
  "fields": [
   {
@@ -181,6 +182,15 @@
    "fieldtype": "Small Text",
    "label": "Ghi chú",
    "allow_on_submit": 1
+  },
+  {
+   "fieldname": "salary_products_json",
+   "fieldtype": "Small Text",
+   "label": "SalaryProduct đã sinh (JSON)",
+   "hidden": 1,
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "print_hide": 1
   }
  ],
  "is_submittable": 1,
