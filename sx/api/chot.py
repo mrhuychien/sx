@@ -1,13 +1,12 @@
-"""Chốt ngày sản xuất — orchestrator (spec 5.4) + huỷ ngược (on_cancel_ngay).
+"""Chốt ngày sản xuất v2 (spec §5.4) + huỷ ngược (on_cancel_ngay).
 
-Mọi Work Order + Stock Entry sinh LÚC CHỐT NGÀY với số liệu thực tế,
-skip_transfer=1 (D8). RM pick batch FIFO qua use_serial_batch_fields + batch_no
-(bundle tự sinh khi submit — đã đối chiếu source erpnext v16
-stock_controller.make_bundle_using_old_serial_batch_fields).
+Chốt ngày sinh T2 (hỗn hợp theo báo mẻ) + T3 (TP theo bảng vào hộp).
+KHÔNG xử lý T1 — bột đã nhập ở SX Nhap Bot (GATE-C=A), là tồn kho sẵn.
+RM pick batch FIFO qua use_serial_batch_fields + batch_no (bundle tự sinh khi
+submit — đã đối chiếu source erpnext v16). skip_transfer=1, use_multi_level_bom=0.
 
-GATE-B (SalaryProduct): schema app lam-luong chưa chốt với Chiến — bước 5 dùng
-mapping ADAPTIVE đọc meta lúc runtime; không map được thì báo lỗi tiếng Việt rõ
-ràng và rollback (không để trạng thái nửa vời). Xem _sinh_salary_product.
+GATE-B (SalaryProduct): mapping ADAPTIVE đọc meta runtime; không map được ->
+báo lỗi tiếng Việt rõ + rollback. Chốt mapping cứng sau khi chủ đầu tư duyệt.
 """
 
 import json
@@ -16,40 +15,50 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
-from sx.api.common import QUAN_LY, TO_TRUONG, _guard
-from sx.utils import get_bom_tang_1, get_settings, sinh_ma_lo
+from sx.api.common import QUAN_LY, TO_DONG_GOI, _guard
+from sx.utils import (
+    get_bom_active,
+    get_settings,
+    sinh_ma_lo_hh,
+    sinh_ma_lo_tp,
+)
 
 
 @frappe.whitelist()
 def chot_ngay(ngay_sx):
-    """Chốt ngày: validate -> tầng 1 -> bảng vào hộp -> tầng 2 -> SalaryProduct
-    -> tổng hợp + submit phiếu. Lỗi giữa chừng: rollback toàn bộ, báo rõ bước hỏng."""
-    _guard([TO_TRUONG, QUAN_LY])
+    """Chốt ngày: validate -> T2 hỗn hợp -> submit bảng vào hộp -> T3 TP
+    -> SalaryProduct -> tổng hợp + submit. Lỗi giữa chừng: rollback toàn bộ."""
+    _guard([TO_DONG_GOI, QUAN_LY])
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
 
     buoc = _("kiểm tra điều kiện")
     try:
-        _validate_truoc_chot(doc)
+        bang = _validate_truoc_chot(doc)
 
-        wo1 = se1 = batch_btp = None
-        if doc.chay_tang_1:
-            buoc = _("tầng 1 (rang bột)")
-            wo1, se1, batch_btp = _chot_tang_1(doc)
+        chung_tu = []  # [{dt, name}] theo thứ tự sinh — để huỷ ngược
+
+        buoc = _("tầng 2 (trộn hỗn hợp)")
+        _chot_tang_2(doc, chung_tu)
 
         buoc = _("submit bảng vào hộp")
-        bang = _submit_bang_vao_hop(doc)
+        bang.flags.ignore_permissions = True
+        if bang.docstatus == 0:
+            bang.submit()
 
-        ket_qua_tang_2 = {}
-        if bang:
-            buoc = _("tầng 2 (thành phẩm)")
-            ket_qua_tang_2 = _chot_tang_2(doc, bang)
+        buoc = _("tầng 3 (thành phẩm)")
+        _chot_tang_3(doc, bang, chung_tu)
 
-            buoc = _("sinh SalaryProduct (lương sản phẩm)")
-            ds_salary = _sinh_salary_product(doc, bang)
-            doc.salary_products_json = json.dumps(ds_salary)
+        buoc = _("sinh SalaryProduct (lương sản phẩm)")
+        ds_salary = _sinh_salary_product(doc, bang)
 
         buoc = _("tổng hợp + submit phiếu ngày")
-        _hoan_tat(doc, bang, wo1, se1, batch_btp, ket_qua_tang_2)
+        doc.tong_hop_tp = cint(bang.tong_hop)
+        doc.tong_luong_sp = flt(bang.tong_tien)
+        doc.ds_wo_se = json.dumps(chung_tu)
+        doc.salary_products_json = json.dumps(ds_salary)
+        doc.flags.tu_chot_ngay = True
+        doc.save()
+        doc.submit()
     except Exception:
         frappe.db.rollback()
         frappe.log_error(
@@ -64,9 +73,8 @@ def chot_ngay(ngay_sx):
     return {
         "name": doc.name,
         "trang_thai": doc.trang_thai,
-        "tong_hop": doc.tong_hop,
+        "tong_hop_tp": doc.tong_hop_tp,
         "tong_luong_sp": doc.tong_luong_sp,
-        "btp_thuc_te_kg": doc.btp_thuc_te_kg,
     }
 
 
@@ -82,7 +90,7 @@ def _validate_truoc_chot(doc):
     settings = get_settings()
     for f, label in (
         ("cong_ty", "Công ty"),
-        ("item_btp", "Item bột BTP"),
+        ("item_bot", "Item bột BTP"),
         ("kho_nvl", "Kho NVL"),
         ("kho_btp", "Kho BTP"),
         ("kho_tp", "Kho TP"),
@@ -90,52 +98,22 @@ def _validate_truoc_chot(doc):
         if not settings.get(f):
             frappe.throw(_("SX Settings chưa cấu hình: {0}").format(label))
 
-    if doc.chay_tang_1:
-        # ≥1 bản ghi CCP và mọi bản ghi lệch phải có hành động khắc phục
-        ccp = frappe.get_all(
-            "SX Ghi Nhan CCP",
-            filters={"ngay_sx": doc.name},
-            fields=["name", "dat", "hanh_dong_khac_phuc"],
-        )
-        if not ccp:
-            frappe.throw(
-                _("Hôm nay có rang nhưng CHƯA ghi lần CCP nào. Ghi ít nhất 1 lần "
-                  "nhiệt độ rang rồi mới chốt được.")
-            )
-        thieu = [r.name for r in ccp if not r.dat and not (r.hanh_dong_khac_phuc or "").strip()]
-        if thieu:
-            frappe.throw(
-                _("Bản ghi CCP lệch chưa có hành động khắc phục: {0}").format(
-                    ", ".join(thieu)
-                )
-            )
-        if flt(doc.dau_vao_kg) <= 0:
-            frappe.throw(_("Số bao đậu / khối lượng bao chưa hợp lệ"))
-
-    # Mọi mẻ trộn của ngày phải đã submit
-    me_nhap = frappe.get_all(
-        "SX Me Tron", filters={"ngay_sx": doc.name, "docstatus": 0}, pluck="name"
+    # Bảng vào hộp bắt buộc — đây là sản lượng TP (spec §5.4.1)
+    ten_bang = frappe.db.get_value(
+        "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": ("<", 2)}, "name"
     )
-    if me_nhap:
-        frappe.throw(
-            _("Mẻ trộn còn ở trạng thái nháp: {0}. Submit hết rồi mới chốt.").format(
-                ", ".join(me_nhap)
-            )
-        )
+    if not ten_bang:
+        frappe.throw(_("Chưa có bảng vào hộp — không có sản lượng TP để chốt."))
+    bang = frappe.get_doc("SX Bang Vao Hop", ten_bang)
+    if not cint(bang.tong_hop):
+        frappe.throw(_("Bảng vào hộp tổng = 0 hộp — không có gì để chốt."))
+    # Đơn giá: controller đã lookup khi save; save lại để chắc mọi dòng có giá
+    if bang.docstatus == 0:
+        bang.flags.ignore_permissions = True
+        bang.save()
 
-    if doc.san_pham_tang_2:
-        bang = frappe.db.get_value(
-            "SX Bang Vao Hop",
-            {"ngay_sx": doc.name, "docstatus": ("<", 2)},
-            ["name", "tong_hop"],
-            as_dict=True,
-        )
-        if not bang or not cint(bang.tong_hop):
-            frappe.throw(
-                _("Có sản phẩm đóng hộp hôm nay nhưng bảng vào hộp chưa có/tổng = 0.")
-            )
-
-    _kiem_ton_kho(doc, settings)
+    _kiem_ton_kho(doc, bang, settings)
+    return bang
 
 
 def _nhu_cau_bom(bom_name, qty_fg):
@@ -148,9 +126,21 @@ def _nhu_cau_bom(bom_name, qty_fg):
     return nhu_cau
 
 
-def _kiem_ton_kho(doc, settings):
-    """Kiểm đủ tồn NVL/BTP TRƯỚC khi tạo chứng từ — báo thiếu cụ thể (spec 5.4.1)."""
+def _kho_nguon(item_code, settings):
+    """RM nhóm BTP (bột/hỗn hợp) rút từ Kho BTP; còn lại từ Kho NVL."""
+    nhom = frappe.get_cached_value("Item", item_code, "custom_sx_nhom") or ""
+    return settings.kho_btp if nhom.startswith("BTP") else settings.kho_nvl
+
+
+def _kiem_ton_kho(doc, bang, settings):
+    """Kiểm đủ tồn TRƯỚC khi tạo chứng từ — báo thiếu cụ thể (spec §5.4.1).
+    Tồn hỗn hợp được cộng thêm lượng sinh ra ở T2 trong cùng lần chốt."""
     thieu = []
+    hh_sinh_hom_nay = {}
+    for row in doc.bao_me:
+        hh_sinh_hom_nay[row.hon_hop] = (
+            hh_sinh_hom_nay.get(row.hon_hop, 0) + flt(row.tong_kg)
+        )
 
     def _check(item_code, kho, can, cong_them=0.0):
         ton = flt(
@@ -165,38 +155,32 @@ def _kiem_ton_kho(doc, settings):
                 )
             )
 
-    btp_hom_nay = 0.0
-    if doc.chay_tang_1:
-        for item_code, can in _nhu_cau_bom(get_bom_tang_1(), flt(doc.btp_du_kien_kg)).items():
-            _check(item_code, settings.kho_nvl, can)
-        btp_hom_nay = flt(doc.btp_du_kien_kg)
+    # T2: nhu cầu bột + phụ liệu cho từng dòng báo mẻ
+    for row in doc.bao_me:
+        bom = get_bom_active(row.hon_hop)
+        if not bom:
+            frappe.throw(_("Hỗn hợp {0} chưa có BOM active").format(row.hon_hop))
+        for item_code, can in _nhu_cau_bom(bom, flt(row.tong_kg)).items():
+            _check(item_code, _kho_nguon(item_code, settings), can)
 
-    bang = _lay_bang_vao_hop(doc)
-    if bang:
-        for sp, so_hop in _tong_hop_theo_sp(bang).items():
-            bom_sp = frappe.db.get_value(
-                "BOM", {"item": sp, "is_active": 1, "is_default": 1, "docstatus": 1}, "name"
+    # T3: nhu cầu hỗn hợp + bao bì cho từng SKU
+    for sp, so_hop in _tong_hop_theo_sp(bang).items():
+        bom_sp = get_bom_active(sp)
+        if not bom_sp:
+            frappe.throw(_("Sản phẩm {0} chưa có BOM active").format(sp))
+        for item_code, can in _nhu_cau_bom(bom_sp, so_hop).items():
+            _check(
+                item_code,
+                _kho_nguon(item_code, settings),
+                can,
+                cong_them=hh_sinh_hom_nay.get(item_code, 0),
             )
-            if not bom_sp:
-                frappe.throw(_("Sản phẩm {0} chưa có BOM active").format(sp))
-            for item_code, can in _nhu_cau_bom(bom_sp, so_hop).items():
-                if item_code == settings.item_btp:
-                    # BTP rút từ kho BTP; bột rang hôm nay được cộng vào nguồn
-                    _check(item_code, settings.kho_btp, can, cong_them=btp_hom_nay)
-                else:
-                    _check(item_code, settings.kho_nvl, can)
 
     if thieu:
         frappe.throw(
-            _("Không đủ tồn kho để chốt ngày:") + "<br>" + "<br>".join(thieu)
+            _("Không đủ tồn kho để chốt ngày (có thể quên báo mẻ / quên nhập bột):")
+            + "<br>" + "<br>".join(thieu)
         )
-
-
-def _lay_bang_vao_hop(doc):
-    ten = frappe.db.get_value(
-        "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": ("<", 2)}, "name"
-    )
-    return frappe.get_doc("SX Bang Vao Hop", ten) if ten else None
 
 
 def _tong_hop_theo_sp(bang):
@@ -209,14 +193,13 @@ def _tong_hop_theo_sp(bang):
 # ─────────────────────────────────────────────── tạo Batch / WO / SE ──
 
 
-def _tao_batch(item_code, doc):
-    """Batch tạo TRƯỚC SE thành phẩm, mã lô {prefix}-{DDMMYY} (spec 2.7)."""
+def _tao_batch(item_code, batch_id, lo_rang=None):
     batch = frappe.get_doc(
         {
             "doctype": "Batch",
-            "batch_id": sinh_ma_lo(item_code, doc.ngay),
+            "batch_id": batch_id,
             "item": item_code,
-            "custom_ngay_sx": doc.name,
+            "custom_lo_rang": lo_rang,
         }
     )
     batch.flags.ignore_permissions = True
@@ -224,8 +207,8 @@ def _tao_batch(item_code, doc):
     return batch.name
 
 
-def _tao_wo(doc, item_code, qty, bom_no, source_wh, fg_wh, uom=None):
-    """Work Order skip_transfer=1 (D8) — guard role đã qua, thao tác ignore_permissions."""
+def _tao_wo(doc, item_code, qty, bom_no, fg_wh, chung_tu):
+    """Work Order skip_transfer=1 (D11). Guard role đã qua -> ignore_permissions."""
     settings = get_settings()
     wo = frappe.get_doc(
         {
@@ -235,12 +218,12 @@ def _tao_wo(doc, item_code, qty, bom_no, source_wh, fg_wh, uom=None):
             "qty": qty,
             "bom_no": bom_no,
             "skip_transfer": 1,
-            # BẮT BUỘC 0: BOM tầng 2 chứa BOT-NC (item có BOM riêng) — multi-level
-            # sẽ explode ngược ra đậu xanh, phá backflush 2 tầng (D1/D3)
+            # BẮT BUỘC 0: BOM T3 chứa hỗn hợp (item có BOM riêng), BOM T2 chứa bột —
+            # multi-level sẽ explode ngược phá kiến trúc 3 tầng (D1)
             "use_multi_level_bom": 0,
-            "source_warehouse": source_wh,
+            "source_warehouse": settings.kho_nvl,
             "fg_warehouse": fg_wh,
-            "wip_warehouse": fg_wh,  # không dùng vì skip_transfer, chỉ để thoả reqd
+            "wip_warehouse": fg_wh,  # không dùng vì skip_transfer, chỉ thoả reqd
             "planned_start_date": str(doc.ngay),
             "custom_ngay_sx": doc.name,
         }
@@ -248,16 +231,16 @@ def _tao_wo(doc, item_code, qty, bom_no, source_wh, fg_wh, uom=None):
     wo.flags.ignore_permissions = True
     wo.insert()
     wo.submit()
+    chung_tu.append({"dt": "Work Order", "name": wo.name})
     return wo
 
 
-def _tao_se_manufacture(doc, wo, qty, batch_fg, override_wh=None):
-    """SE Manufacture từ WO: RM pick batch FIFO, FG gắn batch đã tạo.
-
-    override_wh: {item_code: warehouse} để đổi kho nguồn từng RM (BOT-NC lấy từ kho BTP).
-    """
+def _tao_se_manufacture(doc, wo, qty, batch_fg, chung_tu):
+    """SE Manufacture từ WO: RM nhóm BTP đổi kho nguồn sang Kho BTP, pick batch
+    FIFO (bột cũ / hỗn hợp cũ dùng trước — D6); FG gắn batch đã tạo."""
     from erpnext.manufacturing.doctype.work_order.work_order import make_stock_entry
 
+    settings = get_settings()
     se = frappe.get_doc(make_stock_entry(wo.name, "Manufacture", qty))
     se.custom_ngay_sx = doc.name
     se.set_posting_time = 1
@@ -267,14 +250,15 @@ def _tao_se_manufacture(doc, wo, qty, batch_fg, override_wh=None):
         if row.get("is_finished_item"):
             row.use_serial_batch_fields = 1
             row.batch_no = batch_fg
-        elif override_wh and row.item_code in override_wh:
-            row.s_warehouse = override_wh[row.item_code]
+        elif row.s_warehouse:
+            row.s_warehouse = _kho_nguon(row.item_code, settings)
 
     _gan_batch_fifo(se)
 
     se.flags.ignore_permissions = True
     se.insert()
     se.submit()
+    chung_tu.append({"dt": "Stock Entry", "name": se.name})
     return se
 
 
@@ -282,8 +266,7 @@ def _gan_batch_fifo(se):
     """Gán batch FIFO cho dòng RM có has_batch_no; 1 dòng có thể tách nhiều batch.
 
     get_batch_qty trả batch theo chiến lược pick của Stock Settings (mặc định FIFO)
-    -> bột cũ dùng trước, gồm cả batch rang hôm nay (đã submit ở tầng 1).
-    """
+    -> lô R / batch hỗn hợp cũ nhất dùng trước (D6 — mắt xích truy xuất)."""
     from erpnext.stock.doctype.batch.batch import get_batch_qty
 
     them = []
@@ -327,63 +310,39 @@ def _gan_batch_fifo(se):
         se.append("items", mau)
 
 
-# ───────────────────────────────────────────────────── tầng 1 / tầng 2 ──
+# ───────────────────────────────────────────────────── tầng 2 / tầng 3 ──
 
 
-def _chot_tang_1(doc):
+def _chot_tang_2(doc, chung_tu):
+    """Mỗi dòng báo mẻ: Batch HH -> WO -> SE Manufacture (bột FIFO, FG vào Kho BTP)."""
     settings = get_settings()
-    qty_btp = flt(doc.btp_du_kien_kg)  # D4: BTP thực tế = dự kiến từ yield BOM
-    batch = _tao_batch(settings.item_btp, doc)
-    wo = _tao_wo(
-        doc, settings.item_btp, qty_btp, get_bom_tang_1(), settings.kho_nvl, settings.kho_btp
-    )
-    se = _tao_se_manufacture(doc, wo, qty_btp, batch)
-    return wo.name, se.name, batch
+    for row in doc.bao_me:
+        qty_hh = flt(row.tong_kg)
+        if qty_hh <= 0:
+            continue
+        bom = get_bom_active(row.hon_hop)
+        batch = _tao_batch(row.hon_hop, sinh_ma_lo_hh(row.hon_hop, doc.ngay))
+        wo = _tao_wo(doc, row.hon_hop, qty_hh, bom, settings.kho_btp, chung_tu)
+        _tao_se_manufacture(doc, wo, qty_hh, batch, chung_tu)
+        row.batch_hh = batch
 
 
-def _submit_bang_vao_hop(doc):
-    bang = _lay_bang_vao_hop(doc)
-    if not bang:
-        return None
-    if bang.docstatus == 0:
-        bang.flags.ignore_permissions = True
-        bang.submit()
-    return bang
-
-
-def _chot_tang_2(doc, bang):
-    """Mỗi SP có hộp trong bảng: Batch TP -> WO -> SE Manufacture.
-    Trả {san_pham: {"so_hop","wo","se","batch"}}."""
+def _chot_tang_3(doc, bang, chung_tu):
+    """Mỗi SKU trong bảng vào hộp: Batch TP -> WO -> SE (hỗn hợp FIFO, FG vào Kho TP)."""
     settings = get_settings()
-    ket_qua = {}
-    tong_theo_sp = _tong_hop_theo_sp(bang)
-
-    # SP có trong bảng nhưng chưa tick lúc mở ngày -> tự bổ sung dòng (0 chạm)
-    da_tick = {r.san_pham for r in doc.san_pham_tang_2}
-    for sp in tong_theo_sp:
-        if sp not in da_tick:
-            doc.append("san_pham_tang_2", {"san_pham": sp})
-
-    for sp, so_hop in tong_theo_sp.items():
+    for sp, so_hop in _tong_hop_theo_sp(bang).items():
         if so_hop <= 0:
             continue
-        bom_sp = frappe.db.get_value(
-            "BOM", {"item": sp, "is_active": 1, "is_default": 1, "docstatus": 1}, "name"
-        )
-        batch = _tao_batch(sp, doc)
-        wo = _tao_wo(doc, sp, so_hop, bom_sp, settings.kho_nvl, settings.kho_tp)
-        # BOT-NC rút từ kho BTP (bột cũ FIFO trước, gồm batch hôm nay); còn lại kho NVL
-        se = _tao_se_manufacture(
-            doc, wo, so_hop, batch, override_wh={settings.item_btp: settings.kho_btp}
-        )
-        ket_qua[sp] = {"so_hop": so_hop, "wo": wo.name, "se": se.name, "batch": batch}
-    return ket_qua
+        bom_sp = get_bom_active(sp)
+        batch = _tao_batch(sp, sinh_ma_lo_tp(sp, doc.ngay))
+        wo = _tao_wo(doc, sp, so_hop, bom_sp, settings.kho_tp, chung_tu)
+        _tao_se_manufacture(doc, wo, so_hop, batch, chung_tu)
 
 
-# ─────────────────────────────────────────────── bước 5: SalaryProduct ──
+# ─────────────────────────────────────────────── bước 6: SalaryProduct ──
 
 # GATE-B: mapping field ứng viên — xác nhận schema thật bằng
-# `frappe.get_meta("SalaryProduct").as_dict()` trên site rồi chốt với Chiến.
+# frappe.get_meta("SalaryProduct").as_dict() trên site rồi chốt với chủ đầu tư.
 _SALARY_DT_CANDIDATES = ("SalaryProduct", "Salary Product")
 _FIELD_CANDIDATES = {
     "employee": ("employee", "nhan_vien", "nhanvien"),
@@ -416,25 +375,23 @@ def _map_salary_fields(meta):
 
 
 def _sinh_salary_product(doc, bang):
-    """1 bản ghi SalaryProduct / dòng bảng vào hộp (spec 5.4.5, GATE-B adaptive).
+    """1 bản ghi SalaryProduct / dòng bảng vào hộp (GATE-B adaptive).
 
-    Không tìm được doctype hoặc không map nổi field tối thiểu (employee, qty)
-    -> throw rõ ràng (rollback toàn bộ chốt ngày, không nửa vời).
-    """
+    Không tìm được doctype hoặc không map nổi (employee, qty) -> throw rõ ràng
+    (rollback toàn bộ, không nửa vời)."""
     dt = _salary_doctype()
     if not dt:
         frappe.throw(
             _("Không tìm thấy DocType SalaryProduct (app lam-luong). "
               "GATE-B: chạy frappe.get_meta('SalaryProduct') trên site, chốt mapping "
-              "với Chiến rồi cập nhật _FIELD_CANDIDATES trong sx/api/chot.py.")
+              "rồi cập nhật _FIELD_CANDIDATES trong sx/api/chot.py.")
         )
     meta = frappe.get_meta(dt)
     mapping = _map_salary_fields(meta)
     if "employee" not in mapping or "qty" not in mapping:
         frappe.throw(
             _("Schema {0} không khớp mapping tối thiểu (employee, qty). "
-              "GATE-B: chốt mapping với Chiến rồi cập nhật sx/api/chot.py. "
-              "Field hiện có: {1}").format(
+              "GATE-B: chốt mapping rồi cập nhật sx/api/chot.py. Field hiện có: {1}").format(
                 dt, ", ".join(sorted(df.fieldname for df in meta.fields if df.fieldname))
             )
         )
@@ -462,41 +419,16 @@ def _sinh_salary_product(doc, bang):
     return ds_ten
 
 
-# ─────────────────────────────────────────────── bước 6: hoàn tất ──
-
-
-def _hoan_tat(doc, bang, wo1, se1, batch_btp, ket_qua_tang_2):
-    if doc.chay_tang_1:
-        doc.btp_thuc_te_kg = flt(doc.btp_du_kien_kg)
-        doc.wo_tang_1 = wo1
-        doc.se_tang_1 = se1
-        doc.batch_btp = batch_btp
-    for row in doc.san_pham_tang_2:
-        kq = ket_qua_tang_2.get(row.san_pham)
-        if kq:
-            row.so_hop_thuc_te = kq["so_hop"]
-            row.wo = kq["wo"]
-            row.se = kq["se"]
-            row.batch_tp = kq["batch"]
-        else:
-            row.so_hop_thuc_te = 0
-    doc.tong_hop = cint(bang.tong_hop) if bang else 0
-    doc.tong_luong_sp = flt(bang.tong_tien) if bang else 0
-    doc.flags.tu_chot_ngay = True
-    doc.save()
-    doc.submit()
-
-
 # ─────────────────────────────────────────────── huỷ ngược (hook) ──
 
 
 def on_cancel_ngay(doc, method=None):
-    """Huỷ chuỗi ngược: SE tầng 2 -> WO tầng 2 -> SE tầng 1 -> WO tầng 1
-    -> xoá SalaryProduct. Batch giữ nguyên (đã có ledger) — ghi chú lại (spec 2.1)."""
+    """Huỷ chuỗi ngược theo ds_wo_se: đảo thứ tự sinh (SE T3 -> WO T3 -> SE T2 -> WO T2)
+    -> huỷ bảng vào hộp -> xoá SalaryProduct. Batch giữ nguyên (spec §5.4)."""
     log = []
 
     def _cancel(doctype, ten):
-        if not ten:
+        if not ten or not frappe.db.exists(doctype, ten):
             return
         d = frappe.get_doc(doctype, ten)
         if d.docstatus == 1:
@@ -504,14 +436,10 @@ def on_cancel_ngay(doc, method=None):
             d.cancel()
             log.append(f"Huỷ {doctype} {ten}")
 
-    for row in doc.san_pham_tang_2:
-        _cancel("Stock Entry", row.se)
-    for row in doc.san_pham_tang_2:
-        _cancel("Work Order", row.wo)
-    _cancel("Stock Entry", doc.se_tang_1)
-    _cancel("Work Order", doc.wo_tang_1)
+    chung_tu = json.loads(doc.ds_wo_se) if doc.ds_wo_se else []
+    for ct in reversed(chung_tu):
+        _cancel(ct.get("dt"), ct.get("name"))
 
-    # Bảng vào hộp huỷ theo để mở lại được ngày (amend)
     bang = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": 1}, "name"
     )
@@ -524,7 +452,7 @@ def on_cancel_ngay(doc, method=None):
                 frappe.delete_doc(dt, ten, ignore_permissions=True, force=True)
                 log.append(f"Xoá {dt} {ten}")
 
-    batches = [b for b in [doc.batch_btp] + [r.batch_tp for r in doc.san_pham_tang_2] if b]
+    batches = [r.batch_hh for r in doc.bao_me if r.batch_hh]
     if batches:
         log.append(
             "Batch giữ nguyên (đã có ledger, không xoá được): " + ", ".join(batches)

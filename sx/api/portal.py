@@ -1,15 +1,21 @@
-"""Whitelisted API cho portal SPA /sx.
+"""Whitelisted API cho portal SPA /sx (v2 — 4 điểm nhập liệu).
 
-Mọi method: guard role ở dòng đầu (spec mục 3 — method-mediated permission).
-Dữ liệu doc chuẩn (Employee, BOM...) chỉ trả về field trong whitelist.
+Mọi method: guard role ở dòng đầu (spec §4). Dữ liệu doc chuẩn chỉ trả
+field trong whitelist (Employee: name, employee_name).
 """
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, getdate, nowdate
+from frappe.utils import add_days, cint, flt, getdate, nowdate
 
-from sx.api.common import QUAN_LY, TO_TRUONG, TRAM_RANG, _guard
-from sx.utils import get_settings, get_yield_tang_1
+from sx.api.common import QUAN_LY, THU_KHO, TO_DONG_GOI, TO_TRON, _guard
+from sx.utils import (
+    get_bom_active,
+    get_don_gia_vao_hop,
+    get_item_dau,
+    get_settings,
+    get_yield_tang_1,
+)
 
 
 # ─────────────────────────────────────────────────────────────── boot ──
@@ -17,107 +23,131 @@ from sx.utils import get_settings, get_yield_tang_1
 
 @frappe.whitelist()
 def get_boot():
-    """Context khởi động portal: phiếu ngày hôm nay, list Item TP, settings công khai,
-    lần ghi CCP gần nhất, danh sách nhân viên (chỉ name + employee_name)."""
-    _guard([TO_TRUONG, TRAM_RANG, QUAN_LY])
+    """Context khởi động portal theo role: phiếu ngày, danh mục, lô đậu FIFO,
+    lô vật tư đang mở, lô R chờ nhập bột, nhân viên (whitelist field)."""
+    _guard([THU_KHO, TO_TRON, TO_DONG_GOI, QUAN_LY])
     roles = set(frappe.get_roles())
+    la_quan_ly = bool(roles & {QUAN_LY, "System Manager"})
     hom_nay = nowdate()
-
-    ngay_sx = None
-    ten_phieu = frappe.db.get_value(
-        "SX Ngay San Xuat", {"ngay": hom_nay, "docstatus": ("<", 2)}, "name"
-    )
-    if ten_phieu:
-        # ignore_permissions: Tram Rang chỉ có read nhưng cần đủ context — field đã whitelist
-        doc = frappe.get_doc("SX Ngay San Xuat", ten_phieu)
-        ngay_sx = {
-            "name": doc.name,
-            "ngay": str(doc.ngay),
-            "docstatus": doc.docstatus,
-            "trang_thai": doc.trang_thai,
-            "chay_tang_1": doc.chay_tang_1,
-            "so_bao_dau": doc.so_bao_dau,
-            "kl_bao_kg": doc.kl_bao_kg,
-            "dau_vao_kg": doc.dau_vao_kg,
-            "btp_du_kien_kg": doc.btp_du_kien_kg,
-            "tong_hop": doc.tong_hop,
-            "tong_luong_sp": doc.tong_luong_sp,
-            "san_pham_tang_2": [
-                {"san_pham": r.san_pham, "so_hop_thuc_te": r.so_hop_thuc_te}
-                for r in doc.san_pham_tang_2
-            ],
-            "su_co": [
-                {
-                    "thoi_diem": str(r.thoi_diem),
-                    "loai": r.loai,
-                    "mo_ta": r.mo_ta,
-                    "phut_dung": r.phut_dung,
-                }
-                for r in doc.su_co
-            ],
-        }
-
-    ccp_list = []
-    so_me_tron = 0
-    bang_vao_hop = None
-    if ten_phieu:
-        ccp_list = frappe.get_all(
-            "SX Ghi Nhan CCP",
-            filters={"ngay_sx": ten_phieu},
-            fields=["name", "thoi_diem", "nhiet_do_c", "dat", "hanh_dong_khac_phuc"],
-            order_by="thoi_diem desc",
-            limit=50,
-        )
-        so_me_tron = frappe.db.count(
-            "SX Me Tron", {"ngay_sx": ten_phieu, "docstatus": ("<", 2)}
-        )
-        bang_vao_hop = _bang_vao_hop_summary(ten_phieu)
-
     settings = get_settings()
-    items_tp = frappe.get_all(
-        "Item",
-        filters={"custom_sx_nhom": "TP", "disabled": 0},
-        fields=["name", "item_name"],
-    )
-    # Cỡ mẻ chuẩn lấy từ BOM active của từng SP (1 nguồn sự thật)
-    for it in items_tp:
-        it["co_me_chuan_kg"] = flt(
-            frappe.db.get_value(
-                "BOM",
-                {"item": it["name"], "is_active": 1, "is_default": 1, "docstatus": 1},
-                "custom_co_me_chuan_kg",
-            )
+
+    ngay_sx = _ngay_summary(
+        frappe.db.get_value(
+            "SX Ngay San Xuat", {"ngay": hom_nay, "docstatus": ("<", 2)}, "name"
         )
+    )
+
+    # Danh mục hỗn hợp (BTP-HH) + cỡ mẻ chuẩn từ BOM
+    items_hh = frappe.get_all(
+        "Item", filters={"custom_sx_nhom": "BTP-HH", "disabled": 0},
+        fields=["name", "item_name"], order_by="name",
+    )
+    for it in items_hh:
+        bom = get_bom_active(it["name"])
+        it["co_me_chuan_kg"] = (
+            flt(frappe.db.get_value("BOM", bom, "custom_co_me_chuan_kg")) if bom else 0
+        )
+
+    items_tp = frappe.get_all(
+        "Item", filters={"custom_sx_nhom": "TP", "disabled": 0},
+        fields=["name", "item_name"], order_by="item_name",
+    )
+
+    may = frappe.get_all(
+        "SX May", filters={"dang_dung": 1},
+        fields=["name", "ten_may", "cong_suat_dinh_muc"], order_by="name",
+    )
+
+    # Lô đậu tồn theo FIFO (gợi ý lô cũ nhất cho thủ kho)
+    lo_dau = []
+    if roles & {THU_KHO, QUAN_LY, "System Manager"}:
+        try:
+            from erpnext.stock.doctype.batch.batch import get_batch_qty
+
+            item_dau = get_item_dau()
+            for b in get_batch_qty(item_code=item_dau, warehouse=settings.kho_nvl) or []:
+                if flt(b.get("qty")) > 0:
+                    lo_dau.append({"batch": b.get("batch_no"), "qty": flt(b.get("qty"), 1)})
+        except Exception:
+            # Chưa có BOM T1 / settings (trước Phase 0) — portal vẫn mở được
+            lo_dau = []
+
+    lo_vat_tu = frappe.get_all(
+        "SX Lo Vat Tu", filters={"dang_mo": 1},
+        fields=["name", "vat_tu", "item", "lo_ncc", "ngay_mo"],
+    )
+
+    xuat_dau_gan_day = frappe.get_all(
+        "SX Xuat Dau", filters={"docstatus": 1},
+        fields=["name", "lo_rang", "ngay_rang", "lo_dau_ncc", "so_bao", "dau_kg"],
+        order_by="ngay_rang desc", limit=10,
+    )
+
+    lo_cho_nhap_bot = _lo_cho_nhap_bot() if roles & {TO_TRON, QUAN_LY, "System Manager"} else []
 
     nhan_vien = []
-    if roles & {TO_TRUONG, QUAN_LY, "System Manager"}:
-        # Whitelist field: KHÔNG lộ lương/CCCD (spec mục 3)
+    if roles & {TO_DONG_GOI, QUAN_LY, "System Manager"}:
+        # Whitelist field: KHÔNG lộ lương/CCCD (spec §4)
         nhan_vien = frappe.get_all(
-            "Employee",
-            filters={"status": "Active"},
-            fields=["name", "employee_name"],
-            order_by="employee_name",
+            "Employee", filters={"status": "Active"},
+            fields=["name", "employee_name"], order_by="employee_name",
         )
 
     return {
         "user": frappe.session.user,
-        "is_quan_ly": bool(roles & {QUAN_LY, "System Manager"}),
-        "is_to_truong": bool(roles & {TO_TRUONG, QUAN_LY, "System Manager"}),
-        "is_tram_rang": TRAM_RANG in roles,
+        "is_quan_ly": la_quan_ly,
+        "is_thu_kho": bool(roles & {THU_KHO, QUAN_LY, "System Manager"}),
+        "is_to_tron": bool(roles & {TO_TRON, QUAN_LY, "System Manager"}),
+        "is_to_dong_goi": bool(roles & {TO_DONG_GOI, QUAN_LY, "System Manager"}),
         "hom_nay": hom_nay,
         "ngay_sx": ngay_sx,
-        "ccp_list": ccp_list,
-        "so_me_tron": so_me_tron,
-        "bang_vao_hop": bang_vao_hop,
+        "bang_vao_hop": _bang_vao_hop_summary(ngay_sx["name"]) if ngay_sx else None,
+        "items_hh": items_hh,
         "items_tp": items_tp,
+        "may": may,
+        "lo_dau": lo_dau,
+        "lo_vat_tu": lo_vat_tu,
+        "xuat_dau_gan_day": xuat_dau_gan_day,
+        "lo_cho_nhap_bot": lo_cho_nhap_bot,
         "nhan_vien": nhan_vien,
-        "settings": {
-            "ccp_nhiet_min": flt(settings.ccp_nhiet_min),
-            "ccp_nhiet_max": flt(settings.ccp_nhiet_max),
-            "tan_suat_ghi_ccp_phut": cint(settings.tan_suat_ghi_ccp_phut) or 60,
-            "kl_bao_dau_kg": flt(settings.kl_bao_dau_kg),
-            "me_tron_nguong_canh_bao_pct": flt(settings.me_tron_nguong_canh_bao_pct) or 2,
-        },
+        "settings": {"kl_bao_dau_kg": flt(settings.kl_bao_dau_kg)},
+    }
+
+
+def _ngay_summary(ten):
+    if not ten:
+        return None
+    doc = frappe.get_doc("SX Ngay San Xuat", ten)
+    return {
+        "name": doc.name,
+        "ngay": str(doc.ngay),
+        "docstatus": doc.docstatus,
+        "trang_thai": doc.trang_thai,
+        "tong_hop_tp": doc.tong_hop_tp,
+        "tong_luong_sp": doc.tong_luong_sp,
+        "bao_me": [
+            {
+                "hon_hop": r.hon_hop,
+                "so_me": r.so_me,
+                "co_me_kg": r.co_me_kg,
+                "tong_kg": r.tong_kg,
+                "batch_hh": r.batch_hh,
+            }
+            for r in doc.bao_me
+        ],
+        "cong_suat_may": [
+            {"may": r.may, "so_thung": r.so_thung, "nguoi_chay": r.nguoi_chay}
+            for r in doc.cong_suat_may
+        ],
+        "su_co": [
+            {
+                "thoi_diem": str(r.thoi_diem),
+                "loai": r.loai,
+                "mo_ta": r.mo_ta,
+                "phut_dung": r.phut_dung,
+            }
+            for r in doc.su_co
+        ],
     }
 
 
@@ -148,145 +178,156 @@ def _bang_vao_hop_summary(ngay_sx):
     }
 
 
-# ─────────────────────────────────────────────────────────── mở ngày ──
-
-
-@frappe.whitelist()
-def mo_ngay(chay_tang_1=0, so_bao=0, kl_bao=0, ds_san_pham=None):
-    """Tạo phiếu SX Ngay San Xuat draft cho hôm nay. Chặn nếu ngày đã có phiếu."""
-    _guard([TO_TRUONG, QUAN_LY])
-    ds_san_pham = frappe.parse_json(ds_san_pham or "[]")
-    doc = frappe.new_doc("SX Ngay San Xuat")
-    doc.ngay = nowdate()
-    doc.chay_tang_1 = cint(chay_tang_1)
-    doc.so_bao_dau = cint(so_bao)
-    doc.kl_bao_kg = flt(kl_bao) or flt(get_settings().kl_bao_dau_kg)
-    for sp in ds_san_pham:
-        doc.append("san_pham_tang_2", {"san_pham": sp})
-    doc.insert()  # To Truong có create DocPerm — không cần ignore_permissions
-    return {"name": doc.name, "ngay": str(doc.ngay), "btp_du_kien_kg": doc.btp_du_kien_kg}
-
-
-# ─────────────────────────────────────────────────────────────── CCP ──
-
-
-@frappe.whitelist()
-def ghi_ccp(ngay_sx, nhiet_do_c, ghi_chu=None, hanh_dong=None):
-    """Ghi 1 bản ghi CCP. Nhiệt lệch mà chưa có hành động khắc phục -> trả
-    can_hanh_dong=True (KHÔNG insert) để portal mở modal bắt nhập ngay."""
-    _guard([TRAM_RANG, TO_TRUONG, QUAN_LY])
-    settings = get_settings()
-    nhiet_min, nhiet_max = flt(settings.ccp_nhiet_min), flt(settings.ccp_nhiet_max)
-    nhiet = flt(nhiet_do_c)
-    dat = nhiet_min <= nhiet <= nhiet_max
-
-    if not dat and not (hanh_dong or "").strip():
-        return {"can_hanh_dong": True, "dat": False, "min": nhiet_min, "max": nhiet_max}
-
-    doc = frappe.new_doc("SX Ghi Nhan CCP")
-    doc.ngay_sx = ngay_sx
-    doc.nhiet_do_c = nhiet
-    doc.ghi_chu = ghi_chu
-    doc.hanh_dong_khac_phuc = hanh_dong
-    doc.insert()
-    return {"name": doc.name, "dat": bool(doc.dat), "min": nhiet_min, "max": nhiet_max}
-
-
-# ──────────────────────────────────────────────────────────── mẻ trộn ──
-
-
-@frappe.whitelist()
-def prefill_me_tron(san_pham, co_me_kg=None):
-    """Từ BOM active của SP: lấy dòng custom_nl_tron=1, scale theo tỉ trọng trong
-    nhóm trộn × cỡ mẻ -> rows định mức (spec 5.3)."""
-    _guard([TO_TRUONG, QUAN_LY])
-    bom_name = frappe.db.get_value(
-        "BOM", {"item": san_pham, "is_active": 1, "is_default": 1, "docstatus": 1}, "name"
+def _lo_cho_nhap_bot():
+    """Lô R đã tới ngày rang, chưa có SX Nhap Bot docstatus<2."""
+    da_nhap = frappe.get_all(
+        "SX Nhap Bot", filters={"docstatus": ("<", 2)}, pluck="xuat_dau"
     )
-    if not bom_name:
-        frappe.throw(_("Sản phẩm {0} chưa có BOM active").format(san_pham))
-    bom = frappe.get_cached_doc("BOM", bom_name)
-    co_me_chuan = flt(bom.custom_co_me_chuan_kg)
-    co_me = flt(co_me_kg) or co_me_chuan
-    if not co_me:
-        frappe.throw(
-            _("BOM {0} chưa điền cỡ mẻ chuẩn (custom_co_me_chuan_kg)").format(bom_name)
-        )
+    filters = {"docstatus": 1, "ngay_rang": ("<=", nowdate())}
+    if da_nhap:
+        filters["name"] = ("not in", da_nhap)
+    return frappe.get_all(
+        "SX Xuat Dau",
+        filters=filters,
+        fields=["name", "lo_rang", "ngay_rang", "so_bao", "dau_kg"],
+        order_by="ngay_rang",
+    )
 
-    nhom_tron = [r for r in bom.items if cint(r.get("custom_nl_tron"))]
-    if not nhom_tron:
-        frappe.throw(
-            _("BOM {0} chưa đánh dấu dòng NL nhóm trộn (custom_nl_tron)").format(bom_name)
-        )
-    tong_kg = sum(flt(r.stock_qty) for r in nhom_tron)
-    rows = [
-        {
-            "item": r.item_code,
-            "item_name": r.item_name,
-            "dinh_muc_kg": flt(flt(r.stock_qty) / tong_kg * co_me, 3),
-        }
-        for r in nhom_tron
-    ]
-    return {
-        "bom": bom_name,
-        "co_me_kg": co_me,
-        "co_me_chuan_kg": co_me_chuan,
-        "rows": rows,
-    }
+
+# ─────────────────────────────────────────────────────────── thủ kho ──
 
 
 @frappe.whitelist()
-def luu_me_tron(payload):
-    """Insert + submit SX Me Tron từ payload portal."""
-    _guard([TO_TRUONG, QUAN_LY])
-    data = frappe.parse_json(payload)
-    doc = frappe.new_doc("SX Me Tron")
-    doc.ngay_sx = data.get("ngay_sx")
-    doc.san_pham = data.get("san_pham")
-    doc.bom = data.get("bom")
-    doc.co_me_kg = flt(data.get("co_me_kg"))
-    for r in data.get("nguyen_lieu") or []:
-        doc.append(
-            "nguyen_lieu",
-            {
-                "item": r.get("item"),
-                "dinh_muc_kg": flt(r.get("dinh_muc_kg")),
-                "thuc_can_kg": flt(r.get("thuc_can_kg", r.get("dinh_muc_kg"))),
-                "batch_no": r.get("batch_no"),
-            },
-        )
+def xuat_dau(lo_dau, so_bao, kl_bao=0, ngay_rang=None):
+    """Tạo + submit SX Xuat Dau -> sinh mã lô R (hiển thị TO để ghi thẻ, D13)."""
+    _guard([THU_KHO, QUAN_LY])
+    doc = frappe.new_doc("SX Xuat Dau")
+    doc.ngay_xuat = nowdate()
+    doc.ngay_rang = getdate(ngay_rang) if ngay_rang else add_days(nowdate(), 1)
+    doc.lo_dau_ncc = lo_dau
+    doc.so_bao = cint(so_bao)
+    doc.kl_bao_kg = flt(kl_bao) or flt(get_settings().kl_bao_dau_kg)
     doc.insert()
     doc.submit()
     return {
         "name": doc.name,
-        "me_so": doc.me_so,
-        "dung_cong_thuc": bool(doc.dung_cong_thuc),
-        "tong_lech_pct": flt(doc.tong_lech_pct, 2),
+        "lo_rang": doc.lo_rang,
+        "ngay_rang": str(doc.ngay_rang),
+        "dau_kg": flt(doc.dau_kg),
     }
 
 
-# ──────────────────────────────────────────────────────────── vào hộp ──
+@frappe.whitelist()
+def mo_lo_vat_tu(vat_tu, item, lo_ncc=None):
+    """Mở lô đường/dầu mới (controller tự đóng lô cũ cùng vật tư)."""
+    _guard([THU_KHO, QUAN_LY])
+    doc = frappe.new_doc("SX Lo Vat Tu")
+    doc.vat_tu = vat_tu
+    doc.item = item
+    doc.lo_ncc = lo_ncc
+    doc.ngay_mo = nowdate()
+    doc.dang_mo = 1
+    doc.insert()
+    return {"name": doc.name, "vat_tu": doc.vat_tu, "item": doc.item}
+
+
+# ─────────────────────────────────────────────────────────── tổ trộn ──
 
 
 @frappe.whitelist()
-def luu_bang_vao_hop(payload):
-    """Upsert DRAFT SX Bang Vao Hop (auto-save từng dòng từ portal).
-    Đơn giá luôn lookup server-side trong controller — client gửi gì cũng bị tính lại."""
-    _guard([TO_TRUONG, QUAN_LY])
-    data = frappe.parse_json(payload)
-    ngay_sx = data.get("ngay_sx")
-    if not ngay_sx:
-        frappe.throw(_("Thiếu phiếu ngày"))
-    if frappe.db.get_value("SX Ngay San Xuat", ngay_sx, "docstatus") != 0:
-        frappe.throw(_("Phiếu ngày đã chốt — không sửa được bảng vào hộp"))
+def list_lo_cho_nhap_bot():
+    """Lô R đã rang, chưa nhập bột — cho tổ trộn chọn."""
+    _guard([TO_TRON, QUAN_LY])
+    return _lo_cho_nhap_bot()
 
+
+@frappe.whitelist()
+def nhap_bot(xuat_dau):
+    """Tạo + submit SX Nhap Bot: Batch = lô R + Material Receipt vào Kho BTP (GATE-C=A)."""
+    _guard([TO_TRON, QUAN_LY])
+    doc = frappe.new_doc("SX Nhap Bot")
+    doc.ngay_nhap = nowdate()
+    doc.xuat_dau = xuat_dau
+    doc.insert()
+    doc.submit()
+    doc.reload()
+    return {
+        "name": doc.name,
+        "lo_rang": doc.lo_rang,
+        "bot_kg": flt(doc.bot_kg),
+        "batch": doc.batch_bot,
+    }
+
+
+@frappe.whitelist()
+def get_or_create_ngay(ngay=None):
+    """Lấy (hoặc tạo draft) phiếu ngày — chỗ gắn báo mẻ / công suất / vào hộp."""
+    _guard([TO_TRON, TO_DONG_GOI, QUAN_LY])
+    ngay = getdate(ngay) if ngay else getdate(nowdate())
+    ten = frappe.db.get_value(
+        "SX Ngay San Xuat", {"ngay": ngay, "docstatus": ("<", 2)}, "name"
+    )
+    if not ten:
+        doc = frappe.new_doc("SX Ngay San Xuat")
+        doc.ngay = ngay
+        doc.insert()
+        ten = doc.name
+    return _ngay_summary(ten)
+
+
+@frappe.whitelist()
+def bao_me(ngay_sx, rows):
+    """Upsert child bao_me trên phiếu ngày draft. rows = [{hon_hop, so_me}]."""
+    _guard([TO_TRON, QUAN_LY])
+    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
+    if doc.docstatus != 0:
+        frappe.throw(_("Phiếu ngày đã chốt — không sửa báo mẻ được"))
+    doc.set("bao_me", [])
+    for r in frappe.parse_json(rows) or []:
+        if cint(r.get("so_me")) > 0:
+            doc.append("bao_me", {"hon_hop": r.get("hon_hop"), "so_me": cint(r.get("so_me"))})
+    doc.save()
+    return _ngay_summary(doc.name)
+
+
+# ─────────────────────────────────────────────────────── tổ đóng gói ──
+
+
+@frappe.whitelist()
+def cong_suat_may(ngay_sx, rows):
+    """Upsert child cong_suat_may. rows = [{may, so_thung, nguoi_chay?}]."""
+    _guard([TO_DONG_GOI, QUAN_LY])
+    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
+    if doc.docstatus != 0:
+        frappe.throw(_("Phiếu ngày đã chốt — không sửa công suất máy được"))
+    doc.set("cong_suat_may", [])
+    for r in frappe.parse_json(rows) or []:
+        if cint(r.get("so_thung")) > 0:
+            doc.append(
+                "cong_suat_may",
+                {
+                    "may": r.get("may"),
+                    "so_thung": cint(r.get("so_thung")),
+                    "nguoi_chay": r.get("nguoi_chay"),
+                },
+            )
+    doc.save()
+    return _ngay_summary(doc.name)
+
+
+@frappe.whitelist()
+def luu_bang_vao_hop(ngay_sx, rows):
+    """Upsert DRAFT SX Bang Vao Hop (auto-save). Đơn giá luôn tính lại server-side."""
+    _guard([TO_DONG_GOI, QUAN_LY])
+    if frappe.db.get_value("SX Ngay San Xuat", ngay_sx, "docstatus") != 0:
+        frappe.throw(_("Phiếu ngày đã chốt — không sửa bảng vào hộp được"))
     ten = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": 0}, "name"
     )
     doc = frappe.get_doc("SX Bang Vao Hop", ten) if ten else frappe.new_doc("SX Bang Vao Hop")
     doc.ngay_sx = ngay_sx
     doc.set("dong", [])
-    for r in data.get("dong") or []:
+    for r in frappe.parse_json(rows) or []:
         doc.append(
             "dong",
             {
@@ -300,13 +341,10 @@ def luu_bang_vao_hop(payload):
     return _bang_vao_hop_summary(ngay_sx)
 
 
-# ───────────────────────────────────────────────────────────── sự cố ──
-
-
 @frappe.whitelist()
 def ghi_su_co(ngay_sx, loai, mo_ta=None, phut_dung=0):
     """Append 1 dòng sự cố vào phiếu ngày draft."""
-    _guard([TO_TRUONG, QUAN_LY])
+    _guard([TO_DONG_GOI, TO_TRON, QUAN_LY])
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
     if doc.docstatus != 0:
         frappe.throw(_("Phiếu ngày đã chốt — không ghi thêm sự cố được"))
@@ -323,47 +361,27 @@ def ghi_su_co(ngay_sx, loai, mo_ta=None, phut_dung=0):
     return {"so_su_co": len(doc.su_co)}
 
 
-# ──────────────────────────────────────────────────────────── dashboard ──
+# ─────────────────────────────────────────────────────────── quản lý ──
 
 
 @frappe.whitelist()
 def dashboard(tu_ngay=None, den_ngay=None):
-    """Số liệu quản lý (V5): sản lượng, yield, %CCP đạt, phút dừng, năng suất vào hộp/người."""
+    """KPI quản lý: sản lượng theo SKU, năng suất/người, công suất máy, sự cố,
+    tồn hỗn hợp (cảnh báo âm = quên báo mẻ)."""
     _guard([QUAN_LY])
     den_ngay = getdate(den_ngay or nowdate())
-    tu_ngay = getdate(tu_ngay) if tu_ngay else frappe.utils.add_days(den_ngay, -6)
+    tu_ngay = getdate(tu_ngay) if tu_ngay else add_days(den_ngay, -6)
+    so_ngay = (den_ngay - tu_ngay).days + 1
 
     phieu = frappe.get_all(
         "SX Ngay San Xuat",
         filters={"ngay": ("between", (tu_ngay, den_ngay)), "docstatus": 1},
-        fields=[
-            "name", "ngay", "dau_vao_kg", "btp_thuc_te_kg", "tong_hop", "tong_luong_sp",
-        ],
+        fields=["name", "ngay", "tong_hop_tp", "tong_luong_sp"],
         order_by="ngay",
     )
     ds_phieu = [p.name for p in phieu]
 
-    # %CCP đạt trong kỳ
-    ccp_tong = ccp_dat = 0
-    if ds_phieu:
-        ccp_tong = frappe.db.count("SX Ghi Nhan CCP", {"ngay_sx": ("in", ds_phieu)})
-        ccp_dat = frappe.db.count(
-            "SX Ghi Nhan CCP", {"ngay_sx": ("in", ds_phieu), "dat": 1}
-        )
-
-    # Phút dừng sự cố — child table, query qua parent đã lọc
-    phut_dung = 0
-    su_co = []
-    if ds_phieu:
-        su_co = frappe.get_all(
-            "SX Su Co Item",
-            filters={"parent": ("in", ds_phieu), "parenttype": "SX Ngay San Xuat"},
-            fields=["loai", "phut_dung", "mo_ta", "thoi_diem"],
-        )
-        phut_dung = sum(cint(r.phut_dung) for r in su_co)
-
-    # Năng suất vào hộp theo người (chỉ bảng đã submit)
-    nang_suat = []
+    san_luong_sku, nang_suat, cong_suat, su_co, phut_dung = [], [], [], [], 0
     if ds_phieu:
         bang = frappe.get_all(
             "SX Bang Vao Hop", filters={"ngay_sx": ("in", ds_phieu), "docstatus": 1},
@@ -373,20 +391,59 @@ def dashboard(tu_ngay=None, den_ngay=None):
             rows = frappe.get_all(
                 "SX Bang Vao Hop Item",
                 filters={"parent": ("in", bang), "parenttype": "SX Bang Vao Hop"},
-                fields=["nhan_vien", "ten_nhan_vien", "so_hop", "thanh_tien"],
+                fields=["nhan_vien", "ten_nhan_vien", "san_pham", "so_hop", "thanh_tien"],
             )
-            gop = {}
+            gop_sku, gop_nv = {}, {}
             for r in rows:
-                g = gop.setdefault(
+                s = gop_sku.setdefault(r.san_pham, {"san_pham": r.san_pham, "so_hop": 0})
+                s["so_hop"] += cint(r.so_hop)
+                g = gop_nv.setdefault(
                     r.nhan_vien,
                     {"nhan_vien": r.nhan_vien, "ten": r.ten_nhan_vien, "so_hop": 0, "tien": 0.0},
                 )
                 g["so_hop"] += cint(r.so_hop)
                 g["tien"] += flt(r.thanh_tien)
-            nang_suat = sorted(gop.values(), key=lambda g: -g["so_hop"])
+            san_luong_sku = sorted(gop_sku.values(), key=lambda x: -x["so_hop"])
+            nang_suat = sorted(gop_nv.values(), key=lambda x: -x["so_hop"])
 
-    tong_dau = sum(flt(p.dau_vao_kg) for p in phieu)
-    tong_btp = sum(flt(p.btp_thuc_te_kg) for p in phieu)
+        cs_rows = frappe.get_all(
+            "SX Cong Suat May",
+            filters={"parent": ("in", ds_phieu), "parenttype": "SX Ngay San Xuat"},
+            fields=["may", "so_thung"],
+        )
+        gop_may = {}
+        for r in cs_rows:
+            m = gop_may.setdefault(r.may, {"may": r.may, "so_thung": 0})
+            m["so_thung"] += cint(r.so_thung)
+        for m in gop_may.values():
+            dinh_muc = cint(frappe.db.get_value("SX May", m["may"], "cong_suat_dinh_muc"))
+            m["dinh_muc_ky"] = dinh_muc * so_ngay
+            m["pct"] = flt(m["so_thung"] / m["dinh_muc_ky"] * 100, 1) if m["dinh_muc_ky"] else None
+        cong_suat = sorted(gop_may.values(), key=lambda x: x["may"])
+
+        su_co = frappe.get_all(
+            "SX Su Co Item",
+            filters={"parent": ("in", ds_phieu), "parenttype": "SX Ngay San Xuat"},
+            fields=["loai", "phut_dung", "mo_ta", "thoi_diem"],
+        )
+        phut_dung = sum(cint(r.phut_dung) for r in su_co)
+
+    # Tồn hỗn hợp hiện tại — âm = đóng gói nhiều hơn trộn tích luỹ (quên báo mẻ)
+    settings = get_settings()
+    ton_hh = []
+    for it in frappe.get_all("Item", filters={"custom_sx_nhom": "BTP-HH"}, pluck="name"):
+        qty = flt(
+            frappe.db.get_value(
+                "Bin", {"item_code": it, "warehouse": settings.kho_btp}, "actual_qty"
+            )
+        )
+        ton_hh.append({"item": it, "ton_kg": flt(qty, 1), "am": qty < 0})
+
+    try:
+        yield_dm = flt(get_yield_tang_1(), 4)
+    except Exception:
+        yield_dm = None
+
     return {
         "tu_ngay": str(tu_ngay),
         "den_ngay": str(den_ngay),
@@ -394,19 +451,14 @@ def dashboard(tu_ngay=None, den_ngay=None):
             {
                 "name": p.name,
                 "ngay": str(p.ngay),
-                "dau_vao_kg": flt(p.dau_vao_kg),
-                "btp_thuc_te_kg": flt(p.btp_thuc_te_kg),
-                "tong_hop": cint(p.tong_hop),
+                "tong_hop_tp": cint(p.tong_hop_tp),
                 "tong_luong_sp": flt(p.tong_luong_sp),
             }
             for p in phieu
         ],
-        "yield_dinh_muc": flt(get_yield_tang_1(), 4),
-        "yield_thuc": flt(tong_btp / tong_dau, 4) if tong_dau else 0,
-        "ccp_tong": ccp_tong,
-        "ccp_dat": ccp_dat,
-        "ccp_pct_dat": flt(ccp_dat / ccp_tong * 100, 1) if ccp_tong else None,
-        "phut_dung": phut_dung,
+        "san_luong_sku": san_luong_sku,
+        "nang_suat_vao_hop": nang_suat,
+        "cong_suat_may": cong_suat,
         "su_co": [
             {
                 "loai": r.loai,
@@ -416,5 +468,91 @@ def dashboard(tu_ngay=None, den_ngay=None):
             }
             for r in su_co
         ],
-        "nang_suat_vao_hop": nang_suat,
+        "phut_dung": phut_dung,
+        "ton_hon_hop": ton_hh,
+        "yield_dinh_muc": yield_dm,
     }
+
+
+@frappe.whitelist()
+def truy_xuat(batch_tp):
+    """Chuỗi truy xuất ngược: batch TP -> hỗn hợp -> lô rang R -> lô đậu NCC (spec §1)."""
+    _guard([QUAN_LY])
+    settings = get_settings()
+    if not frappe.db.exists("Batch", batch_tp):
+        frappe.throw(_("Không tìm thấy batch {0}").format(batch_tp))
+    batch_doc = frappe.db.get_value(
+        "Batch", batch_tp, ["item", "creation"], as_dict=True
+    )
+
+    ket_qua = {
+        "batch_tp": batch_tp,
+        "item_tp": batch_doc.item,
+        "hon_hop": [],
+    }
+
+    # SE T3: batch TP là thành phẩm
+    se_t3 = frappe.get_all(
+        "Stock Entry Detail",
+        filters={"batch_no": batch_tp, "is_finished_item": 1, "docstatus": 1},
+        pluck="parent",
+    )
+    for se in set(se_t3):
+        rm_hh = frappe.get_all(
+            "Stock Entry Detail",
+            filters={"parent": se, "is_finished_item": 0, "docstatus": 1},
+            fields=["item_code", "batch_no", "qty"],
+        )
+        for rm in rm_hh:
+            if frappe.get_cached_value("Item", rm.item_code, "custom_sx_nhom") != "BTP-HH":
+                continue
+            hh = {
+                "se_t3": se,
+                "item": rm.item_code,
+                "batch": rm.batch_no,
+                "kg": flt(rm.qty, 2),
+                "bot": [],
+            }
+            # SE T2: batch hỗn hợp là thành phẩm -> RM bột
+            if rm.batch_no:
+                se_t2 = frappe.get_all(
+                    "Stock Entry Detail",
+                    filters={"batch_no": rm.batch_no, "is_finished_item": 1, "docstatus": 1},
+                    pluck="parent",
+                )
+                for se2 in set(se_t2):
+                    rm_bot = frappe.get_all(
+                        "Stock Entry Detail",
+                        filters={
+                            "parent": se2,
+                            "is_finished_item": 0,
+                            "item_code": settings.item_bot,
+                            "docstatus": 1,
+                        },
+                        fields=["batch_no", "qty"],
+                    )
+                    for b in rm_bot:
+                        lo_rang = (
+                            frappe.db.get_value("Batch", b.batch_no, "custom_lo_rang")
+                            or b.batch_no
+                        )
+                        xd = frappe.db.get_value(
+                            "SX Xuat Dau",
+                            {"lo_rang": lo_rang, "docstatus": 1},
+                            ["name", "lo_dau_ncc", "ngay_rang", "so_bao"],
+                            as_dict=True,
+                        )
+                        hh["bot"].append(
+                            {
+                                "se_t2": se2,
+                                "batch_bot": b.batch_no,
+                                "kg": flt(b.qty, 2),
+                                "lo_rang": lo_rang,
+                                "xuat_dau": xd.name if xd else None,
+                                "lo_dau_ncc": xd.lo_dau_ncc if xd else None,
+                                "ngay_rang": str(xd.ngay_rang) if xd else None,
+                            }
+                        )
+            ket_qua["hon_hop"].append(hh)
+
+    return ket_qua

@@ -1,8 +1,8 @@
-"""Guard quyền dùng chung cho mọi whitelisted method của app sx.
+"""Guard quyền dùng chung cho whitelisted method app sx (v2).
 
-Method-mediated permission (spec muc 3): To Truong / Tram Rang KHÔNG có DocPerm
-trên Employee/Work Order/Stock Entry/Batch — mọi truy cập đi qua whitelisted
-method: guard role xong mới thao tác bằng ignore_permissions, và chỉ trả về
+Method-mediated permission (spec §4): 3 tổ KHÔNG có DocPerm trên
+Employee/Work Order/Stock Entry/Batch/SalaryProduct — mọi truy cập qua
+whitelisted method: guard role -> thao tác ignore_permissions -> chỉ trả
 field trong whitelist.
 """
 
@@ -10,12 +10,15 @@ import frappe
 from frappe import _
 
 QUAN_LY = "SX Quan Ly"
-TO_TRUONG = "SX To Truong"
-TRAM_RANG = "SX Tram Rang"
+THU_KHO = "SX Thu Kho"
+TO_TRON = "SX To Tron"
+TO_DONG_GOI = "SX To Dong Goi"
+
+ALL_SX_ROLES = (THU_KHO, TO_TRON, TO_DONG_GOI, QUAN_LY)
 
 
 def _guard(roles):
-    """Chặn nếu user hiện tại không có role nào trong danh sách (System Manager luôn qua)."""
+    """Chặn nếu user không có role nào trong danh sách (System Manager luôn qua)."""
     user_roles = set(frappe.get_roles())
     allowed = set(roles) | {"System Manager"}
     if user_roles.isdisjoint(allowed):
