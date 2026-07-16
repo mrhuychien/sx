@@ -15,7 +15,9 @@ doc_events = {
 fixtures = [
     {
         "doctype": "Role",
-        "filters": [["name", "in", ["SX To Truong", "SX Tram Rang", "SX Quan Ly"]]],
+        "filters": [
+            ["name", "in", ["SX Thu Kho", "SX To Tron", "SX To Dong Goi", "SX Quan Ly"]]
+        ],
     },
     {"doctype": "Custom Field", "filters": [["module", "=", "SX"]]},
     {"doctype": "Print Format", "filters": [["module", "=", "SX"]]},
