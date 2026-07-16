@@ -379,6 +379,34 @@ body { background: var(--sx-bg) !important; }
 .sx-nav-icon { font-size: 26px; }
 .sx-nav-active { color: var(--sx-primary); }
 
+/* ── Mã lô hiển thị CỰC TO để ghi tay ra thẻ (D13) ── */
+.sx-lot-display {
+  text-align: center;
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  background: #10203a;
+  color: #ffe27a;
+  border-radius: var(--sx-radius-lg);
+  padding: 28px 12px;
+  font-family: "Courier New", monospace;
+  word-break: break-all;
+}
+
+/* ── Thẻ chọn có đếm (báo mẻ / công suất máy) ── */
+.sx-sp-card-on { border-color: var(--sx-primary); background: #e5efff; }
+.sx-sp-card-count { font-size: 26px; font-weight: 800; color: var(--sx-primary); }
+
+/* ── Truy xuất lô ── */
+.sx-tx-row { display: flex; gap: 10px; }
+.sx-tx-row .sx-textarea { flex: 1; min-height: 52px; }
+.sx-tx-chain { display: flex; flex-direction: column; gap: 6px; font-size: 18px; }
+.sx-tx-node { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--sx-border); }
+.sx-tx-tp { background: #e5efff; }
+.sx-tx-hh { background: #fff8ec; margin-left: 14px; }
+.sx-tx-bot { background: #f2fbf7; margin-left: 14px; margin-top: 6px; }
+.sx-tx-dau { background: var(--sx-surface-2); margin-left: 14px; margin-top: 6px; }
+
 /* ── Chart / link Desk ── */
 .sx-chart-box { position: relative; height: 260px; }
 .sx-desk-link {

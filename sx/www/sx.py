@@ -1,13 +1,13 @@
-"""www page controller cho portal /sx — bơm SX_CONTEXT server-side."""
+"""www page controller cho portal /sx (v2) — bơm SX_CONTEXT server-side."""
 
 import json
 
 import frappe
 
 # Build marker chống "shell cũ" (LUẬT VÀNG #2 — frappe-portal-spa)
-SHELL_BUILD = "sx-1"
+SHELL_BUILD = "sx-2"
 
-ALLOWED_ROLES = {"SX To Truong", "SX Tram Rang", "SX Quan Ly", "System Manager"}
+ALLOWED_ROLES = {"SX Thu Kho", "SX To Tron", "SX To Dong Goi", "SX Quan Ly", "System Manager"}
 
 
 def get_context(context):
@@ -21,17 +21,18 @@ def get_context(context):
             frappe._("Bạn không có quyền vào portal sản xuất."), frappe.PermissionError
         )
 
+    la_quan_ly = bool(roles & {"SX Quan Ly", "System Manager"})
     context.no_cache = 1
-    # assetVersion: cache-bust view động (withV) — an toàn URL/JSON
     asset_version = frappe.utils.now().replace(" ", "T").replace(":", "-")
     context.asset_version = asset_version
     context.shell_build = SHELL_BUILD
     context.sx_context = json.dumps(
         {
             "user": frappe.session.user,
-            "isQuanLy": bool(roles & {"SX Quan Ly", "System Manager"}),
-            "isToTruong": bool(roles & {"SX To Truong", "SX Quan Ly", "System Manager"}),
-            "isTramRang": "SX Tram Rang" in roles,
+            "isQuanLy": la_quan_ly,
+            "isThuKho": "SX Thu Kho" in roles or la_quan_ly,
+            "isToTron": "SX To Tron" in roles or la_quan_ly,
+            "isToDongGoi": "SX To Dong Goi" in roles or la_quan_ly,
             "assetVersion": asset_version,
             "build": SHELL_BUILD,
             "csrfToken": frappe.sessions.get_csrf_token(),

@@ -1,4 +1,4 @@
-// Shell portal /sx — hash router, bottom-nav, boot store, offline banner.
+// Shell portal /sx (v2) — hash router, bottom-nav THEO ROLE, boot store, offline banner.
 // View code-split: dynamic import với withV (assetVersion) — LUẬT VÀNG #1.
 
 import { call, onOffline } from '/assets/sx/sx/lib/api.js';
@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-1';
+const BUILD = 'sx-2';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -15,20 +15,22 @@ function withV(path) {
 }
 
 const VIEW_MODULES = {
-  '#/': () => import(withV('/assets/sx/sx/views/homnay.js')),
-  '#/ccp': () => import(withV('/assets/sx/sx/views/ccp.js')),
+  '#/thukho': () => import(withV('/assets/sx/sx/views/thukho.js')),
   '#/tron': () => import(withV('/assets/sx/sx/views/tron.js')),
-  '#/vaohop': () => import(withV('/assets/sx/sx/views/vaohop.js')),
+  '#/donggoi': () => import(withV('/assets/sx/sx/views/donggoi.js')),
   '#/quanly': () => import(withV('/assets/sx/sx/views/quanly.js')),
 };
 
+// Bottom-nav theo role (spec §6): chỉ hiện tab liên quan tới vai của user
 const NAV = [
-  { route: '#/', label: 'Hôm nay', icon: '🏠' },
-  { route: '#/ccp', label: 'CCP', icon: '🌡️' },
-  { route: '#/tron', label: 'Trộn', icon: '🥣', can: 'isToTruong' },
-  { route: '#/vaohop', label: 'Vào hộp', icon: '📦', can: 'isToTruong' },
+  { route: '#/thukho', label: 'Thủ kho', icon: '🏬', can: 'isThuKho' },
+  { route: '#/tron', label: 'Trộn', icon: '🥣', can: 'isToTron' },
+  { route: '#/donggoi', label: 'Đóng gói', icon: '📦', can: 'isToDongGoi' },
   { route: '#/quanly', label: 'Quản lý', icon: '📊', can: 'isQuanLy' },
 ];
+
+const visibleNav = NAV.filter((n) => !n.can || CTX[n.can]);
+const HOME = visibleNav.length ? visibleNav[0].route : '#/thukho';
 
 const store = {
   boot: null,
@@ -47,8 +49,7 @@ function buildShell() {
   banner.style.display = 'none';
   const main = el('main', 'sx-main');
   const nav = el('nav', 'sx-bottom-nav');
-  NAV.forEach((item) => {
-    if (item.can && !CTX[item.can]) return;
+  visibleNav.forEach((item) => {
     const btn = el('a', 'sx-nav-btn');
     btn.href = item.route;
     btn.dataset.route = item.route;
@@ -70,12 +71,15 @@ function markActive(route) {
   });
 }
 
+// '#/' -> tab đầu tiên user được thấy
+router.register('#/', () => VIEW_MODULES[HOME]());
 Object.entries(VIEW_MODULES).forEach(([route, loader]) => router.register(route, loader));
 
 router.onRender(async (route, loader) => {
-  // Gate quản lý: quyền THẬT kiểm ở server (dashboard có _guard) — đây chỉ là UI
-  if (route === '#/quanly' && !CTX.isQuanLy) { router.go('#/'); return; }
-  markActive(route);
+  // Gate hiển thị theo role — quyền THẬT kiểm ở server (mọi method có _guard)
+  const navItem = NAV.find((n) => n.route === route);
+  if (navItem && navItem.can && !CTX[navItem.can]) { router.go(HOME); return; }
+  markActive(route === '#/' ? HOME : route);
   main.innerHTML = '<div class="sx-boot-loading">Đang tải…</div>';
   try {
     if (!store.boot) await store.refresh();
