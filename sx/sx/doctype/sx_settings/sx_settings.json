@@ -6,18 +6,13 @@
  "field_order": [
   "section_chung",
   "cong_ty",
-  "item_btp",
+  "item_bot",
   "column_break_chung",
   "kho_nvl",
   "kho_btp",
   "kho_tp",
   "section_thong_so",
-  "kl_bao_dau_kg",
-  "me_tron_nguong_canh_bao_pct",
-  "column_break_thong_so",
-  "ccp_nhiet_min",
-  "ccp_nhiet_max",
-  "tan_suat_ghi_ccp_phut"
+  "kl_bao_dau_kg"
  ],
  "fields": [
   {
@@ -32,9 +27,9 @@
    "options": "Company"
   },
   {
-   "fieldname": "item_btp",
+   "fieldname": "item_bot",
    "fieldtype": "Link",
-   "label": "Item bột BTP",
+   "label": "Item bột BTP nguyên chất",
    "options": "Item"
   },
   {
@@ -68,37 +63,11 @@
    "fieldname": "kl_bao_dau_kg",
    "fieldtype": "Float",
    "label": "KL bao đậu mặc định (kg)"
-  },
-  {
-   "default": "2",
-   "fieldname": "me_tron_nguong_canh_bao_pct",
-   "fieldtype": "Float",
-   "label": "Ngưỡng cảnh báo lệch trộn (%)"
-  },
-  {
-   "fieldname": "column_break_thong_so",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "ccp_nhiet_min",
-   "fieldtype": "Float",
-   "label": "Giới hạn CCP rang min (°C)"
-  },
-  {
-   "fieldname": "ccp_nhiet_max",
-   "fieldtype": "Float",
-   "label": "Giới hạn CCP rang max (°C)"
-  },
-  {
-   "default": "60",
-   "fieldname": "tan_suat_ghi_ccp_phut",
-   "fieldtype": "Int",
-   "label": "Tần suất ghi CCP (phút)"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-07-11 10:00:00.000000",
+ "modified": "2026-07-16 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

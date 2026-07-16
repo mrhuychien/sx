@@ -1,5 +1,5 @@
 from frappe.model.document import Document
 
 
-class SXMeTronNL(Document):
+class SXMay(Document):
     pass

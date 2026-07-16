@@ -1,5 +1,5 @@
 from frappe.model.document import Document
 
 
-class SXNgaySP(Document):
+class SXCongSuatMay(Document):
     pass

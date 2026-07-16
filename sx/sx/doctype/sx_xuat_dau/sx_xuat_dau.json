@@ -1,0 +1,142 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-07-16 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "ngay_xuat",
+  "ngay_rang",
+  "column_break_head",
+  "lo_rang",
+  "lo_dau_ncc",
+  "section_so_luong",
+  "so_bao",
+  "kl_bao_kg",
+  "column_break_sl",
+  "dau_kg",
+  "se_xuat",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SXXD-.YYYY.-.#####",
+   "default": "SXXD-.YYYY.-.#####",
+   "hidden": 1,
+   "print_hide": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay_xuat",
+   "fieldtype": "Date",
+   "label": "Ngày xuất (D-1)",
+   "default": "Today",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay_rang",
+   "fieldtype": "Date",
+   "label": "Ngày rang (D)",
+   "in_standard_filter": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lo_rang",
+   "fieldtype": "Data",
+   "label": "Mã lô rang",
+   "read_only": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "bold": 1
+  },
+  {
+   "fieldname": "lo_dau_ncc",
+   "fieldtype": "Link",
+   "label": "Lô đậu (nhà cung cấp)",
+   "options": "Batch",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_so_luong",
+   "fieldtype": "Section Break",
+   "label": "Số lượng"
+  },
+  {
+   "fieldname": "so_bao",
+   "fieldtype": "Int",
+   "label": "Số bao",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "kl_bao_kg",
+   "fieldtype": "Float",
+   "label": "KL/bao (kg)"
+  },
+  {
+   "fieldname": "column_break_sl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "dau_kg",
+   "fieldtype": "Float",
+   "label": "Đậu xuất (kg)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "se_xuat",
+   "fieldtype": "Link",
+   "label": "Stock Entry xuất",
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-16 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Xuat Dau",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1, "write": 1, "create": 1, "delete": 1,
+   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+  },
+  {
+   "role": "SX Thu Kho",
+   "read": 1, "write": 1, "create": 1, "submit": 1, "print": 1, "report": 1
+  },
+  {
+   "role": "SX To Tron",
+   "read": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1, "write": 1, "create": 1,
+   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+  }
+ ],
+ "search_fields": "lo_rang,ngay_rang,lo_dau_ncc",
+ "sort_field": "ngay_rang",
+ "sort_order": "DESC",
+ "title_field": "lo_rang",
+ "track_changes": 1
+}

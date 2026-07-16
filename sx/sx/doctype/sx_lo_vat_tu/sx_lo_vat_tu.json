@@ -1,0 +1,90 @@
+{
+ "actions": [],
+ "autoname": "SXLV-.YYYY.-.#####",
+ "creation": "2026-07-16 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "vat_tu",
+  "item",
+  "column_break_head",
+  "lo_ncc",
+  "ngay_mo",
+  "dang_mo"
+ ],
+ "fields": [
+  {
+   "fieldname": "vat_tu",
+   "fieldtype": "Select",
+   "label": "Vật tư",
+   "options": "Đường\nDầu",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lo_ncc",
+   "fieldtype": "Link",
+   "label": "Lô nhà cung cấp",
+   "options": "Batch",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngay_mo",
+   "fieldtype": "Date",
+   "label": "Ngày mở",
+   "default": "Today",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "dang_mo",
+   "fieldtype": "Check",
+   "label": "Đang mở",
+   "in_list_view": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-07-16 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Lo Vat Tu",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1, "write": 1, "create": 1, "delete": 1, "print": 1, "report": 1, "export": 1
+  },
+  {
+   "role": "SX Thu Kho",
+   "read": 1, "write": 1, "create": 1, "print": 1, "report": 1
+  },
+  {
+   "role": "SX To Tron",
+   "read": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1, "write": 1, "create": 1, "delete": 1, "print": 1, "report": 1, "export": 1
+  }
+ ],
+ "search_fields": "vat_tu,item,dang_mo",
+ "sort_field": "ngay_mo",
+ "sort_order": "DESC",
+ "title_field": "vat_tu",
+ "track_changes": 1
+}
