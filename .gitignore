@@ -3,3 +3,6 @@ __pycache__/
 *.pyo
 node_modules/
 .DS_Store
+AGENTS.md
+CLAUDE.md
+GEMINI.md
