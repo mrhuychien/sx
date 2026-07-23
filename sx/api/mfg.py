@@ -11,7 +11,21 @@ from frappe.utils import flt
 
 
 def tao_batch(item_code, batch_id, ngay_sx=None):
-    """Batch tạo trước SE thành phẩm; batch_id đặt tay (D13)."""
+    """Batch tạo trước SE thành phẩm; batch_id đặt tay (D13).
+
+    Idempotent: nếu Batch cùng batch_id đã tồn tại (vd huỷ + nhập lại lô R — batch
+    bột nền dùng lại đúng lô R để giữ mắt xích truy xuất), tái dùng thay vì insert
+    (tránh DuplicateEntryError). Khác item -> lỗi rõ ràng.
+    """
+    if frappe.db.exists("Batch", batch_id):
+        cu = frappe.db.get_value("Batch", batch_id, "item")
+        if cu != item_code:
+            frappe.throw(
+                _("Batch {0} đã tồn tại cho item khác ({1}), không dùng cho {2} được.").format(
+                    batch_id, cu, item_code
+                )
+            )
+        return batch_id
     batch = frappe.get_doc(
         {
             "doctype": "Batch",

@@ -22,11 +22,12 @@ ROLE_VIEWS = {
     QUAN_LY: ["ghiso", "vaohop", "quanly"],
 }
 
-# view lắp từ những card nào (thứ tự hiển thị)
+# view lắp từ những card nào (thứ tự hiển thị). quanly là view standalone (dashboard),
+# không lắp từ card → để rỗng (tránh mountCard tên card không có trong CARD_PATHS).
 VIEW_CARDS = {
     "ghiso": ["xuatdau", "nhapbot", "baome", "baocan", "suco"],
     "vaohop": ["vaohop", "suco", "chotngay"],
-    "quanly": ["quanly"],
+    "quanly": [],
 }
 
 # card nào role nào được GỌI API (chốt bảo mật thật — không phải ẩn tab)

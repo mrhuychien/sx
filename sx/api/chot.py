@@ -26,33 +26,35 @@ def chot_ngay(ngay_sx):
     guard_card("chotngay")
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
 
-    buoc = _("kiểm tra điều kiện")
+    # Validate NGOÀI try/except: lỗi nghiệp vụ (đã chốt, thiếu tồn, thiếu đơn giá)
+    # phải nổi lên NGUYÊN VĂN cho QC, không bị nuốt thành "check Error Log" + traceback.
+    bang = _validate_truoc_chot(doc)
+    co_vao_hop = bool(bang and cint(bang.tong_hop) > 0)
+
+    buoc = _("bắt đầu sinh chứng từ")
     canh_bao = []
     try:
-        bang = _validate_truoc_chot(doc)
-
         chung_tu = []  # [{dt, name}] theo thứ tự sinh — để huỷ ngược
 
         buoc = _("tầng 2 (nấu + trộn theo báo mẻ)")
         _chot_tang_2(doc, chung_tu)
 
-        buoc = _("submit bảng vào hộp")
-        if bang and bang.docstatus == 0:
-            bang.flags.ignore_permissions = True
-            bang.submit()
-
-        ket_qua_tp = {}
         ds_salary = []
-        if bang:
+        if co_vao_hop:
+            buoc = _("submit bảng vào hộp")
+            if bang.docstatus == 0:
+                bang.flags.ignore_permissions = True
+                bang.submit()
+
             buoc = _("tầng 3 (thành phẩm)")
-            ket_qua_tp = _chot_tang_3(doc, bang, chung_tu)
+            _chot_tang_3(doc, bang, chung_tu)
 
             buoc = _("sinh SalaryProduct (lương sản phẩm)")
             ds_salary = _sinh_salary_product(doc, bang)
 
         buoc = _("tổng hợp + submit phiếu ngày")
-        doc.tong_hop_tp = cint(bang.tong_hop) if bang else 0
-        doc.tong_luong_sp = flt(bang.tong_tien) if bang else 0
+        doc.tong_hop_tp = cint(bang.tong_hop) if co_vao_hop else 0
+        doc.tong_luong_sp = flt(bang.tong_tien) if co_vao_hop else 0
         doc.ds_wo_se = json.dumps(chung_tu)
         doc.salary_products_json = json.dumps(ds_salary)
         doc.flags.tu_chot_ngay = True

@@ -85,7 +85,12 @@ duyệt custom field.
   `include_non_stock_items=False`) — không sinh ledger, không vỡ. Vẫn để trong BOM cân bằng
   khối lượng (D15).
 - `chot_ngay` bọc try/except + rollback + báo đúng bước hỏng; huỷ ngược đọc `ds_wo_se` đảo
-  thứ tự (gotcha #13). `on_cancel_ngay` KHÔNG đụng `SX Nhap Bot` (độc lập).
+  thứ tự (gotcha #13). `on_cancel_ngay` KHÔNG đụng `SX Nhap Bot` (độc lập). Validate nghiệp vụ
+  (đã chốt / thiếu tồn / thiếu đơn giá) chạy NGOÀI try để lỗi nổi lên nguyên văn cho QC.
+- Batch bột nền T1 idempotent (dùng lại đúng lô R khi huỷ + nhập lại) — giữ mắt xích truy xuất.
+- ⚠️ **Phase 0:** GIỮ Manufacturing Settings › "Validate Components Quantities Per BOM" **TẮT**.
+  Bật nó sẽ vỡ ngày FIFO trừ 1 NVL qua >1 lô (core v16 chỉ khớp dòng RM đầu, không cộng các
+  dòng đã tách theo lô).
 
 ## Acceptance test
 

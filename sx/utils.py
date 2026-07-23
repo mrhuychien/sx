@@ -106,9 +106,12 @@ def get_don_gia_vao_hop(san_pham, phuong_thuc, ngay):
     hieu_luc_tu lớn nhất <= ngày. Không có bản ghi nào -> throw.
     """
     ngay = getdate(ngay)
+    # Tier 1: khớp đúng (san_pham, phuong_thuc). Tier 2 (fallback): dòng "chung"
+    # san_pham để trống — dùng ("is","not set") để bắt CẢ NULL lẫn '' (IN ('',NULL)
+    # không bao giờ khớp NULL trong SQL).
     for filters in (
         {"san_pham": san_pham, "phuong_thuc": phuong_thuc},
-        {"san_pham": ("in", ("", None)), "phuong_thuc": phuong_thuc},
+        {"san_pham": ("is", "not set"), "phuong_thuc": phuong_thuc},
     ):
         filters["hieu_luc_tu"] = ("<=", ngay)
         row = frappe.get_all(

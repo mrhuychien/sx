@@ -24,7 +24,11 @@ def get_context(context):
         )
 
     context.no_cache = 1
-    asset_version = frappe.utils.now().replace(" ", "T").replace(":", "-")
+    # Cache-bust token = SHELL_BUILD (đổi theo DEPLOY, không phải mỗi request).
+    # no_cache=1 giữ HTML /sx luôn render tươi → bump SHELL_BUILD lúc deploy là bust
+    # ngay (never-stale, LUẬT VÀNG #1) NHƯNG cho phép browser cache ~15 module JS +
+    # CSS giữa các lần reload trong cùng 1 build (khác với now() re-mint mỗi request).
+    asset_version = SHELL_BUILD
     context.asset_version = asset_version
     context.shell_build = SHELL_BUILD
     context.sx_context = json.dumps(

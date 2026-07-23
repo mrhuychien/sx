@@ -55,7 +55,9 @@ async function ensureNgay() {
 }
 
 async function mountCard(name, container) {
-  const mod = await import(withV(CARD_PATHS[name]));
+  const path = CARD_PATHS[name];
+  if (!path) { return; } // card không có file (vd view standalone) → bỏ qua an toàn
+  const mod = await import(withV(path));
   const wrap = el('div', 'sx-card-slot');
   container.appendChild(wrap);
   await mod.render(cardApi(wrap));
