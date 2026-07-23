@@ -1,7 +1,7 @@
 {
  "actions": [],
  "autoname": "naming_series:",
- "creation": "2026-07-11 10:00:00.000000",
+ "creation": "2026-07-23 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -11,8 +11,8 @@
   "trang_thai",
   "section_bao_me",
   "bao_me",
-  "section_cong_suat",
-  "cong_suat_may",
+  "section_bao_can",
+  "bao_can",
   "section_su_co",
   "su_co",
   "section_tong_hop",
@@ -59,24 +59,24 @@
   {
    "fieldname": "section_bao_me",
    "fieldtype": "Section Break",
-   "label": "Báo mẻ trộn (tổ trộn, cuối ngày)"
+   "label": "Báo mẻ (nấu + trộn)"
   },
   {
    "fieldname": "bao_me",
    "fieldtype": "Table",
-   "label": "Báo mẻ trộn",
+   "label": "Báo mẻ",
    "options": "SX Bao Me"
   },
   {
-   "fieldname": "section_cong_suat",
+   "fieldname": "section_bao_can",
    "fieldtype": "Section Break",
-   "label": "Công suất máy cán (cuối ca)"
+   "label": "Báo cán (theo dõi tiến độ)"
   },
   {
-   "fieldname": "cong_suat_may",
+   "fieldname": "bao_can",
    "fieldtype": "Table",
-   "label": "Công suất máy cán",
-   "options": "SX Cong Suat May"
+   "label": "Báo cán",
+   "options": "SX Bao Can"
   },
   {
    "fieldname": "section_su_co",
@@ -137,7 +137,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-16 10:00:00.000000",
+ "modified": "2026-07-23 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Ngay San Xuat",
@@ -150,21 +150,17 @@
    "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
   },
   {
-   "role": "SX To Tron",
+   "role": "SX Ghi So",
    "read": 1, "write": 1, "create": 1, "print": 1, "report": 1
   },
   {
-   "role": "SX To Dong Goi",
+   "role": "SX Vao Hop",
    "read": 1, "write": 1, "create": 1, "submit": 1, "print": 1, "report": 1
   },
   {
    "role": "SX Quan Ly",
    "read": 1, "write": 1, "create": 1,
    "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
-  },
-  {
-   "role": "SX Thu Kho",
-   "read": 1
   }
  ],
  "search_fields": "ngay,trang_thai",

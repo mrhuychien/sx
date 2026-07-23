@@ -7,7 +7,7 @@ from sx.utils import get_don_gia_vao_hop
 
 
 class SXBangVaoHop(Document):
-    """Bảng vào hộp — công đoạn duy nhất tính lương sản phẩm theo NGƯỜI (D6)."""
+    """Bảng vào hộp — sản lượng TP + lương sản phẩm theo NGƯỜI (cả 2 nhánh bánh/bột)."""
 
     def validate(self):
         self.validate_duy_nhat()

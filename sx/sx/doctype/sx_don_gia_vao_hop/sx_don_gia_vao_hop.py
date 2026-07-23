@@ -5,8 +5,8 @@ from frappe.utils import flt
 
 
 class SXDonGiaVaoHop(Document):
-    """Bảng giá lương vào hộp — theo phương thức, override theo SKU nếu cần (D6)."""
+    """Bảng giá lương vào hộp. Cho phép đơn giá 0 (SKU không tính lương SP)."""
 
     def validate(self):
-        if flt(self.don_gia) <= 0:
-            frappe.throw(_("Đơn giá phải > 0"))
+        if flt(self.don_gia) < 0:
+            frappe.throw(_("Đơn giá không được âm"))

@@ -1,296 +1,390 @@
-# CODER PACK v2 — App `sx` (Portal Sản Xuất RVHG, route `/sx`)
+# CODER PACK v3 — App `sx` (Portal Sản Xuất RVHG, route `/sx`)
 
-> **Handoff cho Claude Code.** Đây là bản v2 — thay thế hoàn toàn v1. Build theo phương pháp
+> **Handoff cho Claude Code. Bản v3 — THAY THẾ HOÀN TOÀN v1/v2.** Build theo phương pháp
 > nextcode + skills: `frappe-app-build-profile` (kiểu NPP) → `nextcode-build` →
 > `frappe-portal-spa` → `frappe-app-shipping-gotchas`. Site: `a.rongvanghoanggia.com`
 > (Frappe/ERPNext v16). **Đọc hết file này trước khi gõ lệnh đầu tiên.**
 >
-> Triết lý xuyên suốt: **công nhân lowtech, thao tác tối thiểu tuyệt đối.** Chỉ 4 điểm nhập
-> liệu trong toàn nhà máy. Truy xuất ở mức **ngày × loại** (đã được chủ đầu tư quyết định có
-> ý thức — KHÔNG nâng cấp lên mức thùng/mẻ cá thể trừ khi có chỉ đạo mới).
+> Triết lý: **công nhân 0 chạm tuyệt đối — 2 người QC nhập toàn bộ số liệu** bằng cách đi
+> vòng hỏi miệng. Truy xuất mức **NGÀY × LOẠI** (chủ đầu tư đã quyết có ý thức). FIFO tự động
+> toàn tuyến — **không ai chọn lô ở bất kỳ đâu**.
+>
+> Định mức nguồn: workbook `RVHG_dinh_muc_BOM_v6.xlsx` (16/16 câu hỏi đã chốt).
+> Item + BOM do chủ đầu tư TỰ NHẬP trên Desk trước khi ship (Phase 0).
 
 ---
 
 ## 0. Build brief
 
 ```
-# Build brief — sx (v2)
+# Build brief — sx (v3)
 Nền tảng: Frappe/ERPNext v16 custom app, theo phương pháp nextcode.
-
-1. Domain:      Số hoá + truy xuất nguồn gốc sản xuất bánh & bột đậu xanh RVHG.
-                1 dây chuyền, 1 ca. Pipeline LỆCH NGÀY (xuất đậu D-1, rang D, nghiền D+1,
-                trộn+ủ, đóng gói D+n). Công nhân lowtech → 4 điểm nhập, phần lớn khâu 0 chạm.
-                Truy xuất mức NGÀY × LOẠI (không theo thùng/mẻ cá thể).
-3. Vai trò:     4 role: SX Thu Kho / SX To Tron / SX To Dong Goi / SX Quan Ly.
-                Method-mediated, guard role dòng đầu mọi whitelisted method.
+1. Domain:      Số hoá + truy xuất nguồn gốc sản xuất RVHG — 2 nhánh: BÁNH đậu xanh
+                (8 loại ruột, ủ 24h, cán/viên/gói, vào hộp) và BỘT đậu (8 công thức,
+                trộn xong đóng túi/hộp). Pipeline lệch ngày: xuất đậu D-1, rang D,
+                nghiền D+1. 1 dây chuyền, 1 ca. Người nhập: 2 QC (ghi số + vào hộp).
+2. DocType:     6 DocType mới prefix `SX` + 4 child + custom fields (fixtures).
+3. Vai trò:     3 role: SX Ghi So / SX Vao Hop / SX Quan Ly. Method-mediated,
+                guard role dòng đầu mọi whitelisted method.
 4. Giao diện:   Portal SPA `/sx` (www page), vanilla JS no-build, hash router,
                 import map cache-bust, CSS prefix `sx-`, tablet-first, nút to, numpad.
-5. Analytics:   Dashboard quản lý: sản lượng theo SKU, năng suất/người (vào hộp),
-                công suất/máy (cán), truy xuất lô 2 chiều.
-6. Ràng buộc:   Backend = Python whitelisted method trong app (KHÔNG Server/Client Script);
-                fieldname ASCII; fixtures export; py_compile + node --check + validator
-                0 ERROR; commit-per-feature (P0..P7); đọc source Frappe thật khi nghi ngờ.
+                Màn hình lắp từ CARD theo role (chuyển giao sau này = đổi config).
+5. Analytics:   Dashboard: sản lượng SKU, năng suất/người, tiến độ cán vs trộn,
+                tồn BTP + cảnh báo âm, truy xuất lô 2 chiều.
+6. Ràng buộc:   Backend = Python whitelisted method trong app (KHÔNG Server/Client
+                Script); fieldname ASCII (item name tiếng Việt theo quy ước site);
+                fixtures export; py_compile + node --check + validator 0 ERROR;
+                commit-per-feature (P0..P7); đọc source Frappe/ERPNext thật khi nghi ngờ.
 7. Git:         push nhánh dev (+ default nếu được phép).
 ```
 
 ---
 
-## 1. Quyết định kiến trúc (ĐÃ CHỐT với chủ đầu tư qua nhiều vòng — KHÔNG tự ý đổi)
+## 1. Quyết định kiến trúc (ĐÃ CHỐT qua ~12 vòng với chủ đầu tư — KHÔNG tự ý đổi)
 
 | # | Quyết định | Hệ quả |
 |---|---|---|
-| D1 | **BOM 3 tầng.** T1: Đậu → [luộc→rang→sàng→ủ→vỡ→nghiền] → **BTP Bột** (tồn qua ngày, batch = lô rang). T2: Bột + phụ liệu → [trộn→ủ 24h] → **BTP Hỗn hợp** (9 loại, mỗi loại 1 công thức). T3: Hỗn hợp → [cán→tạo viên→gói→vào hộp] → **TP** (40–50 SKU, chủ yếu khác bao bì). | 3 nhóm Item, 3 lớp Work Order khi chốt ngày |
-| D2 | **Không Job Card / Routing / operations trong BOM.** | Không costing theo giờ máy (nhân công tính công nhật + lương sản phẩm khâu vào hộp) |
-| D3 | **Truy xuất mức NGÀY × LOẠI.** KHÔNG có thùng ủ / mẻ trộn cá thể "sống" trong hệ thống. Tổ trộn báo tổng số mẻ mỗi loại cuối ngày. | Thu hồi theo lô-ngày (phạm vi xác định, hợp lệ ISO). Mất truy-theo-thùng. |
-| D4 | **Xuất kho tầng 2 theo ĐỊNH MỨC BOM × số mẻ** (không theo cân thực từng mẻ). Hao hụt lòi ra ở **kiểm kê định kỳ** (Stock Reconciliation, làm tay trên Desk). | Không đo hao hụt realtime mức mẻ |
-| D5 | **Backflush NVL theo BOM** (Manufacturing Settings). | Không ai nhập phiếu xuất kho tay cho từng mẻ |
-| D6 | **FIFO tự động cho bột BTP.** Khi trừ bột lúc chốt ngày, hệ thống tự pick lô rang R cũ nhất trước. Đây là **mắt xích cuối** nối Hỗn hợp → lô rang → lô đậu. | Không thao tác thêm; giữ truy xuất tới tận đậu nguyên liệu |
-| D7 | **Đo lường tối thiểu:** Bột T1 = số bao đậu × yield (suy từ BOM T1, KHÔNG cấu hình riêng). TP = tổng bảng vào hộp. Công suất máy cán = tổng số thùng ủ (dữ liệu OEE thuần, đứng riêng). | Bột thùng inox không cân chuẩn → suy theo định mức |
-| D8 | **Rang & Sơ chế: 0 thao tác trong `sx`.** Ghi nhiệt độ rang là việc **thẩm tra của QC** → thuộc app `iso` (làm sau). Self-check "loại 1kg đầu" cũng thuộc QC. | 2 khâu biến mất khỏi app công nhân |
-| D9 | **Bánh giữ 0 CCP** theo HACCP hiện hành (đã xác nhận từ file HACCP thật: bảng cây quyết định trống cột CCP, lịch sử "bỏ CCP" 1/11/2020). `sx` **KHÔNG gán nhãn CCP** ở bất kỳ đâu. Bột có 1 CCP (mối hàn túi) nhưng thẩm tra thuộc QC → app `iso`. | App `sx` thuần vận hành + truy xuất, không phải app an toàn thực phẩm |
-| D10 | **App `iso` TÁCH RIÊNG, làm sau.** `iso` sẽ link tới lô/ngày trong `sx` làm đối tượng thẩm tra (một chiều ISO→SX). `sx` chạy được kể cả khi `iso` chưa tồn tại. | KHÔNG build gì thuộc QC/thẩm tra/SSOP trong pack này |
-| D11 | **Mọi Work Order + Stock Entry sinh lúc CHỐT NGÀY** với số thực tế, `skip_transfer=1` (Manufacture rút NVL thẳng từ kho nguồn, không bước Material Transfer, không WIP lơ lửng). | Cả chu trình 1 ngày chỉ đẻ vài chứng từ kho |
-| D12 | **1 ca** → không field ca ở bất kỳ đâu. | |
-| D13 | **Mã lô hiển thị TO trên màn hình để ghi tay ra thẻ.** KHÔNG bắt buộc máy in. Batch vẫn "sống" trong hệ thống dù thẻ vật lý ghi tay. | Zero đầu tư phần cứng; QR/tem in = Phase 2 |
-| D14 | **Nhập bột lô R vào Kho BTP do TỔ TRỘN làm** (không phải thủ kho — bột chuyển từ khu nghiền sang khu trộn, tổ trộn là người nhận). | Thủ kho gọn còn 1 neo chính |
+| D1 | **2 nhánh sản phẩm, BOM 3 tầng.** T1: Đỗ (xanh/đen) → Bột đỗ nền · Đường → Đường hoán (3 biến thể) · Hỗn hợp màu (2 loại). T2 nhánh bánh: bột đỗ + đường hoán + gluco + dầu + hương/phụ liệu → **Bột bánh (8 loại, mẻ ~114kg)**. T2 nhánh bột: bột đỗ + đường + phụ liệu → **Bột đậu các loại (8 công thức, mẻ 40kg; chè đậu đen 46.05kg)**. T3: → TP SKU (bánh hộp / bột túi-hộp) — **chủ đầu tư tự tạo BOM T3 trên Desk**. | Định mức chi tiết trong workbook v6 |
+| D2 | **KHÔNG khai item trung gian ngoài danh mục BTP.** Đỗ rang / đỗ vỡ / **bánh rời** = WIP vô hình. Nguyên tắc: chỉ khai ở chỗ rẽ nhánh hoặc tồn lâu. | Tồn giữa chừng lệch hình thái, không lệch lượng — kiểm kê định kỳ chỉnh |
+| D3 | **Truy xuất mức NGÀY × LOẠI.** Không thùng ủ / mẻ cá thể. Báo tổng số mẻ mỗi loại. | Thu hồi theo lô-ngày (hợp lệ ISO). Ủ 24h người tự canh |
+| D4 | **Xuất kho theo định mức BOM × số mẻ** (hao trộn không đáng kể — CH-08). Trôi số → Stock Reconciliation định kỳ trên Desk. | Không đo hao realtime |
+| D5 | **FIFO tự động toàn tuyến — không ai chọn lô.** Đậu, đường, dầu, bột nền, đường hoán, bột bánh/bột đậu: hệ thống tự pick batch cũ nhất khi trừ kho. Lô NCC được neo vào truy xuất tại thời điểm trừ. | Điều kiện: Purchase Receipt nhập NVL PHẢI có batch (kỷ luật Phase 0) |
+| D6 | **Xuất đậu nhập thẳng SỐ KG** (không số bao, không chọn lô). Sinh mã lô rang từ ngày rang. | `SX Xuat Dau` tối giản |
+| D7 | **Đậu trừ kho tại bước NHẬP BỘT** (phương án B — GATE-C cũ đã tự chốt): `SX Nhap Bot` chạy Manufacture T1 trừ đậu FIFO, nhập bột Kho BTP. Không còn chỗ nào khác trừ đậu. | GATE-C xoá khỏi danh sách gate |
+| D8 | **Báo cán = số theo dõi tiến độ, KHÔNG phải chứng từ kho** (hệ quả bỏ bánh rời). Bột bánh bị trừ khi TP vào hộp (backflush). Lệch thời điểm trộn↔hộp vài ngày là chấp nhận. | Bỏ `SX May`, bỏ công suất theo máy (chủ đầu tư xác nhận "tạm thời chưa chi tiết được") |
+| D9 | **Người nhập = 2 QC, 2 màn hình.** QC#1 "Vòng ghi số": xuất đậu, nhập bột, báo mẻ (nấu đường/màu + trộn 2 nhánh), báo cán, sự cố. QC#2 "Vào hộp": bảng vào hộp theo người + Chốt ngày. Công nhân + thủ kho + tổ trưởng: 0 chạm, chỉ trả lời miệng. | Rủi ro độc lập đã cân nhắc — xem §2.1 |
+| D10 | **App `sx` thuần vận hành. Bánh 0 CCP** (đúng HACCP hiện hành), không gán nhãn CCP ở đâu. Ghi nhiệt độ rang, thẩm tra mối hàn, SSOP, NCR → app `iso` (QC độc lập) làm sau, link một chiều iso→sx. | Không build gì thuộc thẩm tra trong pack này |
+| D11 | **Mọi WO + SE Manufacture sinh bằng code với số thực tế, `skip_transfer=1`.** `SX Nhap Bot` sinh ngay khi ghi; các mẻ (bao_me) + TP sinh lúc Chốt ngày. Không Material Transfer, không WIP lơ lửng. | |
+| D12 | **1 ca** — không field ca. | |
+| D13 | **Mã lô hiển thị TO trên màn hình để ghi tay ra thẻ.** Không bắt buộc máy in. Batch sinh trong code: `{custom_batch_prefix}-{DDMMYY}`, trùng → `-2`. | QR/in tem = Phase 2 |
+| D14 | **Không Job Card / Routing / operations.** Không Server/Client Script. | |
+| D15 | Item name theo **quy ước site: tiếng Việt có dấu, ID = tên** (đã xác minh bằng ảnh Item list). Fieldname DocType vẫn ASCII. Nước = item **Maintain Stock 0**, vẫn nằm trong BOM để cân bằng khối lượng. | |
+| D16 | Cột `custom_nl_tron` trong workbook **không dùng nữa** (bỏ màn công thức chi tiết theo mẻ) — không tạo custom field này. | |
 
-### Chuỗi truy xuất ISO 22000 (điều khoản 8.3) — mức ngày × loại
+### Sơ đồ dòng chảy + truy xuất
 
 ```
-TP (batch NSX ngày, theo SKU)
-  └─ Stock Entry T3  ──► BTP Hỗn hợp loại A, ngày X   (batch HH-A-YYYYMMDD)
-       └─ Stock Entry T2 (trừ bột FIFO) ──► BTP Bột, lô rang R cũ nhất  (batch = R-DDMMYY)
-            └─ Stock Entry T1 ──► Đậu xanh, lô nhập NCC  (batch đậu)
-                 └─ Phiếu xuất đậu D-1 (thủ kho) ──► lô đậu nhà cung cấp
+D-1 chiều : QC#1 ghi XUẤT ĐẬU (kg, loại đỗ) ──► mã lô rang R-DDMMYY / RD-DDMMYY (ghi thẻ)
+D         : luộc → rang → ủ nguội                                  (0 thao tác)
+D+1       : vỡ → nghiền → QC#1 tap NHẬP BỘT lô R
+            ⇒ code: WO+SE Manufacture T1 — trừ Đỗ FIFO (neo lô NCC), nhập Bột đỗ nền
+              vào Kho BTP, batch = R-DDMMYY
+Bất kỳ    : nấu đường hoán / hỗn hợp màu — QC#1 ghi vào BÁO MẺ (loại + số mẻ)
+Ngày X    : trộn — QC#1 ghi BÁO MẺ (8 bột bánh / 8 bột đậu, số mẻ); cán — QC#1 ghi BÁO CÁN
+Ngày X..  : vào hộp/túi — QC#2 ghi BẢNG VÀO HỘP (người × SKU × phương thức × số hộp)
+Cuối ngày : QC#2 tap CHỐT NGÀY ⇒ code sinh toàn bộ WO/SE/Batch theo thứ tự phụ thuộc,
+            trừ kho FIFO, đổ SalaryProduct
 ```
-Truy xuất 2 chiều NVL↔TP dùng **Serial & Batch Traceability Report chuẩn v16** (không tự build report).
-Đường/dầu: nối qua "lô đang mở" (batch lô NCC đang dùng tại thời điểm sản xuất).
+
+Chuỗi truy xuất (2 chiều, dùng Serial & Batch Traceability Report chuẩn v16):
+`Batch TP → SE T3 → Batch bột bánh/bột đậu (loại-ngày) → SE T2 → Batch bột đỗ nền (= lô R)
++ Batch đường hoán → SE T1 → lô đậu NCC / lô đường NCC`.
 
 ---
 
-## 2. Bốn điểm nhập liệu (bản đồ thao tác — nền tảng của toàn bộ thiết kế)
+## 2. Con người & điểm nhập
 
-| Ai | Khi nào | Thao tác | DocType ghi |
+| Ai | Màn hình | Làm gì | Bao nhiêu lần/ngày |
 |---|---|---|---|
-| **Thủ kho** | Chiều D-1 | Xuất đậu cho ngày mai → sinh **lô rang R** (chọn lô đậu NCC + số bao + 1 tap). Thi thoảng: mở lô đường/dầu mới. | `SX Xuat Dau`, `SX Lo Vat Tu` |
-| **Tổ trộn** | Trong ngày + cuối ngày | (a) Nhập bột lô R vào Kho BTP khi nhận từ khâu nghiền (chọn lô R + 1 tap). (b) Cuối ngày báo tổng số mẻ mỗi loại. | `SX Nhap Bot`, `SX Bao Me` |
-| **Tổ đóng gói** | Cuối ca | (a) Người chạy máy cán: bấm tổng số thùng ủ máy chạy (OEE). (b) Tổ vào hộp: số hộp từng SKU cho từng công nhân + phương thức. | `SX Cong Suat May`, `SX Bang Vao Hop` |
-| **Tổ trưởng ca** *(thường kiêm 1 trong 3 vai trên)* | Cuối ngày | 1 tap **Chốt ngày** → backend sinh toàn bộ WO/SE/Batch/lương. | submit `SX Ngay San Xuat` |
+| **QC #1** (role `SX Ghi So`) | `#/ghiso` — checklist vòng ghi số | Xuất đậu (kg + loại đỗ, chiều D-1) · Nhập bột (tap lô chờ) · Báo mẻ nấu (đường hoán/màu) · Báo mẻ trộn (bột bánh/bột đậu) · Báo cán · Sự cố | ~5–7 chặng, mỗi chặng 1–2 con số |
+| **QC #2** (role `SX Vao Hop`) | `#/vaohop` | Bảng vào hộp theo người × SKU × phương thức · Sự cố · **Chốt ngày** | 1 phiên cuối ca |
+| **Quản lý** (role `SX Quan Ly`) | tất cả + `#/quanly` | Dashboard, truy xuất, sửa/huỷ, kiểm kê (Desk) | khi cần |
+| Thủ kho, tổ trưởng, công nhân | — | **0 chạm.** Trả lời miệng cho QC | 0 |
 
-**0 chạm:** khâu rang, khâu sơ chế/nghiền (người vận hành), mọi công nhân đứng máy (trừ người cán bấm 1 số cuối ca). Không ai gõ chữ. Không ai chọn lô NVL thủ công (FIFO tự gắn). Không ai làm phiếu xuất kho tay.
+### 2.1 Tính độc lập (rủi ro đã cân nhắc — ghi vào README của app)
+
+Người nhập số liệu sản xuất là QC — chủ đầu tư đã quyết, chấp nhận rủi ro vai trò kép, với
+2 điều kiện giảm thiểu: (1) **2 QC tách vai** (ghi số ≠ vào hộp/chốt); (2) **người thẩm tra
+hồ sơ bên app `iso` sau này KHÔNG được là người đã nhập số bên `sx`**. App phải bảo đảm bằng
+chứng: mọi DocType `SX *` bật `track_changes`, không dùng tài khoản chung — mỗi QC 1 user
+thật (`ghiso@rvhg`, `vaohop@rvhg`). Lộ trình dài hạn: chuyển dần từng card về đúng tổ sản
+xuất (xem §6.2 role→card).
 
 ---
 
 ## 3. DocType Blueprint
 
-**App:** `sx` · **Module:** `SX` · Mọi fieldname ASCII không dấu. Label tiếng Việt có dấu.
+**App:** `sx` · **Module:** `SX` · Fieldname ASCII. Label tiếng Việt.
 
 ### ERD
 
 ```mermaid
 erDiagram
-    "SX Ngay San Xuat" ||--o{ "SX Bao Me" : "1-N (báo mẻ theo loại)"
-    "SX Ngay San Xuat" ||--o{ "SX Cong Suat May" : "1-N (theo máy)"
-    "SX Ngay San Xuat" ||--|| "SX Bang Vao Hop" : "1-1"
+    "SX Xuat Dau" ||--o| "SX Nhap Bot" : "lo_rang"
+    "SX Ngay San Xuat" ||--o{ "SX Bao Me" : "child"
+    "SX Ngay San Xuat" ||--o{ "SX Bao Can" : "child"
     "SX Ngay San Xuat" ||--o{ "SX Su Co Item" : "child"
-    "SX Bang Vao Hop" ||--o{ "SX Bang Vao Hop Item" : "child (theo người×SKU)"
-    "SX Xuat Dau" }o--|| "SX Ngay San Xuat" : "ngay_rang (D)"
-    "SX Nhap Bot" }o--|| "SX Xuat Dau" : "lo_rang"
+    "SX Ngay San Xuat" ||--|| "SX Bang Vao Hop" : "1-1"
+    "SX Bang Vao Hop" ||--o{ "SX Bang Vao Hop Item" : "child"
     "SX Bang Vao Hop Item" }o--|| Employee : ""
-    "SX Bang Vao Hop Item" }o--|| Item : "TP/SKU"
-    "SX Bao Me" }o--|| Item : "Hỗn hợp loại"
+    "SX Bao Me" }o--|| Item : "BTP (DH/màu/bột bánh/bột đậu)"
+    "SX Bao Can" }o--|| Item : "bột bánh"
     "SX Ngay San Xuat" }o..o{ "Work Order" : "custom_ngay_sx"
+    "SX Nhap Bot" }o..o{ "Work Order" : "custom_ngay_sx trống, link riêng"
     "Work Order" }o..o{ "Stock Entry" : ""
     "Stock Entry" }o..o{ Batch : ""
 ```
 
-> **Ghi chú quan hệ:** `SX Xuat Dau` và `SX Nhap Bot` **KHÔNG** phải con của `SX Ngay San Xuat`
-> vì chúng lệch ngày. Chúng là **document độc lập** liên kết mềm. Chỉ `SX Bao Me`,
-> `SX Cong Suat May`, `SX Bang Vao Hop`, `SX Su Co Item` gắn vào phiếu ngày.
+### 3.1 `SX Xuat Dau` — phiếu xuất đậu → sinh lô rang (neo gốc)
 
-### 3.1 `SX Xuat Dau` — phiếu xuất đậu → sinh lô rang (neo gốc truy xuất)
+- Naming: `SXXD-.YYYY.-.#####` · **Submittable: Yes** · Title: `lo_rang` · track_changes
 
-- Naming series: `SXXD-.YYYY.-.#####` · **Is Submittable: Yes** · Title: `lo_rang`
-- Fields: ngay_xuat (Date, reqd, default today) · ngay_rang (Date, reqd, default today+1) ·
-  lo_rang (Data, read_only, sinh code `R-DDMMYY(ngay_rang)`, unique) · lo_dau_ncc (Link Batch,
-  reqd, filter item đậu, gợi ý FIFO) · so_bao (Int, reqd, >0) · kl_bao_kg (Float, default
-  SX Settings.kl_bao_dau_kg) · dau_kg (Float, read_only = so_bao × kl_bao_kg) · se_xuat
-  (Link Stock Entry, read_only — phase 1 để trống, chỉ neo truy vết) · ghi_chu (Small Text).
-
-### 3.2 `SX Lo Vat Tu` — "lô đang mở" đường/dầu
-
-- `SXLV-.YYYY.-.#####` · Submittable: No · Title: `vat_tu`
-- Fields: vat_tu (Select `Đường\nDầu`, reqd) · item (Link Item, reqd) · lo_ncc (Link Batch) ·
-  ngay_mo (Date, reqd, default today) · dang_mo (Check — 1 = hiện hành; mở lô mới set lô cũ =0).
-
-### 3.3 `SX Nhap Bot` — nhập bột lô R vào Kho BTP (tổ trộn)
-
-- `SXNB-.YYYY.-.#####` · **Is Submittable: Yes** · Title: `lo_rang`
-- Fields: ngay_nhap (Date, reqd, default today) · xuat_dau (Link SX Xuat Dau, reqd — lô đã rang,
-  chưa nhập) · lo_rang (Data, fetch, read_only) · bot_kg (Float, read_only = dau_kg × yield BOM T1)
-  · batch_bot (Link Batch, read_only, set khi submit) · se_nhap (Link Stock Entry, read_only).
-- **GATE-C đã chốt: A.** on_submit: Batch `batch_id=lo_rang` (+custom_lo_rang) → SE **Material
-  Receipt** bot_kg vào Kho BTP. Đậu không trừ realtime (kiểm kê định kỳ).
-
-### 3.4 `SX Ngay San Xuat` — phiếu ngày
-
-- `SXN-.YYYY.-.MM.-.DD.-.##` · **Is Submittable: Yes** · Title: `ngay` · Track Changes
-- Fields: ngay (Date, reqd, unique docstatus<2) · trang_thai (Select `Đang chạy\nĐã chốt\nĐã huỷ`,
-  read_only) · bao_me (Table SX Bao Me) · cong_suat_may (Table SX Cong Suat May) · su_co (Table
-  SX Su Co Item) · tong_hop_tp (Int, read_only) · tong_luong_sp (Currency, read_only) ·
-  ds_wo_se (Small Text — log JSON chứng từ) · ghi_chu (Small Text).
-- **Child `SX Bao Me`:** hon_hop (Link Item BTP-HH, reqd) · so_me (Int, reqd, >0) · co_me_kg
-  (Float, read_only từ BOM.custom_co_me_chuan_kg) · tong_kg (Float, read_only) · batch_hh
-  (Link Batch, read_only, set khi chốt).
-- **Child `SX Cong Suat May`:** may (Link SX May, reqd) · so_thung (Int, reqd, >0) · nguoi_chay
-  (Link Employee) · ghi_chu (Data).
-- **Child `SX Su Co Item`:** thoi_diem (Datetime, default now) · loai (Select `Hỏng máy\nThiếu
-  NVL\nMất điện\nChất lượng\nKhác`, reqd) · mo_ta (Small Text) · phut_dung (Int).
-- Submit CHỈ qua `chot_ngay`. on_cancel: huỷ ngược ds_wo_se + xoá SalaryProduct.
-
-### 3.5 `SX Bang Vao Hop` (+ child `SX Bang Vao Hop Item`) — như v1
-
-ngay_sx (unique docstatus<2) · dong (Table, reqd) · tong_hop/tong_tien read_only.
-Child: nhan_vien · san_pham (TP) · phuong_thuc (`Thủ công\nMáy hỗ trợ`) · so_hop >0 ·
-don_gia/thanh_tien (lookup server-side).
-
-### 3.6 `SX Don Gia Vao Hop` — như v1
-
-phuong_thuc (reqd) · san_pham (trống = mọi SP) · don_gia (reqd) · hieu_luc_tu (reqd).
-Lookup: (san_pham, phuong_thuc) → fallback (trống, phuong_thuc) → hieu_luc_tu max ≤ ngày SX.
-
-### 3.7 `SX May` — danh mục máy cán
-
-`field:ma_may` · ma_may (Data, reqd) · ten_may (Data) · cong_suat_dinh_muc (Int, thùng/ngày) ·
-dang_dung (Check).
-
-### 3.8 `SX Settings` — Single
-
-cong_ty · item_bot · kho_nvl/kho_btp/kho_tp · kl_bao_dau_kg. Yield suy từ BOM T1 (D7).
-KHÔNG ngưỡng CCP (app iso, D9).
-
-### 3.9 Custom Fields (fixtures, fieldname ASCII)
-
-| DocType | Fieldname | Type | Options/Notes |
+| Fieldname | Label | Type | Notes |
 |---|---|---|---|
-| Item | custom_sx_nhom | Select | `\nNVL\nBTP-Bot\nBTP-HH\nTP\nBao Bi` |
-| Item | custom_batch_prefix | Data | vd `BNC`, `HH-A`, `BDX01` |
-| BOM | custom_co_me_chuan_kg | Float | cỡ mẻ chuẩn (BOM hỗn hợp) |
-| BOM Item | custom_nl_tron | Check | dòng NVL nhóm trộn |
-| Work Order | custom_ngay_sx | Link SX Ngay San Xuat | |
-| Stock Entry | custom_ngay_sx | Link SX Ngay San Xuat | |
-| Batch | custom_lo_rang | Data | batch bột: = mã lô R |
+| ngay_xuat | Ngày xuất (D-1) | Date | reqd, default today |
+| ngay_rang | Ngày rang (D) | Date | reqd, default today+1 |
+| loai_dau | Loại đỗ | Link Item | reqd; portal lọc = RM đỗ trong BOM BTP-Bot; default đỗ xanh |
+| dau_kg | Đậu xuất (kg) | Float | reqd, > 0, nhập thẳng kg |
+| lo_rang | Mã lô rang | Data | read_only, code sinh `{prefix}-DDMMYY(ngay_rang)`; unique; hiển thị CỰC TO |
+| trang_thai_bot | Đã nhập bột? | Check | read_only, =1 khi có SX Nhap Bot submitted |
+| ghi_chu | Ghi chú | Small Text | |
 
-**Mã lô (code sinh):** lô rang `R-DDMMYY` (trùng → -2); hỗn hợp `{prefix}-YYYYMMDD`;
-TP `{prefix}-DDMMYY`.
+Không tạo Stock Entry ở đây (đậu trừ tại Nhập bột — D7). Neo truy vết + nguồn list "lô chờ nhập bột".
+
+### 3.2 `SX Nhap Bot` — nhập bột lô R (chạy Manufacture T1)
+
+- Naming: `SXNB-.YYYY.-.#####` · **Submittable: Yes** · Title: `lo_rang` · track_changes
+
+| Fieldname | Label | Type | Notes |
+|---|---|---|---|
+| ngay_nhap | Ngày nhập | Date | reqd, default today |
+| xuat_dau | Phiếu xuất đậu | Link SX Xuat Dau | reqd; list = submitted, trang_thai_bot=0, ngay_rang<=today |
+| lo_rang | Mã lô rang | Data | fetch, read_only |
+| item_bot | Item bột | Link Item | read_only, suy từ loai_dau (BOM BTP-Bot có loai_dau là RM) |
+| bot_kg | Bột nhập (kg) | Float | read_only = dau_kg × yield(BOM item_bot); KHÔNG cân |
+| wo / se / batch_bot | WO / SE / Batch | Link | read_only, set khi submit |
+
+**on_submit (controller):** Batch (batch_id=lo_rang, item=item_bot) → WO (item_bot, qty=bot_kg,
+skip_transfer=1) submit → SE Manufacture: RM=đậu FIFO Kho NVL (neo lô NCC), FG=bột vào Kho BTP →
+set links + trang_thai_bot=1 trên phiếu xuất. **on_cancel:** SE → WO, reset trang_thai_bot.
+Thiếu tồn đậu → chặn rõ.
+
+### 3.3 `SX Ngay San Xuat` — phiếu ngày (xương sống)
+
+- Naming: `SXN-.YYYY.-.MM.-.DD.-.##` · **Submittable: Yes** · Title: `ngay` · track_changes
+- validate: 1 doc docstatus<2 / ngày. Submit CHỈ qua `chot_ngay` (before_submit chặn).
+
+| Fieldname | Label | Type | Notes |
+|---|---|---|---|
+| ngay | Ngày | Date | reqd, default today |
+| trang_thai | Trạng thái | Select `Đang chạy\nĐã chốt\nĐã huỷ` | read_only |
+| bao_me | Báo mẻ (nấu + trộn) | Table SX Bao Me | QC#1 |
+| bao_can | Báo cán (theo dõi) | Table SX Bao Can | QC#1 — KHÔNG sinh chứng từ kho (D8) |
+| su_co | Sự cố | Table SX Su Co Item | |
+| tong_hop_tp / tong_luong_sp | Tổng hộp / lương | Int / Currency | read_only, khi chốt |
+| ds_wo_se | WO/SE đã sinh | Small Text | log, phục vụ cancel |
+| ghi_chu | Ghi chú | Small Text | |
+
+**Child `SX Bao Me`:** item_btp (Link Item, filter custom_sx_nhom in BTP-Phu/BTP-Banh/BTP-Bot-SP,
+reqd) · so_me (Float, reqd, >0, cho 0.5) · co_me_kg (Float, read_only, fetch BOM.custom_co_me_chuan_kg)
+· tong_kg (Float, read_only = so_me × co_me_kg) · batch/wo/se (Link, read_only, set khi chốt).
+
+**Child `SX Bao Can`:** item_bot_banh (Link Item, filter BTP-Banh) · so_me (Float, reqd) · ghi_chu (Data).
+
+**Child `SX Su Co Item`:** thoi_diem (Datetime, default now) · loai (Select) · mo_ta (Small Text) · phut_dung (Int).
+
+**on_cancel** (chỉ Quan Ly): đọc ds_wo_se, huỷ ngược (SE T3 → WO T3 → SE mẻ → WO mẻ), xoá
+SalaryProduct. KHÔNG đụng SX Nhap Bot (độc lập).
+
+### 3.4 `SX Bang Vao Hop` — sản lượng TP + lương (cả 2 nhánh)
+
+- Naming: `VH-.YYYY.-.#####` · **Submittable: Yes** · 1 doc docstatus<2 / ngay_sx · track_changes
+- ngay_sx (Link, reqd) · dong (Table SX Bang Vao Hop Item, reqd) · tong_hop/tong_tien (read_only).
+
+**Child `SX Bang Vao Hop Item`:** nhan_vien (Link Employee, reqd) · san_pham (Link Item filter TP,
+reqd) · phuong_thuc (Select `Thủ công\nMáy hỗ trợ`, reqd) · so_hop (Int, reqd, >0) · don_gia/thanh_tien
+(read_only, lookup server-side).
+
+### 3.5 `SX Don Gia Vao Hop` — bảng giá lương
+
+phuong_thuc (reqd) · san_pham (optional, trống = mọi SP) · don_gia (Currency, reqd, **cho phép 0**)
+· hieu_luc_tu (Date, reqd). Lookup: (san_pham, phuong_thuc) → fallback (trống, phuong_thuc) →
+hieu_luc_tu max ≤ ngày. Không có bản ghi nào → chặn, báo rõ.
+
+### 3.6 `SX Settings` — Single
+
+cong_ty (Link Company) · kho_nvl · kho_btp · kho_tp (Link Warehouse). Hết — yield từ BOM,
+prefix từ Item, không ngưỡng CCP (D10).
+
+### 3.7 Custom Fields (fixtures, module SX)
+
+| DocType | Fieldname | Type | Options |
+|---|---|---|---|
+| Item | custom_sx_nhom | Select | `\nNVL\nBTP-Bot\nBTP-Phu\nBTP-Banh\nBTP-Bot-SP\nTP\nBao Bi` |
+| Item | custom_batch_prefix | Data | R, RD, DH, DHK, DHC, HMD, HMV, BB-TT…, BDS…, + prefix TP |
+| BOM | custom_co_me_chuan_kg | Float | bánh ~114 · bột 40 · chè 46.05 · ĐH 50/51.1/50.25 · màu 11.13/3.3 |
+| Work Order | custom_ngay_sx | Link SX Ngay San Xuat | trống với WO của Nhập bột |
+| Stock Entry | custom_ngay_sx | Link SX Ngay San Xuat | |
+| Batch | custom_ngay_sx | Link SX Ngay San Xuat | batch bột nền tra ngược qua SX Nhap Bot (batch_id = lô R) |
+
+**KHÔNG tạo `custom_nl_tron`** (D16). **Mã batch (code sinh):** `{Item.custom_batch_prefix}-{DDMMYY}`;
+trùng → `-2`. Bột nền: batch_id = mã lô rang (prefix R/RD + ngày rang).
 
 ---
 
 ## 4. Permission Matrix
 
-Roles: `SX Thu Kho`, `SX To Tron`, `SX To Dong Goi`, `SX Quan Ly`.
+Roles (fixtures): `SX Ghi So`, `SX Vao Hop`, `SX Quan Ly`.
 
-| DocType | Thu Kho | To Tron | To Dong Goi | Quan Ly |
-|---|---|---|---|---|
-| SX Xuat Dau | RWCS | | | RWCS + Cancel/Amend |
-| SX Lo Vat Tu | RWC | | | RWC + Delete |
-| SX Nhap Bot | | RWCS | | RWCS + Cancel/Amend |
-| SX Ngay San Xuat | | RWC | RWCS | full |
-| SX Bang Vao Hop | | | RWCS | full |
-| SX Don Gia Vao Hop | | | R | RWC + Delete |
-| SX May | R | R | R | RWC |
-| SX Settings | | | | RW |
+| DocType | SX Ghi So | SX Vao Hop | SX Quan Ly |
+|---|---|---|---|
+| SX Xuat Dau | R W C Submit | R | + Cancel Amend |
+| SX Nhap Bot | R W C Submit | R | + Cancel Amend |
+| SX Ngay San Xuat | R W C (KHÔNG submit) | R W C Submit (qua chot_ngay) | + Cancel Amend |
+| SX Bang Vao Hop | R | R W C Submit | + Cancel Amend |
+| SX Don Gia Vao Hop | R | R | R W C Delete |
+| SX Settings | R | R | R W |
 
-- System Manager: full. KHÔNG DocPerm cho 3 tổ trên Employee/WO/SE/Batch/SalaryProduct —
+- System Manager: full. **KHÔNG DocPerm** cho 2 role QC trên Employee/WO/SE/Batch/SalaryProduct —
   method-mediated, chỉ trả field whitelist (Employee: name, employee_name).
-- User tablet: `thukho@rvhg`, `totron@rvhg`, `donggoi@rvhg`.
+- User thật: `ghiso@rvhg`, `vaohop@rvhg`. Không tài khoản chung (§2.1).
 
 ---
 
-## 5. Integration & Backend Plan
+## 5. Backend Plan
 
-### 5.1 Touch points: BOM 3 tầng không operations (T1 yield; T2 custom_nl_tron +
-custom_co_me_chuan_kg; T3 gam hỗn hợp/hộp + bao bì). WO skip_transfer=1, use_multi_level_bom=0.
-SE Manufacture qua make_stock_entry + FIFO bundle v16. Manufacturing Settings: Backflush=BOM,
-Overproduction 5%. SalaryProduct: GATE-B.
+### 5.1 Touch points ERPNext core
 
-### 5.2 hooks.py: doc_events on_cancel; fixtures Role(4)/Custom Field/Print Format.
-Không scheduler, không override, không Server/Client Script.
+- **BOM**: chủ đầu tư tự nhập (Phase 0). Code CHỈ ĐỌC: yield T1 = qty bột/qty đỗ; cỡ mẻ =
+  custom_co_me_chuan_kg; backflush theo BOM lines.
+- **Manufacturing Settings** (Phase 0): Backflush Based On = BOM; Overproduction 5%; tắt capacity.
+- **WO/SE**: make_stock_entry(wo, "Manufacture", qty) rồi chỉnh. Non-stock item (Nước,
+  is_stock_item=0) **tự động loại khỏi SE** (get_bom_items_as_dict include_non_stock_items=False
+  → WHERE is_stock_item in (1,1)) — không sinh ledger, không vỡ. Đã đối chiếu source v16.
+- **FIFO pick**: use_serial_batch_fields=1 + batch_no theo batch cũ nhất; 1 lần trừ tách nhiều batch.
+- **SalaryProduct**: **GATE-B** — in field list từ console, chốt mapping, xin custom field nếu
+  thiếu phuong_thuc. Code dùng mapping adaptive tới khi chốt.
 
-### 5.3 Whitelisted API
+### 5.2 hooks.py
 
-| Method | Ai gọi | Làm gì |
+```python
+doc_events = {
+    "SX Ngay San Xuat": {"on_cancel": "sx.api.chot.on_cancel_ngay"},
+    "SX Nhap Bot": {"on_submit": "sx.api.tang1.on_submit_nhap_bot",
+                     "on_cancel": "sx.api.tang1.on_cancel_nhap_bot"},
+}
+fixtures = [Role(Ghi So/Vao Hop/Quan Ly), Custom Field module SX, Print Format module SX]
+```
+Không scheduler, không override class, không Server/Client Script.
+
+### 5.3 Whitelisted API (portal.py / tang1.py / chot.py) — guard theo card-capability
+
+| Method | Card/Role | Làm gì |
 |---|---|---|
-| portal.get_boot | mọi role | context đầy đủ theo role |
-| portal.xuat_dau(lo_dau, so_bao, kl_bao, ngay_rang) | Thu Kho | tạo+submit, trả lo_rang |
-| portal.mo_lo_vat_tu(vat_tu, item, lo_ncc) | Thu Kho | đổi lô đang mở |
-| portal.list_lo_cho_nhap_bot() | To Tron | lô R đã rang, chưa nhập |
-| portal.nhap_bot(xuat_dau) | To Tron | tạo+submit, trả lo_rang/bot_kg/batch |
-| portal.bao_me(ngay_sx, rows) | To Tron | upsert child bao_me |
-| portal.cong_suat_may(ngay_sx, rows) | To Dong Goi | upsert child cong_suat_may |
-| portal.luu_bang_vao_hop(ngay_sx, rows) | To Dong Goi | upsert draft, đơn giá server |
-| portal.ghi_su_co(...) | To Dong Goi, To Tron | append sự cố |
-| portal.get_or_create_ngay(ngay) | To Tron, To Dong Goi | phiếu ngày draft |
-| chot.chot_ngay(ngay_sx) | To Dong Goi, Quan Ly | orchestrator §5.4 |
-| portal.dashboard(tu_ngay, den_ngay) | Quan Ly | số liệu V5 |
-| portal.truy_xuat(batch_tp) | Quan Ly | chuỗi ngược TP→HH→R→đậu |
+| portal.get_boot | cả 3 | context: views+viewCards theo role, phiếu ngày, danh mục (2 đỗ, BTP theo nhóm, TP), lô chờ nhập bột, tồn BTP |
+| tang1.xuat_dau(loai_dau, dau_kg, ngay_rang) | Ghi So | tạo+submit → trả lo_rang |
+| tang1.nhap_bot(xuat_dau) | Ghi So | tạo+submit (WO+SE T1 trong on_submit) → trả lo_rang, bot_kg |
+| portal.get_or_create_ngay(ngay) | Ghi So, Vao Hop | phiếu ngày draft |
+| portal.bao_me(ngay_sx, rows) | Ghi So | upsert child bao_me |
+| portal.bao_can(ngay_sx, rows) | Ghi So | upsert child bao_can |
+| portal.ghi_su_co(...) | Ghi So, Vao Hop | append sự cố |
+| portal.luu_bang_vao_hop(ngay_sx, rows) | Vao Hop | upsert draft, đơn giá server |
+| chot.chot_ngay(ngay_sx) | Vao Hop, Quan Ly | orchestrator §5.4 |
+| portal.dashboard(tu_ngay, den_ngay) | Quan Ly | KPI |
+| portal.truy_xuat(batch_tp) | Quan Ly | chuỗi ngược TP → mẻ → lô R → lô NCC |
 
-### 5.4 chot_ngay
+### 5.4 `chot_ngay` — trình tự bắt buộc
 
-1. Validate: docstatus=0; bảng vào hộp tổng>0; đơn giá đủ; tồn đủ (kể cả HH sinh ở bước 2).
-2. T2 mỗi dòng bao_me: qty=so_me×co_me_kg → Batch HH → WO+SE (bột FIFO Kho BTP, phụ liệu Kho NVL,
-   FG vào Kho BTP).
-3. Submit bảng vào hộp.
-4. T3 mỗi SKU: qty=Σso_hop → Batch TP → WO+SE (HH FIFO Kho BTP + bao bì; FG Kho TP).
-5. KHÔNG T1 (GATE-C=A — bột nhập sẵn ở SX Nhap Bot).
-6. SalaryProduct (GATE-B).
-7. Tổng hợp + ds_wo_se → flags.tu_chot_ngay → submit.
-8. try/except toàn bộ → rollback + báo bước hỏng.
+1. **Validate** (idempotent): docstatus=0; ít nhất một trong {bao_me có dòng, vào hộp có dòng};
+   mọi dòng vào hộp có đơn giá; kiểm đủ tồn TRƯỚC khi sinh chứng từ (thiếu → liệt kê item+kg).
+2. **Topo sort bao_me theo phụ thuộc BOM** (A là RM trong BOM(B) → A trước): màu → đường hoán →
+   bột bánh/bột đậu.
+3. **Từng dòng bao_me:** qty=so_me×co_me_kg → Batch {prefix}-DDMMYY → WO (skip_transfer,
+   custom_ngay_sx) → SE Manufacture (RM backflush FIFO: bột nền=lô R, đường/dầu/màu/ĐH; FG vào
+   Kho BTP) → set batch/wo/se.
+4. **Submit SX Bang Vao Hop** (nếu có).
+5. **Từng SKU vào hộp:** qty=Σso_hop → Batch TP → WO+SE (RM bột bánh/bột đậu FIFO Kho BTP +
+   bao bì Kho NVL; FG Kho TP).
+6. **SalaryProduct**: 1 bản ghi/dòng (GATE-B). Đơn giá 0 vẫn tạo (thống kê).
+7. Tổng hợp + ds_wo_se → flags.tu_chot_ngay=True → submit.
+8. try/except toàn khối → rollback + message rõ bước hỏng.
 
-on_cancel_ngay: huỷ ngược theo ds_wo_se (SE T3→WO T3→SE T2→WO T2), xoá SalaryProduct, Batch giữ.
+**Cảnh báo mềm (không chặn, trả sau khi chốt):** tồn bột bánh loại < lượng cán luỹ kế (quên báo mẻ).
 
-> Note lệch ngày: HH trộn hôm nay nhập kho; TP hôm nay rút HH TỒN KHO FIFO (gồm HH hôm qua).
-> Ủ 24h người tự canh. Dashboard cảnh báo tồn HH âm.
+### 5.5 Kho: Kho NVL → Kho BTP (bột nền lô R, ĐH, màu, 8 bột bánh, 8 bột đậu batch loại-ngày) → Kho TP.
+Đậu nằm sổ Kho NVL tới Nhập bột (D7).
 
 ---
 
-## 6. Portal SPA `/sx` — 4 view theo role
+## 6. Portal SPA `/sx` (skill frappe-portal-spa — LUẬT VÀNG #1)
 
-`#/thukho` (Thu Kho, QL: xuất đậu + mã lô R TO + mở lô đường/dầu) · `#/tron` (To Tron, QL:
-nhập bột theo lô R + báo mẻ 9 loại) · `#/donggoi` (To Dong Goi, QL: công suất máy + bảng vào
-hộp + sự cố + CHỐT NGÀY 2 bước) · `#/quanly` (gate isQuanLy: KPI + truy xuất + link Desk).
-UX cứng: ≥18px, ≥48px, numpad tự dựng, ≤3 chạm, banner đỏ mất mạng, mã lô cực TO + nút
-"đã ghi thẻ" (D13). Import map cache-bust (LUẬT VÀNG #1).
+```
+sx/www/sx.py sx.html          # SX_CONTEXT (views, viewCards, landing); importmap cache-bust
+sx/public/sx/
+  shell.js                    # hash router, nav theo views, landing theo role
+  lib/ api.js router.js dom.js format.js
+  components/ toast.js modal.js numpad.js
+  cards/ xuatdau.js nhapbot.js baome.js baocan.js vaohop.js suco.js chotngay.js
+  views/ ghiso.js vaohop.js quanly.js   # view = tổ hợp cards (lấy từ viewCards)
+  shell.css                   # 100% prefix sx-
+```
 
-## 7. Print Formats: `SX Phieu Xuat Dau` (mã lô R to, ô ký thủ kho) · `SX Nhat Ky Ngay`
-(báo mẻ + công suất + vào hộp + sự cố + tổng hợp + ô ký).
+UX cứng: ≥18px, ≥48px, numpad tự dựng, ≤3 chạm, chốt ngày modal 2 bước, banner đỏ mất mạng,
+**mã lô cực to + nút "Đã ghi thẻ"**, SKU picker search + nhóm Bánh/Bột + gần đây.
 
-## 8. Phase 0 (tay trên Desk): 3 Warehouse · Item (NVL/BTP-Bot/BTP-HH ×9/TP ×40-50/Bao Bi)
-+ custom fields + has_batch_no · BOM 3 tầng (GATE-A) · SX May · Manufacturing Settings +
-tồn đầu · SX Settings + đơn giá + user tablet.
+### 6.1 Định tuyến theo vai trò (server guard là chốt, ẩn tab chỉ tiện dụng)
+Hash rỗng → landing. Route lạ → landing + toast.
+```python
+ROLE_VIEWS = {"SX Ghi So": ["ghiso"], "SX Vao Hop": ["vaohop"],
+              "SX Quan Ly": ["ghiso", "vaohop", "quanly"]}  # + System Manager: đủ
+```
 
-## 9. Build order: P0→P7, commit-per-feature. GATE-C trong P1, GATE-B trong P3.
+### 6.2 Role → Card (đường chuyển giao tương lai — đổi config, không sửa UI/API)
+```python
+VIEW_CARDS = {"ghiso": ["xuatdau","nhapbot","baome","baocan","suco"],
+              "vaohop": ["vaohop","suco","chotngay"], "quanly": ["quanly"]}
+CARD_ROLES = {card: [roles cho phép gọi API card đó]}  # nguồn cấu hình chung sx/config/roles.py
+```
 
-## 10. Acceptance test
+### 6.3 Views
+| View | Route | Nội dung |
+|---|---|---|
+| Ghi số | `#/ghiso` | Xuất đậu (2 nút loại đỗ + numpad kg → mã lô R TO) · Nhập bột (list lô chờ) · Báo mẻ (3 tab: Nấu/Bột bánh/Bột đậu) · Báo cán · Sự cố. Badge Đã ghi/Chưa. |
+| Vào hộp | `#/vaohop` | Grid CN → SKU picker (search+nhóm+gần đây) → phương thức → numpad hộp → auto-save; footer tổng; Sự cố; nút CHỐT NGÀY (modal 2 bước). |
+| Quản lý | `#/quanly` | 7/30 ngày: sản lượng SKU, lương/người, mẻ trộn vs cán, tồn BTP (đỏ nếu âm), phút dừng; Truy xuất batch TP; link Desk. |
 
-1. D-1 xuất đậu 20 bao×50kg → lô R + neo lô đậu NCC. 2. D+1 nhập bột → batch R Kho BTP,
-kg=1000×yield. 3. Báo mẻ (5 HH-A, 3 HH-B) + công suất (CAN-01: 8 thùng) + vào hộp 5 CN×2 SKU×2 PT.
-4. Chốt ngày → T2/T3 WO+SE đúng, bột FIFO đúng lô R cũ nhất, SalaryProduct 5 bản ghi, phiếu
-docstatus=1 + ds_wo_se đủ. 5. truy_xuat(batch_TP) trả đủ chuỗi TP→HH→R→đậu; khớp Serial & Batch
-Traceability Report. 6. Cancel → huỷ ngược sạch, tồn về như trước. 7. totron không thấy nút Chốt
-ngày, gọi API bị guard chặn; thukho chỉ thấy tab Thủ kho. 8. Portal: import map, numpad, mã lô to.
-9. Edge: chốt không bảng vào hộp → chặn; tồn HH âm → cảnh báo "quên báo mẻ".
+---
+
+## 7. Print Formats (fixtures, module SX)
+1. **`SX Phieu Xuat Dau`** — mã lô R cực to, loại đỗ, kg, ngày rang, ô ký.
+2. **`SX Nhat Ky Ngay`** — báo mẻ, báo cán, bảng vào hộp, sự cố, tổng hợp, ô ký 2 QC + quản đốc.
+
+---
+
+## 8. Phase 0 (chủ đầu tư TỰ LÀM trên Desk, theo workbook v6)
+3 Warehouse; Item (14 NVL + Nước Maintain Stock=0 + 7 BTP T1 + 16 BTP T2 + TP) với custom_sx_nhom
+nhóm chi tiết + custom_batch_prefix + has_batch_no; BOM (7 T1 màu-trước-đường-hoán → 16 T2 → T3);
+Manufacturing Settings; **Purchase Receipt NVL PHẢI có batch** (điều kiện D5); tồn đầu Stock
+Reconciliation; SX Settings, SX Don Gia Vao Hop; user ghiso@rvhg, vaohop@rvhg.
+> Custom Fields ship qua fixtures — deploy app (P2) TRƯỚC rồi chủ đầu tư mới nhập Item được.
+
+---
+
+## 9. Build order
+P0 scaffold → P1 DocType + controllers → P2 fixtures (migrate cho Phase 0) → P3 config/roles.py +
+tang1.py + portal.py + chot.py (sau GATE-B) → P4 portal card-based → P5 print → P6 verify → P7 deploy + acceptance §10.
+
+## 10. Acceptance test (Contract)
+1. Xuất đậu: Đỗ xanh 1000kg ngày rang mai → lo_rang R-{mai} to; + Đỗ đen 200kg → RD-.
+2. Nhập bột: tap lô R → WO+SE T1: đậu FIFO đúng lô NCC, bột +780kg Kho BTP batch=R (yield từ BOM);
+   trang_thai_bot=1; lô biến khỏi list.
+3. Báo mẻ: 2 ĐH thường + 1 HM đỏ + 1 ĐH khoai môn + 3 Bột bánh truyền thống + 2 Bột đậu sữa dừa;
+   Báo cán: 2 truyền thống; Vào hộp: 5 CN × 3 SKU × 2 phương thức.
+4. Chốt ngày → topo: HM đỏ TRƯỚC ĐH khoai môn; mỗi bao_me có WO+SE batch đúng, tồn Kho BTP đúng;
+   bột nền FIFO đúng lô R; SKU batch TP đúng, tồn Kho TP=Σhộp, bao bì trừ; Nước non-stock không lỗi;
+   SalaryProduct đúng; phiếu submitted, ds_wo_se đủ.
+5. Truy xuất(batch TP bánh): TP → Bột bánh-{ngày} → lô R → lô đậu NCC (+ nhánh ĐH → lô đường NCC).
+6. Cancel phiếu ngày → SE/WO chốt huỷ ngược, SalaryProduct xoá, tồn về; SX Nhap Bot KHÔNG đụng.
+7. Biên quyền: ghiso không thấy vaohop, gọi chot_ngay bị chặn; vaohop không sửa bao_me; route lạ → landing.
+8. Edge: chỉ báo mẻ (skip T3+lương); chỉ vào hộp (skip mẻ); thiếu tồn → chặn liệt kê; chốt lần 2 → báo đã chốt; cảnh báo cán>tồn.
+9. Portal: refresh ăn bản mới; CSS prefix sx-; numpad; mã lô to; SKU picker search.
 
 ## 11. Ngoài scope Phase 1
+Toàn bộ app `iso` (thẩm tra CCP mối hàn, nhiệt rang, SSOP, HACCP version, NCR/CAPA, giữ/thả lô);
+self-check 1kg đầu; thùng ủ cá thể + khoá 24h; cân thực từng mẻ; công suất theo máy (SX May đã bỏ);
+QR/tem; IoT; offline; Telegram; Plant Floor; kiểm kê trong portal.
 
-Toàn bộ app `iso` (CCP mối hàn, log nhiệt rang, SSOP, HACCP version, NCR/CAPA, quyền QC giữ/thả
-lô); self-check 1kg đầu; track thùng ủ + khoá 24h; xuất theo cân thực; QR/tem; IoT; offline;
-Telegram; Plant Floor; kiểm kê trong portal.
-
-## 12. Gates
-
-- **GATE-A** (trước Phase 0): số liệu BOM thật (yield T1, 9 công thức HH + cỡ mẻ, định mức
-  gam/hộp + bao bì từng SKU, đơn giá vào hộp 2 phương thức).
-- **GATE-B** (trước bước 6 chot_ngay): schema SalaryProduct → in field list, chốt mapping,
-  xin custom field nếu thiếu phuong_thuc.
-- **GATE-C** (P1): kiến trúc kho T1 — **đã chốt mặc định A** (Nhap Bot = Material Receipt).
+## 12. Gate duy nhất còn lại
+- **GATE-B** (trước bước 6 chot_ngay): schema SalaryProduct — in field list, chốt mapping, xin
+  custom field nếu thiếu phuong_thuc.
+> GATE-A (định mức) = workbook v6 + chủ đầu tư tự nhập Phase 0. GATE-C = phương án B (D7). Còn lại build thẳng.

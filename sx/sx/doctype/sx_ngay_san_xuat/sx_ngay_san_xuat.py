@@ -7,13 +7,13 @@ from sx.utils import get_bom_active
 
 
 class SXNgaySanXuat(Document):
-    """Phiếu ngày sản xuất v2 — gắn báo mẻ / công suất máy / sự cố; chốt sổ cuối ngày.
+    """Phiếu ngày sản xuất v3 — gắn báo mẻ / báo cán / sự cố; chốt sổ cuối ngày.
     Đơn vị ghi nhận NGÀY × LOẠI (D3), không có ca (D12)."""
 
     def validate(self):
         self.validate_duy_nhat_ngay()
         self.tinh_bao_me()
-        self.validate_cong_suat()
+        self.validate_bao_can()
         self.sync_trang_thai()
 
     def validate_duy_nhat_ngay(self):
@@ -29,31 +29,31 @@ class SXNgaySanXuat(Document):
             )
 
     def tinh_bao_me(self):
-        # Cỡ mẻ đọc từ BOM hỗn hợp (custom_co_me_chuan_kg) — 1 nguồn sự thật (D4)
+        # Cỡ mẻ đọc từ BOM của item BTP (custom_co_me_chuan_kg) — 1 nguồn sự thật (D4)
         for row in self.bao_me:
-            if cint(row.so_me) <= 0:
+            if flt(row.so_me) <= 0:
                 frappe.throw(_("Báo mẻ dòng {0}: số mẻ phải > 0").format(row.idx))
-            bom = get_bom_active(row.hon_hop)
+            bom = get_bom_active(row.item_btp)
             if not bom:
-                frappe.throw(_("Hỗn hợp {0} chưa có BOM active").format(row.hon_hop))
+                frappe.throw(_("BTP {0} chưa có BOM active").format(row.item_btp))
             row.co_me_kg = flt(frappe.db.get_value("BOM", bom, "custom_co_me_chuan_kg"))
             if not row.co_me_kg:
                 frappe.throw(
                     _("BOM {0} chưa điền cỡ mẻ chuẩn (custom_co_me_chuan_kg)").format(bom)
                 )
-            row.tong_kg = cint(row.so_me) * flt(row.co_me_kg)
+            row.tong_kg = flt(row.so_me) * flt(row.co_me_kg)
 
-    def validate_cong_suat(self):
-        for row in self.cong_suat_may:
-            if cint(row.so_thung) <= 0:
-                frappe.throw(_("Công suất máy dòng {0}: số thùng phải > 0").format(row.idx))
+    def validate_bao_can(self):
+        for row in self.bao_can:
+            if flt(row.so_me) <= 0:
+                frappe.throw(_("Báo cán dòng {0}: số mẻ phải > 0").format(row.idx))
 
     def sync_trang_thai(self):
         if self.docstatus == 0:
             self.trang_thai = "Đang chạy"
 
     def before_submit(self):
-        # Submit CHỈ qua sx.api.chot.chot_ngay (spec 3.4)
+        # Submit CHỈ qua sx.api.chot.chot_ngay (spec 3.3)
         if not self.flags.tu_chot_ngay:
             frappe.throw(
                 _("Không submit trực tiếp. Dùng nút CHỐT NGÀY trên portal /sx "

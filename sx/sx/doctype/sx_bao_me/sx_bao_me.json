@@ -1,27 +1,29 @@
 {
  "actions": [],
- "creation": "2026-07-16 10:00:00.000000",
+ "creation": "2026-07-23 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "hon_hop",
+  "item_btp",
   "so_me",
   "co_me_kg",
   "tong_kg",
-  "batch_hh"
+  "batch",
+  "wo",
+  "se"
  ],
  "fields": [
   {
-   "fieldname": "hon_hop",
+   "fieldname": "item_btp",
    "fieldtype": "Link",
-   "label": "Hỗn hợp",
+   "label": "BTP (đường hoán / màu / bột bánh / bột đậu)",
    "options": "Item",
    "in_list_view": 1,
    "reqd": 1
   },
   {
    "fieldname": "so_me",
-   "fieldtype": "Int",
+   "fieldtype": "Float",
    "label": "Số mẻ",
    "in_list_view": 1,
    "reqd": 1
@@ -41,16 +43,30 @@
    "in_list_view": 1
   },
   {
-   "fieldname": "batch_hh",
+   "fieldname": "batch",
    "fieldtype": "Link",
-   "label": "Batch hỗn hợp",
+   "label": "Batch",
    "options": "Batch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "wo",
+   "fieldtype": "Link",
+   "label": "WO",
+   "options": "Work Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "se",
+   "fieldtype": "Link",
+   "label": "SE",
+   "options": "Stock Entry",
    "read_only": 1
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2026-07-16 10:00:00.000000",
+ "modified": "2026-07-23 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Bao Me",

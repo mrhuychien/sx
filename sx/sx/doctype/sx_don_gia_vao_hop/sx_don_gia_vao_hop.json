@@ -60,7 +60,11 @@
    "read": 1, "write": 1, "create": 1, "delete": 1, "print": 1, "report": 1, "export": 1
   },
   {
-   "role": "SX To Dong Goi",
+   "role": "SX Vao Hop",
+   "read": 1
+  },
+  {
+   "role": "SX Ghi So",
    "read": 1
   },
   {

@@ -1,25 +1,16 @@
 {
  "actions": [],
- "creation": "2026-07-11 10:00:00.000000",
+ "creation": "2026-07-23 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_chung",
   "cong_ty",
-  "item_bot",
-  "column_break_chung",
+  "column_break_head",
   "kho_nvl",
   "kho_btp",
-  "kho_tp",
-  "section_thong_so",
-  "kl_bao_dau_kg"
+  "kho_tp"
  ],
  "fields": [
-  {
-   "fieldname": "section_chung",
-   "fieldtype": "Section Break",
-   "label": "Chung"
-  },
   {
    "fieldname": "cong_ty",
    "fieldtype": "Link",
@@ -27,13 +18,7 @@
    "options": "Company"
   },
   {
-   "fieldname": "item_bot",
-   "fieldtype": "Link",
-   "label": "Item bột BTP nguyên chất",
-   "options": "Item"
-  },
-  {
-   "fieldname": "column_break_chung",
+   "fieldname": "column_break_head",
    "fieldtype": "Column Break"
   },
   {
@@ -53,21 +38,11 @@
    "fieldtype": "Link",
    "label": "Kho TP",
    "options": "Warehouse"
-  },
-  {
-   "fieldname": "section_thong_so",
-   "fieldtype": "Section Break",
-   "label": "Thông số"
-  },
-  {
-   "fieldname": "kl_bao_dau_kg",
-   "fieldtype": "Float",
-   "label": "KL bao đậu mặc định (kg)"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-07-16 10:00:00.000000",
+ "modified": "2026-07-23 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",
@@ -80,6 +55,14 @@
   {
    "role": "SX Quan Ly",
    "read": 1, "write": 1
+  },
+  {
+   "role": "SX Ghi So",
+   "read": 1
+  },
+  {
+   "role": "SX Vao Hop",
+   "read": 1
   }
  ],
  "sort_field": "modified",

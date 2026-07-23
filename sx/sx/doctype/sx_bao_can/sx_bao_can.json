@@ -1,36 +1,28 @@
 {
  "actions": [],
- "creation": "2026-07-16 10:00:00.000000",
+ "creation": "2026-07-23 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "may",
-  "so_thung",
-  "nguoi_chay",
+  "item_bot_banh",
+  "so_me",
   "ghi_chu"
  ],
  "fields": [
   {
-   "fieldname": "may",
+   "fieldname": "item_bot_banh",
    "fieldtype": "Link",
-   "label": "Máy",
-   "options": "SX May",
+   "label": "Bột bánh",
+   "options": "Item",
    "in_list_view": 1,
    "reqd": 1
   },
   {
-   "fieldname": "so_thung",
-   "fieldtype": "Int",
-   "label": "Số thùng",
+   "fieldname": "so_me",
+   "fieldtype": "Float",
+   "label": "Số mẻ cán",
    "in_list_view": 1,
    "reqd": 1
-  },
-  {
-   "fieldname": "nguoi_chay",
-   "fieldtype": "Link",
-   "label": "Người chạy",
-   "options": "Employee",
-   "in_list_view": 1
   },
   {
    "fieldname": "ghi_chu",
@@ -41,10 +33,10 @@
  ],
  "istable": 1,
  "links": [],
- "modified": "2026-07-16 10:00:00.000000",
+ "modified": "2026-07-23 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
- "name": "SX Cong Suat May",
+ "name": "SX Bao Can",
  "owner": "Administrator",
  "permissions": [],
  "sort_field": "modified",

@@ -1,7 +1,7 @@
 {
  "actions": [],
  "autoname": "naming_series:",
- "creation": "2026-07-16 10:00:00.000000",
+ "creation": "2026-07-23 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -9,14 +9,11 @@
   "ngay_xuat",
   "ngay_rang",
   "column_break_head",
-  "lo_rang",
-  "lo_dau_ncc",
-  "section_so_luong",
-  "so_bao",
-  "kl_bao_kg",
-  "column_break_sl",
+  "loai_dau",
   "dau_kg",
-  "se_xuat",
+  "section_lo",
+  "lo_rang",
+  "trang_thai_bot",
   "ghi_chu"
  ],
  "fields": [
@@ -50,6 +47,26 @@
    "fieldtype": "Column Break"
   },
   {
+   "fieldname": "loai_dau",
+   "fieldtype": "Link",
+   "label": "Loại đỗ",
+   "options": "Item",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "dau_kg",
+   "fieldtype": "Float",
+   "label": "Đậu xuất (kg)",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_lo",
+   "fieldtype": "Section Break",
+   "label": "Lô rang"
+  },
+  {
    "fieldname": "lo_rang",
    "fieldtype": "Data",
    "label": "Mã lô rang",
@@ -59,46 +76,13 @@
    "bold": 1
   },
   {
-   "fieldname": "lo_dau_ncc",
-   "fieldtype": "Link",
-   "label": "Lô đậu (nhà cung cấp)",
-   "options": "Batch",
-   "in_list_view": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "section_so_luong",
-   "fieldtype": "Section Break",
-   "label": "Số lượng"
-  },
-  {
-   "fieldname": "so_bao",
-   "fieldtype": "Int",
-   "label": "Số bao",
-   "in_list_view": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "kl_bao_kg",
-   "fieldtype": "Float",
-   "label": "KL/bao (kg)"
-  },
-  {
-   "fieldname": "column_break_sl",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "dau_kg",
-   "fieldtype": "Float",
-   "label": "Đậu xuất (kg)",
-   "read_only": 1
-  },
-  {
-   "fieldname": "se_xuat",
-   "fieldtype": "Link",
-   "label": "Stock Entry xuất",
-   "options": "Stock Entry",
-   "read_only": 1
+   "default": "0",
+   "fieldname": "trang_thai_bot",
+   "fieldtype": "Check",
+   "label": "Đã nhập bột?",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "in_list_view": 1
   },
   {
    "fieldname": "ghi_chu",
@@ -108,7 +92,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-16 10:00:00.000000",
+ "modified": "2026-07-23 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Xuat Dau",
@@ -121,11 +105,11 @@
    "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
   },
   {
-   "role": "SX Thu Kho",
+   "role": "SX Ghi So",
    "read": 1, "write": 1, "create": 1, "submit": 1, "print": 1, "report": 1
   },
   {
-   "role": "SX To Tron",
+   "role": "SX Vao Hop",
    "read": 1
   },
   {
@@ -134,7 +118,7 @@
    "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
   }
  ],
- "search_fields": "lo_rang,ngay_rang,lo_dau_ncc",
+ "search_fields": "lo_rang,ngay_rang,loai_dau",
  "sort_field": "ngay_rang",
  "sort_order": "DESC",
  "title_field": "lo_rang",

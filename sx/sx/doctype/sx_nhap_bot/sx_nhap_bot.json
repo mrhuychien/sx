@@ -1,7 +1,7 @@
 {
  "actions": [],
  "autoname": "SXNB-.YYYY.-.#####",
- "creation": "2026-07-16 10:00:00.000000",
+ "creation": "2026-07-23 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -9,10 +9,13 @@
   "xuat_dau",
   "column_break_head",
   "lo_rang",
+  "item_bot",
   "bot_kg",
   "section_ket_qua",
-  "batch_bot",
-  "se_nhap"
+  "wo",
+  "se",
+  "column_break_kq",
+  "batch_bot"
  ],
  "fields": [
   {
@@ -45,6 +48,13 @@
    "bold": 1
   },
   {
+   "fieldname": "item_bot",
+   "fieldtype": "Link",
+   "label": "Item bột",
+   "options": "Item",
+   "read_only": 1
+  },
+  {
    "fieldname": "bot_kg",
    "fieldtype": "Float",
    "label": "Bột nhập (kg)",
@@ -57,25 +67,37 @@
    "label": "Kết quả (set khi submit)"
   },
   {
+   "fieldname": "wo",
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order",
+   "read_only": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "se",
+   "fieldtype": "Link",
+   "label": "Stock Entry",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "column_break_kq",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "batch_bot",
    "fieldtype": "Link",
    "label": "Batch bột",
    "options": "Batch",
    "read_only": 1,
    "allow_on_submit": 1
-  },
-  {
-   "fieldname": "se_nhap",
-   "fieldtype": "Link",
-   "label": "Stock Entry nhập",
-   "options": "Stock Entry",
-   "read_only": 1,
-   "allow_on_submit": 1
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-16 10:00:00.000000",
+ "modified": "2026-07-23 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Nhap Bot",
@@ -88,8 +110,12 @@
    "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
   },
   {
-   "role": "SX To Tron",
+   "role": "SX Ghi So",
    "read": 1, "write": 1, "create": 1, "submit": 1, "print": 1, "report": 1
+  },
+  {
+   "role": "SX Vao Hop",
+   "read": 1
   },
   {
    "role": "SX Quan Ly",
