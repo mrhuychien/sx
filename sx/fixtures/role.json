@@ -1,8 +1,8 @@
 [
  {
   "doctype": "Role",
-  "name": "SX Thu Kho",
-  "role_name": "SX Thu Kho",
+  "name": "SX Ghi So",
+  "role_name": "SX Ghi So",
   "desk_access": 0,
   "disabled": 0,
   "is_custom": 1,
@@ -12,19 +12,8 @@
  },
  {
   "doctype": "Role",
-  "name": "SX To Tron",
-  "role_name": "SX To Tron",
-  "desk_access": 0,
-  "disabled": 0,
-  "is_custom": 1,
-  "restrict_to_domain": null,
-  "home_page": null,
-  "two_factor_auth": 0
- },
- {
-  "doctype": "Role",
-  "name": "SX To Dong Goi",
-  "role_name": "SX To Dong Goi",
+  "name": "SX Vao Hop",
+  "role_name": "SX Vao Hop",
   "desk_access": 0,
   "disabled": 0,
   "is_custom": 1,
