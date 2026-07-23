@@ -5,7 +5,8 @@
 {% block head_include %}
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <!-- LUẬT VÀNG #1: import map cache-bust MỌI shared module (lib/ + components/).
-     Phải đứng TRƯỚC mọi <script type="module">. Thêm module mới -> THÊM vào đây. -->
+     Phải đứng TRƯỚC mọi <script type="module">. Thêm module mới -> THÊM vào đây.
+     Cards/views cache-bust riêng qua withV(assetVersion) khi dynamic import. -->
 {% set v = asset_version %}
 <script type="importmap">
 {
@@ -29,7 +30,6 @@
   <div class="sx-boot-loading">Đang tải…</div>
 </div>
 <script type="module" src="/assets/sx/sx/shell.js?v={{ asset_version }}"></script>
-<!-- Handshake build marker: shell cũ (deploy giữa phiên) -> banner đỏ thay vì hỏng ngầm -->
 <script>
 window.addEventListener('load', function () {
   setTimeout(function () {

@@ -406,6 +406,11 @@ body { background: var(--sx-bg) !important; }
 .sx-tx-hh { background: #fff8ec; margin-left: 14px; }
 .sx-tx-bot { background: #f2fbf7; margin-left: 14px; margin-top: 6px; }
 .sx-tx-dau { background: var(--sx-surface-2); margin-left: 14px; margin-top: 6px; }
+.sx-tx-d1 { background: #fff8ec; margin-left: 14px; margin-top: 6px; }
+.sx-tx-d2 { background: #f2fbf7; margin-left: 22px; margin-top: 6px; }
+.sx-tx-d3 { background: #f6f2fb; margin-left: 30px; margin-top: 6px; }
+.sx-row-warn { background: #fff8ec; }
+.sx-row-warn .sx-warn-text, .sx-row-warn td { color: var(--sx-warning); }
 
 /* ── Chart / link Desk ── */
 .sx-chart-box { position: relative; height: 260px; }
