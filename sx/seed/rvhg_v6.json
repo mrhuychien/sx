@@ -1,0 +1,1513 @@
+{
+ "nguon": "RVHG_dinh_muc_BOM_v6.xlsx — 16/16 câu hỏi ĐÃ CHỐT (Chiến 23/07/2026)",
+ "ghi_chu": "Sinh tự động từ workbook v6 — KHÔNG sửa tay; sửa workbook rồi trích lại. Tên item = cột A sheet DANH MUC ITEM (tên thật trên ERPNext, quy ước ID = tên tiếng Việt). BOM tầng 3 (SKU) KHÔNG seed — CH-13 đã chốt: chủ đầu tư tự tạo trên ERPNext.",
+ "quyet_dinh_da_chot": [
+  "CH-04: Sữa dừa = Bột sữa dừa (1 item); Rau má = Bột rau má (1 item)",
+  "CH-09: bột đỗ đen TỰ rang/nghiền, hiệu suất 0.78 như đỗ xanh",
+  "CH-10: Nước phi tồn kho (is_stock_item=0) NHƯNG vẫn giữ trong BOM để đúng khối lượng",
+  "CH-13: tầng 3 do chủ đầu tư tự tạo BOM trên ERPNext (seed không làm)",
+  "CH-14: \"Đường kính Việt Nam\" = item \"Đường nghệ an\"",
+  "CH-15: \"Đường Trung Quốc\" = item \"Đường Gluco China\" (dùng cả 2 nhánh)",
+  "CH-16: hương liệu quy đổi 1 lít = 1 kg, ĐVT Kg"
+ ],
+ "con_lam_tay": [
+  "BOM tầng 3 + Item TP + bao bì (CH-13) — CHẶN chốt ngày nhánh TP",
+  "Manufacturing Settings: Backflush=BOM, Overproduction 5%, GIỮ TẮT \"Validate Components Quantities Per BOM\"",
+  "Purchase Receipt NVL PHẢI có batch = lô NCC (điều kiện FIFO truy xuất D5)",
+  "Tồn đầu (Stock Reconciliation, batch TON-DDMMYY)",
+  "SX Don Gia Vao Hop (2 phương thức) + user ghiso@rvhg, vaohop@rvhg"
+ ],
+ "items": [
+  {
+   "item_code": "Đỗ xanh",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Đậu xanh",
+   "is_stock": 1,
+   "ghi_chu": "",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Đỗ đen",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Đậu đen",
+   "is_stock": 1,
+   "ghi_chu": "Tự rang/nghiền (CH-09)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Đường nghệ an",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Đường kính Việt Nam",
+   "is_stock": 1,
+   "ghi_chu": "✔ CH-14: đúng là item này.",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Đường Gluco Pháp",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Đường gluco Pháp",
+   "is_stock": 1,
+   "ghi_chu": "Bánh: thượng hạng, trà xanh, sầu riêng",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Đường Gluco China",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Đường gluco China / Đường Trung Quốc",
+   "is_stock": 1,
+   "ghi_chu": "✔ CH-15: 'đường trung quốc' trong công thức BỘT = chính item này. Dùng ở CẢ 2 nhánh.",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Dầu ăn Cái Lân",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Dầu",
+   "is_stock": 1,
+   "ghi_chu": "25kg/mẻ bánh",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Vani",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Vani",
+   "is_stock": 1,
+   "ghi_chu": "",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột trà xanh matcha Nhật GTP RS20",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Matcha Nhật",
+   "is_stock": 1,
+   "ghi_chu": "",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột matcha Đài Loan",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Matcha Đài Loan",
+   "is_stock": 1,
+   "ghi_chu": "",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột sầu riêng",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Bột sầu riêng",
+   "is_stock": 1,
+   "ghi_chu": "",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Hương sầu riêng",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Hương sầu riêng",
+   "is_stock": 1,
+   "ghi_chu": "ĐVT Kg. Quy đổi 1 lít = 1 kg (CH-16)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột sữa Newzealand",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Sữa bột",
+   "is_stock": 1,
+   "ghi_chu": "",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Dừa khô",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Dừa khô",
+   "is_stock": 1,
+   "ghi_chu": "Chè đậu đen",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Lạc",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": true,
+   "ten_cong_thuc": "Lạc",
+   "is_stock": 1,
+   "ghi_chu": "Chè đậu đen",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Hương dừa",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Hương dừa",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO. ĐVT Kg — 90ml = 0.09kg/mẻ (CH-16)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Hương khoai môn",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Hương khoai môn",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO. ĐVT Kg — 90ml = 0.09kg/mẻ (CH-16)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Hương cốm",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Hương cốm",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO. ĐVT Kg — 90ml = 0.09kg/mẻ (CH-16)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Hương sen",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Hương sen",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO. ĐVT Kg — 70ml = 0.07kg/mẻ (CH-16)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Màu thực phẩm đỏ",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Màu đỏ",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO — hỗn hợp màu khoai môn",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Màu thực phẩm xanh",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Màu xanh",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO — cả 2 hỗn hợp màu",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Màu thực phẩm vàng",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Màu vàng",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO — hỗn hợp màu cốm",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột sữa dừa",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Sữa dừa / Bột sữa dừa",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO — 1 item duy nhất (CH-04)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột rau má",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Rau má / Bột rau má",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO — 1 item duy nhất (CH-04)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Cà rốt",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Cà rốt",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO — xay cùng đỗ xanh",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột cà rốt",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột cà rốt",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO — bột sữa dừa không đường",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột nghệ",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột nghệ",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Dầu chuối",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": true,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Dầu chuối",
+   "is_stock": 1,
+   "ghi_chu": "PHẢI TẠO — chè đậu đen",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Nước",
+   "uom": "Kg",
+   "nhom": "NVL",
+   "has_batch": false,
+   "prefix": "",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Nước",
+   "is_stock": 0,
+   "ghi_chu": "PHẢI TẠO với Maintain Stock = 0 (phi tồn kho). VẪN giữ trong BOM để cân bằng khối lượng (CH-10)",
+   "item_group": "Nguyên liệu"
+  },
+  {
+   "item_code": "Bột đỗ xanh nền",
+   "uom": "Kg",
+   "nhom": "BTP-Bot",
+   "has_batch": true,
+   "prefix": "R",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu xanh nền",
+   "is_stock": 1,
+   "ghi_chu": "Batch = mã lô rang R-DDMMYY",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột đỗ đen nền",
+   "uom": "Kg",
+   "nhom": "BTP-Bot",
+   "has_batch": true,
+   "prefix": "RD",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu đen nền",
+   "is_stock": 1,
+   "ghi_chu": "Hiệu suất ngang đỗ xanh",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Hỗn hợp màu đỏ",
+   "uom": "Kg",
+   "nhom": "BTP-Phu",
+   "has_batch": true,
+   "prefix": "HMD",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Hỗn hợp màu đỏ",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 11.13kg, dùng ~10 mẻ đường",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Hỗn hợp màu vàng",
+   "uom": "Kg",
+   "nhom": "BTP-Phu",
+   "has_batch": true,
+   "prefix": "HMV",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Hỗn hợp màu vàng",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 3.3kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Đường hoán thường",
+   "uom": "Kg",
+   "nhom": "BTP-Phu",
+   "has_batch": true,
+   "prefix": "DH",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Đường hoán thường",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 50kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Đường hoán khoai môn",
+   "uom": "Kg",
+   "nhom": "BTP-Phu",
+   "has_batch": true,
+   "prefix": "DHK",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Đường hoán khoai môn",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 51.1kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Đường hoán cốm",
+   "uom": "Kg",
+   "nhom": "BTP-Phu",
+   "has_batch": true,
+   "prefix": "DHC",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Đường hoán cốm",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 50.25kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột bánh truyền thống",
+   "uom": "Kg",
+   "nhom": "BTP-Banh",
+   "has_batch": true,
+   "prefix": "BB-TT",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột bánh truyền thống",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ ~114kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột bánh thượng hạng",
+   "uom": "Kg",
+   "nhom": "BTP-Banh",
+   "has_batch": true,
+   "prefix": "BB-TH",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột bánh thượng hạng",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ ~114kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột bánh trà xanh",
+   "uom": "Kg",
+   "nhom": "BTP-Banh",
+   "has_batch": true,
+   "prefix": "BB-TX",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột bánh trà xanh",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ ~114kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột bánh sầu riêng",
+   "uom": "Kg",
+   "nhom": "BTP-Banh",
+   "has_batch": true,
+   "prefix": "BB-SR",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột bánh sầu riêng",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ ~114kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột bánh dừa",
+   "uom": "Kg",
+   "nhom": "BTP-Banh",
+   "has_batch": true,
+   "prefix": "BB-DU",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột bánh dừa",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ ~114kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột bánh khoai môn",
+   "uom": "Kg",
+   "nhom": "BTP-Banh",
+   "has_batch": true,
+   "prefix": "BB-KM",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột bánh khoai môn",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ ~114kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột bánh cốm",
+   "uom": "Kg",
+   "nhom": "BTP-Banh",
+   "has_batch": true,
+   "prefix": "BB-CO",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột bánh cốm",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ ~114kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột bánh sen",
+   "uom": "Kg",
+   "nhom": "BTP-Banh",
+   "has_batch": true,
+   "prefix": "BB-SE",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột bánh sen",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ ~114kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột đậu sữa dừa có đường",
+   "uom": "Kg",
+   "nhom": "BTP-Bot-SP",
+   "has_batch": true,
+   "prefix": "BDS",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu sữa dừa có đường",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 40kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột đậu matcha có đường",
+   "uom": "Kg",
+   "nhom": "BTP-Bot-SP",
+   "has_batch": true,
+   "prefix": "BDM",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu matcha có đường",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 40kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột đậu rau má có đường",
+   "uom": "Kg",
+   "nhom": "BTP-Bot-SP",
+   "has_batch": true,
+   "prefix": "BDR",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu rau má có đường",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 40kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột đậu cà rốt có đường",
+   "uom": "Kg",
+   "nhom": "BTP-Bot-SP",
+   "has_batch": true,
+   "prefix": "BDC",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu cà rốt có đường",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 40kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột đậu sữa dừa không đường",
+   "uom": "Kg",
+   "nhom": "BTP-Bot-SP",
+   "has_batch": true,
+   "prefix": "BDSK",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu sữa dừa không đường",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 40kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột đậu rau má không đường",
+   "uom": "Kg",
+   "nhom": "BTP-Bot-SP",
+   "has_batch": true,
+   "prefix": "BDRK",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu rau má không đường",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 40kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Bột đậu xanh dinh dưỡng",
+   "uom": "Kg",
+   "nhom": "BTP-Bot-SP",
+   "has_batch": true,
+   "prefix": "BDD",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Bột đậu xanh dinh dưỡng",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 40kg",
+   "item_group": "Bán thành phẩm"
+  },
+  {
+   "item_code": "Chè đậu đen cốt dừa",
+   "uom": "Kg",
+   "nhom": "BTP-Bot-SP",
+   "has_batch": true,
+   "prefix": "CDD",
+   "da_co_tren_site": false,
+   "ten_cong_thuc": "Chè đậu đen cốt dừa",
+   "is_stock": 1,
+   "ghi_chu": "Mẻ 46.05kg (khác chuẩn — đã xác nhận)",
+   "item_group": "Bán thành phẩm"
+  }
+ ],
+ "boms": [
+  {
+   "bom": "BOM-BOT-DX",
+   "item": "Bột đỗ xanh nền",
+   "item_workbook": "Bột đỗ xanh nền",
+   "qty": 1.0,
+   "uom": "Kg",
+   "tang": 1,
+   "rm": [
+    {
+     "item": "Đỗ xanh",
+     "item_workbook": "Đỗ xanh",
+     "qty": 1.28205128205128,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 0
+  },
+  {
+   "bom": "BOM-BOT-DD",
+   "item": "Bột đỗ đen nền",
+   "item_workbook": "Bột đỗ đen nền",
+   "qty": 1.0,
+   "uom": "Kg",
+   "tang": 1,
+   "rm": [
+    {
+     "item": "Đỗ đen",
+     "item_workbook": "Đỗ đen",
+     "qty": 1.28205128205128,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 0
+  },
+  {
+   "bom": "BOM-HM-DO",
+   "item": "Hỗn hợp màu đỏ",
+   "item_workbook": "Hỗn hợp màu đỏ",
+   "qty": 11.13,
+   "uom": "Kg",
+   "tang": 1,
+   "rm": [
+    {
+     "item": "Màu thực phẩm đỏ",
+     "item_workbook": "Màu thực phẩm đỏ",
+     "qty": 1.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Màu thực phẩm xanh",
+     "item_workbook": "Màu thực phẩm xanh",
+     "qty": 0.13,
+     "uom": "Kg"
+    },
+    {
+     "item": "Nước",
+     "item_workbook": "Nước",
+     "qty": 10.0,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 11.13
+  },
+  {
+   "bom": "BOM-HM-VANG",
+   "item": "Hỗn hợp màu vàng",
+   "item_workbook": "Hỗn hợp màu vàng",
+   "qty": 3.3,
+   "uom": "Kg",
+   "tang": 1,
+   "rm": [
+    {
+     "item": "Màu thực phẩm vàng",
+     "item_workbook": "Màu thực phẩm vàng",
+     "qty": 0.2,
+     "uom": "Kg"
+    },
+    {
+     "item": "Màu thực phẩm xanh",
+     "item_workbook": "Màu thực phẩm xanh",
+     "qty": 0.1,
+     "uom": "Kg"
+    },
+    {
+     "item": "Nước",
+     "item_workbook": "Nước",
+     "qty": 3.0,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 3.3
+  },
+  {
+   "bom": "BOM-DH-TH",
+   "item": "Đường hoán thường",
+   "item_workbook": "Đường hoán thường",
+   "qty": 50.0,
+   "uom": "Kg",
+   "tang": 1,
+   "rm": [
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 50.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Vani",
+     "item_workbook": "Vani",
+     "qty": 0.06,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 50.0
+  },
+  {
+   "bom": "BOM-DH-KM",
+   "item": "Đường hoán khoai môn",
+   "item_workbook": "Đường hoán khoai môn",
+   "qty": 51.1,
+   "uom": "Kg",
+   "tang": 1,
+   "rm": [
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 50.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Vani",
+     "item_workbook": "Vani",
+     "qty": 0.06,
+     "uom": "Kg"
+    },
+    {
+     "item": "Hỗn hợp màu đỏ",
+     "item_workbook": "Hỗn hợp màu đỏ",
+     "qty": 1.1,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 51.1
+  },
+  {
+   "bom": "BOM-DH-COM",
+   "item": "Đường hoán cốm",
+   "item_workbook": "Đường hoán cốm",
+   "qty": 50.25,
+   "uom": "Kg",
+   "tang": 1,
+   "rm": [
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 50.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Vani",
+     "item_workbook": "Vani",
+     "qty": 0.06,
+     "uom": "Kg"
+    },
+    {
+     "item": "Hỗn hợp màu vàng",
+     "item_workbook": "Hỗn hợp màu vàng",
+     "qty": 0.25,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 50.25
+  },
+  {
+   "bom": "BOM-BB-TT",
+   "item": "Bột bánh truyền thống",
+   "item_workbook": "Bột bánh đậu xanh truyền thống",
+   "qty": 114.0,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 53.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường hoán thường",
+     "item_workbook": "Đường hoán thường",
+     "qty": 11.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu ăn Cái Lân",
+     "item_workbook": "Dầu ăn Cái Lân",
+     "qty": 25.0,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 114.0
+  },
+  {
+   "bom": "BOM-BB-TH",
+   "item": "Bột bánh thượng hạng",
+   "item_workbook": "Bột bánh đậu xanh thượng hạng",
+   "qty": 114.0,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 53.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường hoán thường",
+     "item_workbook": "Đường hoán thường",
+     "qty": 11.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco Pháp",
+     "item_workbook": "Đường Gluco Pháp",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu ăn Cái Lân",
+     "item_workbook": "Dầu ăn Cái Lân",
+     "qty": 25.0,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 114.0
+  },
+  {
+   "bom": "BOM-BB-TX",
+   "item": "Bột bánh trà xanh",
+   "item_workbook": "Bột bánh đậu xanh trà xanh",
+   "qty": 114.9,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 53.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường hoán thường",
+     "item_workbook": "Đường hoán thường",
+     "qty": 11.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco Pháp",
+     "item_workbook": "Đường Gluco Pháp",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu ăn Cái Lân",
+     "item_workbook": "Dầu ăn Cái Lân",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột trà xanh matcha Nhật GTP RS20",
+     "item_workbook": "Bột trà xanh matcha Nhật GTP RS20",
+     "qty": 0.4,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột matcha Đài Loan",
+     "item_workbook": "Bột matcha Đài Loan",
+     "qty": 0.5,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 114.9
+  },
+  {
+   "bom": "BOM-BB-SR",
+   "item": "Bột bánh sầu riêng",
+   "item_workbook": "Bột bánh đậu xanh sầu riêng",
+   "qty": 114.52,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 53.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường hoán thường",
+     "item_workbook": "Đường hoán thường",
+     "qty": 11.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco Pháp",
+     "item_workbook": "Đường Gluco Pháp",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu ăn Cái Lân",
+     "item_workbook": "Dầu ăn Cái Lân",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Hương sầu riêng",
+     "item_workbook": "Hương sầu riêng",
+     "qty": 0.12,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sầu riêng",
+     "item_workbook": "Bột sầu riêng",
+     "qty": 0.4,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 114.52
+  },
+  {
+   "bom": "BOM-BB-DU",
+   "item": "Bột bánh dừa",
+   "item_workbook": "Bột bánh đậu xanh dừa",
+   "qty": 114.09,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 53.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường hoán thường",
+     "item_workbook": "Đường hoán thường",
+     "qty": 11.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu ăn Cái Lân",
+     "item_workbook": "Dầu ăn Cái Lân",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Hương dừa",
+     "item_workbook": "Hương dừa",
+     "qty": 0.09,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 114.09
+  },
+  {
+   "bom": "BOM-BB-KM",
+   "item": "Bột bánh khoai môn",
+   "item_workbook": "Bột bánh đậu khoai môn",
+   "qty": 114.09,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 53.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường hoán khoai môn",
+     "item_workbook": "Đường hoán khoai môn",
+     "qty": 11.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu ăn Cái Lân",
+     "item_workbook": "Dầu ăn Cái Lân",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Hương khoai môn",
+     "item_workbook": "Hương khoai môn",
+     "qty": 0.09,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 114.09
+  },
+  {
+   "bom": "BOM-BB-CO",
+   "item": "Bột bánh cốm",
+   "item_workbook": "Bột bánh đậu xanh cốm",
+   "qty": 114.09,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 53.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường hoán cốm",
+     "item_workbook": "Đường hoán cốm",
+     "qty": 11.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu ăn Cái Lân",
+     "item_workbook": "Dầu ăn Cái Lân",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Hương cốm",
+     "item_workbook": "Hương cốm",
+     "qty": 0.09,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 114.09
+  },
+  {
+   "bom": "BOM-BB-SE",
+   "item": "Bột bánh sen",
+   "item_workbook": "Bột bánh đậu xanh sen",
+   "qty": 114.07,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 53.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường hoán thường",
+     "item_workbook": "Đường hoán thường",
+     "qty": 11.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu ăn Cái Lân",
+     "item_workbook": "Dầu ăn Cái Lân",
+     "qty": 25.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Hương sen",
+     "item_workbook": "Hương sen",
+     "qty": 0.07,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 114.07
+  },
+  {
+   "bom": "BOM-BDS",
+   "item": "Bột đậu sữa dừa có đường",
+   "item_workbook": "Bột đậu sữa dừa CÓ đường",
+   "qty": 40.05,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 12.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa dừa",
+     "item_workbook": "Bột sữa dừa",
+     "qty": 8.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa Newzealand",
+     "item_workbook": "Bột sữa Newzealand",
+     "qty": 1.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 3.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 16.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Vani",
+     "item_workbook": "Vani",
+     "qty": 0.05,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 40.05
+  },
+  {
+   "bom": "BOM-BDM",
+   "item": "Bột đậu matcha có đường",
+   "item_workbook": "Bột đậu matcha CÓ đường",
+   "qty": 40.05,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 18.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột matcha Đài Loan",
+     "item_workbook": "Bột matcha Đài Loan",
+     "qty": 0.5,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột trà xanh matcha Nhật GTP RS20",
+     "item_workbook": "Bột trà xanh matcha Nhật GTP RS20",
+     "qty": 0.5,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa Newzealand",
+     "item_workbook": "Bột sữa Newzealand",
+     "qty": 1.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 4.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 16.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Vani",
+     "item_workbook": "Vani",
+     "qty": 0.05,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 40.05
+  },
+  {
+   "bom": "BOM-BDR",
+   "item": "Bột đậu rau má có đường",
+   "item_workbook": "Bột đậu rau má CÓ đường",
+   "qty": 40.05,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 16.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột rau má",
+     "item_workbook": "Bột rau má",
+     "qty": 4.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa Newzealand",
+     "item_workbook": "Bột sữa Newzealand",
+     "qty": 1.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 3.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 16.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Vani",
+     "item_workbook": "Vani",
+     "qty": 0.05,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 40.05
+  },
+  {
+   "bom": "BOM-BDC",
+   "item": "Bột đậu cà rốt có đường",
+   "item_workbook": "Bột đậu cà rốt CÓ đường",
+   "qty": 40.0,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 16.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Cà rốt",
+     "item_workbook": "Cà rốt",
+     "qty": 3.6,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa Newzealand",
+     "item_workbook": "Bột sữa Newzealand",
+     "qty": 1.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 3.3,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 16.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột nghệ",
+     "item_workbook": "Bột nghệ",
+     "qty": 0.05,
+     "uom": "Kg"
+    },
+    {
+     "item": "Vani",
+     "item_workbook": "Vani",
+     "qty": 0.05,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 40.0
+  },
+  {
+   "bom": "BOM-BDSK",
+   "item": "Bột đậu sữa dừa không đường",
+   "item_workbook": "Bột đậu sữa dừa KHÔNG đường",
+   "qty": 40.05,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 30.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa dừa",
+     "item_workbook": "Bột sữa dừa",
+     "qty": 8.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột cà rốt",
+     "item_workbook": "Bột cà rốt",
+     "qty": 2.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột nghệ",
+     "item_workbook": "Bột nghệ",
+     "qty": 0.05,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 40.05
+  },
+  {
+   "bom": "BOM-BDRK",
+   "item": "Bột đậu rau má không đường",
+   "item_workbook": "Bột đậu rau má KHÔNG đường",
+   "qty": 40.0,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 32.6,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa dừa",
+     "item_workbook": "Bột sữa dừa",
+     "qty": 4.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột rau má",
+     "item_workbook": "Bột rau má",
+     "qty": 3.2,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột matcha Đài Loan",
+     "item_workbook": "Bột matcha Đài Loan",
+     "qty": 0.1,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột trà xanh matcha Nhật GTP RS20",
+     "item_workbook": "Bột trà xanh matcha Nhật GTP RS20",
+     "qty": 0.1,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 40.0
+  },
+  {
+   "bom": "BOM-BDD",
+   "item": "Bột đậu xanh dinh dưỡng",
+   "item_workbook": "Bột đậu xanh dinh dưỡng",
+   "qty": 40.05,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 18.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 13.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 8.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa Newzealand",
+     "item_workbook": "Bột sữa Newzealand",
+     "qty": 1.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Vani",
+     "item_workbook": "Vani",
+     "qty": 0.05,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 40.05
+  },
+  {
+   "bom": "BOM-CDD",
+   "item": "Chè đậu đen cốt dừa",
+   "item_workbook": "Chè đậu đen cốt dừa",
+   "qty": 46.05,
+   "uom": "Kg",
+   "tang": 2,
+   "rm": [
+    {
+     "item": "Bột đỗ đen nền",
+     "item_workbook": "Bột đỗ đen nền",
+     "qty": 15.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột đỗ xanh nền",
+     "item_workbook": "Bột đỗ xanh nền",
+     "qty": 5.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường nghệ an",
+     "item_workbook": "Đường nghệ an",
+     "qty": 14.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Đường Gluco China",
+     "item_workbook": "Đường Gluco China",
+     "qty": 8.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Bột sữa Newzealand",
+     "item_workbook": "Bột sữa Newzealand",
+     "qty": 1.0,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dừa khô",
+     "item_workbook": "Dừa khô",
+     "qty": 1.5,
+     "uom": "Kg"
+    },
+    {
+     "item": "Lạc",
+     "item_workbook": "Lạc",
+     "qty": 1.5,
+     "uom": "Kg"
+    },
+    {
+     "item": "Dầu chuối",
+     "item_workbook": "Dầu chuối",
+     "qty": 0.05,
+     "uom": "Kg"
+    }
+   ],
+   "co_me_chuan_kg": 46.05
+  }
+ ]
+}

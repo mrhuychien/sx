@@ -56,23 +56,28 @@ bench restart                                 # nạp lại Python
 
 ## Seed định mức (Item + BOM tầng 1/2) — ship sẵn trong app
 
-Định mức đi kèm app (`sx/seed/rvhg_v3.json`, sinh tự động từ
-`docs/RVHG_dinh_muc_BOM_v3.xlsx`). Sau khi có Company + 3 Warehouse + `SX Settings`:
+Định mức đi kèm app (`sx/seed/rvhg_v6.json`, sinh tự động từ
+`docs/RVHG_dinh_muc_BOM_v6.xlsx` — **16/16 câu hỏi đã chốt**). Sau khi có Company +
+3 Warehouse + `SX Settings`:
 
 ```bash
 bench --site a.rongvanghoanggia.com execute sx.seed.seed_all --kwargs "{'dry_run': 1}"  # xem trước
 bench --site a.rongvanghoanggia.com execute sx.seed.seed_all                            # ghi thật
 ```
 
-Tạo **54 Item** + **23 BOM tầng 1/2** (đúng thứ tự phụ thuộc: hỗn hợp màu → đường hoán màu →
-bột bánh/bột đậu), submit + active/default, điền `custom_co_me_chuan_kg` cho 21 loại được báo mẻ.
-**Idempotent** — chạy lại an toàn, không ghi đè số đã sửa tay. BOM **không** ship qua `fixtures/`
-(fixtures import theo alphabet + full validate, không kiểm soát thứ tự phụ thuộc → dễ chết
-`install-app`).
+Tạo **51 Item** (14 đã có trên site → chỉ bù custom field; 37 tạo mới) + **23 BOM tầng 1/2**
+(đúng thứ tự phụ thuộc: hỗn hợp màu → đường hoán màu → bột bánh/bột đậu), submit +
+active/default, điền `custom_co_me_chuan_kg` cho 21 loại được báo mẻ. **Idempotent** — chạy lại
+an toàn, không ghi đè số đã sửa tay. BOM **không** ship qua `fixtures/` (import theo alphabet +
+full validate + submittable → dễ chết `install-app`).
 
-**Còn phải làm tay:** BOM **tầng 3 + Item TP + bao bì** (workbook chưa có — CH-13, **chặn chốt
-ngày nhánh TP**), Manufacturing Settings, tồn đầu, `SX Don Gia Vao Hop`, 2 user tablet — xem
-`docs/CODER-PACK.md` §8.
+Tên item lấy theo tên **thật trên ERPNext** (cột A workbook), đã áp các quyết định đã chốt:
+Sữa dừa = Bột sữa dừa, Đường kính VN = **Đường nghệ an**, Đường TQ = **Đường Gluco China**,
+hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
+
+**Còn phải làm tay:** BOM **tầng 3 + Item TP + bao bì** (CH-13 chốt: chủ đầu tư tự tạo trên
+ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đầu, `SX Don Gia Vao Hop`,
+2 user tablet — xem `docs/CODER-PACK.md` §8.
 
 ## Trạng thái build v3 (P0→P7)
 

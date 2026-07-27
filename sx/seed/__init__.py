@@ -14,8 +14,15 @@ validate, không kiểm soát được thứ tự phụ thuộc (hỗn hợp mà
 chết `install-app`. Seed bằng method chủ động gọi thì kiểm soát được thứ tự + báo
 lỗi rõ ràng.
 
-Nguồn số liệu: sx/seed/rvhg_v3.json (sinh tự động từ workbook, không sửa tay).
-BOM tầng 3 (SKU) KHÔNG seed — workbook chưa có số liệu (CH-13).
+Nguồn số liệu: sx/seed/rvhg_v6.json (sinh tự động từ workbook v6 — 16/16 câu hỏi đã
+chốt; không sửa tay file JSON, sửa workbook rồi trích lại).
+
+Tên item = cột A sheet DANH MUC ITEM = tên THẬT trên ERPNext (quy ước RVHG: ID = tên
+tiếng Việt có dấu, D15). Tên trong công thức (cột B) chỉ là alias — đã map sẵn khi
+trích, gồm các quyết định CH-04 (Sữa dừa = Bột sữa dừa), CH-14 (Đường kính VN =
+Đường nghệ an), CH-15 (Đường TQ = Đường Gluco China), CH-16 (hương liệu quy Kg).
+
+BOM tầng 3 (SKU) KHÔNG seed — CH-13 đã chốt: chủ đầu tư tự tạo BOM trên ERPNext.
 """
 
 import json
@@ -25,7 +32,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-DATA_FILE = "rvhg_v3.json"
+DATA_FILE = "rvhg_v6.json"
 
 
 def _data():
@@ -252,14 +259,12 @@ def seed_all(dry_run=0, bo_qua_gia_dinh=0):
         for x in bao_cao["loi"]:
             print(f"   ✗ {x}")
 
-    print("\n── CÒN PHẢI LÀM TAY (workbook chưa có / câu hỏi chưa chốt):")
-    print("   • BOM tầng 3 (SKU đóng gói) + Item TP + bao bì — CH-13, chặn chốt ngày nhánh TP")
-    for ch in data["cau_hoi_chua_chot"]:
-        print(f"   • {ch}")
-    print("   • Manufacturing Settings: Backflush = BOM, Overproduction 5%,")
-    print("     GIỮ TẮT 'Validate Components Quantities Per BOM' (xung đột FIFO tách lô)")
-    print("   • Tồn đầu (Stock Reconciliation, batch TON-DDMMYY) + SX Don Gia Vao Hop")
-    print("   • Purchase Receipt NVL PHẢI có batch = lô NCC (điều kiện FIFO truy xuất D5)")
+    print("\n── QUYẾT ĐỊNH ĐÃ CHỐT (đã áp vào số liệu seed):")
+    for q in data.get("quyet_dinh_da_chot", []):
+        print(f"   ✔ {q}")
+    print("\n── CÒN PHẢI LÀM TAY:")
+    for x in data.get("con_lam_tay", []):
+        print(f"   • {x}")
     print("=" * 72)
 
     if not dry_run:

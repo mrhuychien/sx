@@ -353,35 +353,44 @@ CARD_ROLES = {card: [roles cho phép gọi API card đó]}  # nguồn cấu hìn
 
 ## 8. Phase 0 — dữ liệu nền (SEED BÁN TỰ ĐỘNG + phần làm tay)
 
-App **ship sẵn định mức** trong `sx/seed/` (sinh tự động từ workbook, nguồn lưu tại
-`docs/RVHG_dinh_muc_BOM_v3.xlsx`). Sau khi có Company + 3 Warehouse + `SX Settings`:
+App **ship sẵn định mức** trong `sx/seed/` (sinh tự động từ workbook **v6 — 16/16 câu hỏi đã
+chốt**, nguồn lưu tại `docs/RVHG_dinh_muc_BOM_v6.xlsx`). Sau khi có Company + 3 Warehouse +
+`SX Settings`:
 
 ```bash
 bench --site a.rongvanghoanggia.com execute sx.seed.seed_all --kwargs "{'dry_run': 1}"  # xem trước
 bench --site a.rongvanghoanggia.com execute sx.seed.seed_all                            # ghi thật
 ```
 
-Seed tạo **54 Item** (31 NVL + Nước `is_stock_item=0` + 2 bột nền + 5 đường hoán/màu + 8 bột
+Seed tạo **51 Item** (28 NVL gồm Nước `is_stock_item=0` + 2 bột nền + 5 đường hoán/màu + 8 bột
 bánh + 8 bột đậu) với `custom_sx_nhom` nhóm chi tiết + `custom_batch_prefix` + `has_batch_no`
 (`create_new_batch=0` — mã lô luôn đặt tường minh), và **23 BOM tầng 1/2** theo đúng thứ tự phụ
 thuộc (topo: hỗn hợp màu → đường hoán màu → bột bánh/bột đậu), submit + `is_active/is_default`,
 điền `custom_co_me_chuan_kg` cho đúng **21 loại được báo mẻ**. Idempotent — chạy lại chỉ bỏ qua,
-không ghi đè số người dùng đã sửa tay.
+không ghi đè số người dùng đã sửa tay. Trong 51 item, **14 đã có trên site** (seed chỉ bù custom
+field), 37 phải tạo.
+
+Tên item = **cột A** sheet DANH MUC ITEM (tên THẬT trên ERPNext, D15). Cột B "tên trong công
+thức" là alias — đã map sẵn lúc trích: CH-04 (Sữa dừa = Bột sữa dừa; Rau má = Bột rau má),
+CH-14 (Đường kính VN = **Đường nghệ an**), CH-15 (Đường TQ = **Đường Gluco China**, dùng cả 2
+nhánh), CH-16 (hương liệu quy **1 lít = 1 kg**, ĐVT Kg → không còn UOM Lít).
 
 > **KHÔNG ship BOM qua `fixtures/`**: fixtures import theo alphabet, full validate, không kiểm
 > soát thứ tự phụ thuộc, BOM lại là doctype submittable → rất dễ chết `install-app`.
 
-**Vẫn phải làm TAY (workbook chưa có / câu hỏi chưa chốt):**
-1. **BOM tầng 3 + Item TP + bao bì** — CH-13 chưa có danh sách 40–50 SKU. **Đây là phần CHẶN**:
-   chưa có BOM T3 thì không chốt ngày được nhánh TP (mẹo: 1 SKU chuẩn mỗi ruột rồi Duplicate).
+**Lệch khối lượng có chủ ý (đúng workbook, không phải lỗi):** BOM bột nền 1.282 kg đỗ → 1 kg bột
+(hiệu suất 0.78 — hao rang/nghiền); 3 BOM đường hoán chênh 60 g vani (coi như hao). 16 BOM tầng 2
+cân bằng chính xác.
+
+**Vẫn phải làm TAY:**
+1. **BOM tầng 3 + Item TP + bao bì** — CH-13 đã chốt: **chủ đầu tư tự tạo BOM trên ERPNext**
+   (sheet "BOM T3 SKU" giữ làm mẫu cấu trúc). Chưa có BOM T3 thì **không chốt ngày được nhánh
+   TP** (mẹo: 1 SKU chuẩn mỗi ruột rồi Duplicate, chỉ sửa dòng bao bì).
 2. Manufacturing Settings: Backflush = **BOM**, Overproduction 5%, tắt capacity planning,
    **GIỮ TẮT "Validate Components Quantities Per BOM"** (xung đột FIFO tách lô).
 3. **Purchase Receipt NVL PHẢI có batch = lô NCC** (điều kiện của D5 FIFO-truy-xuất).
 4. Tồn đầu: Stock Reconciliation (batch khởi tạo `TON-DDMMYY`).
 5. `SX Don Gia Vao Hop` (2 phương thức); user `ghiso@rvhg`, `vaohop@rvhg` + gán role.
-6. Câu hỏi còn treo ảnh hưởng số liệu: **CH-04** (Sữa dừa vs Bột sữa dừa; Rau má vs Bột rau má —
-   đang khai 2 item riêng), **CH-09** (bột đậu đen tự nghiền hay mua sẵn — seed tạo BOM giả định
-   hiệu suất 0.78 như đỗ xanh, có cảnh báo), CH-07/08/10/11/12.
 
 > Custom Fields ship qua fixtures — deploy app (P2) TRƯỚC, rồi mới chạy seed.
 
