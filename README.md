@@ -54,6 +54,26 @@ bench build --app sx                          # đẩy JS/CSS ra /assets
 bench restart                                 # nạp lại Python
 ```
 
+## Seed định mức (Item + BOM tầng 1/2) — ship sẵn trong app
+
+Định mức đi kèm app (`sx/seed/rvhg_v3.json`, sinh tự động từ
+`docs/RVHG_dinh_muc_BOM_v3.xlsx`). Sau khi có Company + 3 Warehouse + `SX Settings`:
+
+```bash
+bench --site a.rongvanghoanggia.com execute sx.seed.seed_all --kwargs "{'dry_run': 1}"  # xem trước
+bench --site a.rongvanghoanggia.com execute sx.seed.seed_all                            # ghi thật
+```
+
+Tạo **54 Item** + **23 BOM tầng 1/2** (đúng thứ tự phụ thuộc: hỗn hợp màu → đường hoán màu →
+bột bánh/bột đậu), submit + active/default, điền `custom_co_me_chuan_kg` cho 21 loại được báo mẻ.
+**Idempotent** — chạy lại an toàn, không ghi đè số đã sửa tay. BOM **không** ship qua `fixtures/`
+(fixtures import theo alphabet + full validate, không kiểm soát thứ tự phụ thuộc → dễ chết
+`install-app`).
+
+**Còn phải làm tay:** BOM **tầng 3 + Item TP + bao bì** (workbook chưa có — CH-13, **chặn chốt
+ngày nhánh TP**), Manufacturing Settings, tồn đầu, `SX Don Gia Vao Hop`, 2 user tablet — xem
+`docs/CODER-PACK.md` §8.
+
 ## Trạng thái build v3 (P0→P7)
 
 - ✅ P0/P1 scaffold + DocType (6 + 4 child) + controllers
