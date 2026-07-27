@@ -67,8 +67,11 @@ bench --site a.rongvanghoanggia.com execute sx.seed.seed_all                    
 
 Tạo **51 Item** (14 đã có trên site → chỉ bù custom field; 37 tạo mới) + **23 BOM tầng 1/2**
 (đúng thứ tự phụ thuộc: hỗn hợp màu → đường hoán màu → bột bánh/bột đậu), submit +
-active/default, điền `custom_co_me_chuan_kg` cho 21 loại được báo mẻ. **Idempotent** — chạy lại
-an toàn, không ghi đè số đã sửa tay. BOM **không** ship qua `fixtures/` (import theo alphabet +
+active/default, điền `custom_co_me_chuan_kg` cho 21 loại được báo mẻ (BOM **đã có sẵn** mà thiếu
+cỡ mẻ thì seed **bù + ghi cảnh báo**; nếu đã có số khác workbook thì giữ số trên site và cảnh
+báo). **Idempotent** — chạy lại an toàn, không ghi đè số đã sửa tay. Seed **chặn ngay** nếu
+Custom Field của app chưa sync (`bench migrate` trước), và **cảnh báo** khi item có sẵn đang tắt
+`has_batch_no` / lệch `is_stock_item` / lệch ĐVT. BOM **không** ship qua `fixtures/` (import theo alphabet +
 full validate + submittable → dễ chết `install-app`).
 
 Tên item lấy theo tên **thật trên ERPNext** (cột A workbook), đã áp các quyết định đã chốt:

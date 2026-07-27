@@ -30,7 +30,7 @@ import os
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 DATA_FILE = "rvhg_v6.json"
 
@@ -90,6 +90,27 @@ def seed_items(dry_run=0, bao_cao=None):
             if bu and not dry_run:
                 frappe.db.set_value("Item", ten, bu)
             bao_cao["item_bo_qua"].append(f"{ten}{' (bù ' + ','.join(bu) + ')' if bu else ''}")
+            # Đối chiếu cờ kho/lô của item ĐÃ CÓ — KHÔNG tự sửa (Frappe chặn đổi
+            # has_batch_no/is_stock_item khi đã có ledger), chỉ cảnh báo: thiếu batch
+            # là vỡ FIFO-truy-xuất (D5), lệch is_stock_item là vỡ cân bằng BOM.
+            hien = frappe.db.get_value(
+                "Item", ten, ["has_batch_no", "is_stock_item", "stock_uom"], as_dict=True
+            ) or {}
+            if it.get("has_batch") and not cint(hien.get("has_batch_no")):
+                bao_cao["canh_bao"].append(
+                    f"Item '{ten}' ĐANG TẮT has_batch_no — cần bật để FIFO truy xuất lô "
+                    f"chạy được (D5). Nếu item đã có ledger, Frappe chặn đổi: phải xử lý tay."
+                )
+            if cint(hien.get("is_stock_item")) != cint(it.get("is_stock", 1)):
+                bao_cao["canh_bao"].append(
+                    f"Item '{ten}' is_stock_item={hien.get('is_stock_item')} nhưng workbook "
+                    f"cần {it.get('is_stock', 1)} — kiểm tra tay."
+                )
+            if hien.get("stock_uom") and hien["stock_uom"] != it["uom"]:
+                bao_cao["canh_bao"].append(
+                    f"Item '{ten}' ĐVT trên site = '{hien['stock_uom']}' nhưng workbook ghi "
+                    f"'{it['uom']}' — BOM sẽ tính theo ĐVT trên site, đối chiếu lại."
+                )
             continue
 
         if dry_run:
@@ -171,6 +192,28 @@ def seed_boms(dry_run=0, bo_qua_gia_dinh=0, bao_cao=None):
             "BOM", {"item": item, "is_active": 1, "is_default": 1, "docstatus": 1}, "name"
         )
         if da_co:
+            # BOM nhập tay Phase 0 thường THIẾU custom_co_me_chuan_kg → báo mẻ sẽ bị
+            # chặn (controller throw). Field không allow_on_submit nên Desk không sửa
+            # được sau submit → bù bằng db_set (giá trị = qty của BOM, khớp mọi BOM
+            # báo mẻ trong workbook), và luôn báo rõ ra bảng cảnh báo.
+            can_co_me = flt(b.get("co_me_chuan_kg"))
+            if can_co_me:
+                dang_co = flt(frappe.db.get_value("BOM", da_co, "custom_co_me_chuan_kg"))
+                if not dang_co:
+                    if not dry_run:
+                        frappe.db.set_value(
+                            "BOM", da_co, "custom_co_me_chuan_kg", can_co_me,
+                            update_modified=False,
+                        )
+                    bao_cao["canh_bao"].append(
+                        f"BOM có sẵn {da_co} ({item}) THIẾU cỡ mẻ → đã bù {can_co_me} kg "
+                        f"{'(dry-run: chưa ghi)' if dry_run else ''}".strip()
+                    )
+                elif abs(dang_co - can_co_me) > 1e-6:
+                    bao_cao["canh_bao"].append(
+                        f"BOM có sẵn {da_co} ({item}) cỡ mẻ = {dang_co} kg, workbook ghi "
+                        f"{can_co_me} kg — GIỮ số trên site, đối chiếu lại nếu sai."
+                    )
             bao_cao["bom_bo_qua"].append(f"{b['bom']} -> đã có {da_co}")
             continue
 
@@ -229,9 +272,34 @@ def _bao_cao_moi():
     }
 
 
+def _kiem_custom_field():
+    """Chặn seed nếu Custom Field của app chưa sync.
+
+    Frappe bỏ IM LẶNG key không có trong meta khi insert (get_valid_dict), nên thiếu
+    field là 21 giá trị cỡ mẻ + nhóm SX bị mất trắng mà báo cáo vẫn "thành công".
+    """
+    thieu = [
+        f"{dt}.{fn}"
+        for dt, fn in (
+            ("Item", "custom_sx_nhom"),
+            ("Item", "custom_batch_prefix"),
+            ("BOM", "custom_co_me_chuan_kg"),
+        )
+        if not frappe.get_meta(dt).has_field(fn)
+    ]
+    if thieu:
+        frappe.throw(
+            _("Chưa có Custom Field: {0}. Chạy `bench --site <site> migrate` (sync fixtures "
+              "của app sx) TRƯỚC khi seed — nếu không, số liệu sẽ bị bỏ im lặng.").format(
+                ", ".join(thieu)
+            )
+        )
+
+
 def seed_all(dry_run=0, bo_qua_gia_dinh=0):
     """Seed Item + BOM tầng 1/2 rồi in báo cáo. dry_run=1 để xem trước, không ghi."""
     dry_run = int(dry_run or 0)
+    _kiem_custom_field()
     data = _data()
     bao_cao = _bao_cao_moi()
     seed_items(dry_run=dry_run, bao_cao=bao_cao)

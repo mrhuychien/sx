@@ -18,6 +18,7 @@
    "fieldtype": "Link",
    "label": "BTP (đường hoán / màu / bột bánh / bột đậu)",
    "options": "Item",
+   "link_filters": "[[\"Item\",\"custom_sx_nhom\",\"in\",[\"BTP-Phu\",\"BTP-Banh\",\"BTP-Bot-SP\"]]]",
    "in_list_view": 1,
    "reqd": 1
   },

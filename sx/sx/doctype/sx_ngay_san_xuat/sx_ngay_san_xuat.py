@@ -12,8 +12,11 @@ class SXNgaySanXuat(Document):
 
     def validate(self):
         self.validate_duy_nhat_ngay()
-        self.tinh_bao_me()
-        self.validate_bao_can()
+        # Sau khi CHỐT: không tính lại cỡ mẻ/tổng kg nữa. WO/SE đã sinh theo số cũ —
+        # nếu ai sửa BOM giữa chừng, tính lại sẽ làm phiếu lệch chứng từ kho.
+        if self.docstatus == 0:
+            self.tinh_bao_me()
+            self.validate_bao_can()
         self.sync_trang_thai()
 
     def validate_duy_nhat_ngay(self):

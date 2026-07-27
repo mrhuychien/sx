@@ -141,10 +141,25 @@ def _unique_suffix(goc, exists_fn):
 
 
 def sinh_lo_rang(loai_dau, ngay_rang):
-    """Mã lô rang `{prefix}-DDMMYY(ngay_rang)` (prefix từ Item đỗ). Unique."""
-    prefix = frappe.db.get_value("Item", loai_dau, "custom_batch_prefix")
+    """Mã lô rang `{prefix}-DDMMYY(ngay_rang)`. Unique.
+
+    Prefix lấy từ Item BỘT NỀN tương ứng (R / RD) — đúng ngữ nghĩa: batch bột nền
+    CHÍNH LÀ mã lô rang (D13), nên prefix thuộc về item bột, không phải item đỗ.
+    Fallback prefix trên item đỗ nếu site có tự đặt.
+    """
+    prefix = None
+    try:
+        item_bot, _bom = get_bot_from_dau(loai_dau)
+        prefix = frappe.db.get_value("Item", item_bot, "custom_batch_prefix")
+    except Exception:
+        prefix = None
     if not prefix:
-        frappe.throw(_("Item đỗ {0} chưa có custom_batch_prefix (vd R, RD)").format(loai_dau))
+        prefix = frappe.db.get_value("Item", loai_dau, "custom_batch_prefix")
+    if not prefix:
+        frappe.throw(
+            _("Chưa có prefix mã lô rang cho đỗ {0}. Đặt custom_batch_prefix (vd R / RD) "
+              "trên Item bột nền tương ứng — hoặc trên chính Item đỗ.").format(loai_dau)
+        )
     goc = f"{prefix}-{getdate(ngay_rang).strftime('%d%m%y')}"
     return _unique_suffix(
         goc,
