@@ -15,7 +15,58 @@ from sx.config.roles import (
     user_roles,
     view_cards,
 )
-from sx.utils import get_bom_active, get_dau_items, get_settings
+from sx.utils import dat_ten_hien_thi, get_bom_active, get_dau_items, get_settings
+
+# Nguồn phân loại "công khoán" trên Employee -> fieldname tương ứng
+_NGUON_CONG_KHOAN = {
+    "Employment Type": "employment_type",
+    "Designation": "designation",
+    "Department": "department",
+    "Branch": "branch",
+}
+
+
+def _do_nhom_cong_khoan():
+    """Tự dò nhóm công khoán khi SX Settings chưa điền: tìm Employment Type /
+    Designation có tên chứa 'khoán'. Trả (fieldname, giá trị) hoặc None."""
+    for dt, field in (("Employment Type", "employment_type"), ("Designation", "designation")):
+        if not frappe.db.exists("DocType", dt):
+            continue
+        for ten in frappe.get_all(dt, pluck="name"):
+            if "khoán" in (ten or "").lower():
+                return field, ten
+    return None
+
+
+def _nhan_vien_vao_hop():
+    """Chỉ công nhân thuộc nhóm CÔNG KHOÁN mới hiện ở bảng vào hộp.
+
+    Ưu tiên cấu hình SX Settings (nguồn + giá trị); chưa điền thì tự dò; dò không ra
+    thì trả mọi nhân viên Active kèm cảnh báo (để không chặn vận hành).
+    Trả (danh sách đã gán ten_hien_thi, cảnh báo|None).
+    """
+    settings = get_settings()
+    field = _NGUON_CONG_KHOAN.get((settings.get("nguon_cong_khoan") or "").strip())
+    gia_tri = (settings.get("gia_tri_cong_khoan") or "").strip()
+    filters, canh_bao = {"status": "Active"}, None
+
+    if field and gia_tri:
+        filters[field] = gia_tri
+    else:
+        do = _do_nhom_cong_khoan()
+        if do:
+            filters[do[0]] = do[1]
+        else:
+            canh_bao = _(
+                "Chưa xác định được nhóm công khoán — đang hiện MỌI nhân viên. "
+                "Vào SX Settings điền 'Nguồn nhóm công khoán' + 'Giá trị nhóm công khoán'."
+            )
+
+    ds = frappe.get_all(
+        "Employee", filters=filters,
+        fields=["name", "employee_name"], order_by="employee_name",
+    )
+    return dat_ten_hien_thi(ds), canh_bao
 
 
 def _any_sx_guard():
@@ -85,10 +136,9 @@ def get_boot():
             fields=["name", "item_name", "item_group"], order_by="item_name",
         )
         boot["sku_gan_day"] = _sku_gan_day()
-        boot["nhan_vien"] = frappe.get_all(
-            "Employee", filters={"status": "Active"},
-            fields=["name", "employee_name"], order_by="employee_name",
-        )
+        boot["nhan_vien"], canh_bao_nv = _nhan_vien_vao_hop()
+        if canh_bao_nv:
+            boot["canh_bao_nhan_vien"] = canh_bao_nv
 
     return boot
 

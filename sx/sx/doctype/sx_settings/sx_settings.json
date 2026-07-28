@@ -8,7 +8,11 @@
   "column_break_head",
   "kho_nvl",
   "kho_btp",
-  "kho_tp"
+  "kho_tp",
+  "section_vao_hop",
+  "nguon_cong_khoan",
+  "column_break_vh",
+  "gia_tri_cong_khoan"
  ],
  "fields": [
   {
@@ -38,6 +42,29 @@
    "fieldtype": "Link",
    "label": "Kho TP",
    "options": "Warehouse"
+  },
+  {
+   "fieldname": "section_vao_hop",
+   "fieldtype": "Section Break",
+   "label": "Bảng vào hộp — nhóm công khoán"
+  },
+  {
+   "default": "Employment Type",
+   "fieldname": "nguon_cong_khoan",
+   "fieldtype": "Select",
+   "label": "Nguồn nhóm công khoán",
+   "options": "Employment Type\nDesignation\nDepartment\nBranch",
+   "description": "Trường trên Employee dùng để nhận ra công nhân công khoán"
+  },
+  {
+   "fieldname": "column_break_vh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gia_tri_cong_khoan",
+   "fieldtype": "Data",
+   "label": "Giá trị nhóm công khoán",
+   "description": "VD: Công khoán. Để trống -> tự dò nhóm có tên chứa 'khoán'"
   }
  ],
  "issingle": 1,

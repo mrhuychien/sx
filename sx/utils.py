@@ -132,6 +132,48 @@ def get_don_gia_vao_hop(san_pham, phuong_thuc, ngay):
 # ───────────────────────────────────── sinh mã lô ──
 
 
+def dat_ten_hien_thi(nhan_vien):
+    """Gán 'ten_hien_thi' NGẮN NHẤT mà không trùng, cho grid vào hộp.
+
+    Nấc 1: chỉ TÊN            -> "Nga"
+    Nấc 2: trùng tên -> + HỌ  -> "Nga Trương", "Nga Nguyễn"
+    Nấc 3: vẫn trùng -> + tên đệm viết tắt -> "Nga Trương T."
+    Nấc 4: cùng lắm -> tên đầy đủ.
+    Sửa tại chỗ list dict (cần key employee_name, name) và trả lại chính nó.
+    """
+
+    def _tach(fullname):
+        phan = [p for p in (fullname or "").split() if p]
+        if not phan:
+            return "", "", []
+        return phan[-1], (phan[0] if len(phan) > 1 else ""), phan[1:-1]
+
+    for nv in nhan_vien:
+        nv["_ten"], nv["_ho"], nv["_dem"] = _tach(nv.get("employee_name"))
+        nv["ten_hien_thi"] = nv["_ten"] or nv.get("employee_name") or nv.get("name")
+
+    for nac in (2, 3, 4):
+        nhom = {}
+        for nv in nhan_vien:
+            nhom.setdefault(nv["ten_hien_thi"], []).append(nv)
+        for ds in nhom.values():
+            if len(ds) < 2:
+                continue
+            for nv in ds:
+                if nac == 2 and nv["_ho"]:
+                    nv["ten_hien_thi"] = f"{nv['_ten']} {nv['_ho']}"
+                elif nac == 3 and nv["_dem"]:
+                    tat = "".join(d[0].upper() + "." for d in nv["_dem"])
+                    nv["ten_hien_thi"] = f"{nv['_ten']} {nv['_ho']} {tat}".strip()
+                elif nac == 4:
+                    nv["ten_hien_thi"] = nv.get("employee_name") or nv.get("name")
+
+    for nv in nhan_vien:
+        for k in ("_ten", "_ho", "_dem"):
+            nv.pop(k, None)
+    return nhan_vien
+
+
 def _unique_suffix(goc, exists_fn):
     ma, dem = goc, 1
     while exists_fn(ma):

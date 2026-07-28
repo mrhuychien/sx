@@ -14,9 +14,14 @@ export async function render({ container, boot, call, ensureNgay }) {
   const rows = ((boot.bang_vao_hop || {}).dong || []).map((r) => ({ ...r }));
   const itemsTp = boot.items_tp || [];
   const skuGanDay = boot.sku_gan_day || [];
+  const nhanVien = boot.nhan_vien || [];
+  // Tên ngắn (chỉ tên gọi; trùng thì server đã thêm họ / viết tắt đệm)
+  const tenNgan = {};
+  nhanVien.forEach((nv) => { tenNgan[nv.name] = nv.ten_hien_thi || nv.employee_name || nv.name; });
 
   container.innerHTML = `
     <div class="sx-field-label">Bảng vào hộp ${daChot ? '(đã chốt — chỉ xem)' : '(bấm tên công nhân)'}</div>
+    ${boot.canh_bao_nhan_vien ? `<div class="sx-warn-text">⚠ ${esc(boot.canh_bao_nhan_vien)}</div>` : ''}
     ${daChot ? '' : '<div class="sx-nv-grid" id="sx-vh-nv"></div>'}
     <table class="sx-table">
       <thead><tr><th>Công nhân</th><th>SKU</th><th>PT</th><th>Hộp</th><th>Tiền</th>${daChot ? '' : '<th></th>'}</tr></thead>
@@ -35,7 +40,7 @@ export async function render({ container, boot, call, ensureNgay }) {
   function paint() {
     tbody.innerHTML = rows.map((r, i) => `
       <tr>
-        <td>${esc(r.ten_nhan_vien || r.nhan_vien)}</td>
+        <td>${esc(tenNgan[r.nhan_vien] || r.ten_nhan_vien || r.nhan_vien)}</td>
         <td>${esc(tenSP(r.san_pham))}</td>
         <td>${esc(r.phuong_thuc === 'Máy hỗ trợ' ? 'Máy' : 'Tay')}</td>
         <td><b>${esc(formatNumber(r.so_hop))}</b></td>
@@ -74,26 +79,28 @@ export async function render({ container, boot, call, ensureNgay }) {
 
   if (!daChot) {
     const nvGrid = container.querySelector('#sx-vh-nv');
-    (boot.nhan_vien || []).forEach((nv) => {
+    nhanVien.forEach((nv) => {
       const btn = el('button', 'sx-nv-card');
       btn.type = 'button';
-      btn.textContent = nv.employee_name || nv.name;
-      btn.addEventListener('click', () => themDong(nv, itemsTp, skuGanDay, rows, save));
+      btn.textContent = tenNgan[nv.name];
+      btn.title = nv.employee_name || nv.name;   // tên đầy đủ khi cần đối chiếu
+      btn.addEventListener('click', () => themDong(nv, itemsTp, skuGanDay, rows, save, tenNgan));
       nvGrid.appendChild(btn);
     });
-    if (!(boot.nhan_vien || []).length) {
-      nvGrid.innerHTML = '<div class="sx-muted">Chưa có nhân viên Active.</div>';
+    if (!nhanVien.length) {
+      nvGrid.innerHTML = '<div class="sx-muted">Chưa có công nhân công khoán nào (kiểm tra nhóm trong SX Settings).</div>';
     }
   }
 
   paint();
 }
 
-function themDong(nv, itemsTp, skuGanDay, rows, save) {
-  openSkuPicker(nv, itemsTp, skuGanDay, (sanPham) => {
+function themDong(nv, itemsTp, skuGanDay, rows, save, tenNgan) {
+  const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
+  openSkuPicker(nv, ten, itemsTp, skuGanDay, (sanPham) => {
     chonPhuongThuc(nv, sanPham, (phuongThuc) => {
       openNumpad({
-        title: `${nv.employee_name || nv.name} — số hộp`, unit: 'hộp',
+        title: `${ten} — số hộp`, unit: 'hộp',
         onOk: async (v) => {
           const soHop = Math.round(v);
           if (soHop <= 0) { toastErr('Số hộp phải > 0.'); return; }
@@ -108,8 +115,8 @@ function themDong(nv, itemsTp, skuGanDay, rows, save) {
   });
 }
 
-function openSkuPicker(nv, itemsTp, skuGanDay, onPick) {
-  const m = openModal({ title: `${nv.employee_name || nv.name} — chọn SKU` });
+function openSkuPicker(nv, ten, itemsTp, skuGanDay, onPick) {
+  const m = openModal({ title: `${ten} — chọn SKU` });
   m.body.innerHTML = `
     <input class="sx-textarea" id="sx-sku-search" placeholder="Tìm SKU…" autocomplete="off">
     <div id="sx-sku-list"></div>

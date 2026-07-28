@@ -61,6 +61,7 @@ Nền tảng: Frappe/ERPNext v16 custom app, theo phương pháp nextcode.
 | D15 | Item name theo **quy ước site: tiếng Việt có dấu, ID = tên** (đã xác minh bằng ảnh Item list). Fieldname DocType vẫn ASCII. Nước = item **Maintain Stock 0**, vẫn nằm trong BOM để cân bằng khối lượng. | |
 | D16 | Cột `custom_nl_tron` trong workbook **không dùng nữa** (bỏ màn công thức chi tiết theo mẻ) — không tạo custom field này. |
 | D17 | **(28/07) BỎ BTP "Hỗn hợp màu đỏ/vàng".** Màu đỏ/vàng + màu xanh + nước cho **thẳng vào BOM đường hoán khoai môn/cốm** theo đúng tỉ lệ. Pha là dùng ngay → đúng D2 (WIP vô hình). | Bớt 2 item + 2 BOM + 2 lần báo mẻ mỗi ngày. Tab "Nấu" còn 3 đường hoán |
+| D19 | **(28/07) Bảng vào hộp chỉ hiện công nhân CÔNG KHOÁN**, và chỉ hiện **TÊN** ("Nga"). Trùng tên → thêm họ ("Nga Trương", "Nga Nguyễn"); trùng cả họ → viết tắt tên đệm ("Nga Trương T."). Nhóm công khoán cấu hình ở `SX Settings` (nguồn + giá trị), chưa điền thì tự dò nhóm có tên chứa "khoán". | Grid gọn, công nhân lowtech đọc nhanh; tên đầy đủ vẫn xem được ở tooltip |
 | D18 | **(28/07) BỎ card "Nhập bột" trên portal.** Chốt ngày **tự nhập bột** cho mọi lô R **rang hôm trước** (`ngay_rang < ngày chốt`, tức đã qua khâu nghiền), trừ đỗ FIFO; tầng 2 trừ bột theo báo mẻ. | QC không bấm; kho/truy xuất/trừ đỗ giữ nguyên. Huỷ ngày thu hồi cả phiếu nhập bột do nó tạo | |
 
 ### Sơ đồ dòng chảy + truy xuất
@@ -192,7 +193,8 @@ SalaryProduct. KHÔNG đụng SX Nhap Bot (độc lập).
 - Naming: `VH-.YYYY.-.#####` · **Submittable: Yes** · 1 doc docstatus<2 / ngay_sx · track_changes
 - ngay_sx (Link, reqd) · dong (Table SX Bang Vao Hop Item, reqd) · tong_hop/tong_tien (read_only).
 
-**Child `SX Bang Vao Hop Item`:** nhan_vien (Link Employee, reqd) · san_pham (Link Item filter TP,
+**Child `SX Bang Vao Hop Item`:** nhan_vien (Link Employee, reqd — portal CHỈ hiện công nhân
+nhóm công khoán, tên rút gọn theo D19) · san_pham (Link Item filter TP,
 reqd) · phuong_thuc (Select `Thủ công\nMáy hỗ trợ`, reqd) · so_hop (Int, reqd, >0) · don_gia/thanh_tien
 (read_only, lookup server-side).
 
@@ -204,8 +206,10 @@ hieu_luc_tu max ≤ ngày. Không có bản ghi nào → chặn, báo rõ.
 
 ### 3.6 `SX Settings` — Single
 
-cong_ty (Link Company) · kho_nvl · kho_btp · kho_tp (Link Warehouse). Hết — yield từ BOM,
-prefix từ Item, không ngưỡng CCP (D10).
+cong_ty (Link Company) · kho_nvl · kho_btp · kho_tp (Link Warehouse) ·
+**nguon_cong_khoan** (Select `Employment Type\nDesignation\nDepartment\nBranch`) +
+**gia_tri_cong_khoan** (Data) — lọc công nhân hiện ở bảng vào hộp (D19).
+Yield từ BOM, prefix từ Item, không ngưỡng CCP (D10).
 
 ### 3.7 Custom Fields (fixtures, module SX)
 
