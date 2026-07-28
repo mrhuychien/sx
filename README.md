@@ -113,7 +113,10 @@ ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đ
 - ✅ P2 fixtures (3 role, custom fields, validator 0 ERROR)
 - ✅ P3 config/roles.py + api (mfg / tang1 / portal / chot)
 - ✅ P4 portal card-based (7 card, 3 view) · P5 Print Formats
-- ✅ P6 verify: `py_compile` + `node --check` + `validate_shipped_docs.py` 0 ERROR + review đối kháng
+- ✅ P6 verify: `bash scripts/verify.sh` + `validate_shipped_docs.py` 0 ERROR + review đối kháng
+  - ⚠️ **Đừng dùng `node --check file.js`** cho code portal: file `.js` bị parse kiểu CommonJS
+    và V8 lazy-parse thân hàm → **bỏ sót** lỗi cú pháp trong thân hàm (đã lọt lên site thật
+    một lần). `scripts/verify.sh` copy sang `.mjs` rồi mới check → parse đúng ES module.
 - ⏳ P7 deploy + Phase 0 data + Acceptance test (spec §10) — cần chạy TRÊN SITE
 
 ## Gate — đã đóng hết

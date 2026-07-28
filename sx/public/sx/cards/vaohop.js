@@ -119,7 +119,7 @@ function openSkuPicker(nv, ten, itemsTp, skuGanDay, onPick) {
   `;
   const list = m.body.querySelector('#sx-sku-list');
   const search = m.body.querySelector('#sx-sku-search');
-  const ten = (code) => { const it = itemsTp.find((x) => x.name === code); return it ? (it.item_name || it.name) : code; };
+  const tenSku = (code) => { const it = itemsTp.find((x) => x.name === code); return it ? (it.item_name || it.name) : code; };
 
   function draw(q) {
     q = (q || '').toLowerCase().trim();
@@ -129,7 +129,7 @@ function openSkuPicker(nv, ten, itemsTp, skuGanDay, onPick) {
     let html = '';
     if (!q && skuGanDay.length) {
       html += '<div class="sx-field-label">Dùng gần đây</div><div class="sx-sp-grid">';
-      html += skuGanDay.map((c) => `<button type="button" class="sx-sp-chip sx-sku-pick" data-sku="${esc(c)}">${esc(ten(c))}</button>`).join('');
+      html += skuGanDay.map((c) => `<button type="button" class="sx-sp-chip sx-sku-pick" data-sku="${esc(c)}">${esc(tenSku(c))}</button>`).join('');
       html += '</div>';
     }
     // nhóm theo item_group
