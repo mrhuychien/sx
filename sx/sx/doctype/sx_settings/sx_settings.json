@@ -12,7 +12,8 @@
   "section_vao_hop",
   "nguon_cong_khoan",
   "column_break_vh",
-  "gia_tri_cong_khoan"
+  "gia_tri_cong_khoan",
+  "field_don_gia_activity"
  ],
  "fields": [
   {
@@ -65,6 +66,12 @@
    "fieldtype": "Data",
    "label": "Giá trị nhóm công khoán",
    "description": "VD: Công khoán. Để trống -> tự dò nhóm có tên chứa 'khoán'"
+  },
+  {
+   "fieldname": "field_don_gia_activity",
+   "fieldtype": "Data",
+   "label": "Field đơn giá trên Activity Type",
+   "description": "Để trống -> tự dò (custom_don_gia, don_gia, billing_rate, costing_rate…)"
   }
  ],
  "issingle": 1,
@@ -77,11 +84,13 @@
  "permissions": [
   {
    "role": "System Manager",
-   "read": 1, "write": 1
+   "read": 1,
+   "write": 1
   },
   {
    "role": "SX Quan Ly",
-   "read": 1, "write": 1
+   "read": 1,
+   "write": 1
   },
   {
    "role": "SX Ghi So",

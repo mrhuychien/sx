@@ -99,34 +99,56 @@ def get_yield_bot(bom_name, dau_item):
 # ───────────────────────────────────── đơn giá vào hộp ──
 
 
-def get_don_gia_vao_hop(san_pham, phuong_thuc, ngay):
-    """Lookup đơn giá lương vào hộp (spec 3.5). Cho phép đơn giá 0.
+# Field chứa đơn giá trên Activity Type — ưu tiên custom (đặt riêng cho lương khoán)
+# rồi mới tới field chuẩn ERPNext. Ghi đè được bằng SX Settings.field_don_gia_activity.
+_FIELD_DON_GIA_ACTIVITY = (
+    "custom_don_gia", "don_gia", "custom_rate", "custom_billing_rate",
+    "billing_rate", "costing_rate", "rate",
+)
 
-    Match (san_pham, phuong_thuc) trước, fallback (san_pham trống, phuong_thuc);
-    hieu_luc_tu lớn nhất <= ngày. Không có bản ghi nào -> throw.
+
+def get_activity_type(san_pham):
+    """Loại công việc khoán (Activity Type) của 1 SKU — map qua Item.custom_activity_type.
+
+    Activity Type là LOẠI CÔNG VIỆC (vd "Vào hộp 300"), nhiều SKU cùng quy cách dùng
+    chung một loại (TX300, SR300, TH300 → "Vào hộp 300").
     """
-    ngay = getdate(ngay)
-    # Tier 1: khớp đúng (san_pham, phuong_thuc). Tier 2 (fallback): dòng "chung"
-    # san_pham để trống — dùng ("is","not set") để bắt CẢ NULL lẫn '' (IN ('',NULL)
-    # không bao giờ khớp NULL trong SQL).
-    for filters in (
-        {"san_pham": san_pham, "phuong_thuc": phuong_thuc},
-        {"san_pham": ("is", "not set"), "phuong_thuc": phuong_thuc},
-    ):
-        filters["hieu_luc_tu"] = ("<=", ngay)
-        row = frappe.get_all(
-            "SX Don Gia Vao Hop",
-            filters=filters,
-            fields=["don_gia"],
-            order_by="hieu_luc_tu desc",
-            limit=1,
+    act = frappe.db.get_value("Item", san_pham, "custom_activity_type")
+    if not act:
+        frappe.throw(
+            _("Sản phẩm {0} chưa gán loại công việc khoán. Mở Item {0} trên Desk, điền "
+              "'Loại công việc khoán' (Activity Type) rồi nhập lại.").format(san_pham)
         )
-        if row:
-            return flt(row[0].don_gia)
+    return act
+
+
+def get_don_gia_activity(activity_type):
+    """Đơn giá khoán/đơn vị lấy TỪ Activity Type (nguồn giá duy nhất).
+
+    Tên field cấu hình được ở SX Settings; để trống thì tự dò theo thứ tự ứng viên.
+    Cho phép giá 0 (công việc không tính lương sản phẩm).
+    """
+    field = (get_settings().get("field_don_gia_activity") or "").strip()
+    meta = frappe.get_meta("Activity Type")
+    ung_vien = [field] if field else list(_FIELD_DON_GIA_ACTIVITY)
+    for fn in ung_vien:
+        if fn and meta.has_field(fn):
+            gia = frappe.db.get_value("Activity Type", activity_type, fn)
+            if gia is not None:
+                return flt(gia)
     frappe.throw(
-        _("Chưa có đơn giá vào hộp cho sản phẩm {0} / phương thức {1} (hiệu lực đến {2}). "
-          "Quản lý cần thêm SX Don Gia Vao Hop trước.").format(san_pham, phuong_thuc, ngay)
+        _("Không đọc được đơn giá trên Activity Type {0}. Điền 'Field đơn giá trên "
+          "Activity Type' trong SX Settings (các field hiện có: {1}).").format(
+            activity_type,
+            ", ".join(sorted(df.fieldname for df in meta.fields if df.fieldname)),
+        )
     )
+
+
+def get_activity_va_don_gia(san_pham):
+    """(activity_type, đơn giá) cho 1 SKU — dùng khi tính bảng vào hộp."""
+    act = get_activity_type(san_pham)
+    return act, get_don_gia_activity(act)
 
 
 # ───────────────────────────────────── sinh mã lô ──

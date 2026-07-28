@@ -186,7 +186,8 @@ def _bang_summary(ngay_sx):
         "dong": [
             {"nhan_vien": r.nhan_vien, "ten_nhan_vien": r.ten_nhan_vien,
              "san_pham": r.san_pham, "phuong_thuc": r.phuong_thuc,
-             "so_hop": r.so_hop, "don_gia": r.don_gia, "thanh_tien": r.thanh_tien}
+             "so_hop": r.so_hop, "activity_type": r.activity_type,
+             "don_gia": r.don_gia, "thanh_tien": r.thanh_tien}
             for r in doc.dong
         ],
     }

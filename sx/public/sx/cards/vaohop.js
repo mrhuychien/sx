@@ -41,7 +41,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     tbody.innerHTML = rows.map((r, i) => `
       <tr>
         <td>${esc(tenNgan[r.nhan_vien] || r.ten_nhan_vien || r.nhan_vien)}</td>
-        <td>${esc(tenSP(r.san_pham))}</td>
+        <td>${esc(tenSP(r.san_pham))}${r.activity_type ? `<div class="sx-muted">${esc(r.activity_type)}</div>` : ''}</td>
         <td>${esc(r.phuong_thuc === 'Máy hỗ trợ' ? 'Máy' : 'Tay')}</td>
         <td><b>${esc(formatNumber(r.so_hop))}</b></td>
         <td>${esc(r.thanh_tien != null ? formatVND(r.thanh_tien) : '…')}</td>

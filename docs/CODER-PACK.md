@@ -61,6 +61,7 @@ Nền tảng: Frappe/ERPNext v16 custom app, theo phương pháp nextcode.
 | D15 | Item name theo **quy ước site: tiếng Việt có dấu, ID = tên** (đã xác minh bằng ảnh Item list). Fieldname DocType vẫn ASCII. Nước = item **Maintain Stock 0**, vẫn nằm trong BOM để cân bằng khối lượng. | |
 | D16 | Cột `custom_nl_tron` trong workbook **không dùng nữa** (bỏ màn công thức chi tiết theo mẻ) — không tạo custom field này. |
 | D17 | **(28/07) BỎ BTP "Hỗn hợp màu đỏ/vàng".** Màu đỏ/vàng + màu xanh + nước cho **thẳng vào BOM đường hoán khoai môn/cốm** theo đúng tỉ lệ. Pha là dùng ngay → đúng D2 (WIP vô hình). | Bớt 2 item + 2 BOM + 2 lần báo mẻ mỗi ngày. Tab "Nấu" còn 3 đường hoán |
+| D20 | **(28/07) Đơn giá khoán lấy TỪ Activity Type**, không có bảng giá riêng (`SX Don Gia Vao Hop` đã bỏ). Activity Type = LOẠI CÔNG VIỆC ("Vào hộp 300", "Vào hộp 170"), map từ Item qua `custom_activity_type`; nhiều SKU cùng quy cách chung 1 loại. | Một nguồn giá duy nhất, không lệch 2 nơi. Đổi giá = sửa Activity Type |
 | D19 | **(28/07) Bảng vào hộp chỉ hiện công nhân CÔNG KHOÁN**, và chỉ hiện **TÊN** ("Nga"). Trùng tên → thêm họ ("Nga Trương", "Nga Nguyễn"); trùng cả họ → viết tắt tên đệm ("Nga Trương T."). Nhóm công khoán cấu hình ở `SX Settings` (nguồn + giá trị), chưa điền thì tự dò nhóm có tên chứa "khoán". | Grid gọn, công nhân lowtech đọc nhanh; tên đầy đủ vẫn xem được ở tooltip |
 | D18 | **(28/07) BỎ card "Nhập bột" trên portal.** Chốt ngày **tự nhập bột** cho mọi lô R **rang hôm trước** (`ngay_rang < ngày chốt`, tức đã qua khâu nghiền), trừ đỗ FIFO; tầng 2 trừ bột theo báo mẻ. | QC không bấm; kho/truy xuất/trừ đỗ giữ nguyên. Huỷ ngày thu hồi cả phiếu nhập bột do nó tạo | |
 
@@ -194,15 +195,18 @@ SalaryProduct. KHÔNG đụng SX Nhap Bot (độc lập).
 - ngay_sx (Link, reqd) · dong (Table SX Bang Vao Hop Item, reqd) · tong_hop/tong_tien (read_only).
 
 **Child `SX Bang Vao Hop Item`:** nhan_vien (Link Employee, reqd — portal CHỈ hiện công nhân
-nhóm công khoán, tên rút gọn theo D19) · san_pham (Link Item filter TP,
+nhóm công khoán, tên rút gọn theo D19) · activity_type (Link, read_only — server suy từ Item) · san_pham (Link Item filter TP,
 reqd) · phuong_thuc (Select `Thủ công\nMáy hỗ trợ`, reqd) · so_hop (Int, reqd, >0) · don_gia/thanh_tien
 (read_only, lookup server-side).
 
-### 3.5 `SX Don Gia Vao Hop` — bảng giá lương
+### 3.5 Đơn giá khoán — KHÔNG có bảng giá riêng (D20)
 
-phuong_thuc (reqd) · san_pham (optional, trống = mọi SP) · don_gia (Currency, reqd, **cho phép 0**)
-· hieu_luc_tu (Date, reqd). Lookup: (san_pham, phuong_thuc) → fallback (trống, phuong_thuc) →
-hieu_luc_tu max ≤ ngày. Không có bản ghi nào → chặn, báo rõ.
+DocType `SX Don Gia Vao Hop` **đã bỏ**. Nguồn giá duy nhất là **Activity Type** (loại công
+việc khoán, vd "Vào hộp 300"). Map: `Item.custom_activity_type` → Activity Type → đơn giá.
+Nhiều SKU cùng quy cách dùng chung 1 Activity Type (TX300 / SR300 / TH300 → "Vào hộp 300").
+Field chứa giá trên Activity Type cấu hình ở `SX Settings.field_don_gia_activity`, để trống
+thì tự dò (`custom_don_gia` → `don_gia` → `billing_rate` → `costing_rate` → `rate`).
+SKU chưa map Activity Type → chặn khi lưu, báo rõ tên SKU.
 
 ### 3.6 `SX Settings` — Single
 
@@ -291,7 +295,7 @@ Không scheduler, không override class, không Server/Client Script.
 ### 5.4 `chot_ngay` — trình tự bắt buộc
 
 1. **Validate** (idempotent): docstatus=0; ít nhất một trong {bao_me có dòng, vào hộp có dòng};
-   mọi dòng vào hộp có đơn giá; kiểm đủ tồn TRƯỚC khi sinh chứng từ (thiếu → liệt kê item+kg).
+   mọi dòng vào hộp map được Activity Type + đơn giá; kiểm đủ tồn TRƯỚC khi sinh chứng từ (thiếu → liệt kê item+kg).
 2. **Nhập bột tự động (D18)**: mọi lô R có `ngay_rang < ngày chốt` và chưa nhập → tạo+submit
    `SX Nhap Bot` (hook chạy Manufacture T1: trừ đỗ FIFO → bột vào Kho BTP, batch = lô R).
    Ghi vào `ds_wo_se` để huỷ ngày thu hồi được. Kiểm tồn ở bước 1 đã cộng sẵn lượng bột này.
@@ -398,7 +402,8 @@ cân bằng chính xác.
    **GIỮ TẮT "Validate Components Quantities Per BOM"** (xung đột FIFO tách lô).
 3. **Purchase Receipt NVL PHẢI có batch = lô NCC** (điều kiện của D5 FIFO-truy-xuất).
 4. Tồn đầu: Stock Reconciliation (batch khởi tạo `TON-DDMMYY`).
-5. `SX Don Gia Vao Hop` (2 phương thức); user `ghiso@rvhg`, `vaohop@rvhg` + gán role.
+5. **Activity Type** (loại công việc khoán) + đơn giá trên đó; gán `custom_activity_type` cho
+   từng SKU TP; user `ghiso@rvhg`, `vaohop@rvhg` + gán role.
 
 > Custom Fields ship qua fixtures — deploy app (P2) TRƯỚC, rồi mới chạy seed.
 

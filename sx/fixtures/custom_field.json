@@ -71,5 +71,19 @@
   "read_only": 1,
   "module": "SX",
   "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "name": "Item-custom_activity_type",
+  "dt": "Item",
+  "fieldname": "custom_activity_type",
+  "fieldtype": "Link",
+  "label": "Loại công việc khoán",
+  "options": "Activity Type",
+  "insert_after": "custom_batch_prefix",
+  "description": "Nhiều SKU cùng quy cách dùng chung 1 loại (vd TX300/SR300/TH300 -> Vào hộp 300). Đơn giá lấy từ Activity Type.",
+  "depends_on": "eval:doc.custom_sx_nhom=='TP'",
+  "module": "SX",
+  "translatable": 0
  }
 ]

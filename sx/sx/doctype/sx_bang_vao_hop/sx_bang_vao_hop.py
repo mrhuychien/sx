@@ -3,7 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt
 
-from sx.utils import get_don_gia_vao_hop
+from sx.utils import get_activity_va_don_gia
 
 
 class SXBangVaoHop(Document):
@@ -25,16 +25,14 @@ class SXBangVaoHop(Document):
             )
 
     def tinh_tien(self):
-        ngay = frappe.db.get_value("SX Ngay San Xuat", self.ngay_sx, "ngay")
         tong_hop = 0
         tong_tien = 0.0
         for row in self.dong:
             if cint(row.so_hop) <= 0:
-                frappe.throw(
-                    _("Dòng {0}: số hộp phải > 0").format(row.idx)
-                )
-            # Đơn giá luôn lookup server-side — client không tự điền được
-            row.don_gia = get_don_gia_vao_hop(row.san_pham, row.phuong_thuc, ngay)
+                frappe.throw(_("Dòng {0}: số hộp phải > 0").format(row.idx))
+            # Loại công việc + đơn giá luôn lấy server-side từ Activity Type
+            # (nguồn giá duy nhất) — client không tự điền, không sửa được.
+            row.activity_type, row.don_gia = get_activity_va_don_gia(row.san_pham)
             row.thanh_tien = flt(row.don_gia) * cint(row.so_hop)
             tong_hop += cint(row.so_hop)
             tong_tien += flt(row.thanh_tien)

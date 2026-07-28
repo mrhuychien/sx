@@ -9,6 +9,7 @@
   "san_pham",
   "phuong_thuc",
   "so_hop",
+  "activity_type",
   "don_gia",
   "thanh_tien"
  ],
@@ -51,6 +52,14 @@
    "label": "Số hộp",
    "in_list_view": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "activity_type",
+   "fieldtype": "Link",
+   "label": "Loại công việc khoán",
+   "options": "Activity Type",
+   "read_only": 1,
+   "in_list_view": 1
   },
   {
    "fieldname": "don_gia",

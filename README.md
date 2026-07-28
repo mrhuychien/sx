@@ -80,13 +80,17 @@ Sữa dừa = Bột sữa dừa, Đường kính VN = **Đường nghệ an**, �
 hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 
 **Còn phải làm tay:** BOM **tầng 3 + Item TP + bao bì** (CH-13 chốt: chủ đầu tư tự tạo trên
-ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đầu, `SX Don Gia Vao Hop`,
-2 user tablet — xem `docs/CODER-PACK.md` §8.
+ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đầu, Activity Type + đơn giá + map
+`custom_activity_type` cho SKU, 2 user tablet — xem `docs/CODER-PACK.md` §8.
 
 ## Thay đổi 28/07 (sau khi chạy thử trên site)
 
 - **D17 — bỏ BTP "Hỗn hợp màu đỏ/vàng":** màu + nước cho thẳng vào BOM đường hoán khoai
   môn/cốm theo đúng tỉ lệ. Bớt 2 item + 2 BOM + 2 lần báo mẻ/ngày.
+- **D20 — đơn giá khoán lấy từ Activity Type:** bỏ hẳn bảng giá riêng
+  (`SX Don Gia Vao Hop`). Activity Type là *loại công việc* ("Vào hộp 300"), map từ Item
+  qua `custom_activity_type` — nhiều SKU cùng quy cách dùng chung một loại. Một nguồn giá
+  duy nhất; đổi giá chỉ sửa ở Activity Type.
 - **D19 — bảng vào hộp gọn lại:** chỉ hiện công nhân **nhóm công khoán** (cấu hình ở
   `SX Settings`, chưa điền thì tự dò nhóm có tên chứa "khoán"), và chỉ hiện **tên gọi**
   — trùng tên mới thêm họ ("Nga Trương" / "Nga Nguyễn"), trùng cả họ thì viết tắt tên đệm
