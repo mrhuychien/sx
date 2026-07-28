@@ -185,8 +185,8 @@ def _bang_summary(ngay_sx):
         "tong_tien": doc.tong_tien,
         "dong": [
             {"nhan_vien": r.nhan_vien, "ten_nhan_vien": r.ten_nhan_vien,
-             "san_pham": r.san_pham, "phuong_thuc": r.phuong_thuc,
-             "so_hop": r.so_hop, "activity_type": r.activity_type,
+             "san_pham": r.san_pham, "so_hop": r.so_hop,
+             "activity_type": r.activity_type,
              "don_gia": r.don_gia, "thanh_tien": r.thanh_tien}
             for r in doc.dong
         ],
@@ -300,7 +300,7 @@ def luu_bang_vao_hop(ngay_sx, rows):
         doc.append(
             "dong",
             {"nhan_vien": r.get("nhan_vien"), "san_pham": r.get("san_pham"),
-             "phuong_thuc": r.get("phuong_thuc"), "so_hop": cint(r.get("so_hop"))},
+             "so_hop": cint(r.get("so_hop"))},
         )
     doc.flags.ignore_permissions = True
     doc.save()

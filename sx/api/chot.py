@@ -12,7 +12,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, getdate
 
 from sx.api.mfg import cancel_doc, tao_batch, tao_se_manufacture, tao_wo
 from sx.config.roles import guard_card
@@ -52,8 +52,8 @@ def chot_ngay(ngay_sx):
             buoc = _("tầng 3 (thành phẩm)")
             _chot_tang_3(doc, bang, chung_tu)
 
-            buoc = _("sinh SalaryProduct (lương sản phẩm)")
-            ds_salary = _sinh_salary_product(doc, bang)
+            buoc = _("ghi phiếu lương khoán")
+            ds_salary = _ghi_luong_khoan(doc, bang)
 
         buoc = _("tổng hợp + submit phiếu ngày")
         doc.tong_hop_tp = cint(bang.tong_hop) if co_vao_hop else 0
@@ -278,79 +278,163 @@ def _chot_tang_3(doc, bang, chung_tu):
     return ket_qua
 
 
-# ─────────────────────────────────────────────── SalaryProduct (GATE-B) ──
+# ─────────────────────────────────────── phiếu lương khoán (SalaryProduct) ──
+#
+# Schema thật (app lam-luong):
+#   SalaryProduct   = phiếu THÁNG của MỘT nhân viên (employee, month, year), submittable.
+#   child luongkhoan (SalaryProductDetail2) = MỘT DÒNG MỖI NGÀY, mỗi dòng tối đa 6 loại
+#   công việc: sp1..sp6 (tên Activity Type, kiểu Data) · sl1..sl6 · dg1..dg6 · tt1..tt6,
+#   cộng tienanca/andem do bộ phận lương điền, thunhapngay = Σtt + tienanca.
+#
+# Chốt ngày UPSERT đúng dòng của ngày đó trong phiếu tháng, để phiếu ở DRAFT —
+# bộ phận lương kiểm và submit cuối tháng. KHÔNG đụng ăn ca / chuyên cần / bảo hiểm.
 
-_SALARY_DT_CANDIDATES = ("SalaryProduct", "Salary Product")
-_FIELD_CANDIDATES = {
-    "employee": ("employee", "nhan_vien", "nhanvien"),
-    "date": ("date", "ngay", "posting_date", "transaction_date", "work_date"),
-    "item": ("item", "item_code", "san_pham", "product", "sanpham"),
-    "qty": ("qty", "quantity", "so_luong", "soluong", "so_hop"),
-    "rate": ("rate", "don_gia", "dongia", "price"),
-    "amount": ("amount", "thanh_tien", "thanhtien", "total", "total_amount"),
-    "phuong_thuc": ("phuong_thuc", "phuongthuc", "method"),
-    "ref": ("custom_ngay_sx", "ngay_sx", "reference", "ref_docname"),
-}
-
-
-def _salary_doctype():
-    for dt in _SALARY_DT_CANDIDATES:
-        if frappe.db.exists("DocType", dt):
-            return dt
-    return None
+SALARY_DT = "SalaryProduct"
+SALARY_CHILD = "luongkhoan"
+SP_MAX = 6  # schema chỉ có 6 slot sp1..sp6
 
 
-def _map_salary_fields(meta):
-    fieldnames = {df.fieldname for df in meta.fields}
-    mapping = {}
-    for khoa, candidates in _FIELD_CANDIDATES.items():
-        for c in candidates:
-            if c in fieldnames:
-                mapping[khoa] = c
-                break
-    return mapping
-
-
-def _sinh_salary_product(doc, bang):
-    """1 bản ghi SalaryProduct / dòng bảng vào hộp (GATE-B adaptive)."""
-    dt = _salary_doctype()
-    if not dt:
+def _kiem_salary_doctype():
+    if not frappe.db.exists("DocType", SALARY_DT):
         frappe.throw(
-            _("Không tìm thấy DocType SalaryProduct (app lam-luong). GATE-B: chạy "
-              "frappe.get_meta('SalaryProduct') trên site, chốt mapping rồi cập nhật "
-              "_FIELD_CANDIDATES trong sx/api/chot.py.")
-        )
-    meta = frappe.get_meta(dt)
-    mapping = _map_salary_fields(meta)
-    if "employee" not in mapping or "qty" not in mapping:
-        frappe.throw(
-            _("Schema {0} không khớp mapping tối thiểu (employee, qty). GATE-B: chốt "
-              "mapping rồi cập nhật sx/api/chot.py. Field hiện có: {1}").format(
-                dt, ", ".join(sorted(df.fieldname for df in meta.fields if df.fieldname))
-            )
+            _("Không tìm thấy DocType {0} (app lương khoán). Cài app đó trước khi chốt ngày.")
+            .format(SALARY_DT)
         )
 
-    ds_ten = []
+
+def _phieu_luong_thang(employee, ngay, settings):
+    """Phiếu lương khoán THÁNG (draft) của 1 nhân viên — có thì lấy, chưa có thì tạo."""
+    ten = frappe.db.get_value("Employee", employee, "employee_name") or employee
+    chung = {"employee": employee, "month": ngay.month, "year": ngay.year}
+
+    da_duyet = frappe.db.get_value(SALARY_DT, dict(chung, docstatus=1), "name")
+    if da_duyet:
+        frappe.throw(
+            _("Phiếu lương khoán {0} của {1} tháng {2}/{3} ĐÃ duyệt — không ghi thêm được. "
+              "Nhờ bộ phận lương huỷ/amend phiếu đó rồi chốt ngày lại.").format(
+                da_duyet, ten, ngay.month, ngay.year)
+        )
+
+    dang_co = frappe.db.get_value(SALARY_DT, dict(chung, docstatus=0), "name")
+    if dang_co:
+        return frappe.get_doc(SALARY_DT, dang_co)
+
+    phieu = frappe.new_doc(SALARY_DT)
+    phieu.employee = employee
+    phieu.company = settings.cong_ty
+    phieu.ngay = ngay
+    phieu.month = ngay.month
+    phieu.year = ngay.year
+    phieu.status = "Nháp"
+    phieu.title = f"{ten.upper()} T{ngay.month}.{ngay.year}"
+    return phieu
+
+
+def _dong_ngay(phieu, ngay):
+    for r in phieu.get(SALARY_CHILD) or []:
+        if r.ngay and getdate(r.ngay) == ngay:
+            return r
+    return phieu.append(SALARY_CHILD, {"ngay": ngay})
+
+
+def _ghi_dong_ngay(dong, cong_viec):
+    """Ghi ĐÈ 6 slot của dòng ngày (chốt lại = thay, không cộng dồn)."""
+    for i in range(1, SP_MAX + 1):
+        dong.set(f"sp{i}", None)
+        dong.set(f"sl{i}", 0)
+        dong.set(f"dg{i}", 0)
+        dong.set(f"tt{i}", 0)
+    tong = 0.0
+    for i, (act, sl, dg) in enumerate(cong_viec, start=1):
+        tt = flt(dg) * cint(sl)
+        dong.set(f"sp{i}", act)
+        dong.set(f"sl{i}", cint(sl))
+        dong.set(f"dg{i}", flt(dg))
+        dong.set(f"tt{i}", tt)
+        tong += tt
+    # tienanca / andem do bộ phận lương điền — giữ nguyên, chỉ cộng vào thu nhập ngày
+    dong.thunhapngay = tong + flt(dong.tienanca)
+    return tong
+
+
+def _tinh_lai_luong_san_pham(phieu):
+    phieu.luongsanpham = sum(
+        flt(r.get(f"tt{i}"))
+        for r in (phieu.get(SALARY_CHILD) or [])
+        for i in range(1, SP_MAX + 1)
+    )
+
+
+def _ghi_luong_khoan(doc, bang):
+    """Ghi sản lượng khoán của ngày vào phiếu lương khoán tháng của từng công nhân.
+
+    Gộp theo (nhân viên, loại công việc): 1 người vào nhiều SKU cùng loại thì cộng dồn
+    số lượng — đúng cách bảng lương ghi (sp = loại công việc, không phải SKU).
+    Trả danh sách {phieu, employee, ngay} để huỷ ngày gỡ đúng dòng.
+    """
+    _kiem_salary_doctype()
+    ngay = getdate(doc.ngay)
+    settings = get_settings()
+
+    gop = {}
     for r in bang.dong:
-        sp_doc = frappe.new_doc(dt)
-        sp_doc.set(mapping["employee"], r.nhan_vien)
-        sp_doc.set(mapping["qty"], cint(r.so_hop))
-        if "date" in mapping:
-            sp_doc.set(mapping["date"], str(doc.ngay))
-        if "item" in mapping:
-            sp_doc.set(mapping["item"], r.san_pham)
-        if "rate" in mapping:
-            sp_doc.set(mapping["rate"], flt(r.don_gia))
-        if "amount" in mapping:
-            sp_doc.set(mapping["amount"], flt(r.thanh_tien))
-        if "phuong_thuc" in mapping:
-            sp_doc.set(mapping["phuong_thuc"], r.phuong_thuc)
-        if "ref" in mapping:
-            sp_doc.set(mapping["ref"], doc.name)
-        sp_doc.flags.ignore_permissions = True
-        sp_doc.insert()
-        ds_ten.append(sp_doc.name)
-    return ds_ten
+        if not r.activity_type:
+            frappe.throw(
+                _("Dòng {0}: sản phẩm {1} chưa gán loại công việc khoán (Activity Type).")
+                .format(r.idx, r.san_pham)
+            )
+        key = (r.nhan_vien, r.activity_type)
+        cu = gop.get(key)
+        if cu:
+            cu["sl"] += cint(r.so_hop)
+        else:
+            gop[key] = {"sl": cint(r.so_hop), "dg": flt(r.don_gia)}
+
+    theo_nguoi = {}
+    for (nv, act), g in gop.items():
+        theo_nguoi.setdefault(nv, []).append((act, g["sl"], g["dg"]))
+
+    ds_ghi = []
+    for nv, cong_viec in theo_nguoi.items():
+        if len(cong_viec) > SP_MAX:
+            ten = frappe.db.get_value("Employee", nv, "employee_name") or nv
+            frappe.throw(
+                _("{0} làm {1} loại công việc trong ngày, phiếu lương khoán chỉ chứa được "
+                  "{2} loại/ngày. Gộp bớt loại hoặc nhờ bộ phận lương mở rộng bảng.").format(
+                    ten, len(cong_viec), SP_MAX)
+            )
+        phieu = _phieu_luong_thang(nv, ngay, settings)
+        _ghi_dong_ngay(_dong_ngay(phieu, ngay), cong_viec)
+        _tinh_lai_luong_san_pham(phieu)
+        phieu.flags.ignore_permissions = True
+        phieu.save()
+        ds_ghi.append({"phieu": phieu.name, "employee": nv, "ngay": str(ngay)})
+    return ds_ghi
+
+
+def _go_luong_khoan(ds_ghi):
+    """Huỷ ngày: gỡ ĐÚNG dòng của ngày đó khỏi phiếu tháng (không xoá cả phiếu)."""
+    log = []
+    for g in ds_ghi or []:
+        ten_phieu, ngay = g.get("phieu"), getdate(g.get("ngay"))
+        if not ten_phieu or not frappe.db.exists(SALARY_DT, ten_phieu):
+            continue
+        phieu = frappe.get_doc(SALARY_DT, ten_phieu)
+        if phieu.docstatus != 0:
+            log.append(
+                f"Phiếu lương {ten_phieu} đã duyệt — KHÔNG gỡ được dòng ngày {ngay}, xử lý tay"
+            )
+            continue
+        con_lai = [r for r in (phieu.get(SALARY_CHILD) or [])
+                   if not (r.ngay and getdate(r.ngay) == ngay)]
+        if len(con_lai) == len(phieu.get(SALARY_CHILD) or []):
+            continue
+        phieu.set(SALARY_CHILD, con_lai)
+        _tinh_lai_luong_san_pham(phieu)
+        phieu.flags.ignore_permissions = True
+        phieu.save()
+        log.append(f"Gỡ dòng {ngay} khỏi phiếu lương {ten_phieu}")
+    return log
 
 
 # ─────────────────────────────────────────────── cảnh báo mềm ──
@@ -400,12 +484,8 @@ def on_cancel_ngay(doc, method=None):
     )
     cancel_doc("SX Bang Vao Hop", bang, log)
 
-    dt = _salary_doctype()
-    if dt and doc.salary_products_json:
-        for ten in json.loads(doc.salary_products_json):
-            if frappe.db.exists(dt, ten):
-                frappe.delete_doc(dt, ten, ignore_permissions=True, force=True)
-                log.append(f"Xoá {dt} {ten}")
+    if doc.salary_products_json:
+        log.extend(_go_luong_khoan(json.loads(doc.salary_products_json)))
 
     batches = [r.batch for r in doc.bao_me if r.batch]
     if batches:

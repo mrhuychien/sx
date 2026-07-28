@@ -98,6 +98,14 @@ ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đ
 - **D18 — bỏ card "Nhập bột":** chốt ngày tự nhập bột cho lô R **rang hôm trước**
   (đã qua khâu nghiền). QC không bấm; kho + truy xuất + trừ đỗ giữ nguyên. Lô R còn đọng
   (rang lâu mà chưa vào kho) hiện ở dashboard quản lý để phát hiện bất thường.
+- **D21 — bỏ "phương thức" (Thủ công / Máy hỗ trợ):** vào hộp còn 2 chạm — chạm công nhân →
+  chọn SKU → nhập số hộp. Đơn giá vốn theo Activity Type nên phương thức không ảnh hưởng lương.
+- **D22 — lương khoán ghi thẳng vào `SalaryProduct`** (app lam-luong, GATE-B đã chốt):
+  1 phiếu/người/**tháng** (PLK), child `luongkhoan` **1 dòng/ngày** với 6 slot
+  `sp/sl/dg/tt` (`sp` = tên Activity Type). Chốt ngày **upsert đúng dòng ngày đó** và để phiếu
+  ở **DRAFT** (`status = "Nháp"`) cho bộ phận lương duyệt cuối tháng — chốt lại = ghi đè, không
+  cộng dồn. Huỷ ngày chỉ **gỡ dòng ngày đó**, các ngày khác giữ nguyên. Không đụng
+  `tienanca`/`andem`/chuyên cần/bảo hiểm.
 
 ## Trạng thái build v3 (P0→P7)
 
@@ -108,17 +116,14 @@ ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đ
 - ✅ P6 verify: `py_compile` + `node --check` + `validate_shipped_docs.py` 0 ERROR + review đối kháng
 - ⏳ P7 deploy + Phase 0 data + Acceptance test (spec §10) — cần chạy TRÊN SITE
 
-## Gate duy nhất còn lại
+## Gate — đã đóng hết
 
-**GATE-B** — schema SalaryProduct (app lam-luong): chạy
-`bench --site a.rongvanghoanggia.com console` → `frappe.get_meta("SalaryProduct").as_dict()`
-(thử cả "Salary Product"), chốt mapping. Code dùng **mapping adaptive**
-(`_FIELD_CANDIDATES` trong `sx/api/chot.py`) — map được thì chạy, không map được thì chốt ngày
-báo lỗi rõ + rollback. Sau khi chốt, sửa thành mapping cứng. Thiếu chỗ chứa `phuong_thuc` →
-duyệt custom field.
+- **GATE-A** (định mức) = workbook v6 + chủ đầu tư tự nhập Phase 0 (§8).
+- **GATE-B** (schema SalaryProduct) = **đã chốt 28/07** theo field list thật lấy từ console;
+  `sx/api/chot.py` map cứng đúng schema (xem D22 ở trên).
+- **GATE-C** (kho tầng 1) = phương án B (D7): đậu trừ tại Nhập bột.
 
-> GATE-A (định mức) đã giải quyết = workbook v6 + chủ đầu tư tự nhập Phase 0 (§8).
-> GATE-C (kho tầng 1) đã chốt = phương án B (D7): đậu trừ tại Nhập bột.
+Còn lại chỉ là dữ liệu Phase 0 nhập tay + acceptance test §10 chạy trên site.
 
 ## Ghi chú kỹ thuật quan trọng
 

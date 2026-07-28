@@ -1,5 +1,5 @@
-// Card Vào hộp — grid CN → SKU picker (search + nhóm + gần đây) → phương thức
-// → numpad hộp → auto-save (đơn giá tính server-side); bảng dòng + footer tổng.
+// Card Vào hộp — grid CN → SKU picker (search + nhóm + gần đây) → numpad hộp
+// → auto-save. Loại công việc + đơn giá do server suy từ Item (Activity Type).
 
 import { esc, el } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber, formatVND } from '/assets/sx/sx/lib/format.js';
@@ -24,7 +24,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     ${boot.canh_bao_nhan_vien ? `<div class="sx-warn-text">⚠ ${esc(boot.canh_bao_nhan_vien)}</div>` : ''}
     ${daChot ? '' : '<div class="sx-nv-grid" id="sx-vh-nv"></div>'}
     <table class="sx-table">
-      <thead><tr><th>Công nhân</th><th>SKU</th><th>PT</th><th>Hộp</th><th>Tiền</th>${daChot ? '' : '<th></th>'}</tr></thead>
+      <thead><tr><th>Công nhân</th><th>SKU</th><th>Hộp</th><th>Tiền</th>${daChot ? '' : '<th></th>'}</tr></thead>
       <tbody id="sx-vh-rows"></tbody>
     </table>
     <div class="sx-vh-footer" id="sx-vh-footer"></div>
@@ -42,11 +42,10 @@ export async function render({ container, boot, call, ensureNgay }) {
       <tr>
         <td>${esc(tenNgan[r.nhan_vien] || r.ten_nhan_vien || r.nhan_vien)}</td>
         <td>${esc(tenSP(r.san_pham))}${r.activity_type ? `<div class="sx-muted">${esc(r.activity_type)}</div>` : ''}</td>
-        <td>${esc(r.phuong_thuc === 'Máy hỗ trợ' ? 'Máy' : 'Tay')}</td>
         <td><b>${esc(formatNumber(r.so_hop))}</b></td>
         <td>${esc(r.thanh_tien != null ? formatVND(r.thanh_tien) : '…')}</td>
         ${daChot ? '' : `<td><button type="button" class="sx-cell-btn sx-cell-del" data-i="${i}">✕</button></td>`}
-      </tr>`).join('') || `<tr><td colspan="6" class="sx-muted">Chưa có dòng nào.</td></tr>`;
+      </tr>`).join('') || `<tr><td colspan="5" class="sx-muted">Chưa có dòng nào.</td></tr>`;
     const tongHop = rows.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
     footer.innerHTML = `Tổng: <b>${formatNumber(tongHop)}</b> hộp · <b>${esc(formatVND(tongTien))}</b>`;
@@ -63,8 +62,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       const r = await call('sx.api.portal.luu_bang_vao_hop', {
         ngay_sx: ng.name,
         rows: JSON.stringify(rows.map((x) => ({
-          nhan_vien: x.nhan_vien, san_pham: x.san_pham,
-          phuong_thuc: x.phuong_thuc, so_hop: x.so_hop,
+          nhan_vien: x.nhan_vien, san_pham: x.san_pham, so_hop: x.so_hop,
         }))),
       });
       rows.length = 0;
@@ -98,19 +96,17 @@ export async function render({ container, boot, call, ensureNgay }) {
 function themDong(nv, itemsTp, skuGanDay, rows, save, tenNgan) {
   const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
   openSkuPicker(nv, ten, itemsTp, skuGanDay, (sanPham) => {
-    chonPhuongThuc(nv, sanPham, (phuongThuc) => {
-      openNumpad({
-        title: `${ten} — số hộp`, unit: 'hộp',
-        onOk: async (v) => {
-          const soHop = Math.round(v);
-          if (soHop <= 0) { toastErr('Số hộp phải > 0.'); return; }
-          rows.push({
-            nhan_vien: nv.name, ten_nhan_vien: nv.employee_name,
-            san_pham: sanPham, phuong_thuc: phuongThuc, so_hop: soHop,
-          });
-          await save();
-        },
-      });
+    openNumpad({
+      title: `${ten} — số hộp`, unit: 'hộp',
+      onOk: async (v) => {
+        const soHop = Math.round(v);
+        if (soHop <= 0) { toastErr('Số hộp phải > 0.'); return; }
+        rows.push({
+          nhan_vien: nv.name, ten_nhan_vien: nv.employee_name,
+          san_pham: sanPham, so_hop: soHop,
+        });
+        await save();
+      },
     });
   });
 }
@@ -157,17 +153,4 @@ function openSkuPicker(nv, ten, itemsTp, skuGanDay, onPick) {
   }
   search.addEventListener('input', () => draw(search.value));
   draw('');
-}
-
-function chonPhuongThuc(nv, sanPham, onPick) {
-  const m = openModal({ title: 'Phương thức' });
-  m.body.innerHTML = `
-    <div class="sx-pt-grid">
-      <button type="button" class="sx-btn sx-btn-ghost sx-btn-big" data-pt="Thủ công">✋ Thủ công</button>
-      <button type="button" class="sx-btn sx-btn-ghost sx-btn-big" data-pt="Máy hỗ trợ">⚙️ Máy hỗ trợ</button>
-    </div>
-  `;
-  m.body.querySelectorAll('[data-pt]').forEach((b) => {
-    b.addEventListener('click', () => { m.close(); onPick(b.dataset.pt); });
-  });
 }

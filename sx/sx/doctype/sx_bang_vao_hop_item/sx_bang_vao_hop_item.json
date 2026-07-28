@@ -7,7 +7,6 @@
   "nhan_vien",
   "ten_nhan_vien",
   "san_pham",
-  "phuong_thuc",
   "so_hop",
   "activity_type",
   "don_gia",
@@ -35,14 +34,6 @@
    "label": "Sản phẩm",
    "options": "Item",
    "link_filters": "[[\"Item\",\"custom_sx_nhom\",\"=\",\"TP\"]]",
-   "in_list_view": 1,
-   "reqd": 1
-  },
-  {
-   "fieldname": "phuong_thuc",
-   "fieldtype": "Select",
-   "label": "Phương thức",
-   "options": "Thủ công\nMáy hỗ trợ",
    "in_list_view": 1,
    "reqd": 1
   },

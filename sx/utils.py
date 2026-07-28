@@ -130,12 +130,22 @@ def get_don_gia_activity(activity_type):
     """
     field = (get_settings().get("field_don_gia_activity") or "").strip()
     meta = frappe.get_meta("Activity Type")
-    ung_vien = [field] if field else list(_FIELD_DON_GIA_ACTIVITY)
-    for fn in ung_vien:
-        if fn and meta.has_field(fn):
-            gia = frappe.db.get_value("Activity Type", activity_type, fn)
-            if gia is not None:
-                return flt(gia)
+    if field:
+        # Cấu hình tay: dùng ĐÚNG field đó, kể cả giá 0
+        if meta.has_field(field):
+            return flt(frappe.db.get_value("Activity Type", activity_type, field))
+    else:
+        # Tự dò: Activity Type chuẩn v16 có CẢ costing_rate lẫn billing_rate, thường
+        # chỉ 1 cái được điền -> lấy giá trị KHÁC 0 đầu tiên, tránh vớ phải field rỗng.
+        co_field = False
+        for fn in _FIELD_DON_GIA_ACTIVITY:
+            if meta.has_field(fn):
+                co_field = True
+                gia = flt(frappe.db.get_value("Activity Type", activity_type, fn))
+                if gia:
+                    return gia
+        if co_field:
+            return 0.0  # mọi field giá đều 0 -> công việc không tính lương sản phẩm
     frappe.throw(
         _("Không đọc được đơn giá trên Activity Type {0}. Điền 'Field đơn giá trên "
           "Activity Type' trong SX Settings (các field hiện có: {1}).").format(
