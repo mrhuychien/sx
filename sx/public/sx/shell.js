@@ -21,7 +21,6 @@ const VIEW_PATHS = {
 };
 const CARD_PATHS = {
   xuatdau: '/assets/sx/sx/cards/xuatdau.js',
-  nhapbot: '/assets/sx/sx/cards/nhapbot.js',
   baome: '/assets/sx/sx/cards/baome.js',
   baocan: '/assets/sx/sx/cards/baocan.js',
   suco: '/assets/sx/sx/cards/suco.js',

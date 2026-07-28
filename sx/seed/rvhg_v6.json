@@ -8,7 +8,9 @@
   "CH-13: tầng 3 do chủ đầu tư tự tạo BOM trên ERPNext (seed không làm)",
   "CH-14: \"Đường kính Việt Nam\" = item \"Đường nghệ an\"",
   "CH-15: \"Đường Trung Quốc\" = item \"Đường Gluco China\" (dùng cả 2 nhánh)",
-  "CH-16: hương liệu quy đổi 1 lít = 1 kg, ĐVT Kg"
+  "CH-16: hương liệu quy đổi 1 lít = 1 kg, ĐVT Kg",
+  "Chốt 28/07: BỎ BTP hỗn hợp màu — màu đỏ/vàng + xanh + nước cho TRỰC TIẾP vào BOM đường hoán khoai môn/cốm (pha là dùng ngay, đúng D2). Bớt 2 item + 2 BOM + 2 lần báo mẻ.",
+  "Chốt 28/07: BỎ card Nhập bột — chốt ngày TỰ nhập bột cho lô R rang hôm trước (đã qua khâu nghiền), trừ đỗ FIFO; tầng 2 trừ bột theo báo mẻ. QC không bấm."
  ],
  "con_lam_tay": [
   "BOM tầng 3 + Item TP + bao bì (CH-13) — CHẶN chốt ngày nhánh TP",
@@ -379,30 +381,6 @@
    "item_group": "Bán thành phẩm"
   },
   {
-   "item_code": "Hỗn hợp màu đỏ",
-   "uom": "Kg",
-   "nhom": "BTP-Phu",
-   "has_batch": true,
-   "prefix": "HMD",
-   "da_co_tren_site": false,
-   "ten_cong_thuc": "Hỗn hợp màu đỏ",
-   "is_stock": 1,
-   "ghi_chu": "Mẻ 11.13kg, dùng ~10 mẻ đường",
-   "item_group": "Bán thành phẩm"
-  },
-  {
-   "item_code": "Hỗn hợp màu vàng",
-   "uom": "Kg",
-   "nhom": "BTP-Phu",
-   "has_batch": true,
-   "prefix": "HMV",
-   "da_co_tren_site": false,
-   "ten_cong_thuc": "Hỗn hợp màu vàng",
-   "is_stock": 1,
-   "ghi_chu": "Mẻ 3.3kg",
-   "item_group": "Bán thành phẩm"
-  },
-  {
    "item_code": "Đường hoán thường",
    "uom": "Kg",
    "nhom": "BTP-Phu",
@@ -667,64 +645,6 @@
    "co_me_chuan_kg": 0
   },
   {
-   "bom": "BOM-HM-DO",
-   "item": "Hỗn hợp màu đỏ",
-   "item_workbook": "Hỗn hợp màu đỏ",
-   "qty": 11.13,
-   "uom": "Kg",
-   "tang": 1,
-   "rm": [
-    {
-     "item": "Màu thực phẩm đỏ",
-     "item_workbook": "Màu thực phẩm đỏ",
-     "qty": 1.0,
-     "uom": "Kg"
-    },
-    {
-     "item": "Màu thực phẩm xanh",
-     "item_workbook": "Màu thực phẩm xanh",
-     "qty": 0.13,
-     "uom": "Kg"
-    },
-    {
-     "item": "Nước",
-     "item_workbook": "Nước",
-     "qty": 10.0,
-     "uom": "Kg"
-    }
-   ],
-   "co_me_chuan_kg": 11.13
-  },
-  {
-   "bom": "BOM-HM-VANG",
-   "item": "Hỗn hợp màu vàng",
-   "item_workbook": "Hỗn hợp màu vàng",
-   "qty": 3.3,
-   "uom": "Kg",
-   "tang": 1,
-   "rm": [
-    {
-     "item": "Màu thực phẩm vàng",
-     "item_workbook": "Màu thực phẩm vàng",
-     "qty": 0.2,
-     "uom": "Kg"
-    },
-    {
-     "item": "Màu thực phẩm xanh",
-     "item_workbook": "Màu thực phẩm xanh",
-     "qty": 0.1,
-     "uom": "Kg"
-    },
-    {
-     "item": "Nước",
-     "item_workbook": "Nước",
-     "qty": 3.0,
-     "uom": "Kg"
-    }
-   ],
-   "co_me_chuan_kg": 3.3
-  },
-  {
    "bom": "BOM-DH-TH",
    "item": "Đường hoán thường",
    "item_workbook": "Đường hoán thường",
@@ -768,9 +688,21 @@
      "uom": "Kg"
     },
     {
-     "item": "Hỗn hợp màu đỏ",
-     "item_workbook": "Hỗn hợp màu đỏ",
-     "qty": 1.1,
+     "item": "Màu thực phẩm đỏ",
+     "item_workbook": "Màu thực phẩm đỏ",
+     "qty": 0.098832,
+     "uom": "Kg"
+    },
+    {
+     "item": "Màu thực phẩm xanh",
+     "item_workbook": "Màu thực phẩm xanh",
+     "qty": 0.012848,
+     "uom": "Kg"
+    },
+    {
+     "item": "Nước",
+     "item_workbook": "Nước",
+     "qty": 0.98832,
      "uom": "Kg"
     }
    ],
@@ -797,9 +729,21 @@
      "uom": "Kg"
     },
     {
-     "item": "Hỗn hợp màu vàng",
-     "item_workbook": "Hỗn hợp màu vàng",
-     "qty": 0.25,
+     "item": "Màu thực phẩm vàng",
+     "item_workbook": "Màu thực phẩm vàng",
+     "qty": 0.015152,
+     "uom": "Kg"
+    },
+    {
+     "item": "Màu thực phẩm xanh",
+     "item_workbook": "Màu thực phẩm xanh",
+     "qty": 0.007576,
+     "uom": "Kg"
+    },
+    {
+     "item": "Nước",
+     "item_workbook": "Nước",
+     "qty": 0.227273,
      "uom": "Kg"
     }
    ],

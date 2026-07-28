@@ -36,6 +36,9 @@ def chot_ngay(ngay_sx):
     try:
         chung_tu = []  # [{dt, name}] theo thứ tự sinh — để huỷ ngược
 
+        buoc = _("nhập bột lô rang hôm trước (Manufacture tầng 1)")
+        _tu_nhap_bot(doc, chung_tu)
+
         buoc = _("tầng 2 (nấu + trộn theo báo mẻ)")
         _chot_tang_2(doc, chung_tu)
 
@@ -152,10 +155,17 @@ def _tong_hop_theo_sp(bang):
 def _kiem_ton_kho(doc, bang, settings):
     """Kiểm đủ tồn TRƯỚC khi sinh chứng từ. BTP sinh trong chốt (bao_me) được cộng
     tín dụng (xấp xỉ — FIFO thật ở bước sinh sẽ bắt thiếu chính xác & rollback)."""
+    from sx.api.tang1 import lo_cho_nhap_bot
+
     thieu = []
     sx_hom_nay = {}
     for row in doc.bao_me:
         sx_hom_nay[row.item_btp] = sx_hom_nay.get(row.item_btp, 0) + flt(row.tong_kg)
+    # Bột nền sắp được nhập ngay trong lần chốt này (lô rang hôm trước) cũng là
+    # nguồn cung — không cộng vào thì validate báo thiếu bột dù thực tế có.
+    for lo in lo_cho_nhap_bot(truoc_ngay=doc.ngay):
+        if lo.get("item_bot"):
+            sx_hom_nay[lo["item_bot"]] = sx_hom_nay.get(lo["item_bot"], 0) + flt(lo["bot_kg"])
 
     def _check(item_code, kho, can):
         ton = flt(
@@ -190,6 +200,25 @@ def _kiem_ton_kho(doc, bang, settings):
             _("Không đủ tồn kho để chốt ngày (có thể quên nhập bột / báo mẻ / thiếu NVL):")
             + "<br>" + "<br>".join(thieu)
         )
+
+
+# ─────────────────────────────────────────────── tầng 1 tự động ──
+
+
+def _tu_nhap_bot(doc, chung_tu):
+    """Tự nhập bột cho MỌI lô R rang trước ngày chốt (đã qua khâu nghiền — D+1).
+
+    Thay cho card "Nhập bột" trước đây: QC không bấm gì, chốt ngày làm hộ.
+    Mỗi lô -> SX Nhap Bot submit -> hook chạy Manufacture T1 (trừ đỗ FIFO, nhập bột
+    Kho BTP, batch = lô R). Ghi vào ds_wo_se để huỷ ngày thu hồi được.
+    """
+    from sx.api.tang1 import lo_cho_nhap_bot, tao_nhap_bot
+
+    for lo in lo_cho_nhap_bot(truoc_ngay=doc.ngay):
+        nb = tao_nhap_bot(lo["name"], ngay_nhap=doc.ngay)
+        # SX Nhap Bot đứng ĐẦU danh sách -> khi huỷ ngược (đảo thứ tự) nó bị huỷ
+        # SAU CÙNG, tức sau khi T2/T3 đã nhả bột ra. Đúng thứ tự phụ thuộc.
+        chung_tu.append({"dt": "SX Nhap Bot", "name": nb.name})
 
 
 # ─────────────────────────────────────────────── T2 / T3 ──
@@ -355,8 +384,12 @@ def _canh_bao_mem(doc):
 
 
 def on_cancel_ngay(doc, method=None):
-    """Huỷ chuỗi ngược theo ds_wo_se (đảo thứ tự: SE T3 -> WO T3 -> SE T2 -> WO T2)
-    -> huỷ bảng vào hộp -> xoá SalaryProduct. Batch giữ. KHÔNG đụng SX Nhap Bot."""
+    """Huỷ chuỗi ngược theo ds_wo_se, ĐẢO thứ tự sinh: SE/WO T3 -> SE/WO T2 ->
+    SX Nhap Bot (nhả bột + hoàn đỗ, huỷ sau cùng vì T2 vừa tiêu thụ bột đó)
+    -> huỷ bảng vào hộp -> xoá SalaryProduct. Batch giữ (đã có ledger).
+
+    Chỉ thu hồi SX Nhap Bot do CHÍNH lần chốt này tạo (có trong ds_wo_se) — phiếu
+    nhập bột người dùng tự tạo trước đó không bị đụng."""
     log = []
     chung_tu = json.loads(doc.ds_wo_se) if doc.ds_wo_se else []
     for ct in reversed(chung_tu):

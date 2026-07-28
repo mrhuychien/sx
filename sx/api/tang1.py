@@ -10,7 +10,32 @@ from frappe.utils import add_days, flt, getdate, nowdate
 
 from sx.api.mfg import cancel_doc, tao_batch, tao_se_manufacture, tao_wo
 from sx.config.roles import guard_card
-from sx.utils import get_bot_from_dau, get_settings
+from sx.utils import get_bot_from_dau, get_settings, get_yield_bot
+
+
+def lo_cho_nhap_bot(truoc_ngay=None):
+    """Lô R đã rang xong, chưa nhập bột.
+
+    truoc_ngay: chỉ lấy lô có ngay_rang < ngày này (dùng khi chốt ngày tự nhập —
+    lô rang hôm trước mới qua khâu nghiền). None = lấy mọi lô đã tới ngày rang.
+    Trả thêm item_bot + bot_kg (suy từ yield BOM T1) để bên gọi kiểm tồn trước.
+    """
+    filters = {"docstatus": 1, "trang_thai_bot": 0}
+    filters["ngay_rang"] = ("<", getdate(truoc_ngay)) if truoc_ngay else ("<=", nowdate())
+    rows = frappe.get_all(
+        "SX Xuat Dau",
+        filters=filters,
+        fields=["name", "lo_rang", "ngay_rang", "loai_dau", "dau_kg"],
+        order_by="ngay_rang",
+    )
+    for r in rows:
+        try:
+            item_bot, bom = get_bot_from_dau(r.loai_dau)
+            r["item_bot"] = item_bot
+            r["bot_kg"] = flt(flt(r.dau_kg) * get_yield_bot(bom, r.loai_dau), 2)
+        except Exception:
+            r["item_bot"], r["bot_kg"] = None, 0
+    return rows
 
 
 # ─────────────────────────────────────────────── whitelisted ──
@@ -30,17 +55,20 @@ def xuat_dau(loai_dau, dau_kg, ngay_rang=None):
     return {"name": doc.name, "lo_rang": doc.lo_rang, "ngay_rang": str(doc.ngay_rang)}
 
 
-@frappe.whitelist()
-def nhap_bot(xuat_dau):
-    """Tạo + submit SX Nhap Bot — WO+SE Manufacture T1 chạy trong on_submit."""
-    guard_card("nhapbot")
+def tao_nhap_bot(xuat_dau, ngay_nhap=None):
+    """Tạo + submit SX Nhap Bot (WO+SE Manufacture T1 chạy trong on_submit).
+
+    Dùng bởi chot_ngay (tự nhập bột lô rang hôm trước) — KHÔNG guard card ở đây,
+    người gọi đã guard. Trả doc để bên gọi ghi vào ds_wo_se.
+    """
     doc = frappe.new_doc("SX Nhap Bot")
-    doc.ngay_nhap = nowdate()
+    doc.ngay_nhap = getdate(ngay_nhap) if ngay_nhap else nowdate()
     doc.xuat_dau = xuat_dau
+    doc.flags.ignore_permissions = True
     doc.insert()
     doc.submit()
     doc.reload()
-    return {"name": doc.name, "lo_rang": doc.lo_rang, "bot_kg": flt(doc.bot_kg), "batch": doc.batch_bot}
+    return doc
 
 
 # ─────────────────────────────────────────────── hooks (doc_events) ──

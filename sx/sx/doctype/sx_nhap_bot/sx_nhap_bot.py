@@ -9,7 +9,11 @@ from sx.utils import get_bot_from_dau, get_yield_bot
 
 
 class SXNhapBot(Document):
-    """Nhập bột lô R vào Kho BTP (tổ QC ghi số). Manufacture T1 nằm ở api/tang1 (D7)."""
+    """Nhập bột lô R vào Kho BTP. Manufacture T1 nằm ở api/tang1 (D7).
+
+    Từ 28/07: KHÔNG còn card thao tác trên portal — chốt ngày TỰ tạo phiếu này cho
+    mọi lô R rang hôm trước (chot._tu_nhap_bot). Vẫn tạo tay được trên Desk khi cần.
+    """
 
     def validate(self):
         xd = frappe.get_doc("SX Xuat Dau", self.xuat_dau)

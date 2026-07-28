@@ -44,36 +44,37 @@ Nền tảng: Frappe/ERPNext v16 custom app, theo phương pháp nextcode.
 
 | # | Quyết định | Hệ quả |
 |---|---|---|
-| D1 | **2 nhánh sản phẩm, BOM 3 tầng.** T1: Đỗ (xanh/đen) → Bột đỗ nền · Đường → Đường hoán (3 biến thể) · Hỗn hợp màu (2 loại). T2 nhánh bánh: bột đỗ + đường hoán + gluco + dầu + hương/phụ liệu → **Bột bánh (8 loại, mẻ ~114kg)**. T2 nhánh bột: bột đỗ + đường + phụ liệu → **Bột đậu các loại (8 công thức, mẻ 40kg; chè đậu đen 46.05kg)**. T3: → TP SKU (bánh hộp / bột túi-hộp) — **chủ đầu tư tự tạo BOM T3 trên Desk**. | Định mức chi tiết trong workbook v6 |
+| D1 | **2 nhánh sản phẩm, BOM 3 tầng.** T1: Đỗ (xanh/đen) → Bột đỗ nền · Đường → Đường hoán (3 biến thể; màu pha thẳng trong BOM — D17). T2 nhánh bánh: bột đỗ + đường hoán + gluco + dầu + hương/phụ liệu → **Bột bánh (8 loại, mẻ ~114kg)**. T2 nhánh bột: bột đỗ + đường + phụ liệu → **Bột đậu các loại (8 công thức, mẻ 40kg; chè đậu đen 46.05kg)**. T3: → TP SKU (bánh hộp / bột túi-hộp) — **chủ đầu tư tự tạo BOM T3 trên Desk**. | Định mức chi tiết trong workbook v6 |
 | D2 | **KHÔNG khai item trung gian ngoài danh mục BTP.** Đỗ rang / đỗ vỡ / **bánh rời** = WIP vô hình. Nguyên tắc: chỉ khai ở chỗ rẽ nhánh hoặc tồn lâu. | Tồn giữa chừng lệch hình thái, không lệch lượng — kiểm kê định kỳ chỉnh |
 | D3 | **Truy xuất mức NGÀY × LOẠI.** Không thùng ủ / mẻ cá thể. Báo tổng số mẻ mỗi loại. | Thu hồi theo lô-ngày (hợp lệ ISO). Ủ 24h người tự canh |
 | D4 | **Xuất kho theo định mức BOM × số mẻ** (hao trộn không đáng kể — CH-08). Trôi số → Stock Reconciliation định kỳ trên Desk. | Không đo hao realtime |
 | D5 | **FIFO tự động toàn tuyến — không ai chọn lô.** Đậu, đường, dầu, bột nền, đường hoán, bột bánh/bột đậu: hệ thống tự pick batch cũ nhất khi trừ kho. Lô NCC được neo vào truy xuất tại thời điểm trừ. | Điều kiện: Purchase Receipt nhập NVL PHẢI có batch (kỷ luật Phase 0) |
 | D6 | **Xuất đậu nhập thẳng SỐ KG** (không số bao, không chọn lô). Sinh mã lô rang từ ngày rang. | `SX Xuat Dau` tối giản |
-| D7 | **Đậu trừ kho tại bước NHẬP BỘT** (phương án B — GATE-C cũ đã tự chốt): `SX Nhap Bot` chạy Manufacture T1 trừ đậu FIFO, nhập bột Kho BTP. Không còn chỗ nào khác trừ đậu. | GATE-C xoá khỏi danh sách gate |
+| D7 | **Đậu trừ kho tại bước NHẬP BỘT**: `SX Nhap Bot` chạy Manufacture T1 trừ đậu FIFO, nhập bột Kho BTP. Không còn chỗ nào khác trừ đậu. Từ D18, phiếu này do **chốt ngày tự tạo**. | GATE-C xoá khỏi danh sách gate |
 | D8 | **Báo cán = số theo dõi tiến độ, KHÔNG phải chứng từ kho** (hệ quả bỏ bánh rời). Bột bánh bị trừ khi TP vào hộp (backflush). Lệch thời điểm trộn↔hộp vài ngày là chấp nhận. | Bỏ `SX May`, bỏ công suất theo máy (chủ đầu tư xác nhận "tạm thời chưa chi tiết được") |
-| D9 | **Người nhập = 2 QC, 2 màn hình.** QC#1 "Vòng ghi số": xuất đậu, nhập bột, báo mẻ (nấu đường/màu + trộn 2 nhánh), báo cán, sự cố. QC#2 "Vào hộp": bảng vào hộp theo người + Chốt ngày. Công nhân + thủ kho + tổ trưởng: 0 chạm, chỉ trả lời miệng. | Rủi ro độc lập đã cân nhắc — xem §2.1 |
+| D9 | **Người nhập = 2 QC, 2 màn hình.** QC#1 "Vòng ghi số": xuất đậu, báo mẻ (nấu đường hoán + trộn 2 nhánh), báo cán, sự cố. QC#2 "Vào hộp": bảng vào hộp theo người + Chốt ngày. Công nhân + thủ kho + tổ trưởng: 0 chạm, chỉ trả lời miệng. | Rủi ro độc lập đã cân nhắc — xem §2.1 |
 | D10 | **App `sx` thuần vận hành. Bánh 0 CCP** (đúng HACCP hiện hành), không gán nhãn CCP ở đâu. Ghi nhiệt độ rang, thẩm tra mối hàn, SSOP, NCR → app `iso` (QC độc lập) làm sau, link một chiều iso→sx. | Không build gì thuộc thẩm tra trong pack này |
-| D11 | **Mọi WO + SE Manufacture sinh bằng code với số thực tế, `skip_transfer=1`.** `SX Nhap Bot` sinh ngay khi ghi; các mẻ (bao_me) + TP sinh lúc Chốt ngày. Không Material Transfer, không WIP lơ lửng. | |
+| D11 | **Mọi WO + SE Manufacture sinh bằng code với số thực tế, `skip_transfer=1`.** TOÀN BỘ (nhập bột T1 + mẻ bao_me + TP) sinh lúc Chốt ngày. Không Material Transfer, không WIP lơ lửng. | |
 | D12 | **1 ca** — không field ca. | |
 | D13 | **Mã lô hiển thị TO trên màn hình để ghi tay ra thẻ.** Không bắt buộc máy in. Batch sinh trong code: `{custom_batch_prefix}-{DDMMYY}`, trùng → `-2`. | QR/in tem = Phase 2 |
 | D14 | **Không Job Card / Routing / operations.** Không Server/Client Script. | |
 | D15 | Item name theo **quy ước site: tiếng Việt có dấu, ID = tên** (đã xác minh bằng ảnh Item list). Fieldname DocType vẫn ASCII. Nước = item **Maintain Stock 0**, vẫn nằm trong BOM để cân bằng khối lượng. | |
-| D16 | Cột `custom_nl_tron` trong workbook **không dùng nữa** (bỏ màn công thức chi tiết theo mẻ) — không tạo custom field này. | |
+| D16 | Cột `custom_nl_tron` trong workbook **không dùng nữa** (bỏ màn công thức chi tiết theo mẻ) — không tạo custom field này. |
+| D17 | **(28/07) BỎ BTP "Hỗn hợp màu đỏ/vàng".** Màu đỏ/vàng + màu xanh + nước cho **thẳng vào BOM đường hoán khoai môn/cốm** theo đúng tỉ lệ. Pha là dùng ngay → đúng D2 (WIP vô hình). | Bớt 2 item + 2 BOM + 2 lần báo mẻ mỗi ngày. Tab "Nấu" còn 3 đường hoán |
+| D18 | **(28/07) BỎ card "Nhập bột" trên portal.** Chốt ngày **tự nhập bột** cho mọi lô R **rang hôm trước** (`ngay_rang < ngày chốt`, tức đã qua khâu nghiền), trừ đỗ FIFO; tầng 2 trừ bột theo báo mẻ. | QC không bấm; kho/truy xuất/trừ đỗ giữ nguyên. Huỷ ngày thu hồi cả phiếu nhập bột do nó tạo | |
 
 ### Sơ đồ dòng chảy + truy xuất
 
 ```
 D-1 chiều : QC#1 ghi XUẤT ĐẬU (kg, loại đỗ) ──► mã lô rang R-DDMMYY / RD-DDMMYY (ghi thẻ)
 D         : luộc → rang → ủ nguội                                  (0 thao tác)
-D+1       : vỡ → nghiền → QC#1 tap NHẬP BỘT lô R
-            ⇒ code: WO+SE Manufacture T1 — trừ Đỗ FIFO (neo lô NCC), nhập Bột đỗ nền
-              vào Kho BTP, batch = R-DDMMYY
-Bất kỳ    : nấu đường hoán / hỗn hợp màu — QC#1 ghi vào BÁO MẺ (loại + số mẻ)
+D+1       : vỡ → nghiền                                            (0 thao tác — D18)
+Bất kỳ    : nấu đường hoán — QC#1 ghi vào BÁO MẺ (loại + số mẻ)
 Ngày X    : trộn — QC#1 ghi BÁO MẺ (8 bột bánh / 8 bột đậu, số mẻ); cán — QC#1 ghi BÁO CÁN
 Ngày X..  : vào hộp/túi — QC#2 ghi BẢNG VÀO HỘP (người × SKU × phương thức × số hộp)
-Cuối ngày : QC#2 tap CHỐT NGÀY ⇒ code sinh toàn bộ WO/SE/Batch theo thứ tự phụ thuộc,
-            trừ kho FIFO, đổ SalaryProduct
+Cuối ngày : QC#2 tap CHỐT NGÀY ⇒ code (1) NHẬP BỘT lô R rang hôm trước: WO+SE Manufacture
+            T1 trừ Đỗ FIFO (neo lô NCC) → Bột đỗ nền vào Kho BTP, batch = R-DDMMYY;
+            (2) sinh mẻ + TP theo thứ tự phụ thuộc, trừ kho FIFO; (3) đổ SalaryProduct
 ```
 
 Chuỗi truy xuất (2 chiều, dùng Serial & Batch Traceability Report chuẩn v16):
@@ -86,7 +87,7 @@ Chuỗi truy xuất (2 chiều, dùng Serial & Batch Traceability Report chuẩn
 
 | Ai | Màn hình | Làm gì | Bao nhiêu lần/ngày |
 |---|---|---|---|
-| **QC #1** (role `SX Ghi So`) | `#/ghiso` — checklist vòng ghi số | Xuất đậu (kg + loại đỗ, chiều D-1) · Nhập bột (tap lô chờ) · Báo mẻ nấu (đường hoán/màu) · Báo mẻ trộn (bột bánh/bột đậu) · Báo cán · Sự cố | ~5–7 chặng, mỗi chặng 1–2 con số |
+| **QC #1** (role `SX Ghi So`) | `#/ghiso` — checklist vòng ghi số | Xuất đậu (kg + loại đỗ, chiều D-1) · Báo mẻ nấu (đường hoán) · Báo mẻ trộn (bột bánh/bột đậu) · Báo cán · Sự cố | ~4–6 chặng, mỗi chặng 1–2 con số |
 | **QC #2** (role `SX Vao Hop`) | `#/vaohop` | Bảng vào hộp theo người × SKU × phương thức · Sự cố · **Chốt ngày** | 1 phiên cuối ca |
 | **Quản lý** (role `SX Quan Ly`) | tất cả + `#/quanly` | Dashboard, truy xuất, sửa/huỷ, kiểm kê (Desk) | khi cần |
 | Thủ kho, tổ trưởng, công nhân | — | **0 chạm.** Trả lời miệng cho QC | 0 |
@@ -287,7 +288,10 @@ Không scheduler, không override class, không Server/Client Script.
 
 1. **Validate** (idempotent): docstatus=0; ít nhất một trong {bao_me có dòng, vào hộp có dòng};
    mọi dòng vào hộp có đơn giá; kiểm đủ tồn TRƯỚC khi sinh chứng từ (thiếu → liệt kê item+kg).
-2. **Topo sort bao_me theo phụ thuộc BOM** (A là RM trong BOM(B) → A trước): màu → đường hoán →
+2. **Nhập bột tự động (D18)**: mọi lô R có `ngay_rang < ngày chốt` và chưa nhập → tạo+submit
+   `SX Nhap Bot` (hook chạy Manufacture T1: trừ đỗ FIFO → bột vào Kho BTP, batch = lô R).
+   Ghi vào `ds_wo_se` để huỷ ngày thu hồi được. Kiểm tồn ở bước 1 đã cộng sẵn lượng bột này.
+2b. **Topo sort bao_me theo phụ thuộc BOM** (A là RM trong BOM(B) → A trước): đường hoán →
    bột bánh/bột đậu.
 3. **Từng dòng bao_me:** qty=so_me×co_me_kg → Batch {prefix}-DDMMYY → WO (skip_transfer,
    custom_ngay_sx) → SE Manufacture (RM backflush FIFO: bột nền=lô R, đường/dầu/màu/ĐH; FG vào
@@ -314,7 +318,7 @@ sx/public/sx/
   shell.js                    # hash router, nav theo views, landing theo role
   lib/ api.js router.js dom.js format.js
   components/ toast.js modal.js numpad.js
-  cards/ xuatdau.js nhapbot.js baome.js baocan.js vaohop.js suco.js chotngay.js
+  cards/ xuatdau.js baome.js baocan.js vaohop.js suco.js chotngay.js
   views/ ghiso.js vaohop.js quanly.js   # view = tổ hợp cards (lấy từ viewCards)
   shell.css                   # 100% prefix sx-
 ```
@@ -331,7 +335,7 @@ ROLE_VIEWS = {"SX Ghi So": ["ghiso"], "SX Vao Hop": ["vaohop"],
 
 ### 6.2 Role → Card (đường chuyển giao tương lai — đổi config, không sửa UI/API)
 ```python
-VIEW_CARDS = {"ghiso": ["xuatdau","nhapbot","baome","baocan","suco"],
+VIEW_CARDS = {"ghiso": ["xuatdau","baome","baocan","suco"],
               "vaohop": ["vaohop","suco","chotngay"], "quanly": ["quanly"]}
 CARD_ROLES = {card: [roles cho phép gọi API card đó]}  # nguồn cấu hình chung sx/config/roles.py
 ```
@@ -339,7 +343,7 @@ CARD_ROLES = {card: [roles cho phép gọi API card đó]}  # nguồn cấu hìn
 ### 6.3 Views
 | View | Route | Nội dung |
 |---|---|---|
-| Ghi số | `#/ghiso` | Xuất đậu (2 nút loại đỗ + numpad kg → mã lô R TO) · Nhập bột (list lô chờ) · Báo mẻ (3 tab: Nấu/Bột bánh/Bột đậu) · Báo cán · Sự cố. Badge Đã ghi/Chưa. |
+| Ghi số | `#/ghiso` | Xuất đậu (2 nút loại đỗ + numpad kg → mã lô R TO) · Báo mẻ (3 tab: Nấu/Bột bánh/Bột đậu) · Báo cán · Sự cố. Badge Đã ghi/Chưa. |
 | Vào hộp | `#/vaohop` | Grid CN → SKU picker (search+nhóm+gần đây) → phương thức → numpad hộp → auto-save; footer tổng; Sự cố; nút CHỐT NGÀY (modal 2 bước). |
 | Quản lý | `#/quanly` | 7/30 ngày: sản lượng SKU, lương/người, mẻ trộn vs cán, tồn BTP (đỏ nếu âm), phút dừng; Truy xuất batch TP; link Desk. |
 
@@ -362,13 +366,13 @@ bench --site a.rongvanghoanggia.com execute sx.seed.seed_all --kwargs "{'dry_run
 bench --site a.rongvanghoanggia.com execute sx.seed.seed_all                            # ghi thật
 ```
 
-Seed tạo **51 Item** (28 NVL gồm Nước `is_stock_item=0` + 2 bột nền + 5 đường hoán/màu + 8 bột
+Seed tạo **49 Item** (28 NVL gồm Nước `is_stock_item=0` + 2 bột nền + 3 đường hoán + 8 bột
 bánh + 8 bột đậu) với `custom_sx_nhom` nhóm chi tiết + `custom_batch_prefix` + `has_batch_no`
-(`create_new_batch=0` — mã lô luôn đặt tường minh), và **23 BOM tầng 1/2** theo đúng thứ tự phụ
-thuộc (topo: hỗn hợp màu → đường hoán màu → bột bánh/bột đậu), submit + `is_active/is_default`,
-điền `custom_co_me_chuan_kg` cho đúng **21 loại được báo mẻ**. Idempotent — chạy lại chỉ bỏ qua,
-không ghi đè số người dùng đã sửa tay. Trong 51 item, **14 đã có trên site** (seed chỉ bù custom
-field), 37 phải tạo.
+(`create_new_batch=0` — mã lô luôn đặt tường minh), và **21 BOM tầng 1/2** theo đúng thứ tự phụ
+thuộc (topo: bột nền + đường hoán → bột bánh/bột đậu), submit + `is_active/is_default`,
+điền `custom_co_me_chuan_kg` cho đúng **19 loại được báo mẻ**. Idempotent — chạy lại chỉ bỏ qua,
+không ghi đè số người dùng đã sửa tay. Trong 49 item, **14 đã có trên site** (seed chỉ bù custom
+field), 35 phải tạo.
 
 Tên item = **cột A** sheet DANH MUC ITEM (tên THẬT trên ERPNext, D15). Cột B "tên trong công
 thức" là alias — đã map sẵn lúc trích: CH-04 (Sữa dừa = Bột sữa dừa; Rau má = Bột rau má),

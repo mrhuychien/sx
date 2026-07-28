@@ -13,14 +13,15 @@ toàn tuyến (không ai chọn lô).
 ## Kiến trúc nhanh
 
 ```
-Thủ kho → QC#1 (D-1) : SX Xuat Dau  → sinh lô rang R (nhập thẳng kg, D6)
-Tổ trộn → QC#1 (D+1) : SX Nhap Bot  → Manufacture T1: trừ đậu FIFO Kho NVL, nhập bột Kho BTP
-                                      (batch = lô R). Đậu CHỈ trừ tại đây (D7).
-QC#1 (cuối ngày)     : báo mẻ (child SX Bao Me: nấu ĐH/màu + trộn bột bánh/bột đậu) + báo cán
-QC#2                 : SX Bang Vao Hop (lương SP theo người × SKU) + CHỐT NGÀY
-Chốt ngày            : chot_ngay → T2 (topo-sort: màu → đường hoán → bột bánh/bột đậu,
-                                    WO+SE, bột nền FIFO lô R cũ nhất)
-                                 → T3 (WO+SE TP theo SKU, bột bánh/bột đậu FIFO) → SalaryProduct
+QC#1 (chiều D-1) : SX Xuat Dau  → sinh lô rang R (nhập thẳng kg, D6)
+D → D+1          : rang → nghiền                              (0 thao tác — D18)
+QC#1 (cuối ngày) : báo mẻ (child SX Bao Me: nấu đường hoán + trộn bột bánh/bột đậu) + báo cán
+QC#2             : SX Bang Vao Hop (lương SP theo người × SKU) + CHỐT NGÀY
+Chốt ngày        : chot_ngay → T1 TỰ NHẬP BỘT lô R rang hôm trước (Manufacture: trừ đỗ
+                              FIFO Kho NVL → bột Kho BTP, batch = lô R). Đỗ CHỈ trừ ở đây (D7)
+                            → T2 (topo-sort: đường hoán → bột bánh/bột đậu, WO+SE,
+                              bột nền FIFO lô R cũ nhất)
+                            → T3 (WO+SE TP theo SKU, bột bánh/bột đậu FIFO) → SalaryProduct
 Truy xuất            : TP → bột bánh/bột đậu → lô R → lô đậu NCC (+ đường hoán → lô đường NCC)
 ```
 
@@ -65,9 +66,9 @@ bench --site a.rongvanghoanggia.com execute sx.seed.seed_all --kwargs "{'dry_run
 bench --site a.rongvanghoanggia.com execute sx.seed.seed_all                            # ghi thật
 ```
 
-Tạo **51 Item** (14 đã có trên site → chỉ bù custom field; 37 tạo mới) + **23 BOM tầng 1/2**
-(đúng thứ tự phụ thuộc: hỗn hợp màu → đường hoán màu → bột bánh/bột đậu), submit +
-active/default, điền `custom_co_me_chuan_kg` cho 21 loại được báo mẻ (BOM **đã có sẵn** mà thiếu
+Tạo **49 Item** (14 đã có trên site → chỉ bù custom field; 35 tạo mới) + **21 BOM tầng 1/2**
+(đúng thứ tự phụ thuộc: bột nền + đường hoán → bột bánh/bột đậu), submit +
+active/default, điền `custom_co_me_chuan_kg` cho 19 loại được báo mẻ (BOM **đã có sẵn** mà thiếu
 cỡ mẻ thì seed **bù + ghi cảnh báo**; nếu đã có số khác workbook thì giữ số trên site và cảnh
 báo). **Idempotent** — chạy lại an toàn, không ghi đè số đã sửa tay. Seed **chặn ngay** nếu
 Custom Field của app chưa sync (`bench migrate` trước), và **cảnh báo** khi item có sẵn đang tắt
@@ -81,6 +82,14 @@ hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 **Còn phải làm tay:** BOM **tầng 3 + Item TP + bao bì** (CH-13 chốt: chủ đầu tư tự tạo trên
 ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đầu, `SX Don Gia Vao Hop`,
 2 user tablet — xem `docs/CODER-PACK.md` §8.
+
+## Thay đổi 28/07 (sau khi chạy thử trên site)
+
+- **D17 — bỏ BTP "Hỗn hợp màu đỏ/vàng":** màu + nước cho thẳng vào BOM đường hoán khoai
+  môn/cốm theo đúng tỉ lệ. Bớt 2 item + 2 BOM + 2 lần báo mẻ/ngày.
+- **D18 — bỏ card "Nhập bột":** chốt ngày tự nhập bột cho lô R **rang hôm trước**
+  (đã qua khâu nghiền). QC không bấm; kho + truy xuất + trừ đỗ giữ nguyên. Lô R còn đọng
+  (rang lâu mà chưa vào kho) hiện ở dashboard quản lý để phát hiện bất thường.
 
 ## Trạng thái build v3 (P0→P7)
 
@@ -113,7 +122,8 @@ duyệt custom field.
   `include_non_stock_items=False`) — không sinh ledger, không vỡ. Vẫn để trong BOM cân bằng
   khối lượng (D15).
 - `chot_ngay` bọc try/except + rollback + báo đúng bước hỏng; huỷ ngược đọc `ds_wo_se` đảo
-  thứ tự (gotcha #13). `on_cancel_ngay` KHÔNG đụng `SX Nhap Bot` (độc lập). Validate nghiệp vụ
+  thứ tự (gotcha #13). `on_cancel_ngay` thu hồi cả `SX Nhap Bot` **do chính nó tạo** (có trong
+  `ds_wo_se`), không đụng phiếu người dùng tự tạo. Validate nghiệp vụ
   (đã chốt / thiếu tồn / thiếu đơn giá) chạy NGOÀI try để lỗi nổi lên nguyên văn cho QC.
 - Batch bột nền T1 idempotent (dùng lại đúng lô R khi huỷ + nhập lại) — giữ mắt xích truy xuất.
 - ⚠️ **Phase 0:** GIỮ Manufacturing Settings › "Validate Components Quantities Per BOM" **TẮT**.

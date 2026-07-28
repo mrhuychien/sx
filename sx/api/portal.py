@@ -75,10 +75,9 @@ def get_boot():
 
     if can_ghiso:
         boot["loai_dau"] = get_dau_items()
-        boot["items_nau"] = _items_nhom("BTP-Phu")       # đường hoán + hỗn hợp màu
+        boot["items_nau"] = _items_nhom("BTP-Phu")       # 3 đường hoán (màu gộp thẳng vào BOM)
         boot["items_bot_banh"] = _items_nhom("BTP-Banh")  # 8 bột bánh
         boot["items_bot_dau"] = _items_nhom("BTP-Bot-SP")  # 8 bột đậu
-        boot["lo_cho_nhap_bot"] = _lo_cho_nhap_bot()
 
     if can_vaohop:
         boot["items_tp"] = frappe.get_all(
@@ -141,16 +140,6 @@ def _bang_summary(ngay_sx):
             for r in doc.dong
         ],
     }
-
-
-def _lo_cho_nhap_bot():
-    """Lô R đã tới ngày rang, chưa nhập bột (trang_thai_bot=0)."""
-    return frappe.get_all(
-        "SX Xuat Dau",
-        filters={"docstatus": 1, "trang_thai_bot": 0, "ngay_rang": ("<=", nowdate())},
-        fields=["name", "lo_rang", "ngay_rang", "loai_dau", "dau_kg"],
-        order_by="ngay_rang",
-    )
 
 
 def _sku_gan_day():
@@ -320,6 +309,10 @@ def dashboard(tu_ngay=None, den_ngay=None):
     # Mẻ trộn (bao_me) vs cán (bao_can) theo bột bánh — delta = cảnh báo
     tron_can = _tron_vs_can(ds_phieu)
     ton_btp = _ton_btp()
+    # Lô R chưa nhập bột: chốt ngày tự nhập lô rang HÔM TRƯỚC, nên lô còn đọng lại
+    # (rang đã lâu mà chưa vào kho) là dấu hiệu bất thường -> quản lý cần thấy.
+    from sx.api.tang1 import lo_cho_nhap_bot
+    lo_dong = lo_cho_nhap_bot()
 
     return {
         "tu_ngay": str(tu_ngay),
@@ -333,6 +326,11 @@ def dashboard(tu_ngay=None, den_ngay=None):
         "nang_suat_vao_hop": nang_suat,
         "tron_vs_can": tron_can,
         "ton_btp": ton_btp,
+        "lo_cho_nhap_bot": [
+            {"lo_rang": l["lo_rang"], "ngay_rang": str(l["ngay_rang"]),
+             "loai_dau": l["loai_dau"], "dau_kg": flt(l["dau_kg"]), "bot_kg": flt(l.get("bot_kg"))}
+            for l in lo_dong
+        ],
         "su_co": [
             {"loai": r.loai, "phut_dung": cint(r.phut_dung), "mo_ta": r.mo_ta,
              "thoi_diem": str(r.thoi_diem)}

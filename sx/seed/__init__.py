@@ -9,7 +9,7 @@ Chạy TRÊN SITE, sau khi đã có Company + 3 Warehouse + SX Settings:
 Item/BOM đã có -> bỏ qua, không ghi đè số liệu người dùng đã sửa tay.
 
 KHÔNG ship BOM qua `fixtures/`: fixtures import theo alphabet tên file, chạy full
-validate, không kiểm soát được thứ tự phụ thuộc (hỗn hợp màu phải Active TRƯỚC
+validate, không kiểm soát được thứ tự phụ thuộc (bột nền phải Active TRƯỚC
 đường hoán màu; bột nền trước bột bánh) và BOM là doctype submittable — rất dễ
 chết `install-app`. Seed bằng method chủ động gọi thì kiểm soát được thứ tự + báo
 lỗi rõ ràng.
@@ -147,7 +147,7 @@ def seed_items(dry_run=0, bao_cao=None):
 
 def _thu_tu_bom(boms):
     """Topo sort: BOM sinh ra item X phải chạy TRƯỚC BOM dùng X làm nguyên liệu
-    (hỗn hợp màu -> đường hoán màu; bột nền -> bột bánh/bột đậu)."""
+    (bột nền + đường hoán -> bột bánh/bột đậu)."""
     by_out = {b["item"]: b for b in boms}
     xong, thu_tu, dang_xu_ly = set(), [], set()
 
@@ -174,7 +174,7 @@ def seed_boms(dry_run=0, bo_qua_gia_dinh=0, bao_cao=None):
     """Tạo + submit BOM tầng 1/2 theo thứ tự phụ thuộc. BOM active/default đã có
     cho item nào -> bỏ qua item đó.
 
-    bo_qua_gia_dinh=1: KHÔNG tạo các BOM còn giả định (vd BOM bột đậu đen — CH-09).
+    bo_qua_gia_dinh=1: KHÔNG tạo BOM nào bị đánh dấu giả định (v6 hiện KHÔNG có).
     """
     bao_cao = bao_cao if bao_cao is not None else _bao_cao_moi()
     data = _data()
