@@ -122,11 +122,14 @@ def get_activity_type(san_pham):
     return act
 
 
-def get_don_gia_activity(activity_type):
+def get_don_gia_activity(activity_type, bat_buoc=True):
     """Đơn giá khoán/đơn vị lấy TỪ Activity Type (nguồn giá duy nhất).
 
     Tên field cấu hình được ở SX Settings; để trống thì tự dò theo thứ tự ứng viên.
     Cho phép giá 0 (công việc không tính lương sản phẩm).
+
+    `bat_buoc=False` -> trả None thay vì throw (dùng khi liệt kê danh mục: throw dù
+    có bọc try/except vẫn nhét message vào message_log và bắn popup lên portal).
     """
     field = (get_settings().get("field_don_gia_activity") or "").strip()
     meta = frappe.get_meta("Activity Type")
@@ -146,6 +149,8 @@ def get_don_gia_activity(activity_type):
                     return gia
         if co_field:
             return 0.0  # mọi field giá đều 0 -> công việc không tính lương sản phẩm
+    if not bat_buoc:
+        return None
     frappe.throw(
         _("Không đọc được đơn giá trên Activity Type {0}. Điền 'Field đơn giá trên "
           "Activity Type' trong SX Settings (các field hiện có: {1}).").format(
@@ -153,12 +158,6 @@ def get_don_gia_activity(activity_type):
             ", ".join(sorted(df.fieldname for df in meta.fields if df.fieldname)),
         )
     )
-
-
-def get_activity_va_don_gia(san_pham):
-    """(activity_type, đơn giá) cho 1 SKU — dùng khi tính bảng vào hộp."""
-    act = get_activity_type(san_pham)
-    return act, get_don_gia_activity(act)
 
 
 # ───────────────────────────────────── sinh mã lô ──

@@ -15,7 +15,13 @@ from sx.config.roles import (
     user_roles,
     view_cards,
 )
-from sx.utils import dat_ten_hien_thi, get_bom_active, get_dau_items, get_settings
+from sx.utils import (
+    dat_ten_hien_thi,
+    get_bom_active,
+    get_dau_items,
+    get_don_gia_activity,
+    get_settings,
+)
 
 # Nguồn phân loại "công khoán" trên Employee -> fieldname tương ứng
 _NGUON_CONG_KHOAN = {
@@ -135,7 +141,8 @@ def get_boot():
             "Item", filters={"custom_sx_nhom": "TP", "disabled": 0},
             fields=["name", "item_name", "item_group"], order_by="item_name",
         )
-        boot["sku_gan_day"] = _sku_gan_day()
+        boot["activity_types"] = _activity_vao_hop()
+        boot["activity_gan_day"] = _activity_gan_day()
         boot["nhan_vien"], canh_bao_nv = _nhan_vien_vao_hop()
         if canh_bao_nv:
             boot["canh_bao_nhan_vien"] = canh_bao_nv
@@ -193,8 +200,8 @@ def _bang_summary(ngay_sx):
     }
 
 
-def _sku_gan_day():
-    """SKU dùng gần đây (14 ngày) — cho SKU picker "dùng gần đây"."""
+def _activity_gan_day():
+    """Loại công việc dùng gần đây (14 ngày) — chip "dùng gần đây" đầu picker."""
     bang = frappe.get_all(
         "SX Bang Vao Hop",
         filters={"creation": (">=", add_days(nowdate(), -14))},
@@ -205,14 +212,45 @@ def _sku_gan_day():
     rows = frappe.get_all(
         "SX Bang Vao Hop Item",
         filters={"parent": ("in", bang), "parenttype": "SX Bang Vao Hop"},
-        fields=["san_pham"],
+        fields=["activity_type"],
         order_by="creation desc",
     )
     seen = []
     for r in rows:
-        if r.san_pham not in seen:
-            seen.append(r.san_pham)
+        if r.activity_type and r.activity_type not in seen:
+            seen.append(r.activity_type)
     return seen[:12]
+
+
+def _activity_vao_hop():
+    """Danh sách LOẠI CÔNG VIỆC KHOÁN + đơn giá + SKU thuộc loại đó.
+
+    Đây là thứ QC chọn khi ghi bảng vào hộp (D23). SKU chỉ là chi tiết bên trong:
+    - loại có 0 SKU  -> ghi thẳng sản lượng khoán (chưa tạo Item TP thì vẫn chạy được)
+    - loại có 1 SKU  -> tự gán, QC không phải chọn
+    - loại có ≥2 SKU -> hỏi thêm 1 bước để biết SKU nào (cần cho lệnh SX tầng 3)
+    """
+    sku_theo_act = {}
+    for it in frappe.get_all(
+        "Item",
+        filters={"custom_sx_nhom": "TP", "disabled": 0},
+        fields=["name", "item_name", "custom_activity_type"],
+        order_by="item_name",
+    ):
+        if it.custom_activity_type:
+            sku_theo_act.setdefault(it.custom_activity_type, []).append(
+                {"name": it.name, "item_name": it.item_name or it.name}
+            )
+
+    # Activity Type có field `disabled` hay không tuỳ phiên bản/custom -> hỏi meta
+    loc = {"disabled": 0} if frappe.get_meta("Activity Type").has_field("disabled") else {}
+    ds = []
+    for act in frappe.get_all("Activity Type", filters=loc, pluck="name", order_by="name"):
+        gia = get_don_gia_activity(act, bat_buoc=False)
+        if gia is None:
+            continue  # không đọc được đơn giá -> không dùng để ghi khoán
+        ds.append({"name": act, "don_gia": gia, "sku": sku_theo_act.get(act, [])})
+    return ds
 
 
 # ─────────────────────────────────────────────── phiếu ngày ──
@@ -299,7 +337,9 @@ def luu_bang_vao_hop(ngay_sx, rows):
     for r in frappe.parse_json(rows) or []:
         doc.append(
             "dong",
-            {"nhan_vien": r.get("nhan_vien"), "san_pham": r.get("san_pham"),
+            {"nhan_vien": r.get("nhan_vien"),
+             "activity_type": r.get("activity_type"),
+             "san_pham": r.get("san_pham") or None,
              "so_hop": cint(r.get("so_hop"))},
         )
     doc.flags.ignore_permissions = True
@@ -335,11 +375,18 @@ def dashboard(tu_ngay=None, den_ngay=None):
             rows = frappe.get_all(
                 "SX Bang Vao Hop Item",
                 filters={"parent": ("in", bang), "parenttype": "SX Bang Vao Hop"},
-                fields=["nhan_vien", "ten_nhan_vien", "san_pham", "so_hop", "thanh_tien"],
+                fields=["nhan_vien", "ten_nhan_vien", "san_pham", "activity_type",
+                        "so_hop", "thanh_tien"],
             )
             gop_sku, gop_nv = {}, {}
             for r in rows:
-                s = gop_sku.setdefault(r.san_pham, {"san_pham": r.san_pham, "so_hop": 0})
+                # Chưa gắn SKU thì gom theo loại công việc (D23) — vẫn thấy sản lượng
+                khoa = r.san_pham or r.activity_type
+                s = gop_sku.setdefault(
+                    khoa,
+                    {"san_pham": khoa, "activity_type": r.activity_type,
+                     "co_sku": bool(r.san_pham), "so_hop": 0},
+                )
                 s["so_hop"] += cint(r.so_hop)
                 g = gop_nv.setdefault(
                     r.nhan_vien,

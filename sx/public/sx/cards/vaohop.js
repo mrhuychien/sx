@@ -1,5 +1,7 @@
-// Card Vào hộp — grid CN → SKU picker (search + nhóm + gần đây) → numpad hộp
-// → auto-save. Loại công việc + đơn giá do server suy từ Item (Activity Type).
+// Card Vào hộp — grid CN → picker LOẠI CÔNG VIỆC (search + gần đây, kèm đơn giá)
+// → numpad số lượng → auto-save. Loại nào có ≥2 SKU thì hỏi thêm 1 bước chọn SKU
+// (cần cho lệnh SX tầng 3); 1 SKU tự gán; 0 SKU chỉ tính lương khoán (D23).
+// Đơn giá luôn do server tính lại từ Activity Type.
 
 import { esc, el } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber, formatVND } from '/assets/sx/sx/lib/format.js';
@@ -13,7 +15,8 @@ export async function render({ container, boot, call, ensureNgay }) {
   const daChot = ngay && ngay.docstatus === 1;
   const rows = ((boot.bang_vao_hop || {}).dong || []).map((r) => ({ ...r }));
   const itemsTp = boot.items_tp || [];
-  const skuGanDay = boot.sku_gan_day || [];
+  const activities = boot.activity_types || [];
+  const actGanDay = boot.activity_gan_day || [];
   const nhanVien = boot.nhan_vien || [];
   // Tên ngắn (chỉ tên gọi; trùng thì server đã thêm họ / viết tắt đệm)
   const tenNgan = {};
@@ -24,7 +27,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     ${boot.canh_bao_nhan_vien ? `<div class="sx-warn-text">⚠ ${esc(boot.canh_bao_nhan_vien)}</div>` : ''}
     ${daChot ? '' : '<div class="sx-nv-grid" id="sx-vh-nv"></div>'}
     <table class="sx-table">
-      <thead><tr><th>Công nhân</th><th>SKU</th><th>Hộp</th><th>Tiền</th>${daChot ? '' : '<th></th>'}</tr></thead>
+      <thead><tr><th>Công nhân</th><th>Loại công việc</th><th>SL</th><th>Tiền</th>${daChot ? '' : '<th></th>'}</tr></thead>
       <tbody id="sx-vh-rows"></tbody>
     </table>
     <div class="sx-vh-footer" id="sx-vh-footer"></div>
@@ -41,14 +44,14 @@ export async function render({ container, boot, call, ensureNgay }) {
     tbody.innerHTML = rows.map((r, i) => `
       <tr>
         <td>${esc(tenNgan[r.nhan_vien] || r.ten_nhan_vien || r.nhan_vien)}</td>
-        <td>${esc(tenSP(r.san_pham))}${r.activity_type ? `<div class="sx-muted">${esc(r.activity_type)}</div>` : ''}</td>
+        <td>${esc(r.activity_type || '—')}${r.san_pham ? `<div class="sx-muted">${esc(tenSP(r.san_pham))}</div>` : ''}</td>
         <td><b>${esc(formatNumber(r.so_hop))}</b></td>
         <td>${esc(r.thanh_tien != null ? formatVND(r.thanh_tien) : '…')}</td>
         ${daChot ? '' : `<td><button type="button" class="sx-cell-btn sx-cell-del" data-i="${i}">✕</button></td>`}
       </tr>`).join('') || `<tr><td colspan="5" class="sx-muted">Chưa có dòng nào.</td></tr>`;
     const tongHop = rows.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
-    footer.innerHTML = `Tổng: <b>${formatNumber(tongHop)}</b> hộp · <b>${esc(formatVND(tongTien))}</b>`;
+    footer.innerHTML = `Tổng: <b>${formatNumber(tongHop)}</b> sản phẩm · <b>${esc(formatVND(tongTien))}</b>`;
     if (!daChot) {
       tbody.querySelectorAll('.sx-cell-del').forEach((btn) => {
         btn.addEventListener('click', async () => { rows.splice(Number(btn.dataset.i), 1); await save(); });
@@ -62,7 +65,8 @@ export async function render({ container, boot, call, ensureNgay }) {
       const r = await call('sx.api.portal.luu_bang_vao_hop', {
         ngay_sx: ng.name,
         rows: JSON.stringify(rows.map((x) => ({
-          nhan_vien: x.nhan_vien, san_pham: x.san_pham, so_hop: x.so_hop,
+          nhan_vien: x.nhan_vien, activity_type: x.activity_type,
+          san_pham: x.san_pham, so_hop: x.so_hop,
         }))),
       });
       rows.length = 0;
@@ -82,75 +86,92 @@ export async function render({ container, boot, call, ensureNgay }) {
       btn.type = 'button';
       btn.textContent = tenNgan[nv.name];
       btn.title = nv.employee_name || nv.name;   // tên đầy đủ khi cần đối chiếu
-      btn.addEventListener('click', () => themDong(nv, itemsTp, skuGanDay, rows, save, tenNgan));
+      btn.addEventListener('click', () => themDong(nv, activities, actGanDay, rows, save, tenNgan));
       nvGrid.appendChild(btn);
     });
     if (!nhanVien.length) {
       nvGrid.innerHTML = '<div class="sx-muted">Chưa có công nhân công khoán nào (kiểm tra nhóm trong SX Settings).</div>';
+    }
+    if (!activities.length) {
+      nvGrid.insertAdjacentHTML('beforebegin',
+        '<div class="sx-warn-text">⚠ Chưa có Activity Type nào dùng được — vào Desk tạo loại công việc khoán (vd "Vào hộp 300") và điền đơn giá.</div>');
     }
   }
 
   paint();
 }
 
-function themDong(nv, itemsTp, skuGanDay, rows, save, tenNgan) {
+function themDong(nv, activities, actGanDay, rows, save, tenNgan) {
   const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
-  openSkuPicker(nv, ten, itemsTp, skuGanDay, (sanPham) => {
-    openNumpad({
-      title: `${ten} — số hộp`, unit: 'hộp',
-      onOk: async (v) => {
-        const soHop = Math.round(v);
-        if (soHop <= 0) { toastErr('Số hộp phải > 0.'); return; }
-        rows.push({
-          nhan_vien: nv.name, ten_nhan_vien: nv.employee_name,
-          san_pham: sanPham, so_hop: soHop,
-        });
-        await save();
-      },
-    });
+  openActivityPicker(ten, activities, actGanDay, (act) => {
+    // Loại có nhiều SKU -> hỏi thêm SKU nào (cần cho lệnh SX tầng 3).
+    // 1 SKU tự gán, 0 SKU thì để trống -> chỉ tính lương khoán.
+    const tiep = (sanPham) => nhapSoLuong(nv, ten, act, sanPham, rows, save);
+    if (act.sku && act.sku.length > 1) openSkuPicker(ten, act, tiep);
+    else tiep(act.sku && act.sku.length === 1 ? act.sku[0].name : null);
   });
 }
 
-function openSkuPicker(nv, ten, itemsTp, skuGanDay, onPick) {
-  const m = openModal({ title: `${ten} — chọn SKU` });
+function nhapSoLuong(nv, ten, act, sanPham, rows, save) {
+  openNumpad({
+    title: `${ten} — ${act.name}`, unit: 'sp',
+    onOk: async (v) => {
+      const sl = Math.round(v);
+      if (sl <= 0) { toastErr('Số lượng phải > 0.'); return; }
+      rows.push({
+        nhan_vien: nv.name, ten_nhan_vien: nv.employee_name,
+        activity_type: act.name, san_pham: sanPham, so_hop: sl,
+      });
+      await save();
+    },
+  });
+}
+
+function openActivityPicker(ten, activities, actGanDay, onPick) {
+  const m = openModal({ title: `${ten} — chọn loại công việc` });
   m.body.innerHTML = `
-    <input class="sx-textarea" id="sx-sku-search" placeholder="Tìm SKU…" autocomplete="off">
-    <div id="sx-sku-list"></div>
+    <input class="sx-textarea" id="sx-act-search" placeholder="Tìm loại công việc…" autocomplete="off">
+    <div id="sx-act-list"></div>
   `;
-  const list = m.body.querySelector('#sx-sku-list');
-  const search = m.body.querySelector('#sx-sku-search');
-  const tenSku = (code) => { const it = itemsTp.find((x) => x.name === code); return it ? (it.item_name || it.name) : code; };
+  const list = m.body.querySelector('#sx-act-list');
+  const search = m.body.querySelector('#sx-act-search');
+  const byName = {};
+  activities.forEach((a) => { byName[a.name] = a; });
+
+  const chip = (a) => `<button type="button" class="sx-sp-chip sx-act-pick" data-act="${esc(a.name)}">`
+    + `${esc(a.name)}<div class="sx-muted">${esc(formatVND(a.don_gia))}${a.sku && a.sku.length ? ` · ${a.sku.length} SKU` : ''}</div>`
+    + '</button>';
 
   function draw(q) {
     q = (q || '').toLowerCase().trim();
-    const match = (it) => !q
-      || (it.item_name || '').toLowerCase().includes(q)
-      || (it.name || '').toLowerCase().includes(q);
+    const khop = activities.filter((a) => !q || a.name.toLowerCase().includes(q));
     let html = '';
-    if (!q && skuGanDay.length) {
-      html += '<div class="sx-field-label">Dùng gần đây</div><div class="sx-sp-grid">';
-      html += skuGanDay.map((c) => `<button type="button" class="sx-sp-chip sx-sku-pick" data-sku="${esc(c)}">${esc(tenSku(c))}</button>`).join('');
-      html += '</div>';
+    const ganDay = actGanDay.map((n) => byName[n]).filter(Boolean);
+    if (!q && ganDay.length) {
+      html += '<div class="sx-field-label">Dùng gần đây</div><div class="sx-sp-grid">'
+        + ganDay.map(chip).join('') + '</div>';
     }
-    // nhóm theo item_group
-    const groups = {};
-    itemsTp.filter(match).forEach((it) => {
-      const g = it.item_group || 'Khác';
-      (groups[g] = groups[g] || []).push(it);
-    });
-    Object.keys(groups).sort().forEach((g) => {
-      html += `<div class="sx-field-label">${esc(g)}</div><div class="sx-sp-grid">`;
-      html += groups[g].map((it) => `<button type="button" class="sx-sp-chip sx-sku-pick" data-sku="${esc(it.name)}">${esc(it.item_name || it.name)}</button>`).join('');
-      html += '</div>';
-    });
-    if (!itemsTp.filter(match).length && !(!q && skuGanDay.length)) {
-      html = '<div class="sx-muted">Không tìm thấy SKU.</div>';
+    if (khop.length) {
+      html += `<div class="sx-field-label">${q ? 'Kết quả' : 'Tất cả loại công việc'}</div>`
+        + '<div class="sx-sp-grid">' + khop.map(chip).join('') + '</div>';
+    } else if (!ganDay.length || q) {
+      html += '<div class="sx-muted">Không tìm thấy loại công việc nào.</div>';
     }
     list.innerHTML = html;
-    list.querySelectorAll('.sx-sku-pick').forEach((b) => {
-      b.addEventListener('click', () => { m.close(); onPick(b.dataset.sku); });
+    list.querySelectorAll('.sx-act-pick').forEach((b) => {
+      b.addEventListener('click', () => { m.close(); onPick(byName[b.dataset.act]); });
     });
   }
   search.addEventListener('input', () => draw(search.value));
   draw('');
+}
+
+function openSkuPicker(ten, act, onPick) {
+  const m = openModal({ title: `${ten} — ${act.name}: sản phẩm nào?` });
+  m.body.innerHTML = '<div class="sx-sp-grid">'
+    + act.sku.map((it) => `<button type="button" class="sx-sp-chip sx-sku-pick" data-sku="${esc(it.name)}">${esc(it.item_name)}</button>`).join('')
+    + '</div>';
+  m.body.querySelectorAll('.sx-sku-pick').forEach((b) => {
+    b.addEventListener('click', () => { m.close(); onPick(b.dataset.sku); });
+  });
 }

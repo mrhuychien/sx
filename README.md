@@ -16,12 +16,13 @@ toàn tuyến (không ai chọn lô).
 QC#1 (chiều D-1) : SX Xuat Dau  → sinh lô rang R (nhập thẳng kg, D6)
 D → D+1          : rang → nghiền                              (0 thao tác — D18)
 QC#1 (cuối ngày) : báo mẻ (child SX Bao Me: nấu đường hoán + trộn bột bánh/bột đậu) + báo cán
-QC#2             : SX Bang Vao Hop (lương SP theo người × SKU) + CHỐT NGÀY
+QC#2             : SX Bang Vao Hop (lương khoán: người × loại công việc) + CHỐT NGÀY
 Chốt ngày        : chot_ngay → T1 TỰ NHẬP BỘT lô R rang hôm trước (Manufacture: trừ đỗ
                               FIFO Kho NVL → bột Kho BTP, batch = lô R). Đỗ CHỈ trừ ở đây (D7)
                             → T2 (topo-sort: đường hoán → bột bánh/bột đậu, WO+SE,
                               bột nền FIFO lô R cũ nhất)
-                            → T3 (WO+SE TP theo SKU, bột bánh/bột đậu FIFO) → SalaryProduct
+                            → T3 (WO+SE TP cho dòng CÓ SKU, bột bánh/bột đậu FIFO)
+                            → SalaryProduct (mọi dòng, kể cả chưa gắn SKU)
 Truy xuất            : TP → bột bánh/bột đậu → lô R → lô đậu NCC (+ đường hoán → lô đường NCC)
 ```
 
@@ -79,9 +80,10 @@ Tên item lấy theo tên **thật trên ERPNext** (cột A workbook), đã áp 
 Sữa dừa = Bột sữa dừa, Đường kính VN = **Đường nghệ an**, Đường TQ = **Đường Gluco China**,
 hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 
-**Còn phải làm tay:** BOM **tầng 3 + Item TP + bao bì** (CH-13 chốt: chủ đầu tư tự tạo trên
-ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đầu, Activity Type + đơn giá + map
-`custom_activity_type` cho SKU, 2 user tablet — xem `docs/CODER-PACK.md` §8.
+**Còn phải làm tay:** Activity Type + đơn giá (**bắt buộc — không có thì bảng vào hộp trống**),
+BOM **tầng 3 + Item TP + bao bì** + map `custom_activity_type` cho từng SKU (CH-13 chốt: chủ
+đầu tư tự tạo trên ERPNext; chưa có thì vẫn ghi được lương khoán, chỉ **chưa sinh lệnh SX
+nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xem `docs/CODER-PACK.md` §8.
 
 ## Thay đổi 28/07 (sau khi chạy thử trên site)
 
@@ -98,8 +100,13 @@ ERPNext — **chặn chốt ngày nhánh TP**), Manufacturing Settings, tồn đ
 - **D18 — bỏ card "Nhập bột":** chốt ngày tự nhập bột cho lô R **rang hôm trước**
   (đã qua khâu nghiền). QC không bấm; kho + truy xuất + trừ đỗ giữ nguyên. Lô R còn đọng
   (rang lâu mà chưa vào kho) hiện ở dashboard quản lý để phát hiện bất thường.
-- **D21 — bỏ "phương thức" (Thủ công / Máy hỗ trợ):** vào hộp còn 2 chạm — chạm công nhân →
-  chọn SKU → nhập số hộp. Đơn giá vốn theo Activity Type nên phương thức không ảnh hưởng lương.
+- **D21 — bỏ "phương thức" (Thủ công / Máy hỗ trợ):** đơn giá vốn theo Activity Type nên
+  phương thức không ảnh hưởng lương.
+- **D23 — bảng vào hộp ghi theo LOẠI CÔNG VIỆC, không phải theo SKU:** chạm công nhân → chọn
+  **Activity Type** (hiện kèm đơn giá + số SKU) → nhập số lượng. SKU chỉ là chi tiết bên trong:
+  loại **0 SKU** → ghi thẳng (chỉ tính lương, không sinh lệnh SX tầng 3); **1 SKU** → tự gán;
+  **≥2 SKU** → hỏi thêm 1 bước. Nhờ vậy portal chạy được ngay cả khi Item TP + BOM tầng 3
+  (Phase 0) chưa nhập — trước đây picker rỗng nên QC không ghi được gì.
 - **D22 — lương khoán ghi thẳng vào `SalaryProduct`** (app lam-luong, GATE-B đã chốt):
   1 phiếu/người/**tháng** (PLK), child `luongkhoan` **1 dòng/ngày** với 6 slot
   `sp/sl/dg/tt` (`sp` = tên Activity Type). Chốt ngày **upsert đúng dòng ngày đó** và để phiếu

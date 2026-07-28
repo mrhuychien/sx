@@ -63,7 +63,8 @@ Nền tảng: Frappe/ERPNext v16 custom app, theo phương pháp nextcode.
 | D17 | **(28/07) BỎ BTP "Hỗn hợp màu đỏ/vàng".** Màu đỏ/vàng + màu xanh + nước cho **thẳng vào BOM đường hoán khoai môn/cốm** theo đúng tỉ lệ. Pha là dùng ngay → đúng D2 (WIP vô hình). | Bớt 2 item + 2 BOM + 2 lần báo mẻ mỗi ngày. Tab "Nấu" còn 3 đường hoán |
 | D20 | **(28/07) Đơn giá khoán lấy TỪ Activity Type**, không có bảng giá riêng (`SX Don Gia Vao Hop` đã bỏ). Activity Type = LOẠI CÔNG VIỆC ("Vào hộp 300", "Vào hộp 170"), map từ Item qua `custom_activity_type`; nhiều SKU cùng quy cách chung 1 loại. | Một nguồn giá duy nhất, không lệch 2 nơi. Đổi giá = sửa Activity Type |
 | D19 | **(28/07) Bảng vào hộp chỉ hiện công nhân CÔNG KHOÁN**, và chỉ hiện **TÊN** ("Nga"). Trùng tên → thêm họ ("Nga Trương", "Nga Nguyễn"); trùng cả họ → viết tắt tên đệm ("Nga Trương T."). Nhóm công khoán cấu hình ở `SX Settings` (nguồn + giá trị), chưa điền thì tự dò nhóm có tên chứa "khoán". | Grid gọn, công nhân lowtech đọc nhanh; tên đầy đủ vẫn xem được ở tooltip |
-| D21 | **(28/07) BỎ "phương thức" (Thủ công / Máy hỗ trợ).** Vào hộp chỉ còn: chạm công nhân → chọn SKU → nhập số hộp. | Bớt 1 chạm/dòng; đơn giá vốn đã theo Activity Type nên phương thức không ảnh hưởng lương |
+| D23 | **(28/07) Bảng vào hộp ghi theo LOẠI CÔNG VIỆC, không phải theo SKU.** QC chạm công nhân → chọn **Activity Type** (kèm đơn giá) → nhập số lượng. SKU chỉ là chi tiết bên trong loại: loại có **0 SKU** → ghi thẳng (chỉ tính lương, không sinh lệnh SX tầng 3); **1 SKU** → tự gán; **≥2 SKU** → hỏi thêm 1 bước. `san_pham` **hết reqd**, `activity_type` thành field bắt buộc. | Lương khoán vốn tính theo loại công việc. Chạy được ngay khi chưa tạo Item TP (Phase 0 chưa xong) — trước đây picker rỗng, QC bị kẹt |
+| D21 | **(28/07) BỎ "phương thức" (Thủ công / Máy hỗ trợ).** Vào hộp chỉ còn: chạm công nhân → chọn loại công việc → nhập số lượng (D23). | Bớt 1 chạm/dòng; đơn giá vốn đã theo Activity Type nên phương thức không ảnh hưởng lương |
 | D22 | **(28/07) Lương khoán ghi vào `SalaryProduct` (app lam-luong) — GATE-B đã chốt.** 1 phiếu/nhân viên/THÁNG (naming PLK), child `luongkhoan` 1 dòng/NGÀY với 6 slot `sp/sl/dg/tt` (sp = **tên Activity Type**). Chốt ngày UPSERT đúng dòng ngày đó, để phiếu ở **DRAFT** (`status="Nháp"`) cho bộ phận lương duyệt cuối tháng. | Không phá quy trình lương đang chạy; chốt lại ngày = ghi đè, không cộng dồn |
 | D18 | **(28/07) BỎ card "Nhập bột" trên portal.** Chốt ngày **tự nhập bột** cho mọi lô R **rang hôm trước** (`ngay_rang < ngày chốt`, tức đã qua khâu nghiền), trừ đỗ FIFO; tầng 2 trừ bột theo báo mẻ. | QC không bấm; kho/truy xuất/trừ đỗ giữ nguyên. Huỷ ngày thu hồi cả phiếu nhập bột do nó tạo | |
 
@@ -75,7 +76,7 @@ D         : luộc → rang → ủ nguội                                  (0 
 D+1       : vỡ → nghiền                                            (0 thao tác — D18)
 Bất kỳ    : nấu đường hoán — QC#1 ghi vào BÁO MẺ (loại + số mẻ)
 Ngày X    : trộn — QC#1 ghi BÁO MẺ (8 bột bánh / 8 bột đậu, số mẻ); cán — QC#1 ghi BÁO CÁN
-Ngày X..  : vào hộp/túi — QC#2 ghi BẢNG VÀO HỘP (người × SKU × số hộp)
+Ngày X..  : vào hộp/túi — QC#2 ghi BẢNG VÀO HỘP (người × LOẠI CÔNG VIỆC × số lượng)
 Cuối ngày : QC#2 tap CHỐT NGÀY ⇒ code (1) NHẬP BỘT lô R rang hôm trước: WO+SE Manufacture
             T1 trừ Đỗ FIFO (neo lô NCC) → Bột đỗ nền vào Kho BTP, batch = R-DDMMYY;
             (2) sinh mẻ + TP theo thứ tự phụ thuộc, trừ kho FIFO; (3) đổ SalaryProduct
@@ -92,7 +93,7 @@ Chuỗi truy xuất (2 chiều, dùng Serial & Batch Traceability Report chuẩn
 | Ai | Màn hình | Làm gì | Bao nhiêu lần/ngày |
 |---|---|---|---|
 | **QC #1** (role `SX Ghi So`) | `#/ghiso` — checklist vòng ghi số | Xuất đậu (kg + loại đỗ, chiều D-1) · Báo mẻ nấu (đường hoán) · Báo mẻ trộn (bột bánh/bột đậu) · Báo cán · Sự cố | ~4–6 chặng, mỗi chặng 1–2 con số |
-| **QC #2** (role `SX Vao Hop`) | `#/vaohop` | Bảng vào hộp theo người × SKU · Sự cố · **Chốt ngày** | 1 phiên cuối ca |
+| **QC #2** (role `SX Vao Hop`) | `#/vaohop` | Bảng vào hộp theo người × loại công việc · Sự cố · **Chốt ngày** | 1 phiên cuối ca |
 | **Quản lý** (role `SX Quan Ly`) | tất cả + `#/quanly` | Dashboard, truy xuất, sửa/huỷ, kiểm kê (Desk) | khi cần |
 | Thủ kho, tổ trưởng, công nhân | — | **0 chạm.** Trả lời miệng cho QC | 0 |
 
@@ -198,9 +199,11 @@ do chính nó tạo (D18), KHÔNG đụng phiếu nhập bột người dùng t�
 - ngay_sx (Link, reqd) · dong (Table SX Bang Vao Hop Item, reqd) · tong_hop/tong_tien (read_only).
 
 **Child `SX Bang Vao Hop Item`:** nhan_vien (Link Employee, reqd — portal CHỈ hiện công nhân
-nhóm công khoán, tên rút gọn theo D19) · activity_type (Link, read_only — server suy từ Item) · san_pham (Link Item filter TP,
-reqd) · so_hop (Int, reqd, >0) · don_gia/thanh_tien (read_only, lookup server-side).
-KHÔNG có phương thức (D21).
+nhóm công khoán, tên rút gọn theo D19) · **activity_type (Link Activity Type, reqd — đơn vị
+tính lương khoán, D23)** · san_pham (Link Item filter TP, **KHÔNG reqd** — bỏ trống khi loại
+công việc chưa gắn SKU nào; có SKU thì SKU quyết định activity_type qua
+`Item.custom_activity_type`) · so_hop (Int, reqd, >0) · don_gia/thanh_tien (read_only, luôn
+tính lại server-side từ Activity Type). KHÔNG có phương thức (D21).
 
 ### 3.5 Đơn giá khoán — KHÔNG có bảng giá riêng (D20)
 
@@ -315,7 +318,8 @@ Không scheduler, không override class, không Server/Client Script.
 5. **Từng SKU vào hộp:** qty=Σso_hop → Batch TP → WO+SE (RM bột bánh/bột đậu FIFO Kho BTP +
    bao bì Kho NVL; FG Kho TP).
 6. **SalaryProduct**: upsert dòng ngày trong phiếu tháng của từng công nhân (D22). Đơn giá 0
-   vẫn ghi (thống kê sản lượng).
+   vẫn ghi (thống kê sản lượng). Dòng KHÔNG có SKU vẫn tính lương bình thường; chỉ bị bỏ qua
+   ở tầng 3 (D23).
 7. Tổng hợp + ds_wo_se → flags.tu_chot_ngay=True → submit.
 8. try/except toàn khối → rollback + message rõ bước hỏng.
 
@@ -360,7 +364,7 @@ CARD_ROLES = {card: [roles cho phép gọi API card đó]}  # nguồn cấu hìn
 | View | Route | Nội dung |
 |---|---|---|
 | Ghi số | `#/ghiso` | Xuất đậu (2 nút loại đỗ + numpad kg → mã lô R TO) · Báo mẻ (3 tab: Nấu/Bột bánh/Bột đậu) · Báo cán · Sự cố. Badge Đã ghi/Chưa. |
-| Vào hộp | `#/vaohop` | Grid CN (chỉ công khoán, tên rút gọn D19) → SKU picker (search+nhóm+gần đây) → numpad hộp → auto-save; footer tổng; Sự cố; nút CHỐT NGÀY (modal 2 bước). |
+| Vào hộp | `#/vaohop` | Grid CN (chỉ công khoán, tên rút gọn D19) → picker **LOẠI CÔNG VIỆC** (search + gần đây + đơn giá) → [chọn SKU nếu loại đó có ≥2 SKU] → numpad số lượng → auto-save; footer tổng; Sự cố; nút CHỐT NGÀY (modal 2 bước). |
 | Quản lý | `#/quanly` | 7/30 ngày: sản lượng SKU, lương/người, mẻ trộn vs cán, tồn BTP (đỏ nếu âm), phút dừng; Truy xuất batch TP; link Desk. |
 
 ---
@@ -426,7 +430,8 @@ tang1.py + portal.py + chot.py → P4 portal card-based → P5 print → P6 veri
 2. Nhập bột: tap lô R → WO+SE T1: đậu FIFO đúng lô NCC, bột +780kg Kho BTP batch=R (yield từ BOM);
    trang_thai_bot=1; lô biến khỏi list.
 3. Báo mẻ: 2 ĐH thường + 1 HM đỏ + 1 ĐH khoai môn + 3 Bột bánh truyền thống + 2 Bột đậu sữa dừa;
-   Báo cán: 2 truyền thống; Vào hộp: 5 CN × 3 SKU.
+   Báo cán: 2 truyền thống; Vào hộp: 5 CN × 3 loại công việc (1 loại chưa gắn SKU nào,
+   1 loại đúng 1 SKU → tự gán, 1 loại nhiều SKU → hỏi thêm bước).
 4. Chốt ngày → topo: HM đỏ TRƯỚC ĐH khoai môn; mỗi bao_me có WO+SE batch đúng, tồn Kho BTP đúng;
    bột nền FIFO đúng lô R; SKU batch TP đúng, tồn Kho TP=Σhộp, bao bì trừ; Nước non-stock không lỗi;
    SalaryProduct: mỗi CN có phiếu tháng DRAFT, dòng ngày đúng sp/sl/dg/tt, thunhapngay đúng;

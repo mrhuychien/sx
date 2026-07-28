@@ -6,9 +6,9 @@
  "field_order": [
   "nhan_vien",
   "ten_nhan_vien",
+  "activity_type",
   "san_pham",
   "so_hop",
-  "activity_type",
   "don_gia",
   "thanh_tien"
  ],
@@ -29,13 +29,22 @@
    "read_only": 1
   },
   {
+   "fieldname": "activity_type",
+   "fieldtype": "Link",
+   "label": "Loại công việc khoán",
+   "options": "Activity Type",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
    "fieldname": "san_pham",
    "fieldtype": "Link",
-   "label": "Sản phẩm",
+   "label": "Sản phẩm (SKU)",
    "options": "Item",
    "link_filters": "[[\"Item\",\"custom_sx_nhom\",\"=\",\"TP\"]]",
    "in_list_view": 1,
-   "reqd": 1
+   "reqd": 0,
+   "description": "Bỏ trống nếu loại công việc chưa gắn SKU nào — chỉ tính lương khoán, không sinh lệnh SX tầng 3."
   },
   {
    "fieldname": "so_hop",
@@ -43,14 +52,6 @@
    "label": "Số hộp",
    "in_list_view": 1,
    "reqd": 1
-  },
-  {
-   "fieldname": "activity_type",
-   "fieldtype": "Link",
-   "label": "Loại công việc khoán",
-   "options": "Activity Type",
-   "read_only": 1,
-   "in_list_view": 1
   },
   {
    "fieldname": "don_gia",

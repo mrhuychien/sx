@@ -3,7 +3,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt
 
-from sx.utils import get_activity_va_don_gia
+from sx.utils import get_activity_type, get_don_gia_activity
 
 
 class SXBangVaoHop(Document):
@@ -30,9 +30,17 @@ class SXBangVaoHop(Document):
         for row in self.dong:
             if cint(row.so_hop) <= 0:
                 frappe.throw(_("Dòng {0}: số hộp phải > 0").format(row.idx))
-            # Loại công việc + đơn giá luôn lấy server-side từ Activity Type
-            # (nguồn giá duy nhất) — client không tự điền, không sửa được.
-            row.activity_type, row.don_gia = get_activity_va_don_gia(row.san_pham)
+            # Đơn vị tính lương khoán là LOẠI CÔNG VIỆC (D23). Có SKU thì SKU quyết
+            # định loại (map Item.custom_activity_type) — khỏi lệch tay.
+            if row.san_pham:
+                row.activity_type = get_activity_type(row.san_pham)
+            if not row.activity_type:
+                frappe.throw(
+                    _("Dòng {0}: chưa chọn loại công việc khoán (Activity Type).")
+                    .format(row.idx)
+                )
+            # Đơn giá luôn tính server-side từ Activity Type — client không sửa được.
+            row.don_gia = get_don_gia_activity(row.activity_type)
             row.thanh_tien = flt(row.don_gia) * cint(row.so_hop)
             tong_hop += cint(row.so_hop)
             tong_tien += flt(row.thanh_tien)

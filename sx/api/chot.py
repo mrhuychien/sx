@@ -146,8 +146,12 @@ def _nhu_cau_bom(bom_name, qty_fg):
 
 
 def _tong_hop_theo_sp(bang):
+    """Σ số hộp theo SKU. Dòng KHÔNG có SKU (loại công việc chưa gắn Item TP — D23)
+    chỉ tính lương khoán, không sinh lệnh SX tầng 3 nên bỏ qua ở đây."""
     tong = {}
     for r in bang.dong:
+        if not r.san_pham:
+            continue
         tong[r.san_pham] = tong.get(r.san_pham, 0) + cint(r.so_hop)
     return tong
 
