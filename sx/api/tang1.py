@@ -184,6 +184,23 @@ def on_cancel_nhap_bot(doc, method=None):
 # THẲNG từ kho (Bin/Batch) — không có state phụ để lệch.
 
 
+def _ty_le_goi_y(loai_dau, cong_doan):
+    """kg RA gợi ý / kg VÀO của 1 công đoạn — để portal điền sẵn ô "số kg ra".
+
+    Luộc+rang và tách vỏ: 1.0 (chưa có định mức riêng cho từng chặng).
+    Nghiền: yield BOM tầng 1 (bột/đỗ ~0.78). Yield đó là của CẢ TUYẾN đỗ→bột, nên
+    đặt trọn ở chặng cuối cùng thì tích 3 chặng đúng bằng yield BOM — không lệch.
+    QC luôn sửa được: gợi ý chỉ là số điền sẵn, không phải ràng buộc.
+    """
+    if cong_doan != "nghien":
+        return 1.0
+    try:
+        _bot, bom = get_bot_from_dau(loai_dau)
+        return flt(get_yield_bot(bom, loai_dau), 4)
+    except Exception:
+        return 1.0
+
+
 def _tim_chang(ma):
     for cd in CONG_DOAN:
         if cd["ma"] == ma:
@@ -283,7 +300,11 @@ def luu_do_lo(ngay=None):
             "dau_kg": flt(r.dau_kg, 2), "ngay_xuat": str(r.ngay_xuat),
             "ngay_rang": str(r.ngay_rang), "da_nhap_bot": cint(r.trang_thai_bot),
             "chang": chang, "con_o_xuong": flt(con_lai, 2),
-            "cong_doan": [{"ma": c["ma"], "ten": c["ten"]} for c in CONG_DOAN],
+            "cong_doan": [
+                {"ma": c["ma"], "ten": c["ten"],
+                 "ty_le": _ty_le_goi_y(r.loai_dau, c["ma"])}
+                for c in CONG_DOAN
+            ],
         })
     return {"kho_xuong": kho_x, "lo": out}
 

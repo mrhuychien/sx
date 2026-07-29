@@ -102,6 +102,12 @@ function hoanTat(lo, cd, chang, call, refresh) {
     } catch (e) { toastErr(e.message); }
   };
 
+  // Tỉ lệ hao hụt gợi ý do BACKEND đưa xuống — cùng con số mà nút "hoàn tất cả lô"
+  // dùng. Trước đây ô kg RA điền sẵn = kg VÀO, nên nghiền một phần ra bột 1:1 (quên
+  // trừ hao); giờ 200 kg đỗ vỡ điền sẵn ~156 kg bột, QC sửa lại theo cân thật.
+  const tyLe = Number((lo.cong_doan || []).find((x) => x.ma === cd)?.ty_le) || 1;
+  const lam1 = (v) => Math.round(v * 10) / 10;
+
   m.body.querySelector('#sx-lt-het').addEventListener('click', () => goi(null, null));
   m.body.querySelector('#sx-lt-mot-phan').addEventListener('click', () => {
     openNumpad({
@@ -109,7 +115,10 @@ function hoanTat(lo, cd, chang, call, refresh) {
       onOk: (vao) => {
         if (vao <= 0) { toastErr('Số kg phải > 0.'); return; }
         openNumpad({
-          title: 'Số kg RA (cân thật)', initial: vao, allowDecimal: true, unit: 'kg',
+          title: tyLe < 1
+            ? `Số kg RA (định mức ~${formatNumber(lam1(vao * tyLe), 1)} — sửa theo cân thật)`
+            : 'Số kg RA (cân thật)',
+          initial: lam1(vao * tyLe), allowDecimal: true, unit: 'kg',
           onOk: (ra) => goi(vao, ra),
         });
       },
