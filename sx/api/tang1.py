@@ -19,6 +19,7 @@ from sx.api.mfg import (
 from sx.config.roles import guard_card
 from sx.utils import (
     CONG_DOAN,
+    cho_phep_ton_am,
     batch_cua_chang,
     get_bot_from_dau,
     get_settings,
@@ -341,7 +342,7 @@ def hoan_tat_cong_doan(xuat_dau_name, cong_doan, kg_ra=None, kg_vao=None, ngay=N
             _("Không còn {0} nào ở xưởng cho lô {1} — công đoạn trước đã làm chưa?")
             .format(item_vao, xd.lo_rang)
         )
-    if vao > ton + 1e-6:
+    if vao > ton + 1e-6 and not cho_phep_ton_am():
         frappe.throw(
             _("Lô {0} chỉ còn {1} kg {2} ở xưởng, không hoàn tất {3} kg được.")
             .format(xd.lo_rang, flt(ton, 2), item_vao, flt(vao, 2))

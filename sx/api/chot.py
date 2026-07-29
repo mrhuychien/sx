@@ -16,7 +16,13 @@ from frappe.utils import cint, flt, getdate
 
 from sx.api.mfg import cancel_doc, loai_phieu_kho, tao_batch, tao_se_manufacture, tao_wo
 from sx.config.roles import guard_card
-from sx.utils import get_bom_active, get_settings, sinh_ma_lo, topo_rank_by_bom
+from sx.utils import (
+    cho_phep_ton_am,
+    get_bom_active,
+    get_settings,
+    sinh_ma_lo,
+    topo_rank_by_bom,
+)
 
 
 @frappe.whitelist()
@@ -227,6 +233,14 @@ def _kiem_ton_kho(doc, bang, settings):
 
     # Thiếu bột nền thường là do quên bấm Nghiền -> chỉ thẳng lô nào còn dở dang
     goi_y = _lo_con_o_xuong(doc) if thieu_bot_nen else []
+    if cho_phep_ton_am():
+        # Site đã bật Allow Negative Stock -> chặn ở đây là vô nghĩa (ERPNext bên
+        # dưới cho ghi âm rồi). Vẫn phải NÓI, để không âm kho mà không ai biết.
+        doc.flags.canh_bao_ton = (
+            [_("⚠ Kho đang cho phép tồn âm — vẫn chốt nhưng các mục sau bị ghi âm:")]
+            + thieu + goi_y
+        )
+        return
     frappe.throw(
         _("Không đủ tồn kho để chốt ngày:")
         + "<br>" + "<br>".join(thieu)
@@ -511,7 +525,7 @@ def _go_luong_khoan(ds_ghi):
 def _canh_bao_mem(doc):
     """Không chặn: tồn bột bánh < lượng cán báo (quên báo mẻ trộn) + lô còn ở xưởng."""
     settings = get_settings()
-    canh_bao = _lo_con_o_xuong(doc)
+    canh_bao = list(doc.flags.get("canh_bao_ton") or []) + _lo_con_o_xuong(doc)
     can_theo_loai = {}
     for row in doc.bao_can:
         can_theo_loai[row.item_bot_banh] = can_theo_loai.get(row.item_bot_banh, 0) + flt(row.so_me)

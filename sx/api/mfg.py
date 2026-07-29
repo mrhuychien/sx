@@ -212,11 +212,30 @@ def _gan_batch_fifo(se):
             phan.append((b.get("batch_no"), lay))
             con_lai -= lay
         if con_lai > 1e-6:
-            frappe.throw(
-                _("Không đủ tồn theo lô cho {0} tại {1} (thiếu {2}).").format(
-                    row.item_code, row.s_warehouse, flt(con_lai, 3)
+            from sx.utils import cho_phep_ton_am
+
+            if not cho_phep_ton_am():
+                frappe.throw(
+                    _("Không đủ tồn theo lô cho {0} tại {1} (thiếu {2}).").format(
+                        row.item_code, row.s_warehouse, flt(con_lai, 3)
+                    )
                 )
+            # Cho tồn âm: item có batch VẪN bắt buộc khai lô, nên dồn phần thiếu vào
+            # lô mới nhất (không có lô nào thì phải tạo/nhập lô trước — không đoán được).
+            lo_am = phan[-1][0] if phan else frappe.db.get_value(
+                "Batch", {"item": row.item_code}, "name", order_by="creation desc"
             )
+            if not lo_am:
+                frappe.throw(
+                    _("{0} chưa có lô nào trong hệ thống nên không ghi âm được. "
+                      "Nhập một phiếu nhập kho (hoặc Stock Reconciliation) có lô cho "
+                      "item này trước.").format(row.item_code)
+                )
+            if phan and phan[-1][0] == lo_am:
+                phan[-1] = (lo_am, phan[-1][1] + con_lai)
+            else:
+                phan.append((lo_am, con_lai))
+            con_lai = 0
         if not phan:
             continue
         row.serial_and_batch_bundle = None

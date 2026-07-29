@@ -345,3 +345,13 @@ def kho_xuong(settings=None):
     """Kho giữ BTP đang dở dang ngoài xưởng; chưa cấu hình thì dùng Kho BTP."""
     settings = settings or get_settings()
     return settings.get("kho_xuong") or settings.get("kho_btp")
+
+
+def cho_phep_ton_am():
+    """Site có bật Stock Settings → 'Allow Negative Stock' không.
+
+    Bật = chủ site CHẤP NHẬN cho kho âm (thường để chạy thử khi chưa nhập tồn đầu).
+    Khi đó mọi chốt chặn "thiếu tồn" của app hạ xuống thành CẢNH BÁO — chặn tiếp
+    là vô nghĩa vì ERPNext bên dưới đã cho ghi âm rồi.
+    """
+    return cint(frappe.db.get_single_value("Stock Settings", "allow_negative_stock"))
