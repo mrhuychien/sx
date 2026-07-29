@@ -37,7 +37,8 @@ async function veLuuDo(box, boot, call, refresh) {
   }
   const ds = (r && r.lo) || [];
   if (!ds.length) {
-    box.innerHTML = '<div class="sx-muted">Chưa có lô nào trong 14 ngày gần đây.</div>';
+    box.innerHTML = '<div class="sx-muted">Không có lô nào đang chạy — lô đã nghiền '
+      + 'xong và dùng hết bột thì tự rụng khỏi lưu đồ.</div>';
     return;
   }
   box.innerHTML = ds.map((lo) => veLo(lo)).join('');

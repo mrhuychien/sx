@@ -235,16 +235,19 @@ def _do_chua_rang(xd):
 
 @frappe.whitelist()
 def luu_do_lo(ngay=None):
-    """Lưu đồ tầng 1: mỗi lô R đang chạy + tồn BTP từng chặng (D31).
+    """Lưu đồ tầng 1: mỗi lô R ĐANG CHẠY + tồn BTP từng chặng (D31).
 
-    Lô nào còn tồn ở bất kỳ chặng nào (hoặc mới xuất kho trong 7 ngày) thì còn hiện.
+    Chỉ hiện lô còn hàng ở ít nhất một chặng. Lô đã nghiền xong VÀ bột nền đã dùng
+    hết thì tự rụng khỏi lưu đồ — không còn việc gì để bấm, để lại chỉ làm rối màn
+    hình. Hồ sơ lô vẫn tra được ở Desk (SX Xuat Dau) và trong truy xuất lô.
     """
     guard_card("xuatdau")
     settings = get_settings()
     kho_x = kho_xuong(settings)
     ds = frappe.get_all(
         "SX Xuat Dau",
-        filters={"docstatus": 1, "ngay_xuat": (">=", add_days(getdate(ngay or nowdate()), -14))},
+        # Quét rộng 90 ngày: bột nền tồn được lâu, cắt 14 ngày sẽ giấu mất lô còn hàng
+        filters={"docstatus": 1, "ngay_xuat": (">=", add_days(getdate(ngay or nowdate()), -90))},
         fields=["name", "lo_rang", "ngay_xuat", "ngay_rang", "loai_dau", "dau_kg",
                 "trang_thai_bot", "se_xuat_kho"],
         order_by="ngay_rang desc, creation desc",
@@ -271,6 +274,9 @@ def luu_do_lo(ngay=None):
                 con_lai += ton   # bột đã vào Kho BTP -> không còn "ở xưởng"
             chang.append({"chang": ten_chang, "nhan": nhan, "item": item,
                           "batch": batch, "ton": flt(ton, 2)})
+        # Hết sạch mọi chặng (kể cả bột nền) -> lô đã xong đời, không hiện nữa
+        if sum(flt(c["ton"]) for c in chang) <= 1e-6:
+            continue
         out.append({
             "name": r.name, "lo_rang": r.lo_rang, "loai_dau": r.loai_dau,
             "dau_kg": flt(r.dau_kg, 2), "ngay_xuat": str(r.ngay_xuat),
