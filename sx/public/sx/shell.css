@@ -795,3 +795,88 @@ body { background: var(--sx-bg) !important; }
   font-weight: 700;
   color: var(--sx-primary);
 }
+
+/* ══════════════════ PHÂN CẤP MÀN HÌNH (D36) ══════════════════ */
+
+/* Thẻ phụ gập lại — <details> gốc, không cần JS, bàn phím hiểu sẵn */
+.sx-fold {
+  background: var(--sx-surface);
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius-lg);
+  box-shadow: var(--sx-shadow);
+  overflow: hidden;
+}
+.sx-fold-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sx-s2);
+  min-height: var(--sx-tap-lg);
+  padding: var(--sx-s3) var(--sx-s4);
+  font-size: var(--sx-f-md);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.sx-fold-head::-webkit-details-marker { display: none; }
+/* Mũi chỉ hướng: gập ▸ / mở ▾ — hình dạng đổi, không chỉ đổi màu */
+.sx-fold-head::after {
+  content: "▸";
+  margin-left: auto;
+  color: var(--sx-text-3);
+  font-size: var(--sx-f-lg);
+  transition: transform var(--sx-t-fast);
+}
+.sx-fold[open] .sx-fold-head::after { transform: rotate(90deg); }
+.sx-fold[open] .sx-fold-head { border-bottom: 1px solid var(--sx-line); }
+/* Thẻ bên trong đã có nền riêng -> bỏ khung lồng khung */
+.sx-fold-body > .sx-card {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Lưới công nhân: chưa nhập nổi, đã nhập lùi (D36) */
+.sx-nv-grid-xong { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 700px) { .sx-nv-grid-xong { grid-template-columns: repeat(5, 1fr); } }
+.sx-nv-xong {
+  min-height: var(--sx-tap);
+  padding: var(--sx-s2);
+  font-size: var(--sx-f-xs);
+  font-weight: 400;
+  color: var(--sx-text-3);
+  background: var(--sx-surface-2);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.sx-nv-so {
+  font-size: var(--sx-f-sm);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--sx-text-2);
+}
+.sx-nv-het {
+  color: var(--sx-success);
+  font-weight: 700;
+  font-size: var(--sx-f-md);
+  padding: var(--sx-s2) 0;
+}
+
+/* Khối cảnh báo gộp + trạng thái "mọi thứ ổn" (D36) */
+.sx-canhbao-tieude { font-size: var(--sx-f-md); margin-bottom: var(--sx-s2); }
+.sx-canhbao-ds { margin: 0; padding-left: var(--sx-s5); font-weight: 400; }
+.sx-canhbao-ds li { margin-bottom: var(--sx-s2); line-height: 1.5; }
+.sx-canhbao-ds li:last-child { margin-bottom: 0; }
+.sx-ok-box {
+  background: var(--sx-success-soft);
+  border: 1px solid var(--sx-success);
+  color: var(--sx-success);
+  border-radius: var(--sx-radius);
+  padding: var(--sx-s3) var(--sx-s4);
+  font-size: var(--sx-f-sm);
+  font-weight: 700;
+}

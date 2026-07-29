@@ -104,10 +104,7 @@ export async function render({ container, ctx, call, cards, mountCard }) {
     const canhBaoTron = (d.tron_vs_can || []).filter((x) => x.canh_bao);
     const btpAm = (d.ton_btp || []).filter((t) => t.am);
     body.innerHTML = `
-      ${btpAm.length ? `<div class="sx-error-box">⚠ Tồn BTP ÂM (quên báo mẻ?):
-        ${btpAm.map((t) => `${esc(t.item)} (${esc(formatNumber(t.ton_kg, 1))})`).join(', ')}</div>` : ''}
-      ${canhBaoTron.length ? `<div class="sx-error-box">⚠ Cán > Trộn:
-        ${canhBaoTron.map((t) => esc(t.item)).join(', ')}</div>` : ''}
+      ${veCanhBao(btpAm, canhBaoTron)}
       <div class="sx-kpi-grid">
         <div class="sx-card sx-kpi"><div class="sx-kpi-label">Sản lượng</div>
           <div class="sx-kpi-value">${formatNumber(tongHop)} hộp</div>
@@ -170,6 +167,30 @@ function renderTruyXuat(d) {
   }
   return `<div class="sx-tx-chain"><div class="sx-tx-node sx-tx-tp">📦 TP <b>${esc(d.batch_tp)}</b>
     <span class="sx-muted">(${esc(d.item_tp)})</span></div>${renderNguonLieu(d.cay.nguon_lieu, 1)}</div>`;
+}
+
+// Cảnh báo gộp thành MỘT khối "cần xử lý" ở đầu màn (D36).
+//
+// Trước đây mỗi loại cảnh báo là một hộp đỏ riêng, và khi không có gì bất thường thì
+// không hiện gì cả — quản lý không phân biệt được "đã kiểm, mọi thứ ổn" với "chưa
+// tải xong". Trạng thái BÌNH THƯỜNG cũng phải nói ra thì mới tin được.
+function veCanhBao(btpAm, canhBaoTron) {
+  const muc = [];
+  if (btpAm.length) {
+    muc.push(`<li><b>Tồn bán thành phẩm ÂM</b> — thường là quên báo mẻ:<br>`
+      + btpAm.map((t) => `${esc(t.item)} (${esc(formatNumber(t.ton_kg, 1))} kg)`).join(', ')
+      + '</li>');
+  }
+  if (canhBaoTron.length) {
+    muc.push('<li><b>Cán nhiều hơn trộn</b> — thiếu mẻ trộn hoặc báo cán sai:<br>'
+      + canhBaoTron.map((t) => esc(t.item)).join(', ') + '</li>');
+  }
+  if (!muc.length) {
+    return '<div class="sx-ok-box">✓ Không có bất thường trong kỳ đang xem.</div>';
+  }
+  return `<div class="sx-error-box"><div class="sx-canhbao-tieude">
+      ⚠ ${muc.length} việc cần xử lý</div>
+    <ul class="sx-canhbao-ds">${muc.join('')}</ul></div>`;
 }
 
 function renderNguonLieu(list, depth) {

@@ -63,7 +63,10 @@ export async function render({ container, boot, call, ensureNgay }) {
     return [...nhom.values()].sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
   }
 
-  function paint() {
+  // Lưới chưa/đã nhập đổi theo dữ liệu -> vẽ lại CÙNG LÚC với bảng, không để lệch
+  function paint() { veBang(); veNV(); }
+
+  function veBang() {
     const nhom = theoNguoi();
     let html = '';
     nhom.forEach((g) => {
@@ -156,23 +159,62 @@ export async function render({ container, boot, call, ensureNgay }) {
     }
   }
 
-  if (!daChot) {
+  // Lưới công nhân: TÁCH "chưa nhập" khỏi "đã nhập".
+  //
+  // QC#2 đi dọc chuyền hỏi từng người; câu hỏi duy nhất trong đầu là "còn ai chưa
+  // hỏi?". Trước đây 30 chip dàn đều nhau, đã hỏi hay chưa nhìn không ra — phải dò
+  // xuống bảng dưới rồi ngược lên. Giờ nhóm CHƯA NHẬP nằm trên, ô to; nhóm đã nhập
+  // tụt xuống, nhỏ và mờ, kèm số hộp đã ghi để đối chiếu nhanh.
+  function veNV() {
+    if (daChot) return;
     const nvGrid = container.querySelector('#sx-vh-nv');
-    nhanVien.forEach((nv) => {
-      const btn = el('button', 'sx-nv-card');
-      btn.type = 'button';
-      btn.textContent = tenNgan[nv.name];
-      btn.title = nv.employee_name || nv.name;   // tên đầy đủ khi cần đối chiếu
-      btn.addEventListener('click', () => themDong(nv, activities, actGanDay, rows, save, tenNgan));
-      nvGrid.appendChild(btn);
-    });
+    if (!nvGrid) return;
     if (!nhanVien.length) {
-      nvGrid.innerHTML = '<div class="sx-muted">Chưa có công nhân công khoán nào (kiểm tra nhóm trong SX Settings).</div>';
+      nvGrid.innerHTML = '<div class="sx-muted">Chưa có công nhân công khoán nào '
+        + '(kiểm tra nhóm trong SX Settings).</div>';
+      return;
     }
-    if (!activities.length) {
-      nvGrid.insertAdjacentHTML('beforebegin',
-        '<div class="sx-warn-text">⚠ Chưa có Activity Type nào dùng được — vào Desk tạo loại công việc khoán (vd "Vào hộp 300") và điền đơn giá.</div>');
+    const daNhap = {};
+    rows.forEach((r) => {
+      daNhap[r.nhan_vien] = (daNhap[r.nhan_vien] || 0) + (Number(r.so_hop) || 0);
+    });
+    const chua = nhanVien.filter((nv) => !daNhap[nv.name]);
+    const roi = nhanVien.filter((nv) => daNhap[nv.name]);
+
+    nvGrid.innerHTML = '';
+    const them = (ds, xong) => {
+      const luoi = el('div', xong ? 'sx-nv-grid sx-nv-grid-xong' : 'sx-nv-grid');
+      ds.forEach((nv) => {
+        const btn = el('button', xong ? 'sx-nv-card sx-nv-xong' : 'sx-nv-card');
+        btn.type = 'button';
+        btn.title = nv.employee_name || nv.name;   // tên đầy đủ khi cần đối chiếu
+        btn.innerHTML = xong
+          ? `${esc(tenNgan[nv.name])}<span class="sx-nv-so">${daNhap[nv.name]}</span>`
+          : esc(tenNgan[nv.name]);
+        btn.addEventListener('click',
+          () => themDong(nv, activities, actGanDay, rows, save, tenNgan));
+        luoi.appendChild(btn);
+      });
+      nvGrid.appendChild(luoi);
+    };
+
+    if (chua.length) {
+      nvGrid.appendChild(el('div', 'sx-field-label', `Chưa nhập — còn ${chua.length} người`));
+      them(chua, false);
+    } else {
+      nvGrid.appendChild(el('div', 'sx-nv-het', '✓ Đã hỏi hết cả chuyền'));
     }
+    if (roi.length) {
+      nvGrid.appendChild(
+        el('div', 'sx-field-label', `Đã nhập — ${roi.length} người (bấm để ghi thêm)`));
+      them(roi, true);
+    }
+  }
+
+  if (!daChot && !activities.length) {
+    container.querySelector('#sx-vh-nv').insertAdjacentHTML('beforebegin',
+      '<div class="sx-warn-text">⚠ Chưa có Activity Type nào dùng được — vào Desk tạo '
+      + 'loại công việc khoán (vd "Vào hộp 300") và điền đơn giá.</div>');
   }
 
   paint();
