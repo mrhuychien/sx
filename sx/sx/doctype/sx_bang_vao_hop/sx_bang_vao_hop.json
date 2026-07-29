@@ -8,6 +8,8 @@
   "ngay_sx",
   "section_dong",
   "dong",
+  "section_an_ca",
+  "an_ca",
   "section_tong",
   "tong_hop",
   "column_break_tong",
@@ -35,6 +37,17 @@
    "label": "Chi tiết",
    "options": "SX Bang Vao Hop Item",
    "reqd": 1
+  },
+  {
+   "fieldname": "section_an_ca",
+   "fieldtype": "Section Break",
+   "label": "Ăn ca / ăn đêm"
+  },
+  {
+   "fieldname": "an_ca",
+   "fieldtype": "Table",
+   "label": "Chấm ăn ca / ăn đêm",
+   "options": "SX Bang Vao Hop An Ca"
   },
   {
    "fieldname": "section_tong",

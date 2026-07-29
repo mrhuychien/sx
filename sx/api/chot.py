@@ -29,7 +29,7 @@ def chot_ngay(ngay_sx):
     # Validate NGOÀI try/except: lỗi nghiệp vụ (đã chốt, thiếu tồn, thiếu đơn giá)
     # phải nổi lên NGUYÊN VĂN cho QC, không bị nuốt thành "check Error Log" + traceback.
     bang = _validate_truoc_chot(doc)
-    co_vao_hop = bool(bang and cint(bang.tong_hop) > 0)
+    co_vao_hop = _co_gi_de_ghi(bang)
 
     buoc = _("bắt đầu sinh chứng từ")
     canh_bao = []
@@ -115,7 +115,7 @@ def _validate_truoc_chot(doc):
 
     # Ít nhất một trong {bao_me có dòng, bảng vào hộp có dòng} — ngày rỗng vô nghĩa
     co_bao_me = len(doc.bao_me) > 0
-    co_vao_hop = bool(bang and cint(bang.tong_hop) > 0)
+    co_vao_hop = _co_gi_de_ghi(bang)
     if not co_bao_me and not co_vao_hop:
         frappe.throw(
             _("Ngày chưa có báo mẻ lẫn bảng vào hộp — không có gì để chốt.")
@@ -128,6 +128,21 @@ def _validate_truoc_chot(doc):
 
     _kiem_ton_kho(doc, bang, settings)
     return bang
+
+
+def _co_gi_de_ghi(bang):
+    """Bảng vào hộp có gì để ghi lương không: sản lượng khoán HOẶC chấm ăn ca (D30).
+
+    Ngày chỉ chấm ăn mà không ai vào hộp vẫn phải ra dòng lương — nếu chỉ nhìn
+    `tong_hop` thì ngày đó bị bỏ qua im lặng.
+    """
+    if not bang:
+        return False
+    if cint(bang.tong_hop) > 0:
+        return True
+    return any(
+        cint(r.an_ca) or cint(r.an_dem) for r in (bang.get("an_ca") or [])
+    )
 
 
 def _kho_nguon(item_code, settings):
@@ -345,8 +360,26 @@ def _dong_ngay(phieu, ngay):
     return phieu.append(SALARY_CHILD, {"ngay": ngay})
 
 
-def _ghi_dong_ngay(dong, cong_viec):
-    """Ghi ĐÈ 6 slot của dòng ngày (chốt lại = thay, không cộng dồn)."""
+def _ghi_an(dong, fieldname, co_an, so_tien):
+    """Ghi 1 ô ăn ca / ăn đêm theo ĐÚNG kiểu field bên app lương (D30).
+
+    Check  -> đánh dấu 1/0, tiền do bên lương tự quy đổi (không cộng vào thu nhập).
+    Số     -> ghi số tiền lấy từ SX Settings, và CÓ cộng vào thunhapngay.
+    Trả phần tiền đã ghi (0 nếu là ô đánh dấu / không có field).
+    """
+    df = frappe.get_meta(SALARY_CHILD).get_field(fieldname)
+    if not df:
+        return 0.0
+    if df.fieldtype == "Check":
+        dong.set(fieldname, 1 if co_an else 0)
+        return 0.0
+    tien = flt(so_tien) if co_an else 0.0
+    dong.set(fieldname, tien)
+    return tien
+
+
+def _ghi_dong_ngay(dong, cong_viec, an_ca=False, an_dem=False, settings=None):
+    """Ghi ĐÈ dòng ngày: 6 slot công việc + ăn ca/ăn đêm (chốt lại = thay, không cộng dồn)."""
     for i in range(1, SP_MAX + 1):
         dong.set(f"sp{i}", None)
         dong.set(f"sl{i}", 0)
@@ -360,8 +393,10 @@ def _ghi_dong_ngay(dong, cong_viec):
         dong.set(f"dg{i}", flt(dg))
         dong.set(f"tt{i}", tt)
         tong += tt
-    # tienanca / andem do bộ phận lương điền — giữ nguyên, chỉ cộng vào thu nhập ngày
-    dong.thunhapngay = tong + flt(dong.tienanca)
+    settings = settings or get_settings()
+    tien_an = _ghi_an(dong, "tienanca", an_ca, settings.get("tien_an_ca"))
+    tien_an += _ghi_an(dong, "andem", an_dem, settings.get("tien_an_dem"))
+    dong.thunhapngay = tong + tien_an
     return tong
 
 
@@ -402,6 +437,14 @@ def _ghi_luong_khoan(doc, bang):
     for (nv, act), g in gop.items():
         theo_nguoi.setdefault(nv, []).append((act, g["sl"], g["dg"]))
 
+    # Ăn ca / ăn đêm (D30): người CHỈ được chấm ăn (không vào hộp) vẫn phải có dòng
+    an = {}
+    for r in bang.get("an_ca") or []:
+        if not (cint(r.an_ca) or cint(r.an_dem)):
+            continue
+        an[r.nhan_vien] = (cint(r.an_ca), cint(r.an_dem))
+        theo_nguoi.setdefault(r.nhan_vien, [])
+
     ds_ghi = []
     for nv, cong_viec in theo_nguoi.items():
         if len(cong_viec) > SP_MAX:
@@ -411,8 +454,12 @@ def _ghi_luong_khoan(doc, bang):
                   "{2} loại/ngày. Gộp bớt loại hoặc nhờ bộ phận lương mở rộng bảng.").format(
                     ten, len(cong_viec), SP_MAX)
             )
+        co_an_ca, co_an_dem = an.get(nv, (0, 0))
         phieu = _phieu_luong_thang(nv, ngay, settings)
-        _ghi_dong_ngay(_dong_ngay(phieu, ngay), cong_viec)
+        _ghi_dong_ngay(
+            _dong_ngay(phieu, ngay), cong_viec,
+            an_ca=co_an_ca, an_dem=co_an_dem, settings=settings,
+        )
         _tinh_lai_luong_san_pham(phieu)
         phieu.flags.ignore_permissions = True
         phieu.save()

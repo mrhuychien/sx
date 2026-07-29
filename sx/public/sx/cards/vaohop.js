@@ -18,6 +18,11 @@ export async function render({ container, boot, call, ensureNgay }) {
   const activities = boot.activity_types || [];
   const actGanDay = boot.activity_gan_day || [];
   const nhanVien = boot.nhan_vien || [];
+  // Chấm ăn ca / ăn đêm theo người (D30) — {nhan_vien: {an_ca, an_dem}}
+  const anCa = {};
+  (((boot.bang_vao_hop || {}).an_ca) || []).forEach((r) => {
+    anCa[r.nhan_vien] = { an_ca: Number(r.an_ca) || 0, an_dem: Number(r.an_dem) || 0 };
+  });
   // Tên ngắn (chỉ tên gọi; trùng thì server đã thêm họ / viết tắt đệm)
   const tenNgan = {};
   nhanVien.forEach((nv) => { tenNgan[nv.name] = nv.ten_hien_thi || nv.employee_name || nv.name; });
@@ -32,12 +37,15 @@ export async function render({ container, boot, call, ensureNgay }) {
       <tbody id="sx-vh-rows"></tbody>
     </table>
     <div class="sx-vh-footer" id="sx-vh-footer"></div>
+    <div class="sx-vh-footer" id="sx-vh-an"></div>
     <div class="sx-vh-actions">
+      ${daChot ? '' : '<button type="button" class="sx-btn" id="sx-vh-anca">🍚 Chấm ăn ca / ăn đêm</button>'}
       <button type="button" class="sx-btn" id="sx-vh-copy">📋 Copy sản lượng gửi nhóm</button>
     </div>
   `;
   const tbody = container.querySelector('#sx-vh-rows');
   const footer = container.querySelector('#sx-vh-footer');
+  const anBox = container.querySelector('#sx-vh-an');
 
   const tenSP = (code) => {
     const it = itemsTp.find((x) => x.name === code);
@@ -79,6 +87,11 @@ export async function render({ container, boot, call, ensureNgay }) {
     const tongHop = rows.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
     footer.innerHTML = `Tổng: <b>${formatNumber(tongHop)}</b> sản phẩm · <b>${esc(formatVND(tongTien))}</b>`;
+    const soCa = Object.values(anCa).filter((x) => x.an_ca).length;
+    const soDem = Object.values(anCa).filter((x) => x.an_dem).length;
+    anBox.innerHTML = (soCa || soDem)
+      ? `Ăn ca: <b>${soCa}</b> người · Ăn đêm: <b>${soDem}</b> người`
+      : '<span class="sx-muted">Chưa chấm ăn ca / ăn đêm.</span>';
     if (!daChot) {
       tbody.querySelectorAll('.sx-cell-del').forEach((btn) => {
         btn.addEventListener('click', async () => { rows.splice(Number(btn.dataset.i), 1); await save(); });
@@ -106,6 +119,12 @@ export async function render({ container, boot, call, ensureNgay }) {
     });
   }
 
+  if (!daChot) {
+    container.querySelector('#sx-vh-anca').addEventListener('click', () => {
+      openAnCa(nhanVien, tenNgan, anCa, boot, save);
+    });
+  }
+
   container.querySelector('#sx-vh-copy').addEventListener('click', () => {
     copySanLuong(theoNguoi(), (boot.ngay_sx && boot.ngay_sx.ngay) || boot.ngay_xem);
   });
@@ -119,9 +138,16 @@ export async function render({ container, boot, call, ensureNgay }) {
           nhan_vien: x.nhan_vien, activity_type: x.activity_type,
           san_pham: x.san_pham, so_hop: x.so_hop,
         }))),
+        an_ca: JSON.stringify(Object.entries(anCa).map(([nv, v]) => ({
+          nhan_vien: nv, an_ca: v.an_ca, an_dem: v.an_dem,
+        }))),
       });
       rows.length = 0;
       (r && r.dong ? r.dong : []).forEach((x) => rows.push(x));
+      Object.keys(anCa).forEach((k) => delete anCa[k]);
+      ((r && r.an_ca) || []).forEach((x) => {
+        anCa[x.nhan_vien] = { an_ca: Number(x.an_ca) || 0, an_dem: Number(x.an_dem) || 0 };
+      });
       paint();
       toast('Đã lưu.');
     } catch (e) {
@@ -261,4 +287,68 @@ function hienDeChepTay(text) {
   ta.value = text;
   ta.focus();
   ta.select();
+}
+
+
+// Modal chấm ăn ca / ăn đêm cho từng công nhân công khoán (D30).
+// Số tiền lấy từ SX Settings khi chốt ngày — QC chỉ tick, không nhập tiền.
+function openAnCa(nhanVien, tenNgan, anCa, boot, save) {
+  if (!nhanVien.length) { toastErr('Chưa có công nhân công khoán nào.'); return; }
+  const m = openModal({ title: 'Chấm ăn ca / ăn đêm' });
+  const tamThoi = {};
+  nhanVien.forEach((nv) => {
+    const cu = anCa[nv.name] || {};
+    tamThoi[nv.name] = { an_ca: cu.an_ca || 0, an_dem: cu.an_dem || 0 };
+  });
+
+  const gia = (n) => (n ? ` (${formatVND(n)})` : '');
+  m.body.innerHTML = `
+    <div class="sx-muted">Ăn ca${gia(boot.tien_an_ca)} · Ăn đêm${gia(boot.tien_an_dem)}
+      — đơn giá lấy từ SX Settings.</div>
+    <div class="sx-vh-actions">
+      <button type="button" class="sx-btn" id="sx-ac-all">Tất cả ăn ca</button>
+      <button type="button" class="sx-btn" id="sx-ac-none">Bỏ hết</button>
+    </div>
+    <table class="sx-table"><tbody id="sx-ac-rows"></tbody></table>
+    <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-ac-ok">LƯU</button>
+  `;
+  const body = m.body.querySelector('#sx-ac-rows');
+
+  function ve() {
+    body.innerHTML = nhanVien.map((nv) => {
+      const t = tamThoi[nv.name];
+      return `<tr>
+        <td>${esc(tenNgan[nv.name] || nv.employee_name || nv.name)}</td>
+        <td><button type="button" class="sx-ac-tog${t.an_ca ? ' sx-ac-on' : ''}"
+          data-nv="${esc(nv.name)}" data-f="an_ca">Ca</button></td>
+        <td><button type="button" class="sx-ac-tog${t.an_dem ? ' sx-ac-on' : ''}"
+          data-nv="${esc(nv.name)}" data-f="an_dem">Đêm</button></td>
+      </tr>`;
+    }).join('');
+    body.querySelectorAll('.sx-ac-tog').forEach((b) => {
+      b.addEventListener('click', () => {
+        const t = tamThoi[b.dataset.nv];
+        t[b.dataset.f] = t[b.dataset.f] ? 0 : 1;
+        b.classList.toggle('sx-ac-on', !!t[b.dataset.f]);
+      });
+    });
+  }
+  ve();
+
+  m.body.querySelector('#sx-ac-all').addEventListener('click', () => {
+    nhanVien.forEach((nv) => { tamThoi[nv.name].an_ca = 1; });
+    ve();
+  });
+  m.body.querySelector('#sx-ac-none').addEventListener('click', () => {
+    nhanVien.forEach((nv) => { tamThoi[nv.name] = { an_ca: 0, an_dem: 0 }; });
+    ve();
+  });
+  m.body.querySelector('#sx-ac-ok').addEventListener('click', async () => {
+    Object.keys(anCa).forEach((k) => delete anCa[k]);
+    Object.entries(tamThoi).forEach(([nv, v]) => {
+      if (v.an_ca || v.an_dem) anCa[nv] = v;
+    });
+    m.close();
+    await save();
+  });
 }

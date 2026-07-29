@@ -148,6 +148,8 @@ def get_boot(ngay=None):
             "Item", filters={"custom_sx_nhom": "TP", "disabled": 0},
             fields=["name", "item_name", "item_group"], order_by="item_name",
         )
+        boot["tien_an_ca"] = flt(settings.get("tien_an_ca"))
+        boot["tien_an_dem"] = flt(settings.get("tien_an_dem"))
         boot["activity_types"] = _activity_vao_hop()
         boot["activity_gan_day"] = _activity_gan_day()
         boot["nhan_vien"], canh_bao_nv = _nhan_vien_vao_hop()
@@ -203,6 +205,10 @@ def _bang_summary(ngay_sx):
              "activity_type": r.activity_type,
              "don_gia": r.don_gia, "thanh_tien": r.thanh_tien}
             for r in doc.dong
+        ],
+        "an_ca": [
+            {"nhan_vien": r.nhan_vien, "an_ca": cint(r.an_ca), "an_dem": cint(r.an_dem)}
+            for r in (doc.get("an_ca") or [])
         ],
     }
 
@@ -330,8 +336,12 @@ def ghi_su_co(ngay_sx, loai, mo_ta=None, phut_dung=0):
 
 
 @frappe.whitelist()
-def luu_bang_vao_hop(ngay_sx, rows):
-    """Upsert DRAFT SX Bang Vao Hop (auto-save). Đơn giá luôn tính lại server-side."""
+def luu_bang_vao_hop(ngay_sx, rows, an_ca=None):
+    """Upsert DRAFT SX Bang Vao Hop (auto-save). Đơn giá luôn tính lại server-side.
+
+    `an_ca` = [{nhan_vien, an_ca, an_dem}] (D30). Bỏ qua (None) thì GIỮ NGUYÊN bảng
+    chấm ăn đang có — client nào chỉ sửa sản lượng sẽ không vô tình xoá dấu chấm ăn.
+    """
     guard_card("vaohop")
     if frappe.db.get_value("SX Ngay San Xuat", ngay_sx, "docstatus") != 0:
         frappe.throw(_("Phiếu ngày đã chốt — không sửa bảng vào hộp được"))
@@ -349,6 +359,17 @@ def luu_bang_vao_hop(ngay_sx, rows):
              "san_pham": r.get("san_pham") or None,
              "so_hop": cint(r.get("so_hop"))},
         )
+    if an_ca is not None:
+        doc.set("an_ca", [])
+        for r in frappe.parse_json(an_ca) or []:
+            if not (cint(r.get("an_ca")) or cint(r.get("an_dem"))):
+                continue   # không chấm gì thì khỏi lưu dòng rỗng
+            doc.append(
+                "an_ca",
+                {"nhan_vien": r.get("nhan_vien"),
+                 "an_ca": cint(r.get("an_ca")),
+                 "an_dem": cint(r.get("an_dem"))},
+            )
     doc.flags.ignore_permissions = True
     doc.save()
     return _bang_summary(ngay_sx)

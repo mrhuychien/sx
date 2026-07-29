@@ -13,7 +13,11 @@
   "nguon_cong_khoan",
   "column_break_vh",
   "gia_tri_cong_khoan",
-  "field_don_gia_activity"
+  "field_don_gia_activity",
+  "section_an_ca",
+  "tien_an_ca",
+  "column_break_ac",
+  "tien_an_dem"
  ],
  "fields": [
   {
@@ -72,6 +76,27 @@
    "fieldtype": "Data",
    "label": "Field đơn giá trên Activity Type",
    "description": "Để trống -> tự dò (custom_don_gia, don_gia, billing_rate, costing_rate…)"
+  },
+  {
+   "fieldname": "section_an_ca",
+   "fieldtype": "Section Break",
+   "label": "Ăn ca / ăn đêm (lương khoán)"
+  },
+  {
+   "fieldname": "tien_an_ca",
+   "fieldtype": "Currency",
+   "label": "Tiền ăn ca / người / ngày",
+   "description": "QC chấm ăn ca trên bảng vào hộp; chốt ngày ghi số tiền này vào phiếu lương khoán."
+  },
+  {
+   "fieldname": "column_break_ac",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tien_an_dem",
+   "fieldtype": "Currency",
+   "label": "Tiền ăn đêm / người / ngày",
+   "description": "Bỏ trống (0) nếu bên lương tự quy đổi từ dấu chấm ăn đêm."
   }
  ],
  "issingle": 1,

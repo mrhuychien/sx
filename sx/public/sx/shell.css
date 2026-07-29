@@ -113,6 +113,24 @@ body { background: var(--sx-bg) !important; }
   color: var(--sx-danger);
 }
 
+/* ─── Chấm ăn ca / ăn đêm (D30) ─── */
+.sx-ac-tog {
+  min-width: 74px;
+  min-height: 44px;
+  border: 2px solid var(--sx-line);
+  border-radius: 10px;
+  background: var(--sx-surface);
+  color: var(--sx-text-3);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sx-ac-on {
+  border-color: var(--sx-primary, #0b63ce);
+  background: var(--sx-primary, #0b63ce);
+  color: #fff;
+}
+
 .sx-main {
   padding: 16px 16px calc(var(--sx-bottom-h) + 24px);
   max-width: 900px;

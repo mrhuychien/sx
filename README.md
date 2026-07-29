@@ -111,8 +111,8 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   1 phiếu/người/**tháng** (PLK), child `luongkhoan` **1 dòng/ngày** với 6 slot
   `sp/sl/dg/tt` (`sp` = tên Activity Type). Chốt ngày **upsert đúng dòng ngày đó** và để phiếu
   ở **DRAFT** (`status = "Nháp"`) cho bộ phận lương duyệt cuối tháng — chốt lại = ghi đè, không
-  cộng dồn. Huỷ ngày chỉ **gỡ dòng ngày đó**, các ngày khác giữ nguyên. Không đụng
-  `tienanca`/`andem`/chuyên cần/bảo hiểm.
+  cộng dồn. Huỷ ngày chỉ **gỡ dòng ngày đó**, các ngày khác giữ nguyên. Không đụng chuyên cần /
+  bảo hiểm (ăn ca / ăn đêm từ 29/07 do QC chấm — xem D30).
 
 ## Thay đổi 29/07
 
@@ -133,6 +133,14 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   `Khanh (Vào hộp 170: 29, Vào hộp 300: 50)`, mỗi người 1 dòng, kèm ngày + tổng. Công nhân tự
   theo dõi và đối chiếu.
 
+- **D30 — chấm ăn ca / ăn đêm ngay trên bảng vào hộp:** nút **🍚 Chấm ăn ca / ăn đêm** mở danh
+  sách công nhân công khoán, mỗi người 2 ô tick **Ca** / **Đêm** (có nút *Tất cả ăn ca* / *Bỏ
+  hết*). Chốt ngày đổ thẳng vào **đúng dòng ngày** của phiếu lương khoán. Đơn giá lấy từ
+  `SX Settings` → *Tiền ăn ca / Tiền ăn đêm*, QC **không nhập tiền**. Người chỉ được chấm ăn mà
+  không vào hộp vẫn ra dòng lương. Chốt lại = ghi đè (bỏ tick rồi chốt lại thì về 0) — tức là
+  **từ nay ăn ca/ăn đêm do QC chấm, bên lương không điền tay nữa**, điền tay sẽ bị chốt ngày ghi đè.
+  Ghi theo đúng kiểu field bên app lương: ô **tick** thì đánh dấu 1/0 (tiền để bên lương quy đổi),
+  ô **số tiền** thì ghi tiền và cộng vào `thunhapngay`.
 - **D29 — danh sách chứng từ đã tạo:** thẻ Chốt ngày (khi ngày đã chốt) liệt kê **mọi chứng từ
   ngày đó sinh ra** — phiếu ngày, phiếu nhập bột, lệnh sản xuất, phiếu kho, lô (batch), bảng vào
   hộp, phiếu lương khoán — theo đúng thứ tự sinh, kèm mô tả 1 dòng (sản phẩm × số lượng, loại

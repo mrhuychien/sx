@@ -1,0 +1,52 @@
+{
+ "actions": [],
+ "creation": "2026-07-29 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "nhan_vien",
+  "ten_nhan_vien",
+  "an_ca",
+  "an_dem"
+ ],
+ "fields": [
+  {
+   "fieldname": "nhan_vien",
+   "fieldtype": "Link",
+   "label": "Nhân viên",
+   "options": "Employee",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "ten_nhan_vien",
+   "fieldtype": "Data",
+   "label": "Tên nhân viên",
+   "fetch_from": "nhan_vien.employee_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "an_ca",
+   "fieldtype": "Check",
+   "label": "Ăn ca",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "an_dem",
+   "fieldtype": "Check",
+   "label": "Ăn đêm",
+   "in_list_view": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-29 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Bang Vao Hop An Ca",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
