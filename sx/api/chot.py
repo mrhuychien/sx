@@ -36,9 +36,6 @@ def chot_ngay(ngay_sx):
     try:
         chung_tu = []  # [{dt, name}] theo thứ tự sinh — để huỷ ngược
 
-        buoc = _("nhập bột lô rang hôm trước (Manufacture tầng 1)")
-        _tu_nhap_bot(doc, chung_tu)
-
         buoc = _("tầng 2 (nấu + trộn theo báo mẻ)")
         _chot_tang_2(doc, chung_tu)
 
@@ -178,17 +175,12 @@ def _tong_hop_theo_sp(bang):
 def _kiem_ton_kho(doc, bang, settings):
     """Kiểm đủ tồn TRƯỚC khi sinh chứng từ. BTP sinh trong chốt (bao_me) được cộng
     tín dụng (xấp xỉ — FIFO thật ở bước sinh sẽ bắt thiếu chính xác & rollback)."""
-    from sx.api.tang1 import lo_cho_nhap_bot
-
     thieu = []
     sx_hom_nay = {}
     for row in doc.bao_me:
         sx_hom_nay[row.item_btp] = sx_hom_nay.get(row.item_btp, 0) + flt(row.tong_kg)
-    # Bột nền sắp được nhập ngay trong lần chốt này (lô rang hôm trước) cũng là
-    # nguồn cung — không cộng vào thì validate báo thiếu bột dù thực tế có.
-    for lo in lo_cho_nhap_bot(truoc_ngay=doc.ngay):
-        if lo.get("item_bot"):
-            sx_hom_nay[lo["item_bot"]] = sx_hom_nay.get(lo["item_bot"], 0) + flt(lo["bot_kg"])
+    # KHÔNG cộng tín dụng bột "sắp nhập" nữa: từ D31 bột chỉ vào kho khi QC bấm
+    # Nghiền trên lưu đồ. Cộng trước sẽ cho chốt qua rồi vỡ ở bước sinh SE.
 
     def _check(item_code, kho, can):
         ton = flt(
@@ -228,20 +220,24 @@ def _kiem_ton_kho(doc, bang, settings):
 # ─────────────────────────────────────────────── tầng 1 tự động ──
 
 
-def _tu_nhap_bot(doc, chung_tu):
-    """Tự nhập bột cho MỌI lô R rang trước ngày chốt (đã qua khâu nghiền — D+1).
+def _lo_con_o_xuong(doc):
+    """Lô R đã xuất kho mà chưa nghiền xong — cảnh báo mềm khi chốt ngày (D31).
 
-    Thay cho card "Nhập bột" trước đây: QC không bấm gì, chốt ngày làm hộ.
-    Mỗi lô -> SX Nhap Bot submit -> hook chạy Manufacture T1 (trừ đỗ FIFO, nhập bột
-    Kho BTP, batch = lô R). Ghi vào ds_wo_se để huỷ ngày thu hồi được.
+    Từ D31, nghiền là NÚT trên lưu đồ do QC bấm (kg ra cân thật), chốt ngày KHÔNG
+    tự nhập bột nữa: đỗ nằm ở kho Xưởng dưới dạng đỗ ủ / đỗ vỡ, tự nhập sẽ trừ sai
+    item + sai kho. Chốt ngày chỉ nhắc để QC không bỏ quên lô.
     """
-    from sx.api.tang1 import lo_cho_nhap_bot, tao_nhap_bot
+    from sx.api.tang1 import lo_cho_nhap_bot
 
-    for lo in lo_cho_nhap_bot(truoc_ngay=doc.ngay):
-        nb = tao_nhap_bot(lo["name"], ngay_nhap=doc.ngay)
-        # SX Nhap Bot đứng ĐẦU danh sách -> khi huỷ ngược (đảo thứ tự) nó bị huỷ
-        # SAU CÙNG, tức sau khi T2/T3 đã nhả bột ra. Đúng thứ tự phụ thuộc.
-        chung_tu.append({"dt": "SX Nhap Bot", "name": nb.name})
+    ds = lo_cho_nhap_bot(truoc_ngay=doc.ngay)
+    if not ds:
+        return []
+    return [
+        _("Lô {0} ({1}, rang {2}) chưa nghiền xong — vào thẻ Luồng sản xuất bấm "
+          "Nghiền bột, nếu không bột sẽ thiếu khi trộn.").format(
+            lo["lo_rang"], lo["loai_dau"], lo["ngay_rang"])
+        for lo in ds
+    ]
 
 
 # ─────────────────────────────────────────────── T2 / T3 ──
@@ -496,9 +492,9 @@ def _go_luong_khoan(ds_ghi):
 
 
 def _canh_bao_mem(doc):
-    """Không chặn: tồn bột bánh loại < lượng cán báo (dấu hiệu quên báo mẻ trộn)."""
+    """Không chặn: tồn bột bánh < lượng cán báo (quên báo mẻ trộn) + lô còn ở xưởng."""
     settings = get_settings()
-    canh_bao = []
+    canh_bao = _lo_con_o_xuong(doc)
     can_theo_loai = {}
     for row in doc.bao_can:
         can_theo_loai[row.item_bot_banh] = can_theo_loai.get(row.item_bot_banh, 0) + flt(row.so_me)

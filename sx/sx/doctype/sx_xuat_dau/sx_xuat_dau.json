@@ -13,6 +13,7 @@
   "dau_kg",
   "section_lo",
   "lo_rang",
+  "se_xuat_kho",
   "trang_thai_bot",
   "ghi_chu"
  ],
@@ -77,6 +78,14 @@
    "bold": 1
   },
   {
+   "fieldname": "se_xuat_kho",
+   "fieldtype": "Link",
+   "label": "Phiếu xuất kho ra xưởng",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "description": "Phiếu chuyển kho Nguyên liệu → Xưởng sinh khi QC bấm Xuất kho đỗ (D31)."
+  },
+  {
    "default": "0",
    "fieldname": "trang_thai_bot",
    "fieldtype": "Check",
@@ -102,12 +111,25 @@
  "permissions": [
   {
    "role": "System Manager",
-   "read": 1, "write": 1, "create": 1, "delete": 1,
-   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1
   },
   {
    "role": "SX Ghi So",
-   "read": 1, "write": 1, "create": 1, "submit": 1, "print": 1, "report": 1
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "print": 1,
+   "report": 1
   },
   {
    "role": "SX Vao Hop",
@@ -115,8 +137,15 @@
   },
   {
    "role": "SX Quan Ly",
-   "read": 1, "write": 1, "create": 1,
-   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1
   }
  ],
  "search_fields": "lo_rang,ngay_rang,loai_dau",

@@ -119,6 +119,67 @@ def tao_se_manufacture(wo, qty, batch_fg, kho_nguon, ngay=None, ngay_sx=None):
     return se
 
 
+def tao_se_repack(cong_ty, item_vao, kg_vao, kho_vao, item_ra, kg_ra, kho_ra,
+                  batch_ra=None, batch_vao=None, ngay=None, ghi_chu=None):
+    """Stock Entry Repack: đổi item A -> item B mà KHÔNG cần BOM (D31).
+
+    Dùng cho các công đoạn tầng 1 (luộc+rang / tách vỏ / nghiền): mỗi công đoạn là
+    một lần chuyển hoá có hao hụt, số kg ra do QC cân thật — không có định mức cố
+    định để dựng BOM. Repack là purpose chuẩn của ERPNext cho đúng việc này.
+
+    batch_vao=None -> tự pick FIFO. batch_ra bắt buộc nếu item ra có batch.
+    """
+    se = frappe.new_doc("Stock Entry")
+    se.purpose = "Repack"
+    se.stock_entry_type = loai_phieu_kho("Repack")
+    se.company = cong_ty
+    if ngay:
+        se.set_posting_time = 1
+        se.posting_date = str(ngay)
+    if ghi_chu:
+        se.remarks = ghi_chu
+
+    se.append("items", {
+        "item_code": item_vao, "qty": flt(kg_vao),
+        "s_warehouse": kho_vao,
+        **({"use_serial_batch_fields": 1, "batch_no": batch_vao} if batch_vao else {}),
+    })
+    se.append("items", {
+        "item_code": item_ra, "qty": flt(kg_ra),
+        "t_warehouse": kho_ra, "is_finished_item": 1,
+        **({"use_serial_batch_fields": 1, "batch_no": batch_ra} if batch_ra else {}),
+    })
+    if not batch_vao:
+        _gan_batch_fifo(se)
+
+    se.flags.ignore_permissions = True
+    se.insert()
+    se.submit()
+    return se
+
+
+def tao_se_chuyen_kho(cong_ty, item, kg, kho_di, kho_den, ngay=None, ghi_chu=None):
+    """Stock Entry Material Transfer — xuất kho nguyên liệu ra xưởng (D31). FIFO lô."""
+    se = frappe.new_doc("Stock Entry")
+    se.purpose = "Material Transfer"
+    se.stock_entry_type = loai_phieu_kho("Material Transfer")
+    se.company = cong_ty
+    if ngay:
+        se.set_posting_time = 1
+        se.posting_date = str(ngay)
+    if ghi_chu:
+        se.remarks = ghi_chu
+    se.append("items", {
+        "item_code": item, "qty": flt(kg),
+        "s_warehouse": kho_di, "t_warehouse": kho_den,
+    })
+    _gan_batch_fifo(se)
+    se.flags.ignore_permissions = True
+    se.insert()
+    se.submit()
+    return se
+
+
 def _gan_batch_fifo(se):
     """Gán batch FIFO cho dòng RM có has_batch_no; 1 dòng tách nhiều batch nếu cần.
 

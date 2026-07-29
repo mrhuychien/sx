@@ -8,9 +8,24 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
-from sx.api.mfg import cancel_doc, tao_batch, tao_se_manufacture, tao_wo
+from sx.api.mfg import (
+    cancel_doc,
+    tao_batch,
+    tao_se_chuyen_kho,
+    tao_se_manufacture,
+    tao_se_repack,
+    tao_wo,
+)
 from sx.config.roles import guard_card
-from sx.utils import get_bot_from_dau, get_settings, get_yield_bot
+from sx.utils import (
+    CONG_DOAN,
+    batch_cua_chang,
+    get_bot_from_dau,
+    get_settings,
+    get_yield_bot,
+    item_cua_chang,
+    kho_xuong,
+)
 
 
 def lo_cho_nhap_bot(truoc_ngay=None):
@@ -157,3 +172,172 @@ def on_cancel_nhap_bot(doc, method=None):
     doc.db_set("wo", None)
     if log:
         frappe.msgprint("; ".join(log))
+
+
+# ═══════════════════ Luồng công đoạn tầng 1 theo lưu đồ (D31) ═══════════════════
+#
+# Đỗ (Kho NVL) --xuất kho--> Đỗ (Kho Xưởng) --luộc+rang--> ĐỖ Ủ --tách vỏ--> ĐỖ VỠ
+#   --nghiền--> BỘT NỀN (Kho BTP)
+#
+# Mỗi công đoạn = 1 Stock Entry Repack, kg ra do QC cân thật. Tồn từng chặng đọc
+# THẲNG từ kho (Bin/Batch) — không có state phụ để lệch.
+
+
+def _tim_chang(ma):
+    for cd in CONG_DOAN:
+        if cd["ma"] == ma:
+            return cd
+    frappe.throw(_("Công đoạn '{0}' không có trong luồng sản xuất.").format(ma))
+
+
+def _ton_batch(item, kho, batch=None):
+    """Tồn của item tại kho (theo batch nếu có). Dùng để vẽ lưu đồ + chặn quá tay."""
+    from erpnext.stock.doctype.batch.batch import get_batch_qty
+
+    if batch:
+        if not frappe.db.exists("Batch", batch):
+            return 0.0
+        return flt(get_batch_qty(batch_no=batch, item_code=item, warehouse=kho) or 0)
+    return flt(
+        frappe.db.get_value("Bin", {"item_code": item, "warehouse": kho}, "actual_qty")
+    )
+
+
+@frappe.whitelist()
+def luu_do_lo(ngay=None):
+    """Lưu đồ tầng 1: mỗi lô R đang chạy + tồn BTP từng chặng (D31).
+
+    Lô nào còn tồn ở bất kỳ chặng nào (hoặc mới xuất kho trong 7 ngày) thì còn hiện.
+    """
+    guard_card("xuatdau")
+    settings = get_settings()
+    kho_x = kho_xuong(settings)
+    ds = frappe.get_all(
+        "SX Xuat Dau",
+        filters={"docstatus": 1, "ngay_xuat": (">=", add_days(getdate(ngay or nowdate()), -14))},
+        fields=["name", "lo_rang", "ngay_xuat", "ngay_rang", "loai_dau", "dau_kg",
+                "trang_thai_bot"],
+        order_by="ngay_rang desc, creation desc",
+    )
+    out = []
+    for r in ds:
+        chang = []
+        con_lai = 0.0
+        for ten_chang, nhan, kho in (
+            ("dau", _("Đỗ ở xưởng"), kho_x),
+            ("u", _("Đỗ ủ"), kho_x),
+            ("vo", _("Đỗ vỡ"), kho_x),
+            ("bot", _("Bột nền"), settings.kho_btp),
+        ):
+            try:
+                item = item_cua_chang(r.loai_dau, ten_chang)
+            except Exception:
+                chang.append({"chang": ten_chang, "nhan": nhan, "item": None, "ton": 0,
+                              "thieu_item": 1})
+                continue
+            batch = batch_cua_chang(r.lo_rang, ten_chang)
+            # Đỗ chưa rang chưa có batch riêng -> đọc tồn tổng của item tại kho xưởng
+            ton = _ton_batch(item, kho, batch if ten_chang != "dau" else None)
+            if ten_chang != "dau":
+                con_lai += ton
+            chang.append({"chang": ten_chang, "nhan": nhan, "item": item,
+                          "batch": batch, "ton": flt(ton, 2)})
+        out.append({
+            "name": r.name, "lo_rang": r.lo_rang, "loai_dau": r.loai_dau,
+            "dau_kg": flt(r.dau_kg, 2), "ngay_xuat": str(r.ngay_xuat),
+            "ngay_rang": str(r.ngay_rang), "da_nhap_bot": cint(r.trang_thai_bot),
+            "chang": chang, "con_o_xuong": flt(con_lai, 2),
+            "cong_doan": [{"ma": c["ma"], "ten": c["ten"]} for c in CONG_DOAN],
+        })
+    return {"kho_xuong": kho_x, "lo": out}
+
+
+@frappe.whitelist()
+def xuat_kho_dau(loai_dau, dau_kg, ngay_rang=None, ngay_xuat=None):
+    """QC bấm 'Xuất kho đỗ': phiếu chuyển kho Nguyên liệu -> Xưởng + sinh lô R (D31).
+
+    Đỗ FIFO theo lô NCC; lô R sinh ngay để QC ghi thẻ treo theo lô suốt tuyến.
+    """
+    guard_card("xuatdau")
+    settings = get_settings()
+    for f, label in (("cong_ty", "Công ty"), ("kho_nvl", "Kho NVL")):
+        if not settings.get(f):
+            frappe.throw(_("SX Settings chưa cấu hình: {0}").format(label))
+
+    kq = xuat_dau(loai_dau, dau_kg, ngay_rang, ngay_xuat)
+    se = tao_se_chuyen_kho(
+        settings.cong_ty, loai_dau, flt(dau_kg),
+        kho_di=settings.kho_nvl, kho_den=kho_xuong(settings),
+        ngay=ngay_xuat or nowdate(),
+        ghi_chu=_("Xuất đỗ ra xưởng — lô {0}").format(kq["lo_rang"]),
+    )
+    frappe.db.set_value("SX Xuat Dau", kq["name"], "se_xuat_kho", se.name)
+    kq["se"] = se.name
+    return kq
+
+
+@frappe.whitelist()
+def hoan_tat_cong_doan(xuat_dau_name, cong_doan, kg_ra=None, kg_vao=None, ngay=None):
+    """Bấm 'Hoàn tất công đoạn' — chuyển BTP sang chặng kế tiếp (D31).
+
+    kg_vao  bỏ trống = lấy TOÀN BỘ tồn của chặng trước (nút "Hoàn tất lô").
+    kg_ra   bỏ trống = bằng kg_vao (không khai hao hụt); nghiền thì gợi ý theo
+            yield BOM tầng 1 — QC vẫn sửa được.
+    """
+    guard_card("xuatdau")
+    cd = _tim_chang(cong_doan)
+    xd = frappe.get_doc("SX Xuat Dau", xuat_dau_name)
+    if xd.docstatus != 1:
+        frappe.throw(_("Phiếu xuất đỗ {0} không ở trạng thái đã ghi.").format(xuat_dau_name))
+
+    settings = get_settings()
+    kho_x = kho_xuong(settings)
+    item_vao = item_cua_chang(xd.loai_dau, cd["vao"])
+    item_ra = item_cua_chang(xd.loai_dau, cd["ra"])
+    batch_vao = batch_cua_chang(xd.lo_rang, cd["vao"])
+    batch_ra = batch_cua_chang(xd.lo_rang, cd["ra"])
+    kho_ra = settings.kho_btp if cd["ra"] == "bot" else kho_x
+
+    ton = _ton_batch(item_vao, kho_x, batch_vao if cd["vao"] != "dau" else None)
+    vao = flt(kg_vao) if kg_vao else flt(ton)
+    if vao <= 0:
+        frappe.throw(
+            _("Không còn {0} nào ở xưởng cho lô {1} — công đoạn trước đã làm chưa?")
+            .format(item_vao, xd.lo_rang)
+        )
+    if vao > ton + 1e-6:
+        frappe.throw(
+            _("Lô {0} chỉ còn {1} kg {2} ở xưởng, không hoàn tất {3} kg được.")
+            .format(xd.lo_rang, flt(ton, 2), item_vao, flt(vao, 2))
+        )
+
+    if kg_ra:
+        ra = flt(kg_ra)
+    elif cd["ra"] == "bot":
+        _bot, bom = get_bot_from_dau(xd.loai_dau)
+        ra = flt(vao * get_yield_bot(bom, xd.loai_dau), 2)
+    else:
+        ra = vao
+    if ra <= 0:
+        frappe.throw(_("Số kg ra phải lớn hơn 0."))
+
+    tao_batch(item_ra, batch_ra, ngay_sx=None)
+    se = tao_se_repack(
+        settings.cong_ty,
+        item_vao=item_vao, kg_vao=vao, kho_vao=kho_x,
+        item_ra=item_ra, kg_ra=ra, kho_ra=kho_ra,
+        batch_ra=batch_ra,
+        batch_vao=batch_vao if cd["vao"] != "dau" else None,
+        ngay=ngay or nowdate(),
+        ghi_chu=_("{0} — lô {1}").format(cd["ten"], xd.lo_rang),
+    )
+    if cd["ra"] == "bot":
+        # Giữ tương thích: cờ này chặn chốt ngày tự nhập bột lại lần nữa (D18)
+        frappe.db.set_value("SX Xuat Dau", xd.name, "trang_thai_bot", 1)
+
+    return {
+        "lo_rang": xd.lo_rang, "cong_doan": cd["ten"],
+        "kg_vao": flt(vao, 2), "kg_ra": flt(ra, 2),
+        "item_ra": item_ra, "batch_ra": batch_ra, "se": se.name,
+        "hao_hut": flt(vao - ra, 2),
+    }

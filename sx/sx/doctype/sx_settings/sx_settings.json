@@ -9,6 +9,7 @@
   "kho_nvl",
   "kho_btp",
   "kho_tp",
+  "kho_xuong",
   "section_vao_hop",
   "nguon_cong_khoan",
   "column_break_vh",
@@ -47,6 +48,13 @@
    "fieldtype": "Link",
    "label": "Kho TP",
    "options": "Warehouse"
+  },
+  {
+   "fieldname": "kho_xuong",
+   "fieldtype": "Link",
+   "label": "Kho Xưởng sản xuất",
+   "options": "Warehouse",
+   "description": "Nơi giữ bán thành phẩm đang dở dang ngoài xưởng (đỗ ủ, đỗ vỡ). Bỏ trống thì dùng Kho BTP."
   },
   {
    "fieldname": "section_vao_hop",

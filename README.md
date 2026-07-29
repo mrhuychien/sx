@@ -133,6 +133,23 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   `Khanh (Vào hộp 170: 29, Vào hộp 300: 50)`, mỗi người 1 dòng, kèm ngày + tổng. Công nhân tự
   theo dõi và đối chiếu.
 
+- **D31 — thẻ ghi sổ chạy theo LƯU ĐỒ sản xuất, có tồn bán thành phẩm:** thay thẻ *Xuất đậu*
+  bằng thẻ **Luồng sản xuất**. QC bấm **XUẤT KHO ĐỖ** → sinh phiếu chuyển kho *Nguyên liệu →
+  Xưởng sản xuất* (đỗ FIFO theo lô NCC) và ra mã lô R để ghi thẻ. Mỗi lô hiện thành một dãy ô
+  **Đỗ ở xưởng → Đỗ ủ → Đỗ vỡ → Bột nền**, mỗi ô ghi **tồn thật đọc từ kho**, ô nào còn hàng thì
+  có nút công đoạn kế tiếp:
+  - **Luộc + rang** → Đỗ ủ · **Tách vỏ** → Đỗ vỡ · **Nghiền bột** → Bột nền
+  - Mỗi nút: *Hoàn tất cả lô* (lấy hết tồn) hoặc *Nhập số cụ thể* (kg vào + kg ra cân thật),
+    hao hụt từng công đoạn được ghi nhận
+  - Chứng từ sinh ra là **Stock Entry Repack** — không cần BOM cho các chặng này, vì hao hụt
+    mỗi mẻ mỗi khác
+  - Batch: `{lô R}-U` (đỗ ủ) · `{lô R}-V` (đỗ vỡ) · `{lô R}` (bột nền, giữ quy ước cũ) —
+    Batch trong Frappe là duy nhất toàn hệ thống nên các chặng phải có hậu tố riêng
+  - ⚠️ **Chốt ngày KHÔNG còn tự nhập bột** (đảo lại D18): đỗ giờ nằm ở kho Xưởng dưới dạng
+    đỗ ủ/đỗ vỡ, tự nhập sẽ trừ sai item + sai kho. Chốt ngày **cảnh báo** lô nào chưa nghiền
+    xong để QC không bỏ quên.
+  - Cần chạy `sx.seed.seed_btp_dau` (tạo Item Đỗ ủ / Đỗ vỡ) và điền **SX Settings → Kho Xưởng
+    sản xuất**; để trống thì dùng luôn Kho BTP.
 - **D30 — chấm ăn ca / ăn đêm ngay trên bảng vào hộp:** nút **🍚 Chấm ăn ca / ăn đêm** mở danh
   sách công nhân công khoán, mỗi người 2 ô tick **Ca** / **Đêm** (có nút *Tất cả ăn ca* / *Bỏ
   hết*). Chốt ngày đổ thẳng vào **đúng dòng ngày** của phiếu lương khoán. Đơn giá lấy từ

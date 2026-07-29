@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-10';
+const BUILD = 'sx-11';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -21,6 +21,7 @@ const VIEW_PATHS = {
 };
 const CARD_PATHS = {
   xuatdau: '/assets/sx/sx/cards/xuatdau.js',
+  luutrinh: '/assets/sx/sx/cards/luutrinh.js',
   baome: '/assets/sx/sx/cards/baome.js',
   baocan: '/assets/sx/sx/cards/baocan.js',
   suco: '/assets/sx/sx/cards/suco.js',

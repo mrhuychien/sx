@@ -290,3 +290,58 @@ def topo_rank_by_bom(item_codes):
     for it in items:
         _rank(it)
     return rank
+
+
+# ───────────────────────────────────── công đoạn tầng 1 (D31) ──
+
+# Luồng sản xuất tầng 1 theo lưu đồ: đỗ (kho NVL) → xuất ra xưởng → luộc+rang →
+# ĐỖ Ủ → tách vỏ → ĐỖ VỠ → nghiền → BỘT NỀN (kho BTP).
+# Mỗi công đoạn là 1 Stock Entry Repack với kg ra do QC cân thật (không có định mức
+# cố định để dựng BOM — hao hụt từng mẻ khác nhau).
+CONG_DOAN = [
+    {"ma": "rang", "ten": "Luộc + rang", "vao": "dau", "ra": "u"},
+    {"ma": "tachvo", "ten": "Tách vỏ", "vao": "u", "ra": "vo"},
+    {"ma": "nghien", "ten": "Nghiền bột", "vao": "vo", "ra": "bot"},
+]
+
+_HAU_TO_ITEM = {"u": "ủ", "vo": "vỡ"}
+_HAU_TO_BATCH = {"u": "U", "vo": "V"}
+
+
+def ten_btp_dau(loai_dau, chang):
+    """Tên item BTP của 1 chặng: 'Đỗ xanh' + 'ủ' -> 'Đỗ xanh ủ' (D31)."""
+    hau_to = _HAU_TO_ITEM.get(chang)
+    if not hau_to:
+        frappe.throw(_("Chặng {0} không có item trung gian.").format(chang))
+    return f"{loai_dau} {hau_to}"
+
+
+def item_cua_chang(loai_dau, chang):
+    """Item ứng với 1 chặng của luồng. Thiếu item BTP -> chỉ rõ cách tạo."""
+    if chang == "dau":
+        return loai_dau
+    if chang == "bot":
+        return get_bot_from_dau(loai_dau)[0]
+    ten = ten_btp_dau(loai_dau, chang)
+    if not frappe.db.exists("Item", ten):
+        frappe.throw(
+            _("Chưa có Item bán thành phẩm '{0}'. Chạy trên site: "
+              "<b>bench --site &lt;site&gt; execute sx.seed.seed_btp_dau</b> "
+              "(tạo Đỗ ủ / Đỗ vỡ cho mọi loại đỗ).").format(ten)
+        )
+    return ten
+
+
+def batch_cua_chang(lo_rang, chang):
+    """Batch id của 1 chặng. Batch trong Frappe là DUY NHẤT toàn hệ thống nên
+    item trung gian phải có hậu tố riêng; vẫn nhìn ra ngay thuộc lô R nào."""
+    if chang == "bot":
+        return lo_rang           # giữ nguyên quy ước cũ: batch bột nền = lô R (D13)
+    hau_to = _HAU_TO_BATCH.get(chang)
+    return f"{lo_rang}-{hau_to}" if hau_to else None
+
+
+def kho_xuong(settings=None):
+    """Kho giữ BTP đang dở dang ngoài xưởng; chưa cấu hình thì dùng Kho BTP."""
+    settings = settings or get_settings()
+    return settings.get("kho_xuong") or settings.get("kho_btp")

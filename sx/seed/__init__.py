@@ -305,7 +305,8 @@ def seed_stock_entry_type(dry_run=0, bao_cao=None):
     Idempotent: đã có thì bỏ qua, không đụng bản ghi tự đặt của site.
     """
     ket_qua = []
-    for purpose in ("Manufacture",):   # app chỉ sinh phiếu Manufacture
+    # Manufacture (tầng 2/3) · Repack + Material Transfer (công đoạn tầng 1 — D31)
+    for purpose in ("Manufacture", "Repack", "Material Transfer"):
         if frappe.db.get_value(
             "Stock Entry Type", {"purpose": purpose, "is_standard": 1}, "name"
         ):
@@ -330,6 +331,52 @@ def seed_stock_entry_type(dry_run=0, bao_cao=None):
     return ket_qua
 
 
+def seed_btp_dau(dry_run=0, bao_cao=None):
+    """Tạo Item bán thành phẩm ĐỖ Ủ / ĐỖ VỠ cho mọi loại đỗ (D31).
+
+    Luồng tầng 1 theo lưu đồ có 2 chặng trung gian nhìn thấy được ở kho xưởng.
+    Tên suy từ tên đỗ ("Đỗ xanh" -> "Đỗ xanh ủ" / "Đỗ xanh vỡ"), ĐVT + nhóm item
+    lấy theo chính item đỗ. Idempotent.
+    """
+    from sx.utils import get_dau_items, ten_btp_dau
+
+    ket_qua = []
+    for dau in get_dau_items():
+        goc = frappe.db.get_value(
+            "Item", dau["name"], ["stock_uom", "item_group"], as_dict=True
+        ) or {}
+        for chang in ("u", "vo"):
+            ten = ten_btp_dau(dau["name"], chang)
+            if frappe.db.exists("Item", ten):
+                continue
+            if not dry_run:
+                doc = frappe.get_doc({
+                    "doctype": "Item",
+                    "item_code": ten,
+                    "item_name": ten,
+                    "item_group": goc.get("item_group") or _item_group("All Item Groups"),
+                    "stock_uom": goc.get("stock_uom") or "Kg",
+                    "is_stock_item": 1,
+                    # Batch = lô R + hậu tố (mã lô do code đặt, không cho ERPNext tự sinh)
+                    "has_batch_no": 1,
+                    "create_new_batch": 0,
+                    "custom_sx_nhom": "BTP-Dau",
+                    "description": _("Bán thành phẩm tầng 1 — {0}").format(ten),
+                })
+                doc.flags.ignore_permissions = True
+                doc.insert()
+            ket_qua.append(f"Item '{ten}': tạo mới (BTP-Dau)")
+    if bao_cao is not None:
+        bao_cao["item_tao"].extend(ket_qua)
+    if not dry_run and ket_qua:
+        frappe.db.commit()
+    for x in ket_qua:
+        print("   •", x)
+    if not ket_qua:
+        print("   • Đã có đủ Item đỗ ủ / đỗ vỡ, không tạo thêm.")
+    return ket_qua
+
+
 def seed_all(dry_run=0, bo_qua_gia_dinh=0):
     """Seed Item + BOM tầng 1/2 rồi in báo cáo. dry_run=1 để xem trước, không ghi."""
     dry_run = int(dry_run or 0)
@@ -339,6 +386,8 @@ def seed_all(dry_run=0, bo_qua_gia_dinh=0):
     seed_stock_entry_type(dry_run=dry_run, bao_cao=bao_cao)
     seed_items(dry_run=dry_run, bao_cao=bao_cao)
     seed_boms(dry_run=dry_run, bo_qua_gia_dinh=int(bo_qua_gia_dinh or 0), bao_cao=bao_cao)
+    # SAU seed_boms: danh mục đỗ suy từ BOM tầng 1 active
+    seed_btp_dau(dry_run=dry_run, bao_cao=bao_cao)
 
     print("=" * 72)
     print(f"SEED ĐỊNH MỨC RVHG — nguồn: {data['nguon']}")
