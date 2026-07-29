@@ -1,21 +1,66 @@
 // Card Xuất đậu — 2 nút loại đỗ + numpad kg → mã lô R CỰC TO để ghi thẻ (D13).
 
 import { esc, el } from '/assets/sx/sx/lib/dom.js';
-import { formatKg, formatNumber } from '/assets/sx/sx/lib/format.js';
+import { formatKg, formatNumber, nhanNgay } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
-import { openModal } from '/assets/sx/sx/components/modal.js';
+import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 
-export async function render({ container, boot, call, reload }) {
+export async function render({ container, boot, call, refresh }) {
   container.className = 'sx-card';
   container.innerHTML = `
-    <div class="sx-field-label">Xuất đậu cho ngày mai</div>
+    <div class="sx-field-label">Xuất đậu ${nhanNgay(boot)} (rang ngày kế tiếp)</div>
     <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-xd-open">🫘 XUẤT ĐẬU</button>
+    <div id="sx-xd-ds" class="sx-muted">Đang tải phiếu đã ghi…</div>
   `;
-  container.querySelector('#sx-xd-open').addEventListener('click', () => openXuatDau(boot, call, reload));
+  container.querySelector('#sx-xd-open').addEventListener('click', () => openXuatDau(boot, call, refresh));
+  await veDanhSach(container.querySelector('#sx-xd-ds'), boot, call, refresh);
 }
 
-function openXuatDau(boot, call, reload) {
+// Danh sách phiếu xuất đậu đã ghi trong ngày — để QC đối chiếu và sửa khi nhập nhầm (D25)
+async function veDanhSach(box, boot, call, refresh) {
+  let ds = [];
+  try {
+    ds = await call('sx.api.tang1.ds_xuat_dau', boot.ngay_xem ? { ngay: boot.ngay_xem } : {});
+  } catch (e) {
+    box.textContent = e.message || 'Không đọc được danh sách xuất đậu.';
+    return;
+  }
+  if (!ds.length) { box.textContent = 'Chưa xuất đậu.'; return; }
+  box.className = '';
+  box.innerHTML = `
+    <table class="sx-table">
+      <thead><tr><th>Lô rang</th><th>Loại đỗ</th><th>Kg</th><th></th></tr></thead>
+      <tbody>${ds.map((r) => `
+        <tr>
+          <td><b>${esc(r.lo_rang)}</b></td>
+          <td>${esc(r.loai_dau)}</td>
+          <td>${esc(formatKg(r.dau_kg))}</td>
+          <td>${r.sua_duoc
+            ? `<button type="button" class="sx-cell-btn sx-xd-huy" data-n="${esc(r.name)}" data-lo="${esc(r.lo_rang)}">✕</button>`
+            : '<span class="sx-muted">đã nhập bột</span>'}</td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+  box.querySelectorAll('.sx-xd-huy').forEach((b) => {
+    b.addEventListener('click', () => {
+      confirm2Step({
+        title: `Huỷ phiếu xuất đậu ${b.dataset.lo}`,
+        message: 'Huỷ phiếu ghi nhầm. Lô rang này sẽ không còn chờ nhập bột nữa. '
+          + 'Đậu chưa bị trừ kho nên không ảnh hưởng tồn.',
+        confirmLabel: 'HUỶ PHIẾU',
+        onConfirm: async () => {
+          try {
+            await call('sx.api.tang1.huy_xuat_dau', { name: b.dataset.n });
+            toast('Đã huỷ phiếu xuất đậu.');
+            refresh();
+          } catch (e) { toastErr(e.message); throw e; }
+        },
+      });
+    });
+  });
+}
+
+function openXuatDau(boot, call, refresh) {
   const loaiDau = boot.loai_dau || [];
   if (!loaiDau.length) {
     toastErr('Chưa có loại đỗ (cần BOM bột nền trên Desk).');
@@ -53,9 +98,12 @@ function openXuatDau(boot, call, reload) {
     if (state.kg <= 0) { toastErr('Nhập số kg đậu.'); return; }
     e.currentTarget.disabled = true;
     try {
-      const r = await call('sx.api.tang1.xuat_dau', { loai_dau: state.loai_dau, dau_kg: state.kg });
+      const r = await call('sx.api.tang1.xuat_dau', {
+        loai_dau: state.loai_dau, dau_kg: state.kg,
+        ...(boot.la_hom_nay ? {} : { ngay_xuat: boot.ngay_xem }),
+      });
       m.close();
-      showLoRang(r, reload);
+      showLoRang(r, refresh);
     } catch (err) {
       e.target.disabled = false;
       toastErr(err.message);
@@ -63,7 +111,7 @@ function openXuatDau(boot, call, reload) {
   });
 }
 
-function showLoRang(r, reload) {
+function showLoRang(r, refresh) {
   const m = openModal({ title: 'Ghi mã này ra thẻ lô' });
   m.body.innerHTML = `
     <div class="sx-lot-display">${esc(r.lo_rang)}</div>
@@ -74,6 +122,6 @@ function showLoRang(r, reload) {
   m.body.querySelector('#sx-lot-ok').addEventListener('click', () => {
     m.close();
     toast(`Đã xuất đậu — lô ${r.lo_rang}.`);
-    reload();
+    refresh();
   });
 }

@@ -11,7 +11,29 @@ class SXBangVaoHop(Document):
 
     def validate(self):
         self.validate_duy_nhat()
+        self.gop_theo_nguoi()
         self.tinh_tien()
+
+    def gop_theo_nguoi(self):
+        """Xếp các dòng của CÙNG một công nhân liền nhau (D26).
+
+        Công nhân tự đối chiếu sản lượng của mình — dòng nằm rải rác thì rất khó dò.
+        Sắp theo tên rồi tới loại công việc; đánh lại idx cho khớp thứ tự hiển thị.
+        """
+        ten = {}
+
+        def _ten(nv):
+            if nv not in ten:
+                ten[nv] = frappe.db.get_value("Employee", nv, "employee_name") or nv
+            return ten[nv]
+
+        dong = sorted(
+            self.dong,
+            key=lambda r: (_ten(r.nhan_vien), r.activity_type or "", r.san_pham or ""),
+        )
+        for i, r in enumerate(dong, start=1):
+            r.idx = i
+        self.dong = dong
 
     def validate_duy_nhat(self):
         # 1 bảng docstatus<2 mỗi phiếu ngày

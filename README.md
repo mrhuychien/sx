@@ -114,6 +114,25 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   cộng dồn. Huỷ ngày chỉ **gỡ dòng ngày đó**, các ngày khác giữ nguyên. Không đụng
   `tienanca`/`andem`/chuyên cần/bảo hiểm.
 
+## Thay đổi 29/07
+
+- **D24 — huỷ chốt ngày để sửa:** chốt xong mới phát hiện sai thì bấm **HUỶ CHỐT NGÀY** trên
+  thẻ Chốt ngày. Hệ thống thu hồi **toàn bộ** chứng từ kho của ngày đó (lệnh SX + phiếu kho
+  tầng 3 → tầng 2 → phiếu nhập bột, hoàn lại đỗ) và **gỡ dòng lương khoán của ngày đó** khỏi
+  phiếu lương tháng, rồi tự tạo lại **phiếu nháp giữ nguyên số liệu** để sửa. Sửa xong **phải
+  chốt lại** thì kho + lương mới ghi lại. Không có đường nào sửa số đã chốt mà kho/lương
+  không đổi theo.
+- **D25 — thanh chọn ngày:** ◀ ▶ / chọn ngày / *Hôm nay* ngay trên đầu portal. Mọi thẻ (ghi số
+  lẫn vào hộp) đọc theo ngày đang chọn, có nhãn `🔒 đã chốt` / `✎ ngày cũ`. Thẻ Xuất đậu giờ
+  **liệt kê các phiếu đã ghi trong ngày** và huỷ được phiếu ghi nhầm (chỉ khi chưa nhập bột —
+  đã nhập bột thì phải huỷ chốt ngày đó trước, vì đỗ đã trừ kho).
+- **D26 — bảng vào hộp gộp theo người:** dòng của cùng một công nhân xếp liền nhau (sắp ở
+  controller nên bản in và Desk cũng vậy), nhiều dòng thì có dòng *Cộng*. **Bấm vào số lượng
+  để sửa tại chỗ** khi chưa chốt.
+- **D27 — nút Copy sản lượng gửi nhóm:** copy ra text dán thẳng vào nhóm chat —
+  `Khanh (Vào hộp 170: 29, Vào hộp 300: 50)`, mỗi người 1 dòng, kèm ngày + tổng. Công nhân tự
+  theo dõi và đối chiếu.
+
 ## Trạng thái build v3 (P0→P7)
 
 - ✅ P0/P1 scaffold + DocType (6 + 4 child) + controllers

@@ -6,7 +6,7 @@ với phiếu ngày) — tra ngược qua SX Nhap Bot.lo_rang.
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, flt, getdate, nowdate
+from frappe.utils import add_days, cint, flt, getdate, nowdate
 
 from sx.api.mfg import cancel_doc, tao_batch, tao_se_manufacture, tao_wo
 from sx.config.roles import guard_card
@@ -42,17 +42,60 @@ def lo_cho_nhap_bot(truoc_ngay=None):
 
 
 @frappe.whitelist()
-def xuat_dau(loai_dau, dau_kg, ngay_rang=None):
-    """Tạo + submit SX Xuat Dau -> sinh mã lô R (hiển thị TO để ghi thẻ, D13)."""
+def xuat_dau(loai_dau, dau_kg, ngay_rang=None, ngay_xuat=None):
+    """Tạo + submit SX Xuat Dau -> sinh mã lô R (hiển thị TO để ghi thẻ, D13).
+
+    `ngay_xuat` = ngày đang xem trên portal (ghi bù cho ngày cũ — D25); bỏ trống = hôm nay.
+    """
     guard_card("xuatdau")
     doc = frappe.new_doc("SX Xuat Dau")
-    doc.ngay_xuat = nowdate()
-    doc.ngay_rang = getdate(ngay_rang) if ngay_rang else add_days(nowdate(), 1)
+    doc.ngay_xuat = getdate(ngay_xuat) if ngay_xuat else nowdate()
+    doc.ngay_rang = getdate(ngay_rang) if ngay_rang else add_days(doc.ngay_xuat, 1)
     doc.loai_dau = loai_dau
     doc.dau_kg = flt(dau_kg)
     doc.insert()
     doc.submit()
     return {"name": doc.name, "lo_rang": doc.lo_rang, "ngay_rang": str(doc.ngay_rang)}
+
+
+@frappe.whitelist()
+def ds_xuat_dau(ngay=None):
+    """Phiếu xuất đậu ĐÃ GHI trong ngày — để QC đối chiếu và sửa khi lỡ nhập sai (D25).
+
+    Lọc theo ngày XUẤT (ngày QC bấm), không phải ngày rang.
+    `sua_duoc` = chưa nhập bột (chưa trừ đỗ) -> huỷ được ngay trên portal.
+    """
+    guard_card("xuatdau")
+    ngay = getdate(ngay) if ngay else nowdate()
+    ds = frappe.get_all(
+        "SX Xuat Dau",
+        filters={"ngay_xuat": ngay, "docstatus": 1},
+        fields=["name", "loai_dau", "dau_kg", "lo_rang", "ngay_rang", "trang_thai_bot"],
+        order_by="creation",
+    )
+    for r in ds:
+        r["ngay_rang"] = str(r["ngay_rang"])
+        r["sua_duoc"] = not cint(r["trang_thai_bot"])
+    return ds
+
+
+@frappe.whitelist()
+def huy_xuat_dau(name):
+    """Huỷ 1 phiếu xuất đậu ghi nhầm. Chặn nếu đã nhập bột (đã trừ đỗ + có ledger):
+    khi đó phải huỷ chốt ngày để thu hồi phiếu nhập bột trước."""
+    guard_card("xuatdau")
+    doc = frappe.get_doc("SX Xuat Dau", name)
+    if cint(doc.trang_thai_bot):
+        frappe.throw(
+            _("Lô {0} đã nhập bột (đã trừ đỗ trong kho) — không huỷ trực tiếp được. "
+              "Huỷ chốt ngày đã nhập bột lô này trước, rồi mới huỷ phiếu xuất đậu.")
+            .format(doc.lo_rang)
+        )
+    if doc.docstatus != 1:
+        frappe.throw(_("Phiếu {0} không ở trạng thái đã ghi.").format(name))
+    doc.flags.ignore_permissions = True
+    doc.cancel()
+    return {"name": name, "lo_rang": doc.lo_rang}
 
 
 def tao_nhap_bot(xuat_dau, ngay_nhap=None):

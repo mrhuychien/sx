@@ -87,17 +87,22 @@ def _any_sx_guard():
 
 
 @frappe.whitelist()
-def get_boot():
+def get_boot(ngay=None):
     """Context khởi động: views/cards theo role, phiếu ngày, danh mục 2 nhánh,
-    lô chờ nhập bột, tồn BTP, nhân viên."""
+    lô chờ nhập bột, tồn BTP, nhân viên.
+
+    `ngay` = ngày đang XEM (D25). Bỏ trống -> hôm nay. Cho phép mở lại ngày cũ để
+    đối chiếu / sửa; ngày đã chốt trả về read-only (docstatus 1) cho tới khi huỷ chốt.
+    """
     _any_sx_guard()
     roles = user_roles()
     super_ = is_super(roles)
     hom_nay = nowdate()
+    ngay_xem = str(getdate(ngay)) if ngay else hom_nay
 
     ngay_sx = _ngay_summary(
         frappe.db.get_value(
-            "SX Ngay San Xuat", {"ngay": hom_nay, "docstatus": ("<", 2)}, "name"
+            "SX Ngay San Xuat", {"ngay": ngay_xem, "docstatus": ("<", 2)}, "name"
         )
     )
 
@@ -126,6 +131,8 @@ def get_boot():
         "viewCards": view_cards(roles),
         "landing": landing_view(roles),
         "hom_nay": hom_nay,
+        "ngay_xem": ngay_xem,
+        "la_hom_nay": ngay_xem == hom_nay,
         "ngay_sx": ngay_sx,
         "bang_vao_hop": _bang_summary(ngay_sx["name"]) if ngay_sx else None,
     }

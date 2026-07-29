@@ -11,7 +11,8 @@
   "section_tong",
   "tong_hop",
   "column_break_tong",
-  "tong_tien"
+  "tong_tien",
+  "amended_from"
  ],
  "fields": [
   {
@@ -57,6 +58,15 @@
    "label": "Tổng tiền",
    "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "SX Bang Vao Hop",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
   }
  ],
  "is_submittable": 1,
@@ -70,12 +80,25 @@
  "permissions": [
   {
    "role": "System Manager",
-   "read": 1, "write": 1, "create": 1, "delete": 1,
-   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1
   },
   {
    "role": "SX Vao Hop",
-   "read": 1, "write": 1, "create": 1, "submit": 1, "print": 1, "report": 1
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "print": 1,
+   "report": 1
   },
   {
    "role": "SX Ghi So",
@@ -83,8 +106,15 @@
   },
   {
    "role": "SX Quan Ly",
-   "read": 1, "write": 1, "create": 1,
-   "submit": 1, "cancel": 1, "amend": 1, "print": 1, "report": 1, "export": 1
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "print": 1,
+   "report": 1,
+   "export": 1
   }
  ],
  "search_fields": "ngay_sx",

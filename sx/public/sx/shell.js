@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-3';
+const BUILD = 'sx-8';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -38,8 +38,10 @@ const landing = CTX.landing || views[0];
 
 const store = {
   boot: null,
+  ngayXem: null,   // null = hôm nay (D25)
   async refresh() {
-    this.boot = await call('sx.api.portal.get_boot');
+    this.boot = await call('sx.api.portal.get_boot', this.ngayXem ? { ngay: this.ngayXem } : {});
+    this.ngayXem = this.boot.ngay_xem || null;
     return this.boot;
   },
 };
@@ -49,7 +51,8 @@ const dayState = { ngay: null };
 async function ensureNgay() {
   if (dayState.ngay) return dayState.ngay;
   if (store.boot && store.boot.ngay_sx) { dayState.ngay = store.boot.ngay_sx; return dayState.ngay; }
-  dayState.ngay = await call('sx.api.portal.get_or_create_ngay', {});
+  const ng = (store.boot && store.boot.ngay_xem) ? { ngay: store.boot.ngay_xem } : {};
+  dayState.ngay = await call('sx.api.portal.get_or_create_ngay', ng);
   return dayState.ngay;
 }
 
@@ -72,6 +75,7 @@ function cardApi(container) {
     dayState,
     refresh: async () => { store.boot = null; dayState.ngay = null; router.go(router.currentRoute()); },
     reload: () => window.location.reload(),
+    doiNgay,
   };
 }
 
@@ -83,6 +87,14 @@ function buildShell() {
   banner.textContent = 'Mất mạng — đang thử kết nối lại…';
   banner.style.display = 'none';
   const main = el('main', 'sx-main');
+  const daybar = el('div', 'sx-daybar');
+  daybar.innerHTML = `
+    <button type="button" class="sx-day-nav" id="sx-day-prev" title="Ngày trước">◀</button>
+    <input type="date" class="sx-day-input" id="sx-day-input">
+    <button type="button" class="sx-day-nav" id="sx-day-next" title="Ngày sau">▶</button>
+    <button type="button" class="sx-day-today" id="sx-day-today">Hôm nay</button>
+    <span class="sx-day-tag" id="sx-day-tag"></span>
+  `;
   const nav = el('nav', 'sx-bottom-nav');
   views.forEach((v) => {
     const meta = VIEW_META[v] || { label: v, icon: '•' };
@@ -93,13 +105,50 @@ function buildShell() {
     nav.appendChild(btn);
   });
   app.appendChild(banner);
+  app.appendChild(daybar);
   app.appendChild(main);
   app.appendChild(nav);
   onOffline((isOff) => { banner.style.display = isOff ? '' : 'none'; });
-  return { main, nav };
+
+  daybar.querySelector('#sx-day-input').addEventListener('change', (e) => {
+    if (e.target.value) doiNgay(e.target.value);
+  });
+  daybar.querySelector('#sx-day-prev').addEventListener('click', () => doiNgay(dichNgay(-1)));
+  daybar.querySelector('#sx-day-next').addEventListener('click', () => doiNgay(dichNgay(1)));
+  daybar.querySelector('#sx-day-today').addEventListener('click', () => doiNgay(null));
+  return { main, nav, daybar };
 }
 
-const { main, nav } = buildShell();
+// Ngày làm việc = chuỗi ISO "YYYY-MM-DD", KHÔNG dùng Date để tránh lệch múi giờ
+function dichNgay(buoc) {
+  const goc = (store.boot && store.boot.ngay_xem) || (store.boot && store.boot.hom_nay);
+  if (!goc) return null;
+  const [y, m, d] = goc.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d));
+  t.setUTCDate(t.getUTCDate() + buoc);
+  return t.toISOString().slice(0, 10);
+}
+
+function doiNgay(iso) {
+  store.ngayXem = iso;       // null = quay về hôm nay
+  store.boot = null;
+  dayState.ngay = null;
+  router.go(router.currentRoute());
+}
+
+function paintDayBar() {
+  const b = store.boot || {};
+  const input = daybar.querySelector('#sx-day-input');
+  const tag = daybar.querySelector('#sx-day-tag');
+  if (input && b.ngay_xem) input.value = b.ngay_xem;
+  if (!tag) return;
+  const daChot = b.ngay_sx && b.ngay_sx.docstatus === 1;
+  if (daChot) { tag.textContent = '🔒 đã chốt'; tag.className = 'sx-day-tag sx-day-chot'; }
+  else if (b.la_hom_nay) { tag.textContent = ''; tag.className = 'sx-day-tag'; }
+  else { tag.textContent = '✎ ngày cũ'; tag.className = 'sx-day-tag sx-day-cu'; }
+}
+
+const { main, nav, daybar } = buildShell();
 
 function markActive(route) {
   nav.querySelectorAll('.sx-nav-btn').forEach((b) => {
@@ -143,6 +192,7 @@ router.onRender(async (route, loader) => {
   try {
     if (!store.boot) await store.refresh();
     dayState.ngay = store.boot.ngay_sx || dayState.ngay;
+    paintDayBar();
     await loader(main);
   } catch (e) {
     main.innerHTML = '';

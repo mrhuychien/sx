@@ -36,6 +36,56 @@ body { background: var(--sx-bg) !important; }
   background: var(--sx-bg);
 }
 
+/* ─── Thanh chọn ngày (D25) — xem/sửa sản lượng ngày cũ ─── */
+.sx-daybar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 10px 16px 0;
+  flex-wrap: wrap;
+}
+.sx-day-nav, .sx-day-today {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--sx-line);
+  border-radius: 10px;
+  background: var(--sx-surface);
+  color: var(--sx-text);
+  font-size: 16px;
+  cursor: pointer;
+}
+.sx-day-input {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--sx-line);
+  border-radius: 10px;
+  background: var(--sx-surface);
+  color: var(--sx-text);
+  font-size: 17px;
+  font-weight: 600;
+}
+.sx-day-tag { font-size: 15px; font-weight: 700; }
+.sx-day-chot { color: var(--sx-danger); }
+.sx-day-cu { color: var(--sx-warn, #b26a00); }
+
+/* ─── Bảng vào hộp: gộp theo người + sửa số lượng (D26) ─── */
+.sx-vh-nguoi td { background: var(--sx-surface-2, rgba(0,0,0,.03)); font-weight: 700; }
+.sx-vh-sl {
+  min-width: 72px;
+  min-height: 40px;
+  border: 1px dashed var(--sx-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sx-text);
+  font-size: 19px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sx-vh-sl:disabled { border-color: transparent; cursor: default; }
+.sx-vh-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
 .sx-main {
   padding: 16px 16px calc(var(--sx-bottom-h) + 24px);
   max-width: 900px;

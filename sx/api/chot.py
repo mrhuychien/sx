@@ -471,6 +471,62 @@ def _canh_bao_mem(doc):
 # ─────────────────────────────────────────────── huỷ ngược (hook) ──
 
 
+@frappe.whitelist()
+def huy_chot_ngay(ngay_sx, ly_do=None):
+    """HUỶ CHỐT để sửa lại số liệu (D24).
+
+    Huỷ phiếu ngày -> hook on_cancel_ngay đảo ngược TOÀN BỘ: SE/WO tầng 3 → tầng 2
+    → phiếu nhập bột (hoàn đỗ) → bảng vào hộp → gỡ dòng lương khoán của ngày đó.
+    Rồi TỰ TẠO LẠI phiếu nháp (amend) giữ nguyên báo mẻ / báo cán / sự cố / bảng vào
+    hộp để QC sửa con số cần sửa và chốt lại — không phải gõ lại từ đầu.
+
+    Trả summary phiếu nháp mới.
+    """
+    guard_card("chotngay")
+    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
+    if doc.docstatus != 1:
+        frappe.throw(
+            _("Phiếu ngày {0} chưa chốt (hoặc đã huỷ) — không cần huỷ chốt.").format(ngay_sx)
+        )
+
+    bang_cu = frappe.db.get_value(
+        "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": 1}, "name"
+    )
+
+    doc.flags.ignore_permissions = True
+    doc.cancel()  # hook on_cancel_ngay đảo ngược toàn bộ chứng từ + lương
+
+    cu = frappe.get_doc("SX Ngay San Xuat", ngay_sx)  # đọc lại: hook vừa ghi ghi_chu
+    moi = frappe.copy_doc(cu)
+    moi.docstatus = 0   # copy_doc chỉ tự xoá docstatus khi KHÔNG chạy trong test
+    moi.amended_from = cu.name
+    moi.ds_wo_se = None
+    moi.salary_products_json = None
+    moi.tong_hop_tp = 0
+    moi.tong_luong_sp = 0
+    for r in moi.bao_me:
+        r.batch = None  # batch sinh lại khi chốt lại (tao_batch idempotent)
+    dau_vet = _("[Huỷ chốt {0}] {1}").format(
+        frappe.utils.now_datetime().strftime("%d/%m %H:%M"), (ly_do or "").strip() or _("không ghi lý do")
+    )
+    moi.ghi_chu = ((cu.ghi_chu or "") + "\n" + dau_vet).strip()
+    moi.flags.ignore_permissions = True
+    moi.insert()
+
+    if bang_cu:
+        b_cu = frappe.get_doc("SX Bang Vao Hop", bang_cu)
+        b_moi = frappe.copy_doc(b_cu)
+        b_moi.docstatus = 0
+        b_moi.amended_from = b_cu.name
+        b_moi.ngay_sx = moi.name
+        b_moi.flags.ignore_permissions = True
+        b_moi.insert()
+
+    from sx.api.portal import _ngay_summary  # import trễ: tránh vòng lặp import
+
+    return _ngay_summary(moi.name)
+
+
 def on_cancel_ngay(doc, method=None):
     """Huỷ chuỗi ngược theo ds_wo_se, ĐẢO thứ tự sinh: SE/WO T3 -> SE/WO T2 ->
     SX Nhap Bot (nhả bột + hoàn đỗ, huỷ sau cùng vì T2 vừa tiêu thụ bột đó)

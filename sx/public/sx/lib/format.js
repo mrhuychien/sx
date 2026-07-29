@@ -28,3 +28,11 @@ export function phutTuLuc(dt) {
   if (Number.isNaN(d.getTime())) return null;
   return Math.floor((Date.now() - d.getTime()) / 60000);
 }
+
+// "2026-07-29" -> "29/07". Không dùng Date (tránh lệch múi giờ khi chỉ có ngày).
+export function nhanNgay(boot) {
+  const iso = (boot && (boot.ngay_xem || boot.hom_nay)) || '';
+  const d = iso.split('-');
+  if (d.length !== 3) return '';
+  return (boot && boot.la_hom_nay) ? 'hôm nay' : `ngày ${d[2]}/${d[1]}`;
+}
