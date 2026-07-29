@@ -296,12 +296,47 @@ def _kiem_custom_field():
         )
 
 
+def seed_stock_entry_type(dry_run=0, bao_cao=None):
+    """Bảo đảm có Stock Entry Type chuẩn cho Manufacture (D28).
+
+    ERPNext ship sẵn bản ghi này, nhưng site RVHG đã bị xoá/không có -> mọi phiếu
+    kho Manufacture sinh ra trống `stock_entry_type` và chết ở validate. Core CHỈ
+    tìm bản ghi khớp {purpose, is_standard=1} nên phải đúng cả 2 điều kiện.
+    Idempotent: đã có thì bỏ qua, không đụng bản ghi tự đặt của site.
+    """
+    ket_qua = []
+    for purpose in ("Manufacture",):   # app chỉ sinh phiếu Manufacture
+        if frappe.db.get_value(
+            "Stock Entry Type", {"purpose": purpose, "is_standard": 1}, "name"
+        ):
+            continue
+        if frappe.db.exists("Stock Entry Type", purpose):
+            # Bản ghi đúng tên nhưng thiếu tick chuẩn -> bật lại, không tạo trùng
+            if not dry_run:
+                frappe.db.set_value("Stock Entry Type", purpose, "is_standard", 1)
+            ket_qua.append(f"Stock Entry Type '{purpose}': bật lại Is Standard")
+            continue
+        if not dry_run:
+            # autoname = Prompt -> đặt tên qua __newname
+            doc = frappe.new_doc("Stock Entry Type")
+            doc.__newname = purpose
+            doc.purpose = purpose
+            doc.is_standard = 1
+            doc.flags.ignore_permissions = True
+            doc.insert()
+        ket_qua.append(f"Stock Entry Type '{purpose}': tạo mới (is_standard=1)")
+    if bao_cao is not None:
+        bao_cao["canh_bao"].extend(ket_qua)
+    return ket_qua
+
+
 def seed_all(dry_run=0, bo_qua_gia_dinh=0):
     """Seed Item + BOM tầng 1/2 rồi in báo cáo. dry_run=1 để xem trước, không ghi."""
     dry_run = int(dry_run or 0)
     _kiem_custom_field()
     data = _data()
     bao_cao = _bao_cao_moi()
+    seed_stock_entry_type(dry_run=dry_run, bao_cao=bao_cao)
     seed_items(dry_run=dry_run, bao_cao=bao_cao)
     seed_boms(dry_run=dry_run, bo_qua_gia_dinh=int(bo_qua_gia_dinh or 0), bao_cao=bao_cao)
 

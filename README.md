@@ -137,7 +137,13 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   `Stock Entry Type` có `purpose = Manufacture` **và tick `Is Standard`**; site thiếu bản ghi
   đó thì mọi phiếu kho sinh ra đều trống loại phiếu. App giờ tự dò (is_standard → cùng
   purpose → bản tên "Manufacture") và nếu vẫn không có thì báo **đúng chỗ phải tạo**, kiểm
-  **trước khi** sinh chứng từ nên không còn bị nuốt thành "check Error Log".
+  **trước khi** sinh chứng từ nên không còn bị nuốt thành "check Error Log". Tạo bản ghi
+  chuẩn bằng 1 lệnh (idempotent, đã nằm sẵn trong `seed_all`):
+
+  ```bash
+  bench --site a.rongvanghoanggia.com execute sx.seed.seed_stock_entry_type
+  bench --site a.rongvanghoanggia.com restart   # core cache bản ghi này
+  ```
 
 ## Trạng thái build v3 (P0→P7)
 
