@@ -14,7 +14,9 @@ export async function render({ container, boot, call, ensureNgay, refresh }) {
       <div class="sx-muted">Cần sửa số liệu thì phải huỷ chốt trước — huỷ xong số liệu cũ
         giữ nguyên để sửa, kho và lương khoán được hoàn lại.</div>
       <button type="button" class="sx-btn sx-btn-danger sx-btn-big" id="sx-huy">HUỶ CHỐT NGÀY ĐỂ SỬA</button>
+      <div id="sx-ct-box"><div class="sx-muted">Đang tải danh sách chứng từ…</div></div>
     `;
+    veChungTu(container.querySelector('#sx-ct-box'), ngay, call);
     container.querySelector('#sx-huy').addEventListener('click', () => {
       confirm2Step({
         title: 'Huỷ chốt ngày ' + (ngay.ngay || ''),
@@ -71,4 +73,34 @@ function showCanhBao(r, refresh) {
     <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-cb-ok">ĐÃ HIỂU</button>
   `;
   m.body.querySelector('#sx-cb-ok').addEventListener('click', () => { m.close(); refresh(); });
+}
+
+
+// Danh sách chứng từ đã sinh trong ngày + link mở thẳng trên Desk (D29)
+async function veChungTu(box, ngay, call) {
+  let r;
+  try {
+    r = await call('sx.api.chot.chung_tu_ngay', { ngay_sx: ngay.name });
+  } catch (e) {
+    box.innerHTML = `<div class="sx-warn-text">Không đọc được danh sách chứng từ: ${esc(e.message || '')}</div>`;
+    return;
+  }
+  const nhom = (r && r.nhom) || [];
+  if (!nhom.length) { box.innerHTML = '<div class="sx-muted">Chưa có chứng từ nào.</div>'; return; }
+  const tong = nhom.reduce((a, g) => a + g.dong.length, 0);
+  box.innerHTML = `
+    <div class="sx-field-label">Chứng từ đã tạo (${tong}) — bấm để mở</div>
+    ${nhom.map((g) => `
+      <div class="sx-ct-nhom">${esc(g.nhom)}</div>
+      <ul class="sx-ct-list">
+        ${g.dong.map((d) => `
+          <li class="sx-ct-item${d.docstatus === 2 ? ' sx-ct-huy' : ''}">
+            ${d.url
+              ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.name)}</a>`
+              : `<b>${esc(d.name)}</b>`}
+            ${d.docstatus === 2 ? '<span class="sx-ct-tag">đã huỷ</span>' : ''}
+            ${d.mo_ta ? `<div class="sx-muted">${esc(d.mo_ta)}</div>` : ''}
+          </li>`).join('')}
+      </ul>`).join('')}
+  `;
 }

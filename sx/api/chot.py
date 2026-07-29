@@ -476,6 +476,100 @@ def _canh_bao_mem(doc):
 
 
 @frappe.whitelist()
+def chung_tu_ngay(ngay_sx):
+    """Danh sách CHỨNG TỪ đã tạo cho 1 ngày, kèm link Desk để tra cứu (D29).
+
+    Gom theo nhóm: phiếu ngày · phiếu nhập bột (tầng 1) · lệnh SX + phiếu kho
+    (tầng 2/3, đọc từ `ds_wo_se` đúng thứ tự sinh) · batch · bảng vào hộp ·
+    phiếu lương khoán. Đọc số liệu thật của từng chứng từ để nhìn là hiểu, khỏi
+    phải mở từng cái.
+    """
+    guard_card("chotngay")
+    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
+    nhom = []
+
+    def _them(ten_nhom, dt, name, mo_ta=""):
+        if not name or not frappe.db.exists(dt, name):
+            return
+        trang_thai = frappe.db.get_value(dt, name, "docstatus")
+        for g in nhom:
+            if g["nhom"] == ten_nhom:
+                muc = g
+                break
+        else:
+            muc = {"nhom": ten_nhom, "dong": []}
+            nhom.append(muc)
+        # Chỉ trả link khi user THẬT SỰ mở được trên Desk — 2 role QC cố tình không
+        # có DocPerm trên WO/SE/Batch (spec §4), đưa link vào chỉ tổ bấm ra lỗi quyền.
+        xem_duoc = frappe.has_permission(dt, "read")
+        muc["dong"].append({
+            "dt": dt,
+            "name": name,
+            "mo_ta": mo_ta,
+            "docstatus": cint(trang_thai) if trang_thai is not None else 0,
+            "url": frappe.utils.get_url_to_form(dt, name) if xem_duoc else None,
+        })
+
+    _them(_("Phiếu ngày"), "SX Ngay San Xuat", doc.name, doc.trang_thai or "")
+
+    for ct in json.loads(doc.ds_wo_se) if doc.ds_wo_se else []:
+        dt, name = ct.get("dt"), ct.get("name")
+        _them(_nhom_chung_tu(dt), dt, name, _mo_ta_chung_tu(dt, name))
+
+    for r in doc.bao_me:
+        _them(_("Lô sản xuất (batch)"), "Batch", r.batch,
+              _("{0} — {1} kg").format(r.item_btp, flt(r.tong_kg, 2)))
+
+    ten_bang = frappe.db.get_value(
+        "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": ("<", 2)}, "name"
+    )
+    if ten_bang:
+        tong = frappe.db.get_value("SX Bang Vao Hop", ten_bang, ["tong_hop", "tong_tien"])
+        _them(_("Bảng vào hộp"), "SX Bang Vao Hop", ten_bang,
+              _("{0} sản phẩm · {1}").format(cint(tong[0]), frappe.utils.fmt_money(tong[1], currency="VND")))
+
+    for g in json.loads(doc.salary_products_json) if doc.salary_products_json else []:
+        ten_nv = frappe.db.get_value("Employee", g.get("employee"), "employee_name") or ""
+        _them(_("Phiếu lương khoán"), SALARY_DT, g.get("phieu"), ten_nv)
+
+    return {"ngay": str(doc.ngay), "docstatus": doc.docstatus, "nhom": nhom}
+
+
+def _nhom_chung_tu(dt):
+    return {
+        "Work Order": _("Lệnh sản xuất"),
+        "Stock Entry": _("Phiếu kho"),
+        "SX Nhap Bot": _("Nhập bột (tầng 1)"),
+    }.get(dt, dt)
+
+
+def _mo_ta_chung_tu(dt, name):
+    """Một dòng mô tả đủ để nhận ra chứng từ mà không phải mở."""
+    try:
+        if dt == "Work Order":
+            d = frappe.db.get_value(
+                "Work Order", name, ["production_item", "qty", "status"], as_dict=True
+            )
+            return _("{0} × {1} ({2})").format(d.production_item, flt(d.qty, 2), d.status)
+        if dt == "Stock Entry":
+            d = frappe.db.get_value(
+                "Stock Entry", name, ["stock_entry_type", "fg_completed_qty", "posting_date"],
+                as_dict=True,
+            )
+            return _("{0} — {1}").format(
+                d.stock_entry_type or "", frappe.utils.formatdate(d.posting_date)
+            )
+        if dt == "SX Nhap Bot":
+            d = frappe.db.get_value(
+                "SX Nhap Bot", name, ["lo_rang", "bot_kg"], as_dict=True
+            )
+            return _("lô {0} — {1} kg bột").format(d.lo_rang or "", flt(d.bot_kg, 2))
+    except Exception:
+        pass
+    return ""
+
+
+@frappe.whitelist()
 def huy_chot_ngay(ngay_sx, ly_do=None):
     """HUỶ CHỐT để sửa lại số liệu (D24).
 

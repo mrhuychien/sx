@@ -86,6 +86,33 @@ body { background: var(--sx-bg) !important; }
 .sx-vh-sl:disabled { border-color: transparent; cursor: default; }
 .sx-vh-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 
+/* ─── Danh sách chứng từ đã tạo (D29) ─── */
+.sx-ct-nhom {
+  margin-top: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--sx-text-3);
+  text-transform: uppercase;
+}
+.sx-ct-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.sx-ct-item {
+  padding: 8px 10px;
+  border: 1px solid var(--sx-line);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  background: var(--sx-surface);
+  word-break: break-all;
+}
+.sx-ct-item a { font-weight: 700; color: var(--sx-primary, #0b63ce); text-decoration: none; }
+.sx-ct-item a:hover { text-decoration: underline; }
+.sx-ct-huy { opacity: .55; }
+.sx-ct-tag {
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sx-danger);
+}
+
 .sx-main {
   padding: 16px 16px calc(var(--sx-bottom-h) + 24px);
   max-width: 900px;
