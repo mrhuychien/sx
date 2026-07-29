@@ -14,7 +14,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt, getdate
 
-from sx.api.mfg import cancel_doc, tao_batch, tao_se_manufacture, tao_wo
+from sx.api.mfg import cancel_doc, loai_phieu_kho, tao_batch, tao_se_manufacture, tao_wo
 from sx.config.roles import guard_card
 from sx.utils import get_bom_active, get_settings, sinh_ma_lo, topo_rank_by_bom
 
@@ -103,6 +103,10 @@ def _validate_truoc_chot(doc):
     ):
         if not settings.get(f):
             frappe.throw(_("SX Settings chưa cấu hình: {0}").format(label))
+
+    # Thiếu Stock Entry Type "Manufacture" -> mọi phiếu kho sẽ chết ở validate. Kiểm
+    # TẠI ĐÂY (ngoài try) để QC đọc được nguyên nhân thật, không phải "check Error Log".
+    loai_phieu_kho("Manufacture")
 
     ten_bang = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": ("<", 2)}, "name"

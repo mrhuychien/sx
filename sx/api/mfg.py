@@ -64,12 +64,40 @@ def tao_wo(company, item_code, qty, bom_no, source_wh, fg_wh, ngay_sx=None, plan
     return wo
 
 
+def loai_phieu_kho(purpose="Manufacture"):
+    """Tên Stock Entry Type ứng với `purpose` (D28).
+
+    Core v16 (`StockEntry.set_stock_entry_type`) CHỈ tìm bản ghi
+    `{purpose: X, is_standard: 1}`. Site nào lỡ bỏ tick "Is Standard", đổi tên hay
+    xoá bản chuẩn thì SE sinh ra thiếu `stock_entry_type` -> chết ở validate với
+    "Value missing for Stock Entry: Stock Entry Type" — không nói gì về nguyên nhân.
+    Ở đây nới dần điều kiện rồi báo lỗi CHỈ ĐÚNG chỗ phải sửa.
+    """
+    ten = frappe.db.get_value(
+        "Stock Entry Type", {"purpose": purpose, "is_standard": 1}, "name"
+    )
+    if not ten:  # có bản ghi đúng purpose nhưng không tick is_standard
+        ten = frappe.db.get_value("Stock Entry Type", {"purpose": purpose}, "name")
+    if not ten and frappe.db.exists("Stock Entry Type", purpose):
+        ten = purpose  # bản ghi tên "Manufacture" nhưng purpose bị sửa
+    if not ten:
+        co = frappe.get_all("Stock Entry Type", pluck="name") or []
+        frappe.throw(
+            _("Site chưa có 'Stock Entry Type' nào cho mục đích {0}. Vào Desk → "
+              "Stock Entry Type → New: Type = {0}, Purpose = {0}, tick 'Is Standard'. "
+              "(Hiện có: {1})").format(purpose, ", ".join(co) or _("chưa có loại nào"))
+        )
+    return ten
+
+
 def tao_se_manufacture(wo, qty, batch_fg, kho_nguon, ngay=None, ngay_sx=None):
     """SE Manufacture từ WO. kho_nguon(item_code)->warehouse cho từng RM (đổi kho
     nguồn per-item vì WO chỉ có 1 source_warehouse). RM pick batch FIFO; FG gắn batch."""
     from erpnext.manufacturing.doctype.work_order.work_order import make_stock_entry
 
     se = frappe.get_doc(make_stock_entry(wo.name, "Manufacture", qty))
+    if not se.stock_entry_type:
+        se.stock_entry_type = loai_phieu_kho("Manufacture")
     se.custom_ngay_sx = ngay_sx
     if ngay:
         se.set_posting_time = 1

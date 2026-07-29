@@ -133,6 +133,12 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   `Khanh (Vào hộp 170: 29, Vào hộp 300: 50)`, mỗi người 1 dòng, kèm ngày + tổng. Công nhân tự
   theo dõi và đối chiếu.
 
+- **D28 — lỗi `Value missing for Stock Entry: Stock Entry Type`:** ERPNext v16 chỉ nhận
+  `Stock Entry Type` có `purpose = Manufacture` **và tick `Is Standard`**; site thiếu bản ghi
+  đó thì mọi phiếu kho sinh ra đều trống loại phiếu. App giờ tự dò (is_standard → cùng
+  purpose → bản tên "Manufacture") và nếu vẫn không có thì báo **đúng chỗ phải tạo**, kiểm
+  **trước khi** sinh chứng từ nên không còn bị nuốt thành "check Error Log".
+
 ## Trạng thái build v3 (P0→P7)
 
 - ✅ P0/P1 scaffold + DocType (6 + 4 child) + controllers
