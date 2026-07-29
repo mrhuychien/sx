@@ -22,24 +22,28 @@ ROLE_VIEWS = {
     QUAN_LY: ["ghiso", "vaohop", "quanly"],
 }
 
-# view lắp từ những card nào (thứ tự hiển thị). quanly là view standalone (dashboard),
-# không lắp từ card → để rỗng (tránh mountCard tên card không có trong CARD_PATHS).
+# view lắp từ những card nào (thứ tự hiển thị).
+# D33: hai màn NHẬP LIỆU chỉ giữ việc phải gõ. Chốt ngày (hành động chốt sổ) và lưu đồ
+# tồn BTP (màn hình theo dõi) chuyển hẳn sang Quản lý — quanly giờ vừa dashboard vừa
+# lắp card, không còn là view standalone.
 VIEW_CARDS = {
-    "ghiso": ["luutrinh", "luutrinhbtp", "baome", "baocan", "suco"],
-    "vaohop": ["vaohop", "suco", "chotngay"],
-    "quanly": [],
+    "ghiso": ["luutrinh", "baome", "baocan", "suco"],
+    "vaohop": ["vaohop", "suco"],
+    "quanly": ["chotngay", "luutrinhbtp"],
 }
 
 # card nào role nào được GỌI API (chốt bảo mật thật — không phải ẩn tab)
 CARD_ROLES = {
     "xuatdau": [GHI_SO],
     "luutrinh": [GHI_SO],   # lưu đồ tầng 1 (D31) — thay card xuất đậu cũ
-    "luutrinhbtp": [GHI_SO, QUAN_LY],   # lưu đồ tồn BTP tầng 2/3 (D32) — chỉ đọc
+    "luutrinhbtp": [QUAN_LY],   # lưu đồ tồn BTP tầng 2/3 (D32) — chỉ đọc, màn Quản lý
     "baome": [GHI_SO],
     "baocan": [GHI_SO],
     "suco": [GHI_SO, VAO_HOP],
     "vaohop": [VAO_HOP],
-    "chotngay": [VAO_HOP],
+    # D33: chốt ngày về tay QUẢN LÝ. QC#2 chỉ nhập bảng vào hộp; ai chốt sổ là người
+    # khác — vừa gọn màn nhập liệu, vừa tách vai đúng §2.1 (người nhập ≠ người chốt).
+    "chotngay": [QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
 

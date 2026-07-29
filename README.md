@@ -161,6 +161,17 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   `Khanh (Vào hộp 170: 29, Vào hộp 300: 50)`, mỗi người 1 dòng, kèm ngày + tổng. Công nhân tự
   theo dõi và đối chiếu.
 
+- **D33 — dọn màn nhập liệu, chuyển việc theo dõi + chốt sổ sang Quản lý:**
+  - **Chốt ngày** rời màn *Vào hộp* → sang màn **Quản lý**. QC#2 giờ chỉ nhập bảng vào hộp;
+    người chốt sổ là quản lý. Vừa gọn màn nhập liệu, vừa siết đúng hướng §2.1 —
+    **người nhập số không còn là người chốt sổ**. ⚠️ Đây là đảo lại D9: tài khoản
+    `SX Vao Hop` KHÔNG chốt ngày được nữa, phải dùng tài khoản quản lý.
+  - **Lưu đồ tồn BTP** rời màn *Ghi số* → sang **Quản lý**, thêm chặng đầu *Đỗ ở xưởng*.
+  - Màn Quản lý giờ là **thẻ (chốt ngày + lưu đồ) ở trên, dashboard theo dõi ở dưới** —
+    chốt ngày là việc làm mỗi ngày nên không để nó nằm dưới đáy sau 6 bảng thống kê.
+  - Bỏ bảng *Tồn BTP hiện tại* ở dashboard vì thẻ lưu đồ đã hiện đủ và rõ hơn; banner
+    cảnh báo tồn âm vẫn giữ.
+  - Kết quả: màn *Ghi số* còn 4 thẻ, màn *Vào hộp* còn 2.
 - **D32 — lưu đồ tồn bán thành phẩm 2 nhánh bánh / bột đậu:** thẻ **Tồn bán thành phẩm
   theo luồng** vẽ cả 2 dây chuyền tầng 2/3, mỗi chặng liệt kê từng loại kèm tồn thật:
   - *Bánh đậu xanh*: Bột nền + Đường hoán → **Bột bánh (8 loại)** → TP bánh hộp

@@ -21,7 +21,7 @@ async function loadChartLib() {
   return chartLib;
 }
 
-export async function render({ container, ctx, call }) {
+export async function render({ container, ctx, call, cards, mountCard }) {
   container.innerHTML = '';
   const wrap = el('div', 'sx-view');
   container.appendChild(wrap);
@@ -30,9 +30,19 @@ export async function render({ container, ctx, call }) {
     return;
   }
 
+  // D33: chốt ngày + lưu đồ tồn BTP nằm ở ĐẦU màn, trên dashboard. Chốt ngày là việc
+  // phải làm mỗi ngày nên không được nằm dưới đáy trang sau 6 bảng thống kê.
+  const dauMan = el('div');
+  wrap.appendChild(dauMan);
+  for (const c of (cards || [])) {
+    await mountCard(c, dauMan);
+  }
+
   let soNgay = 7;
-  wrap.innerHTML = `
-    <h1 class="sx-h1">Quản lý</h1>
+  const than = el('div');
+  wrap.appendChild(than);
+  than.innerHTML = `
+    <h1 class="sx-h1">Theo dõi</h1>
     <div class="sx-card">
       <div class="sx-field-label">Truy xuất lô — nhập mã batch TP</div>
       <div class="sx-tx-row">
@@ -48,11 +58,11 @@ export async function render({ container, ctx, call }) {
     <div id="sx-ql-body"><div class="sx-boot-loading">Đang tải…</div></div>
   `;
 
-  wrap.querySelector('#sx-tx-go').addEventListener('click', async (e) => {
-    const batch = wrap.querySelector('#sx-tx-input').value.trim();
+  than.querySelector('#sx-tx-go').addEventListener('click', async (e) => {
+    const batch = than.querySelector('#sx-tx-input').value.trim();
     if (!batch) { toastErr('Nhập mã batch TP.'); return; }
     e.currentTarget.disabled = true;
-    const box = wrap.querySelector('#sx-tx-result');
+    const box = than.querySelector('#sx-tx-result');
     box.innerHTML = '<div class="sx-boot-loading">Đang tra…</div>';
     try {
       const d = await call('sx.api.portal.truy_xuat', { batch_tp: batch });
@@ -65,9 +75,9 @@ export async function render({ container, ctx, call }) {
     }
   });
 
-  const body = wrap.querySelector('#sx-ql-body');
-  const btn7 = wrap.querySelector('#sx-ql-7');
-  const btn30 = wrap.querySelector('#sx-ql-30');
+  const body = than.querySelector('#sx-ql-body');
+  const btn7 = than.querySelector('#sx-ql-7');
+  const btn30 = than.querySelector('#sx-ql-30');
   btn7.addEventListener('click', () => { soNgay = 7; btn7.classList.add('sx-sp-chip-on'); btn30.classList.remove('sx-sp-chip-on'); load(); });
   btn30.addEventListener('click', () => { soNgay = 30; btn30.classList.add('sx-sp-chip-on'); btn7.classList.remove('sx-sp-chip-on'); load(); });
 
@@ -123,10 +133,6 @@ export async function render({ container, ctx, call }) {
         <table class="sx-table"><thead><tr><th>Bột bánh</th><th>Mẻ trộn</th><th>Mẻ cán</th></tr></thead>
         <tbody>${(d.tron_vs_can || []).map((r) => `<tr class="${r.canh_bao ? 'sx-row-warn' : ''}"><td>${esc(r.item)}</td><td>${formatNumber(r.me_tron, 1)}</td><td>${formatNumber(r.me_can, 1)}</td></tr>`).join('')
           || '<tr><td colspan="3" class="sx-muted">Chưa có dữ liệu.</td></tr>'}</tbody></table></div>
-      <div class="sx-card"><div class="sx-field-label">Tồn BTP hiện tại</div>
-        <table class="sx-table"><thead><tr><th>BTP</th><th>Nhóm</th><th>Tồn (kg)</th></tr></thead>
-        <tbody>${(d.ton_btp || []).map((t) => `<tr><td>${esc(t.item)}</td><td>${esc(t.nhom)}</td><td class="${t.am ? 'sx-warn-text' : ''}"><b>${formatNumber(t.ton_kg, 1)}</b></td></tr>`).join('')
-          || '<tr><td colspan="3" class="sx-muted">Chưa có BTP.</td></tr>'}</tbody></table></div>
       <div class="sx-card">
         <a class="sx-desk-link" href="/app/sx-ngay-san-xuat" target="_blank" rel="noopener">Mở Desk: Phiếu ngày SX ↗</a>
         <a class="sx-desk-link" href="/app/query-report/Serial and Batch Summary" target="_blank" rel="noopener">Serial & Batch Traceability Report ↗</a>

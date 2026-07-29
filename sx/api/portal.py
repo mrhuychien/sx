@@ -583,16 +583,22 @@ def _ton_tp(ds_tp, kho):
 def luu_do_btp():
     """Lưu đồ tồn bán thành phẩm 2 nhánh bánh / bột đậu (D32)."""
     guard_card("luutrinhbtp")
+    from sx.utils import kho_xuong
+
     settings = get_settings()
     kho_btp, kho_tp = settings.kho_btp, settings.kho_tp
     tp = _tp_theo_nhanh()
 
+    # Đỗ ủ / đỗ vỡ nằm ở kho Xưởng (D31) — vẫn là bán thành phẩm, quản lý phải thấy.
+    # Chi tiết theo từng lô thì xem lưu đồ tầng 1 bên màn ghi số.
+    dau_xuong = _ton_nhom("BTP-Dau", kho_xuong(settings))
     bot_nen = _ton_nhom("BTP-Bot", kho_btp)
     return {
         "nhanh": [
             {
                 "ma": "banh", "ten": _("Bánh đậu xanh"),
                 "chang": [
+                    {"nhan": _("Đỗ ở xưởng"), "dung_chung": 1, "items": dau_xuong},
                     {"nhan": _("Bột nền"), "dung_chung": 1, "items": bot_nen},
                     {"nhan": _("Đường hoán"), "items": _ton_nhom("BTP-Phu", kho_btp)},
                     {"nhan": _("Bột bánh"), "items": _ton_nhom("BTP-Banh", kho_btp, kem_me=True)},
@@ -602,6 +608,7 @@ def luu_do_btp():
             {
                 "ma": "bot", "ten": _("Bột đậu"),
                 "chang": [
+                    {"nhan": _("Đỗ ở xưởng"), "dung_chung": 1, "items": dau_xuong},
                     {"nhan": _("Bột nền"), "dung_chung": 1, "items": bot_nen},
                     {"nhan": _("Bột đậu"),
                      "items": _ton_nhom("BTP-Bot-SP", kho_btp, kem_me=True)},
