@@ -524,7 +524,14 @@ def _ton_btp():
 
 
 def _ton_nhom(nhom, kho, kem_me=False):
-    """Tồn từng item của 1 nhóm tại 1 kho. kem_me: quy ra số mẻ theo cỡ mẻ chuẩn BOM."""
+    """Tồn từng item của 1 nhóm tại 1 kho — CHỈ loại đang có hàng (D34).
+
+    Bỏ item tồn đúng 0: nhà máy có 8 loại bột bánh nhưng ngày thường chỉ chạy 2-3 loại,
+    liệt kê cả 8 thì phần đang có hàng chìm nghỉm. Tồn ÂM thì VẪN HIỆN — đó là lỗi số
+    liệu cần thấy ngay, không phải thứ để lọc đi.
+
+    kem_me: quy ra số mẻ theo cỡ mẻ chuẩn BOM.
+    """
     out = []
     for it in frappe.get_all(
         "Item", filters={"custom_sx_nhom": nhom, "disabled": 0},
@@ -535,6 +542,8 @@ def _ton_nhom(nhom, kho, kem_me=False):
                 "Bin", {"item_code": it["name"], "warehouse": kho}, "actual_qty"
             )
         )
+        if abs(ton) < 1e-6:
+            continue
         dong = {"item": it["name"], "ten": it["item_name"] or it["name"],
                 "ton": flt(ton, 1), "am": ton < 0}
         if kem_me:
@@ -542,7 +551,19 @@ def _ton_nhom(nhom, kho, kem_me=False):
             co_me = flt(frappe.db.get_value("BOM", bom, "custom_co_me_chuan_kg")) if bom else 0
             dong["so_me"] = flt(ton / co_me, 1) if co_me else None
         out.append(dong)
+    out.sort(key=lambda d: -d["ton"])   # nhiều hàng nhất lên trước
     return out
+
+
+def _chang(nhan, items, dung_chung=0):
+    """Một chặng của lưu đồ: nhãn + TỔNG kg (số to) + chi tiết loại đang có hàng."""
+    return {
+        "nhan": nhan,
+        "dung_chung": cint(dung_chung),
+        "tong": flt(sum(d["ton"] for d in items), 1),
+        "so_loai": len(items),
+        "items": items,
+    }
 
 
 def _tp_theo_nhanh():
@@ -598,20 +619,19 @@ def luu_do_btp():
             {
                 "ma": "banh", "ten": _("Bánh đậu xanh"),
                 "chang": [
-                    {"nhan": _("Đỗ ở xưởng"), "dung_chung": 1, "items": dau_xuong},
-                    {"nhan": _("Bột nền"), "dung_chung": 1, "items": bot_nen},
-                    {"nhan": _("Đường hoán"), "items": _ton_nhom("BTP-Phu", kho_btp)},
-                    {"nhan": _("Bột bánh"), "items": _ton_nhom("BTP-Banh", kho_btp, kem_me=True)},
+                    _chang(_("Đỗ ở xưởng"), dau_xuong, dung_chung=1),
+                    _chang(_("Bột nền"), bot_nen, dung_chung=1),
+                    _chang(_("Đường hoán"), _ton_nhom("BTP-Phu", kho_btp)),
+                    _chang(_("Bột bánh"), _ton_nhom("BTP-Banh", kho_btp, kem_me=True)),
                 ],
                 "tp": _ton_tp(tp["banh"], kho_tp),
             },
             {
                 "ma": "bot", "ten": _("Bột đậu"),
                 "chang": [
-                    {"nhan": _("Đỗ ở xưởng"), "dung_chung": 1, "items": dau_xuong},
-                    {"nhan": _("Bột nền"), "dung_chung": 1, "items": bot_nen},
-                    {"nhan": _("Bột đậu"),
-                     "items": _ton_nhom("BTP-Bot-SP", kho_btp, kem_me=True)},
+                    _chang(_("Đỗ ở xưởng"), dau_xuong, dung_chung=1),
+                    _chang(_("Bột nền"), bot_nen, dung_chung=1),
+                    _chang(_("Bột đậu"), _ton_nhom("BTP-Bot-SP", kho_btp, kem_me=True)),
                 ],
                 "tp": _ton_tp(tp["bot"], kho_tp),
             },

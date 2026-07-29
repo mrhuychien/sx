@@ -1,8 +1,9 @@
 // Card Lưu đồ tồn BTP tầng 2/3 (D32) — 2 nhánh bánh đậu xanh / bột đậu.
 //
-// Khác card tầng 1: ở đây KHÔNG có nút công đoạn. Bột bánh / bột đậu sinh khi báo mẻ
-// và bị trừ lúc TP vào hộp (backflush — D8), nên đây là màn hình ĐỌC: thấy hàng đang
-// đọng ở khúc nào trước khi quyết định hôm nay trộn gì.
+// Vẽ cùng nhịp với lưu đồ tầng 1: nhãn → SỐ TO → chi tiết, mũi tên nối các chặng.
+// Khác card tầng 1 ở chỗ KHÔNG có nút công đoạn — bột bánh / bột đậu sinh khi báo mẻ
+// và bị trừ lúc TP vào hộp (backflush — D8), nên đây là màn hình đọc.
+// Loại tồn 0 bị lọc từ backend (D34); tồn âm vẫn hiện vì đó là lỗi cần thấy.
 
 import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatKg, formatNumber } from '/assets/sx/sx/lib/format.js';
@@ -28,37 +29,53 @@ export async function render({ container, call }) {
 }
 
 function veNhanh(n) {
-  const chang = n.chang.map((c, i) => `
-    ${i ? '<div class="sx-lb-mui">→</div>' : ''}
-    <div class="sx-lb-o">
-      <div class="sx-lb-nhan">${esc(c.nhan)}${
-        c.dung_chung ? '<span class="sx-lb-chung">dùng chung</span>' : ''}</div>
-      ${veItems(c.items)}
-    </div>`).join('');
+  const tongNhanh = n.chang.reduce((a, c) => a + (Number(c.tong) || 0), 0);
+  const o = n.chang.map((c, i) => veChang(c, i)).join('');
   return `
     <div class="sx-lb-nhanh">
-      <div class="sx-lb-ten">${esc(n.ten)}</div>
+      <div class="sx-lb-head">
+        <b class="sx-lb-ten">${esc(n.ten)}</b>
+        ${tongNhanh > 0
+          ? `<span class="sx-lb-tag">${esc(formatKg(tongNhanh))} bán thành phẩm</span>`
+          : '<span class="sx-lb-tag sx-lb-trong">chưa có hàng</span>'}
+      </div>
       <div class="sx-lb-day">
-        ${chang}
+        ${o}
         <div class="sx-lb-mui">→</div>
-        <div class="sx-lb-o sx-lb-tp">
-          <div class="sx-lb-nhan">Thành phẩm</div>
-          <div class="sx-lb-tong">${esc(formatNumber(n.tp.tong, 0))}</div>
-          <div class="sx-lb-phu">${esc(n.tp.so_sku)}/${esc(n.tp.tong_sku)} SKU còn hàng</div>
-        </div>
+        ${veTP(n.tp)}
       </div>
     </div>`;
 }
 
+function veChang(c, i) {
+  const tong = Number(c.tong) || 0;
+  const am = (c.items || []).some((it) => it.am);
+  return `
+    ${i ? '<div class="sx-lb-mui">→</div>' : ''}
+    <div class="sx-lb-o${tong > 0 ? ' sx-lb-co' : ''}${am ? ' sx-lb-canhbao' : ''}">
+      <div class="sx-lb-nhan">${esc(c.nhan)}${
+        c.dung_chung ? '<span class="sx-lb-chung">chung</span>' : ''}</div>
+      <div class="sx-lb-so">${esc(formatKg(tong))}</div>
+      ${veItems(c.items)}
+    </div>`;
+}
+
 function veItems(items) {
-  if (!items || !items.length) {
-    return '<div class="sx-lb-trong">chưa khai item</div>';
-  }
-  // Hết hàng vẫn phải hiện: "loại này đang 0" là thông tin, không phải thứ để giấu.
-  return `<table class="sx-lb-bang">${items.map((it) => `
-    <tr class="${it.am ? 'sx-lb-am' : ''}${Number(it.ton) ? '' : ' sx-lb-het'}">
-      <td>${esc(it.ten)}</td>
-      <td class="sx-lb-so">${esc(formatKg(it.ton))}</td>
-      <td class="sx-lb-me">${it.so_me != null ? `${esc(formatNumber(it.so_me, 1))} mẻ` : ''}</td>
-    </tr>`).join('')}</table>`;
+  if (!items || !items.length) return '<div class="sx-lb-khong">hết hàng</div>';
+  return `<div class="sx-lb-ct">${items.map((it) => `
+    <div class="sx-lb-dong${it.am ? ' sx-lb-am' : ''}">
+      <span class="sx-lb-ten-it" title="${esc(it.item)}">${esc(it.ten)}</span>
+      <span class="sx-lb-kg">${esc(formatKg(it.ton))}${
+        it.so_me != null ? `<i>${esc(formatNumber(it.so_me, 1))} mẻ</i>` : ''}</span>
+    </div>`).join('')}</div>`;
+}
+
+function veTP(tp) {
+  const co = Number(tp.tong) > 0;
+  return `
+    <div class="sx-lb-o sx-lb-tp${co ? ' sx-lb-co' : ''}">
+      <div class="sx-lb-nhan">Thành phẩm</div>
+      <div class="sx-lb-so">${esc(formatNumber(tp.tong, 0))}</div>
+      <div class="sx-lb-khong">${esc(tp.so_sku)}/${esc(tp.tong_sku)} SKU còn hàng</div>
+    </div>`;
 }

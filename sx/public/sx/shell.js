@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-16';
+const BUILD = 'sx-17';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 

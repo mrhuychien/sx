@@ -176,9 +176,13 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   theo luồng** vẽ cả 2 dây chuyền tầng 2/3, mỗi chặng liệt kê từng loại kèm tồn thật:
   - *Bánh đậu xanh*: Bột nền + Đường hoán → **Bột bánh (8 loại)** → TP bánh hộp
   - *Bột đậu*: Bột nền → **Bột đậu (8 công thức)** → TP túi/hộp
+  - Vẽ **cùng nhịp với lưu đồ tầng 1**: mỗi chặng là một ô *nhãn → số tổng to → chi tiết*,
+    mũi tên nối các chặng, ô còn hàng thì nổi lên, ô hết hàng mờ đi
+  - **Loại tồn 0 không hiện** (D34): 8 loại bột bánh mà ngày thường chỉ chạy 2-3 loại, liệt kê
+    cả 8 thì phần đang có hàng chìm nghỉm. Tồn **âm vẫn hiện** và viền ô đỏ — đó là lỗi số
+    liệu cần thấy ngay, không phải thứ để lọc đi
   - Bột bánh / bột đậu hiện thêm **quy ra số mẻ** (theo cỡ mẻ chuẩn của BOM) — nhìn là biết
     còn đủ mấy mẻ nữa
-  - Tồn âm bôi đỏ; loại đang 0 vẫn hiện (mờ đi) vì "loại này hết" cũng là thông tin
   - **Chỉ đọc, không có nút.** Tầng 2/3 không bấm công đoạn được: bột bánh/bột đậu sinh khi
     báo mẻ và bị trừ lúc TP vào hộp (backflush — D8)
 - **D31 — thẻ ghi sổ chạy theo LƯU ĐỒ sản xuất, có tồn bán thành phẩm:** thay thẻ *Xuất đậu*
