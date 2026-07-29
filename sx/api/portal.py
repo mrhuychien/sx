@@ -492,16 +492,23 @@ def _tron_vs_can(ds_phieu):
 
 
 def _ton_btp():
+    """Tồn BTP cho dashboard quản lý. BTP-Dau (đỗ ủ / đỗ vỡ — D31) nằm ở kho Xưởng,
+    không phải kho BTP: đó là hàng đang dở dang ngoài chuyền, đọc đúng kho mới thấy."""
+    from sx.utils import kho_xuong
+
     settings = get_settings()
+    kho_x = kho_xuong(settings)
     out = []
-    for nhom in ("BTP-Bot", "BTP-Phu", "BTP-Banh", "BTP-Bot-SP"):
+    for nhom in ("BTP-Dau", "BTP-Bot", "BTP-Phu", "BTP-Banh", "BTP-Bot-SP"):
+        kho = kho_x if nhom == "BTP-Dau" else settings.kho_btp
         for it in frappe.get_all("Item", filters={"custom_sx_nhom": nhom}, pluck="name"):
             qty = flt(
                 frappe.db.get_value(
-                    "Bin", {"item_code": it, "warehouse": settings.kho_btp}, "actual_qty"
+                    "Bin", {"item_code": it, "warehouse": kho}, "actual_qty"
                 )
             )
-            out.append({"item": it, "nhom": nhom, "ton_kg": flt(qty, 1), "am": qty < 0})
+            out.append({"item": it, "nhom": nhom, "kho": kho,
+                        "ton_kg": flt(qty, 1), "am": qty < 0})
     return out
 
 
