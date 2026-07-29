@@ -377,6 +377,137 @@ def seed_btp_dau(dry_run=0, bao_cao=None):
     return ket_qua
 
 
+def seed_ton_dau(so_me=20, gia_mac_dinh=1000, dry_run=1, ngay=None):
+    """Nạp TỒN ĐẦU cho mọi NVL + bao bì xuất hiện trong BOM (để chạy thử cho thông luồng).
+
+    Nhu cầu suy thẳng từ BOM: cộng định mức của từng NVL qua TẤT CẢ BOM active
+    (mỗi BOM tính 1 mẻ chuẩn) rồi nhân `so_me`. Tỉ lệ giữa các NVL vì thế đúng
+    theo công thức thật, không phải số bịa.
+
+    An toàn:
+    - `dry_run=1` là MẶC ĐỊNH — gọi trần chỉ xem trước, muốn ghi thật phải truyền
+      dry_run=0. Đây là thao tác ĐÈ số tồn nên không để lỡ tay.
+    - Item nào đã đủ tồn thì BỎ QUA, không đụng vào. Chỉ nâng item đang thiếu lên
+      mức mục tiêu -> chạy trên site có số thật cũng không thổi bay tồn đang đúng.
+    - Sinh 1 Stock Reconciliation (purpose "Stock Reconciliation", chênh lệch vào
+      tài khoản Stock Adjustment). KHÔNG dùng "Opening Stock" vì purpose đó đòi
+      tài khoản Temporary Opening mà nhiều site chưa lập.
+
+    gia_mac_dinh: giá vốn dùng khi Item chưa có valuation_rate lẫn giá mua gần nhất.
+    """
+    from frappe.utils import nowdate
+
+    from sx.utils import get_settings
+
+    so_me = flt(so_me) or 1
+    settings = get_settings()
+    if not settings.get("cong_ty") or not settings.get("kho_nvl"):
+        frappe.throw(_("SX Settings chưa cấu hình Công ty / Kho NVL."))
+
+    # 1) Cộng nhu cầu 1 mẻ của mọi BOM active
+    can = {}
+    boms = frappe.get_all(
+        "BOM", filters={"is_active": 1, "docstatus": 1}, fields=["name", "item"]
+    )
+    for b in boms:
+        doc = frappe.get_cached_doc("BOM", b.name)
+        for r in doc.items:
+            it = frappe.get_cached_value(
+                "Item", r.item_code, ["is_stock_item", "custom_sx_nhom"], as_dict=True
+            ) or {}
+            # Chỉ NVL mua ngoài: BTP do chính dây chuyền sinh ra, nạp tồn đầu là sai.
+            # Nước (is_stock_item=0) không có tồn để nạp.
+            if not cint(it.get("is_stock_item")):
+                continue
+            if (it.get("custom_sx_nhom") or "") not in ("NVL", "Bao Bi"):
+                continue
+            can[r.item_code] = can.get(r.item_code, 0) + flt(r.stock_qty)
+
+    if not can:
+        print("   • Không tìm thấy NVL nào trong BOM — đã seed BOM chưa?")
+        return []
+
+    # 2) So với tồn hiện có, chỉ bù phần thiếu
+    kho = settings.kho_nvl
+    dong, bo_qua, thieu_gia = [], [], []
+    for it in sorted(can):
+        muc_tieu = flt(can[it] * so_me, 2)
+        dang_co = flt(
+            frappe.db.get_value("Bin", {"item_code": it, "warehouse": kho}, "actual_qty")
+        )
+        if dang_co + 1e-6 >= muc_tieu:
+            bo_qua.append(f"{it}: đã có {dang_co} ≥ {muc_tieu}")
+            continue
+        gia = flt(frappe.db.get_value("Item", it, "valuation_rate")) or flt(
+            frappe.db.get_value("Item", it, "last_purchase_rate")
+        )
+        if not gia:
+            gia = flt(gia_mac_dinh)
+            thieu_gia.append(it)
+        dong.append({"item_code": it, "qty": muc_tieu, "valuation_rate": gia,
+                     "dang_co": dang_co})
+
+    print(f"\n   Kho: {kho} · {so_me:g} mẻ mỗi công thức")
+    for d in dong:
+        print(f"   • {d['item_code']}: {d['dang_co']:g} -> {d['qty']:g} "
+              f"(giá vốn {d['valuation_rate']:g})")
+    for x in bo_qua:
+        print(f"   - bỏ qua {x}")
+    if thieu_gia:
+        print(f"\n   ⚠ {len(thieu_gia)} item chưa có giá vốn, tạm dùng {flt(gia_mac_dinh):g}: "
+              + ", ".join(thieu_gia))
+    if not dong:
+        print("\n   • Mọi NVL đã đủ tồn, không phải làm gì.")
+        return []
+    if cint(dry_run):
+        print("\n   [DRY RUN] Chưa ghi gì. Chạy lại với --kwargs \"{'dry_run': 0}\" để ghi thật.")
+        return dong
+
+    # 3) Một phiếu Stock Reconciliation cho tất cả
+    sr = frappe.new_doc("Stock Reconciliation")
+    sr.company = settings.cong_ty
+    sr.purpose = "Stock Reconciliation"
+    if ngay:
+        sr.set_posting_time = 1
+        sr.posting_date = str(ngay)
+    for d in dong:
+        row = {"item_code": d["item_code"], "warehouse": kho,
+               "qty": d["qty"], "valuation_rate": d["valuation_rate"]}
+        if cint(frappe.get_cached_value("Item", d["item_code"], "has_batch_no")):
+            row["batch_no"] = _batch_ton_dau(d["item_code"], ngay or nowdate())
+            # v15+ đọc batch qua bundle; cờ này bảo nó dùng batch_no khai tay.
+            # Bản nào chưa có field thì bỏ qua, batch_no vẫn là đường cũ.
+            if frappe.get_meta("Stock Reconciliation Item").has_field(
+                "use_serial_batch_fields"
+            ):
+                row["use_serial_batch_fields"] = 1
+        sr.append("items", row)
+    sr.flags.ignore_permissions = True
+    sr.insert()
+    sr.submit()
+    frappe.db.commit()
+    print(f"\n   ✅ Đã ghi {sr.name} ({len(dong)} item).")
+    return dong
+
+
+def _batch_ton_dau(item_code, ngay):
+    """Lô tồn đầu của 1 item — tái dùng lô 'TD-' cũ nếu đã tạo lần trước."""
+    cu = frappe.db.get_value("Batch", {"item": item_code, "batch_id": ("like", "TD-%")}, "name")
+    if cu:
+        return cu
+    from frappe.utils import getdate
+
+    goc = f"TD-{getdate(ngay).strftime('%d%m%y')}"
+    ma, n = goc, 1
+    while frappe.db.exists("Batch", ma):
+        n += 1
+        ma = f"{goc}-{n}"
+    doc = frappe.get_doc({"doctype": "Batch", "batch_id": ma, "item": item_code})
+    doc.flags.ignore_permissions = True
+    doc.insert()
+    return doc.name
+
+
 def seed_all(dry_run=0, bo_qua_gia_dinh=0):
     """Seed Item + BOM tầng 1/2 rồi in báo cáo. dry_run=1 để xem trước, không ghi."""
     dry_run = int(dry_run or 0)

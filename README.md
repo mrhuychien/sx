@@ -80,6 +80,34 @@ Tên item lấy theo tên **thật trên ERPNext** (cột A workbook), đã áp 
 Sữa dừa = Bột sữa dừa, Đường kính VN = **Đường nghệ an**, Đường TQ = **Đường Gluco China**,
 hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 
+## Nạp tồn đầu để chạy thử (`seed_ton_dau`)
+
+Site mới chưa có tồn NVL thì chốt ngày sẽ chặn "không đủ tồn kho". Lệnh này nạp
+tồn đầu cho **mọi NVL + bao bì xuất hiện trong BOM**, số lượng suy thẳng từ định mức
+(cộng nhu cầu 1 mẻ của từng BOM active rồi nhân số mẻ) nên tỉ lệ giữa các NVL đúng
+theo công thức thật:
+
+```bash
+SITE=site1.local
+bench --site $SITE execute sx.seed.seed_ton_dau                              # xem trước (mặc định)
+bench --site $SITE execute sx.seed.seed_ton_dau --kwargs "{'dry_run': 0}"    # ghi thật, 20 mẻ
+bench --site $SITE execute sx.seed.seed_ton_dau --kwargs "{'so_me': 50, 'dry_run': 0}"
+```
+
+- **`dry_run=1` là mặc định** — gọi trần chỉ in bảng dự kiến, không ghi gì. Đây là
+  thao tác đè số tồn nên không để lỡ tay.
+- **Item đã đủ tồn thì bỏ qua**, chỉ nâng item đang thiếu lên mức mục tiêu — chạy trên
+  site có số thật cũng không thổi bay tồn đang đúng.
+- Sinh **1 Stock Reconciliation** (purpose *Stock Reconciliation*, chênh lệch vào Stock
+  Adjustment). Không dùng *Opening Stock* vì purpose đó đòi tài khoản Temporary Opening
+  mà nhiều site chưa lập.
+- Item có lô tự tạo lô `TD-DDMMYY` (chạy lại thì tái dùng lô cũ, không đẻ thêm).
+- Item chưa có `valuation_rate` lẫn giá mua gần nhất thì tạm dùng `gia_mac_dinh`
+  (mặc định 1000) và **liệt kê rõ item nào** — sửa giá thật trên Item rồi chạy lại.
+
+Cách này thay cho việc bật **Allow Negative Stock**: tồn âm làm giá vốn trôi và che mất
+FIFO theo lô, tức là che đúng phần cần test.
+
 **Còn phải làm tay:** Activity Type + đơn giá (**bắt buộc — không có thì bảng vào hộp trống**),
 BOM **tầng 3 + Item TP + bao bì** + map `custom_activity_type` cho từng SKU (CH-13 chốt: chủ
 đầu tư tự tạo trên ERPNext; chưa có thì vẫn ghi được lương khoán, chỉ **chưa sinh lệnh SX
