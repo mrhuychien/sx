@@ -161,6 +161,15 @@ nhánh TP** — D23), Manufacturing Settings, tồn đầu, 2 user tablet — xe
   `Khanh (Vào hộp 170: 29, Vào hộp 300: 50)`, mỗi người 1 dòng, kèm ngày + tổng. Công nhân tự
   theo dõi và đối chiếu.
 
+- **D32 — lưu đồ tồn bán thành phẩm 2 nhánh bánh / bột đậu:** thẻ **Tồn bán thành phẩm
+  theo luồng** vẽ cả 2 dây chuyền tầng 2/3, mỗi chặng liệt kê từng loại kèm tồn thật:
+  - *Bánh đậu xanh*: Bột nền + Đường hoán → **Bột bánh (8 loại)** → TP bánh hộp
+  - *Bột đậu*: Bột nền → **Bột đậu (8 công thức)** → TP túi/hộp
+  - Bột bánh / bột đậu hiện thêm **quy ra số mẻ** (theo cỡ mẻ chuẩn của BOM) — nhìn là biết
+    còn đủ mấy mẻ nữa
+  - Tồn âm bôi đỏ; loại đang 0 vẫn hiện (mờ đi) vì "loại này hết" cũng là thông tin
+  - **Chỉ đọc, không có nút.** Tầng 2/3 không bấm công đoạn được: bột bánh/bột đậu sinh khi
+    báo mẻ và bị trừ lúc TP vào hộp (backflush — D8)
 - **D31 — thẻ ghi sổ chạy theo LƯU ĐỒ sản xuất, có tồn bán thành phẩm:** thay thẻ *Xuất đậu*
   bằng thẻ **Luồng sản xuất**. QC bấm **XUẤT KHO ĐỖ** → sinh phiếu chuyển kho *Nguyên liệu →
   Xưởng sản xuất* (đỗ FIFO theo lô NCC) và ra mã lô R để ghi thẻ. Mỗi lô hiện thành một dãy ô

@@ -512,6 +512,106 @@ def _ton_btp():
     return out
 
 
+# ─────────────────────────── lưu đồ tồn BTP tầng 2/3 (D32) ──
+#
+# Tầng 2/3 KHÔNG có nút công đoạn như tầng 1: bột bánh / bột đậu sinh ra khi báo mẻ,
+# và bị trừ lúc TP vào hộp (backflush — D8). Nên lưu đồ này ĐỌC, không bấm: cho QC
+# thấy hàng đang đọng ở khúc nào trước khi quyết định hôm nay trộn gì.
+#
+#   Đỗ ─(tầng 1)→ BỘT NỀN ┬─→ BỘT BÁNH (8 loại) ─→ TP bánh hộp
+#                          └─→ BỘT ĐẬU (8 công thức) ─→ TP bột túi/hộp
+#   Đường ─→ ĐƯỜNG HOÁN (3) ─┘ (chỉ nhánh bánh)
+
+
+def _ton_nhom(nhom, kho, kem_me=False):
+    """Tồn từng item của 1 nhóm tại 1 kho. kem_me: quy ra số mẻ theo cỡ mẻ chuẩn BOM."""
+    out = []
+    for it in frappe.get_all(
+        "Item", filters={"custom_sx_nhom": nhom, "disabled": 0},
+        fields=["name", "item_name"], order_by="item_name",
+    ):
+        ton = flt(
+            frappe.db.get_value(
+                "Bin", {"item_code": it["name"], "warehouse": kho}, "actual_qty"
+            )
+        )
+        dong = {"item": it["name"], "ten": it["item_name"] or it["name"],
+                "ton": flt(ton, 1), "am": ton < 0}
+        if kem_me:
+            bom = get_bom_active(it["name"])
+            co_me = flt(frappe.db.get_value("BOM", bom, "custom_co_me_chuan_kg")) if bom else 0
+            dong["so_me"] = flt(ton / co_me, 1) if co_me else None
+        out.append(dong)
+    return out
+
+
+def _tp_theo_nhanh():
+    """Chia item TP về nhánh bánh / bột theo BOM tầng 3 (RM nào là bột bánh hay bột đậu).
+
+    Không đoán theo tên SKU — tên đặt tay, đổi lúc nào không biết. BOM mới là sự thật.
+    """
+    nhanh = {"banh": [], "bot": []}
+    for tp in frappe.get_all(
+        "Item", filters={"custom_sx_nhom": "TP", "disabled": 0}, pluck="name"
+    ):
+        bom = get_bom_active(tp)
+        if not bom:
+            continue
+        for r in frappe.get_cached_doc("BOM", bom).items:
+            nhom_rm = frappe.get_cached_value("Item", r.item_code, "custom_sx_nhom") or ""
+            if nhom_rm == "BTP-Banh":
+                nhanh["banh"].append(tp)
+                break
+            if nhom_rm == "BTP-Bot-SP":
+                nhanh["bot"].append(tp)
+                break
+    return nhanh
+
+
+def _ton_tp(ds_tp, kho):
+    """Tồn TP: gộp thành 1 con số + đếm SKU còn hàng (liệt kê hết thì dài vô ích)."""
+    tong, co_hang = 0.0, 0
+    for tp in ds_tp:
+        q = flt(frappe.db.get_value("Bin", {"item_code": tp, "warehouse": kho}, "actual_qty"))
+        tong += q
+        if q > 0:
+            co_hang += 1
+    return {"tong": flt(tong, 0), "so_sku": co_hang, "tong_sku": len(ds_tp)}
+
+
+@frappe.whitelist()
+def luu_do_btp():
+    """Lưu đồ tồn bán thành phẩm 2 nhánh bánh / bột đậu (D32)."""
+    guard_card("luutrinhbtp")
+    settings = get_settings()
+    kho_btp, kho_tp = settings.kho_btp, settings.kho_tp
+    tp = _tp_theo_nhanh()
+
+    bot_nen = _ton_nhom("BTP-Bot", kho_btp)
+    return {
+        "nhanh": [
+            {
+                "ma": "banh", "ten": _("Bánh đậu xanh"),
+                "chang": [
+                    {"nhan": _("Bột nền"), "dung_chung": 1, "items": bot_nen},
+                    {"nhan": _("Đường hoán"), "items": _ton_nhom("BTP-Phu", kho_btp)},
+                    {"nhan": _("Bột bánh"), "items": _ton_nhom("BTP-Banh", kho_btp, kem_me=True)},
+                ],
+                "tp": _ton_tp(tp["banh"], kho_tp),
+            },
+            {
+                "ma": "bot", "ten": _("Bột đậu"),
+                "chang": [
+                    {"nhan": _("Bột nền"), "dung_chung": 1, "items": bot_nen},
+                    {"nhan": _("Bột đậu"),
+                     "items": _ton_nhom("BTP-Bot-SP", kho_btp, kem_me=True)},
+                ],
+                "tp": _ton_tp(tp["bot"], kho_tp),
+            },
+        ],
+    }
+
+
 # ─────────────────────────────────────────────── truy xuất (đệ quy) ──
 
 

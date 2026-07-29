@@ -25,7 +25,7 @@ ROLE_VIEWS = {
 # view lắp từ những card nào (thứ tự hiển thị). quanly là view standalone (dashboard),
 # không lắp từ card → để rỗng (tránh mountCard tên card không có trong CARD_PATHS).
 VIEW_CARDS = {
-    "ghiso": ["luutrinh", "baome", "baocan", "suco"],
+    "ghiso": ["luutrinh", "luutrinhbtp", "baome", "baocan", "suco"],
     "vaohop": ["vaohop", "suco", "chotngay"],
     "quanly": [],
 }
@@ -34,6 +34,7 @@ VIEW_CARDS = {
 CARD_ROLES = {
     "xuatdau": [GHI_SO],
     "luutrinh": [GHI_SO],   # lưu đồ tầng 1 (D31) — thay card xuất đậu cũ
+    "luutrinhbtp": [GHI_SO, QUAN_LY],   # lưu đồ tồn BTP tầng 2/3 (D32) — chỉ đọc
     "baome": [GHI_SO],
     "baocan": [GHI_SO],
     "suco": [GHI_SO, VAO_HOP],
