@@ -124,6 +124,11 @@ def _validate_truoc_chot(doc):
             _("Ngày chưa có báo mẻ lẫn bảng vào hộp — không có gì để chốt.")
         )
 
+    # Kiểm schema app lương NGAY TẠI ĐÂY (ngoài try của chot_ngay): hỏng ở bước ghi
+    # lương thì phải rollback cả tá chứng từ kho đã sinh, chỉ để báo một lỗi cấu hình.
+    if co_vao_hop:
+        _kiem_salary_doctype()
+
     if bang and bang.docstatus == 0:
         # Controller lookup đơn giá khi save — save lại để chắc mọi dòng có giá
         bang.flags.ignore_permissions = True
@@ -350,6 +355,28 @@ def _kiem_salary_doctype():
             _("Không tìm thấy DocType {0} (app lương khoán). Cài app đó trước khi chốt ngày.")
             .format(SALARY_DT)
         )
+    _salary_child_dt()   # kiểm luôn bảng con: hỏng thì báo ngay, đừng chết giữa chốt
+
+
+def _salary_child_dt():
+    """DocType THẬT của bảng con lương khoán (vd SalaryProductDetail2).
+
+    SALARY_CHILD là FIELDNAME trên SalaryProduct, không phải tên DocType — đọc meta
+    của chính field đó để lấy. Nhờ vậy bên app lương đổi tên child DocType cũng không
+    làm vỡ chốt ngày.
+    """
+    df = frappe.get_meta(SALARY_DT).get_field(SALARY_CHILD)
+    if not df or not df.options:
+        frappe.throw(
+            _("Phiếu {0} không có bảng con tên '{1}' (các bảng con hiện có: {2}). "
+              "Schema app lương đã đổi — sửa SALARY_CHILD trong sx/api/chot.py.").format(
+                SALARY_DT, SALARY_CHILD,
+                ", ".join(
+                    d.fieldname for d in frappe.get_meta(SALARY_DT).get_table_fields()
+                ) or _("không có bảng con nào"),
+            )
+        )
+    return df.options
 
 
 def _phieu_luong_thang(employee, ngay, settings):
@@ -394,7 +421,7 @@ def _ghi_an(dong, fieldname, co_an, so_tien):
     Số     -> ghi số tiền lấy từ SX Settings, và CÓ cộng vào thunhapngay.
     Trả phần tiền đã ghi (0 nếu là ô đánh dấu / không có field).
     """
-    df = frappe.get_meta(SALARY_CHILD).get_field(fieldname)
+    df = frappe.get_meta(_salary_child_dt()).get_field(fieldname)
     if not df:
         return 0.0
     if df.fieldtype == "Check":
