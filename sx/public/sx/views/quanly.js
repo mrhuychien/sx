@@ -46,7 +46,8 @@ export async function render({ container, ctx, call, cards, mountCard }) {
     <div class="sx-card">
       <div class="sx-field-label">Truy xuất lô — nhập mã batch TP</div>
       <div class="sx-tx-row">
-        <input class="sx-textarea" id="sx-tx-input" placeholder="VD: BB-TT-230726">
+        <input class="sx-textarea" id="sx-tx-input" aria-label="Mã batch thành phẩm"
+          placeholder="VD: BB-TT-230726">
         <button type="button" class="sx-btn sx-btn-primary" id="sx-tx-go">TRUY XUẤT</button>
       </div>
       <div id="sx-tx-result"></div>

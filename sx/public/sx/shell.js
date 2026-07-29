@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-17';
+const BUILD = 'sx-18';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -86,14 +86,17 @@ const app = document.getElementById('sx-app');
 function buildShell() {
   app.innerHTML = '';
   const banner = el('div', 'sx-offline-banner');
+  banner.setAttribute('role', 'status');
   banner.textContent = 'Mất mạng — đang thử kết nối lại…';
   banner.style.display = 'none';
   const main = el('main', 'sx-main');
   const daybar = el('div', 'sx-daybar');
   daybar.innerHTML = `
-    <button type="button" class="sx-day-nav" id="sx-day-prev" title="Ngày trước">◀</button>
-    <input type="date" class="sx-day-input" id="sx-day-input">
-    <button type="button" class="sx-day-nav" id="sx-day-next" title="Ngày sau">▶</button>
+    <button type="button" class="sx-day-nav" id="sx-day-prev"
+            aria-label="Ngày trước" title="Ngày trước">◀</button>
+    <input type="date" class="sx-day-input" id="sx-day-input" aria-label="Chọn ngày xem">
+    <button type="button" class="sx-day-nav" id="sx-day-next"
+            aria-label="Ngày sau" title="Ngày sau">▶</button>
     <button type="button" class="sx-day-today" id="sx-day-today">Hôm nay</button>
     <span class="sx-day-tag" id="sx-day-tag"></span>
   `;

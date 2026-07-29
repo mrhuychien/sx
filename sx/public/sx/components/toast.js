@@ -7,6 +7,8 @@ let wrap = null;
 function ensureWrap() {
   if (!wrap) {
     wrap = el('div', 'sx-toast-wrap');
+    wrap.setAttribute('role', 'status');
+    wrap.setAttribute('aria-live', 'polite');
     document.body.appendChild(wrap);
   }
   return wrap;

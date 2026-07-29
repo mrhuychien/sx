@@ -207,7 +207,8 @@ function nhapSoLuong(nv, ten, act, sanPham, rows, save) {
 function openActivityPicker(ten, activities, actGanDay, onPick) {
   const m = openModal({ title: `${ten} — chọn loại công việc` });
   m.body.innerHTML = `
-    <input class="sx-textarea" id="sx-act-search" placeholder="Tìm loại công việc…" autocomplete="off">
+    <input class="sx-textarea" id="sx-act-search" aria-label="Tìm loại công việc"
+      placeholder="Tìm loại công việc…" autocomplete="off">
     <div id="sx-act-list"></div>
   `;
   const list = m.body.querySelector('#sx-act-list');
