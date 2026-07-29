@@ -29,8 +29,10 @@ function extractError(data) {
 
 function stripHtml(s) {
   const d = document.createElement('div');
-  d.innerHTML = s;
-  return d.textContent || d.innerText || s;
+  // Frappe xuống dòng bằng thẻ HTML; textContent nuốt sạch -> mọi dòng dính liền
+  // thành một khối chữ không đọc nổi. Đổi thành \n TRƯỚC khi bóc thẻ.
+  d.innerHTML = String(s).replace(/<br\s*\/?>|<\/(p|div|li|tr)>/gi, '\n');
+  return (d.textContent || d.innerText || s).replace(/\n{3,}/g, '\n\n').trim();
 }
 
 export async function call(method, args = {}) {

@@ -175,25 +175,19 @@ def _tong_hop_theo_sp(bang):
 def _kiem_ton_kho(doc, bang, settings):
     """Kiểm đủ tồn TRƯỚC khi sinh chứng từ. BTP sinh trong chốt (bao_me) được cộng
     tín dụng (xấp xỉ — FIFO thật ở bước sinh sẽ bắt thiếu chính xác & rollback)."""
-    thieu = []
     sx_hom_nay = {}
     for row in doc.bao_me:
         sx_hom_nay[row.item_btp] = sx_hom_nay.get(row.item_btp, 0) + flt(row.tong_kg)
     # KHÔNG cộng tín dụng bột "sắp nhập" nữa: từ D31 bột chỉ vào kho khi QC bấm
     # Nghiền trên lưu đồ. Cộng trước sẽ cho chốt qua rồi vỡ ở bước sinh SE.
 
+    # CỘNG DỒN nhu cầu rồi mới đối chiếu tồn MỘT LẦN cho mỗi (item, kho).
+    # Kiểm từng dòng BOM riêng lẻ là sai: 4 công thức cùng cần 1000 kg dầu, tồn 1000
+    # thì cả 4 lần kiểm đều "đủ", chốt qua rồi mới vỡ ở bước sinh phiếu kho.
+    can_tong = {}
+
     def _check(item_code, kho, can):
-        ton = flt(
-            frappe.db.get_value(
-                "Bin", {"item_code": item_code, "warehouse": kho}, "actual_qty"
-            )
-        ) + flt(sx_hom_nay.get(item_code, 0))
-        if ton + 1e-6 < can:
-            thieu.append(
-                _("- {0} tại {1}: cần {2}, tồn {3}").format(
-                    item_code, kho, flt(can, 3), flt(ton, 3)
-                )
-            )
+        can_tong[(item_code, kho)] = can_tong.get((item_code, kho), 0) + flt(can)
 
     for row in doc.bao_me:
         bom = get_bom_active(row.item_btp)
@@ -210,11 +204,34 @@ def _kiem_ton_kho(doc, bang, settings):
             for item_code, can in _nhu_cau_bom(bom_sp, so_hop).items():
                 _check(item_code, _kho_nguon(item_code, settings), can)
 
-    if thieu:
-        frappe.throw(
-            _("Không đủ tồn kho để chốt ngày (có thể quên nhập bột / báo mẻ / thiếu NVL):")
-            + "<br>" + "<br>".join(thieu)
+    thieu = []
+    thieu_bot_nen = False
+    for (item_code, kho), can in sorted(can_tong.items()):
+        ton = flt(
+            frappe.db.get_value(
+                "Bin", {"item_code": item_code, "warehouse": kho}, "actual_qty"
+            )
+        ) + flt(sx_hom_nay.get(item_code, 0))
+        if ton + 1e-6 >= can:
+            continue
+        if (frappe.get_cached_value("Item", item_code, "custom_sx_nhom") or "") == "BTP-Bot":
+            thieu_bot_nen = True
+        thieu.append(
+            _("• {0} tại {1}: cần {2}, tồn {3} → THIẾU {4}").format(
+                item_code, kho, flt(can, 3), flt(ton, 3), flt(can - ton, 3)
+            )
         )
+
+    if not thieu:
+        return
+
+    # Thiếu bột nền thường là do quên bấm Nghiền -> chỉ thẳng lô nào còn dở dang
+    goi_y = _lo_con_o_xuong(doc) if thieu_bot_nen else []
+    frappe.throw(
+        _("Không đủ tồn kho để chốt ngày:")
+        + "<br>" + "<br>".join(thieu)
+        + ("<br><br>" + "<br>".join(goi_y) if goi_y else "")
+    )
 
 
 # ─────────────────────────────────────────────── tầng 1 tự động ──
