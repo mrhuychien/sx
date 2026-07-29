@@ -67,28 +67,34 @@
   --sx-mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, monospace;
 }
 
-/* Dark theme: KHAI LẠI ĐÚNG NHỮNG TÊN TRÊN, không thêm tên mới.
-   Chạy được là nhờ không chỗ nào hardcode màu. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --sx-bg: #0e1520;
-    --sx-surface: #17202e;
-    --sx-surface-2: #222d3d;
-    --sx-text: #eef3f9;
-    --sx-text-2: #b3c0d0;
-    --sx-text-3: #93a1b3;
-    --sx-line: #33404f;
-    --sx-primary: #5b9dff;
-    --sx-primary-soft: #17304f;
-    --sx-success: #45c79a;
-    --sx-success-soft: #123528;
-    --sx-danger: #ff7b7b;
-    --sx-danger-soft: #3d1b1b;
-    --sx-warning: #e2a445;
-    --sx-warning-soft: #3a2a10;
-    --sx-shadow: 0 1px 3px rgba(0, 0, 0, .4);
-    --sx-focus: 0 0 0 3px var(--sx-surface), 0 0 0 6px var(--sx-primary);
-  }
+/* Nền SÁNG là mặc định, luôn luôn — KHÔNG bám theo thiết lập hệ điều hành.
+ *
+ * Trước đây khối này nằm trong @media (prefers-color-scheme: dark), nên tablet nào
+ * để hệ điều hành ở chế độ tối là cả portal chuyển tối mà không ai chọn. Trong xưởng
+ * điều đó vừa bất ngờ vừa sai: mỗi máy một kiểu, hai người đứng cạnh nhau nhìn hai
+ * giao diện khác nhau, và bản in/ảnh chụp gửi nhóm cũng lệch.
+ *
+ * Giữ lại bộ token tối, nhưng phải BẬT CÓ CHỦ ĐÍCH:
+ *   document.documentElement.dataset.theme = 'dark'
+ */
+:root[data-theme="dark"] {
+  --sx-bg: #0e1520;
+  --sx-surface: #17202e;
+  --sx-surface-2: #222d3d;
+  --sx-text: #eef3f9;
+  --sx-text-2: #b3c0d0;
+  --sx-text-3: #93a1b3;
+  --sx-line: #33404f;
+  --sx-primary: #5b9dff;
+  --sx-primary-soft: #17304f;
+  --sx-success: #45c79a;
+  --sx-success-soft: #123528;
+  --sx-danger: #ff7b7b;
+  --sx-danger-soft: #3d1b1b;
+  --sx-warning: #e2a445;
+  --sx-warning-soft: #3a2a10;
+  --sx-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  --sx-focus: 0 0 0 3px var(--sx-surface), 0 0 0 6px var(--sx-primary);
 }
 
 /* ══════════════════ NỀN ══════════════════ */
