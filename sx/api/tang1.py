@@ -203,6 +203,36 @@ def _ton_batch(item, kho, batch=None):
     )
 
 
+def _da_tieu_thu(lo_rang, cong_doan, item_vao):
+    """Số kg item_vao mà lô này ĐÃ dùng cho 1 công đoạn (Σ dòng nhập của các SE đã ghi)."""
+    ses = frappe.get_all(
+        "Stock Entry",
+        filters={"docstatus": 1, "custom_lo_rang": lo_rang, "custom_cong_doan": cong_doan},
+        pluck="name",
+    )
+    if not ses:
+        return 0.0
+    rows = frappe.get_all(
+        "Stock Entry Detail",
+        filters={"parent": ("in", ses), "item_code": item_vao, "is_finished_item": 0},
+        pluck="qty",
+    )
+    return flt(sum(flt(q) for q in rows))
+
+
+def _do_chua_rang(xd):
+    """Đỗ của RIÊNG lô này còn nằm ở xưởng chưa rang.
+
+    Đỗ chuyển kho giữ batch NCC (không có batch theo lô R) nên KHÔNG đọc được tồn
+    theo lô từ Bin — nhiều lô dùng chung một vũng đỗ ở xưởng. Suy bằng sổ sách:
+    đã xuất cho lô − đã đưa vào nồi rang. Lô cũ (trước D31, chưa từng qua kho
+    Xưởng) trả 0: đỗ của nó bị trừ thẳng ở Kho NVL theo luồng cũ.
+    """
+    if not xd.get("se_xuat_kho"):
+        return 0.0
+    return max(0.0, flt(xd.dau_kg) - _da_tieu_thu(xd.lo_rang, "rang", xd.loai_dau))
+
+
 @frappe.whitelist()
 def luu_do_lo(ngay=None):
     """Lưu đồ tầng 1: mỗi lô R đang chạy + tồn BTP từng chặng (D31).
@@ -216,7 +246,7 @@ def luu_do_lo(ngay=None):
         "SX Xuat Dau",
         filters={"docstatus": 1, "ngay_xuat": (">=", add_days(getdate(ngay or nowdate()), -14))},
         fields=["name", "lo_rang", "ngay_xuat", "ngay_rang", "loai_dau", "dau_kg",
-                "trang_thai_bot"],
+                "trang_thai_bot", "se_xuat_kho"],
         order_by="ngay_rang desc, creation desc",
     )
     out = []
@@ -236,10 +266,9 @@ def luu_do_lo(ngay=None):
                               "thieu_item": 1})
                 continue
             batch = batch_cua_chang(r.lo_rang, ten_chang)
-            # Đỗ chưa rang chưa có batch riêng -> đọc tồn tổng của item tại kho xưởng
-            ton = _ton_batch(item, kho, batch if ten_chang != "dau" else None)
-            if ten_chang != "dau":
-                con_lai += ton
+            ton = _do_chua_rang(r) if ten_chang == "dau" else _ton_batch(item, kho, batch)
+            if ten_chang != "bot":
+                con_lai += ton   # bột đã vào Kho BTP -> không còn "ở xưởng"
             chang.append({"chang": ten_chang, "nhan": nhan, "item": item,
                           "batch": batch, "ton": flt(ton, 2)})
         out.append({
@@ -270,6 +299,7 @@ def xuat_kho_dau(loai_dau, dau_kg, ngay_rang=None, ngay_xuat=None):
         kho_di=settings.kho_nvl, kho_den=kho_xuong(settings),
         ngay=ngay_xuat or nowdate(),
         ghi_chu=_("Xuất đỗ ra xưởng — lô {0}").format(kq["lo_rang"]),
+        lo_rang=kq["lo_rang"], cong_doan="xuatkho",
     )
     frappe.db.set_value("SX Xuat Dau", kq["name"], "se_xuat_kho", se.name)
     kq["se"] = se.name
@@ -298,7 +328,7 @@ def hoan_tat_cong_doan(xuat_dau_name, cong_doan, kg_ra=None, kg_vao=None, ngay=N
     batch_ra = batch_cua_chang(xd.lo_rang, cd["ra"])
     kho_ra = settings.kho_btp if cd["ra"] == "bot" else kho_x
 
-    ton = _ton_batch(item_vao, kho_x, batch_vao if cd["vao"] != "dau" else None)
+    ton = _do_chua_rang(xd) if cd["vao"] == "dau" else _ton_batch(item_vao, kho_x, batch_vao)
     vao = flt(kg_vao) if kg_vao else flt(ton)
     if vao <= 0:
         frappe.throw(
@@ -330,6 +360,7 @@ def hoan_tat_cong_doan(xuat_dau_name, cong_doan, kg_ra=None, kg_vao=None, ngay=N
         batch_vao=batch_vao if cd["vao"] != "dau" else None,
         ngay=ngay or nowdate(),
         ghi_chu=_("{0} — lô {1}").format(cd["ten"], xd.lo_rang),
+        lo_rang=xd.lo_rang, cong_doan=cd["ma"],
     )
     if cd["ra"] == "bot":
         # Giữ tương thích: cờ này chặn chốt ngày tự nhập bột lại lần nữa (D18)

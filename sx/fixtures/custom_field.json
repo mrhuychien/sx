@@ -1,29 +1,6 @@
 [
  {
   "doctype": "Custom Field",
-  "dt": "Item",
-  "fieldname": "custom_sx_nhom",
-  "fieldtype": "Select",
-  "insert_after": "item_group",
-  "label": "Nhóm SX",
-  "module": "SX",
-  "name": "Item-custom_sx_nhom",
-  "options": "\nNVL\nBTP-Dau\nBTP-Bot\nBTP-Phu\nBTP-Banh\nBTP-Bot-SP\nTP\nBao Bi",
-  "translatable": 0
- },
- {
-  "doctype": "Custom Field",
-  "dt": "Item",
-  "fieldname": "custom_batch_prefix",
-  "fieldtype": "Data",
-  "insert_after": "custom_sx_nhom",
-  "label": "Prefix mã lô SX",
-  "module": "SX",
-  "name": "Item-custom_batch_prefix",
-  "translatable": 0
- },
- {
-  "doctype": "Custom Field",
   "dt": "BOM",
   "fieldname": "custom_co_me_chuan_kg",
   "fieldtype": "Float",
@@ -31,32 +8,6 @@
   "label": "Cỡ mẻ chuẩn (kg)",
   "module": "SX",
   "name": "BOM-custom_co_me_chuan_kg",
-  "translatable": 0
- },
- {
-  "doctype": "Custom Field",
-  "dt": "Work Order",
-  "fieldname": "custom_ngay_sx",
-  "fieldtype": "Link",
-  "insert_after": "production_item",
-  "label": "Phiếu ngày SX",
-  "module": "SX",
-  "name": "Work Order-custom_ngay_sx",
-  "options": "SX Ngay San Xuat",
-  "read_only": 1,
-  "translatable": 0
- },
- {
-  "doctype": "Custom Field",
-  "dt": "Stock Entry",
-  "fieldname": "custom_ngay_sx",
-  "fieldtype": "Link",
-  "insert_after": "stock_entry_type",
-  "label": "Phiếu ngày SX",
-  "module": "SX",
-  "name": "Stock Entry-custom_ngay_sx",
-  "options": "SX Ngay San Xuat",
-  "read_only": 1,
   "translatable": 0
  },
  {
@@ -84,6 +35,81 @@
   "module": "SX",
   "name": "Item-custom_activity_type",
   "options": "Activity Type",
+  "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Item",
+  "fieldname": "custom_batch_prefix",
+  "fieldtype": "Data",
+  "insert_after": "custom_sx_nhom",
+  "label": "Prefix mã lô SX",
+  "module": "SX",
+  "name": "Item-custom_batch_prefix",
+  "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Item",
+  "fieldname": "custom_sx_nhom",
+  "fieldtype": "Select",
+  "insert_after": "item_group",
+  "label": "Nhóm SX",
+  "module": "SX",
+  "name": "Item-custom_sx_nhom",
+  "options": "\nNVL\nBTP-Dau\nBTP-Bot\nBTP-Phu\nBTP-Banh\nBTP-Bot-SP\nTP\nBao Bi",
+  "translatable": 0
+ },
+ {
+  "description": "Mã công đoạn tầng 1: xuatkho / rang / tachvo / nghien (D31).",
+  "doctype": "Custom Field",
+  "dt": "Stock Entry",
+  "fieldname": "custom_cong_doan",
+  "fieldtype": "Data",
+  "insert_after": "custom_lo_rang",
+  "label": "Công đoạn",
+  "module": "SX",
+  "name": "Stock Entry-custom_cong_doan",
+  "read_only": 1,
+  "translatable": 0
+ },
+ {
+  "description": "Lô R mà phiếu này thuộc về (D31) — neo công đoạn tầng 1 vào đúng lô.",
+  "doctype": "Custom Field",
+  "dt": "Stock Entry",
+  "fieldname": "custom_lo_rang",
+  "fieldtype": "Data",
+  "insert_after": "custom_ngay_sx",
+  "label": "Lô rang",
+  "module": "SX",
+  "name": "Stock Entry-custom_lo_rang",
+  "read_only": 1,
+  "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Stock Entry",
+  "fieldname": "custom_ngay_sx",
+  "fieldtype": "Link",
+  "insert_after": "stock_entry_type",
+  "label": "Phiếu ngày SX",
+  "module": "SX",
+  "name": "Stock Entry-custom_ngay_sx",
+  "options": "SX Ngay San Xuat",
+  "read_only": 1,
+  "translatable": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Work Order",
+  "fieldname": "custom_ngay_sx",
+  "fieldtype": "Link",
+  "insert_after": "production_item",
+  "label": "Phiếu ngày SX",
+  "module": "SX",
+  "name": "Work Order-custom_ngay_sx",
+  "options": "SX Ngay San Xuat",
+  "read_only": 1,
   "translatable": 0
  }
 ]

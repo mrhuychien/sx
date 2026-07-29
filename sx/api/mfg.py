@@ -120,7 +120,8 @@ def tao_se_manufacture(wo, qty, batch_fg, kho_nguon, ngay=None, ngay_sx=None):
 
 
 def tao_se_repack(cong_ty, item_vao, kg_vao, kho_vao, item_ra, kg_ra, kho_ra,
-                  batch_ra=None, batch_vao=None, ngay=None, ghi_chu=None):
+                  batch_ra=None, batch_vao=None, ngay=None, ghi_chu=None,
+                  lo_rang=None, cong_doan=None):
     """Stock Entry Repack: đổi item A -> item B mà KHÔNG cần BOM (D31).
 
     Dùng cho các công đoạn tầng 1 (luộc+rang / tách vỏ / nghiền): mỗi công đoạn là
@@ -133,6 +134,8 @@ def tao_se_repack(cong_ty, item_vao, kg_vao, kho_vao, item_ra, kg_ra, kho_ra,
     se.purpose = "Repack"
     se.stock_entry_type = loai_phieu_kho("Repack")
     se.company = cong_ty
+    se.custom_lo_rang = lo_rang
+    se.custom_cong_doan = cong_doan
     if ngay:
         se.set_posting_time = 1
         se.posting_date = str(ngay)
@@ -158,12 +161,15 @@ def tao_se_repack(cong_ty, item_vao, kg_vao, kho_vao, item_ra, kg_ra, kho_ra,
     return se
 
 
-def tao_se_chuyen_kho(cong_ty, item, kg, kho_di, kho_den, ngay=None, ghi_chu=None):
+def tao_se_chuyen_kho(cong_ty, item, kg, kho_di, kho_den, ngay=None, ghi_chu=None,
+                      lo_rang=None, cong_doan=None):
     """Stock Entry Material Transfer — xuất kho nguyên liệu ra xưởng (D31). FIFO lô."""
     se = frappe.new_doc("Stock Entry")
     se.purpose = "Material Transfer"
     se.stock_entry_type = loai_phieu_kho("Material Transfer")
     se.company = cong_ty
+    se.custom_lo_rang = lo_rang
+    se.custom_cong_doan = cong_doan
     if ngay:
         se.set_posting_time = 1
         se.posting_date = str(ngay)
