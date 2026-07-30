@@ -1076,3 +1076,73 @@ body { background: var(--sx-bg) !important; }
   background: var(--sx-surface-2);
 }
 .sx-daybar { border-bottom: 1px solid var(--sx-line); padding-bottom: var(--sx-s3); }
+
+/* ═══════════ BÀN SỐ + MODAL theo bản thiết kế (D39) ═══════════ */
+
+/* Tiêu đề 2 tầng: kicker mono in hoa nói ĐANG LÀM GÌ, dòng dưới là ĐỐI TƯỢNG */
+.sx-modal-titles { min-width: 0; }
+.sx-modal-kicker {
+  font-family: var(--sx-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--sx-text-3);
+  margin-bottom: var(--sx-s1);
+}
+.sx-modal-head { align-items: flex-start; }
+.sx-modal-close { border-radius: var(--sx-radius); }
+
+/* Hàng chip chọn loại — chia đều, chip đang chọn tô nền mực */
+.sx-np-chips { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
+.sx-np-chip {
+  flex: 1 1 22%;
+  min-height: var(--sx-tap);
+  padding: 0 var(--sx-s3);
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius);
+  background: var(--sx-surface);
+  color: var(--sx-text);
+  font-family: var(--sx-font);
+  font-size: var(--sx-f-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.sx-np-chip-on {
+  background: var(--sx-ink);
+  border-color: var(--sx-ink);
+  color: var(--sx-on-ink);
+}
+
+/* Ô số nền mực: nhãn + số bên trái, gợi ý (tiền / quy đổi) bên phải, cùng đáy */
+.sx-numpad-display {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sx-s3);
+  background: var(--sx-ink);
+  color: var(--sx-on-ink);
+  border-radius: var(--sx-radius-lg);
+  padding: var(--sx-s3) var(--sx-s4);
+  text-align: left;
+}
+.sx-np-left { min-width: 0; }
+.sx-numpad-unit { color: var(--sx-text-3); margin: 0; }
+.sx-numpad-value {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.05;
+  margin-top: var(--sx-s1);
+}
+.sx-np-hint {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-sm);
+  font-weight: 600;
+  color: var(--sx-accent-2);
+  white-space: nowrap;
+  padding-bottom: var(--sx-s1);
+}
+
+/* Phím phụ (C / xoá) lún xuống để không tranh chấp với phím số */
+.sx-np-key-phu { background: var(--sx-surface-2); }
+.sx-np-key-xoa { color: var(--sx-primary-text); }

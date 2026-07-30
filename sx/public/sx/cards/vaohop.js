@@ -110,9 +110,13 @@ export async function render({ container, boot, call, ensureNgay }) {
     const r = rows[i];
     if (!r) return;
     openNumpad({
-      title: `${tenNV(r)} — ${r.activity_type || ''}`,
-      unit: 'sp',
+      // Kicker = việc đang làm, title = NGƯỜI. Bị ngắt quãng rồi quay lại vẫn biết
+      // mình đang chấm cho ai (D39).
+      kicker: `Sửa · ${r.activity_type || ''}`,
+      title: tenNV(r),
+      unitLabel: 'Số lượng',
       initial: r.so_hop,
+      hint: (n) => (r.don_gia ? `${formatVND(n * Number(r.don_gia))}` : ''),
       onOk: async (v) => {
         const sl = Math.round(v);
         if (sl <= 0) { toastErr('Số lượng phải > 0. Muốn xoá thì bấm ✕.'); return; }
@@ -233,7 +237,10 @@ function themDong(nv, activities, actGanDay, rows, save, tenNgan) {
 
 function nhapSoLuong(nv, ten, act, sanPham, rows, save) {
   openNumpad({
-    title: `${ten} — ${act.name}`, unit: 'sp',
+    kicker: act.name,
+    title: ten,
+    unitLabel: 'Số lượng',
+    hint: (n) => (act.don_gia ? `${formatVND(n * Number(act.don_gia))}` : ''),
     onOk: async (v) => {
       const sl = Math.round(v);
       if (sl <= 0) { toastErr('Số lượng phải > 0.'); return; }

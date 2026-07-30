@@ -3,15 +3,25 @@
 
 import { el } from '/assets/sx/sx/lib/dom.js';
 
-export function openModal({ title = '', onClose = null } = {}) {
+export function openModal({ title = '', kicker = '', onClose = null } = {}) {
   const overlay = el('div', 'sx-modal-overlay');
   const sheet = el('div', 'sx-modal');
   const head = el('div', 'sx-modal-head');
+  // Tiêu đề 2 tầng theo bản thiết kế: dòng KICKER mono in hoa nói ĐANG LÀM GÌ,
+  // dòng dưới là ĐỐI TƯỢNG (tên người / tên lô). Bị ngắt quãng giữa xưởng rồi
+  // quay lại thì nhìn 2 dòng đó là biết mình đang ở đâu.
+  const titleWrap = el('div', 'sx-modal-titles');
+  if (kicker) {
+    const k = el('div', 'sx-modal-kicker');
+    k.textContent = kicker;
+    titleWrap.appendChild(k);
+  }
   const titleNode = el('div', 'sx-modal-title');
   titleNode.textContent = title;
+  titleWrap.appendChild(titleNode);
   const closeBtn = el('button', 'sx-modal-close', '&times;');
   closeBtn.type = 'button';
-  head.appendChild(titleNode);
+  head.appendChild(titleWrap);
   head.appendChild(closeBtn);
   const body = el('div', 'sx-modal-body');
   sheet.appendChild(head);

@@ -111,13 +111,15 @@ function hoanTat(lo, cd, chang, call, refresh) {
   m.body.querySelector('#sx-lt-het').addEventListener('click', () => goi(null, null));
   m.body.querySelector('#sx-lt-mot-phan').addEventListener('click', () => {
     openNumpad({
-      title: `${NHAN_CD[cd]} — số kg VÀO`, initial: chang.ton, allowDecimal: true, unit: 'kg',
+      kicker: `${NHAN_CD[cd]} — kg vào`, title: `Lô ${lo.lo_rang}`,
+      unitLabel: 'Số kg', initial: chang.ton, allowDecimal: true, unit: 'kg',
       onOk: (vao) => {
         if (vao <= 0) { toastErr('Số kg phải > 0.'); return; }
         openNumpad({
-          title: tyLe < 1
-            ? `Số kg RA (định mức ~${formatNumber(lam1(vao * tyLe), 1)} — sửa theo cân thật)`
-            : 'Số kg RA (cân thật)',
+          kicker: tyLe < 1 ? `Kg ra — định mức ~${formatNumber(lam1(vao * tyLe), 1)} kg` : 'Kg ra',
+          title: `Lô ${lo.lo_rang}`,
+          unitLabel: 'Cân thật',
+          hint: (n) => (n > 0 && vao > 0 ? `hao ${formatNumber(vao - n, 1)} kg` : ''),
           initial: lam1(vao * tyLe), allowDecimal: true, unit: 'kg',
           onOk: (ra) => goi(vao, ra),
         });
@@ -166,7 +168,8 @@ function openXuatKho(boot, call, refresh) {
   const kgBtn = m.body.querySelector('#sx-lt-kg');
   kgBtn.addEventListener('click', () => {
     openNumpad({
-      title: 'Số kg đỗ', initial: state.kg, allowDecimal: true, unit: 'kg',
+      kicker: 'Xuất kho đỗ', title: state.loai_dau,
+      unitLabel: 'Số kg', initial: state.kg, allowDecimal: true, unit: 'kg',
       onOk: (v) => { state.kg = v; kgBtn.textContent = `${formatNumber(v, 1)} kg`; },
     });
   });
