@@ -28,7 +28,7 @@ export async function render({ container, boot, call, ensureNgay }) {
   nhanVien.forEach((nv) => { tenNgan[nv.name] = nv.ten_hien_thi || nv.employee_name || nv.name; });
 
   // Bố cục theo bản thiết kế "Xưởng SX - App (1a)" (D40):
-  //   [tổng hôm nay + lương SP]        [đã nhập N/43]
+  //   [tổng sản lượng hôm nay]              [đã nhập N/43]
   //   [dải SKU: mỗi loại một ô, cuộn ngang]
   //   HAY NHẬP — BẤM TÊN ĐỂ CHẤM
   //   [hàng công nhân: tên + ăn ca bên trái · số hộp bên phải]
@@ -105,13 +105,15 @@ export async function render({ container, boot, call, ensureNgay }) {
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(g.ten)}</div>
             <div class="sx-vh-meta">${esc(r.activity_type || '—')}${
-              r.san_pham ? ` · ${esc(tenSP(r.san_pham))}` : ''}${
-              r.thanh_tien != null ? ` · ${esc(formatVND(r.thanh_tien))}` : ''}</div>
+              r.san_pham ? ` · ${esc(tenSP(r.san_pham))}` : ''}</div>
           </div>
           <button type="button" class="sx-vh-sl" data-i="${r._i}"${daChot ? ' disabled' : ''}
             >${esc(formatNumber(r.so_hop))}</button>
-          ${daChot ? '' : `<button type="button" class="sx-vh-del" data-i="${r._i}"
-            aria-label="Xoá dòng ${esc(g.ten)}">✕</button>`}
+          ${daChot ? '' : `
+            <button type="button" class="sx-vh-them" data-nv="${esc(r.nhan_vien)}"
+              aria-label="Ghi thêm sản phẩm cho ${esc(g.ten)}" title="Ghi thêm loại khác">+</button>
+            <button type="button" class="sx-vh-del" data-i="${r._i}"
+              aria-label="Xoá dòng ${esc(g.ten)}">✕</button>`}
         </div>`;
       });
     });
@@ -121,11 +123,11 @@ export async function render({ container, boot, call, ensureNgay }) {
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
     const soNguoi = new Set(rows.map((r) => r.nhan_vien)).size;
     container.querySelector('#sx-vh-tonghop').textContent = formatNumber(tongHop);
-    container.querySelector('#sx-vh-tongtien').textContent =
-      tongTien ? `${formatVND(tongTien)} lương SP` : '';
+    // Không hiện tiền ở màn nhập (D43) — giữ ô rỗng để bố cục không nhảy
+    container.querySelector('#sx-vh-tongtien').textContent = '';
     container.querySelector('#sx-vh-donecount').textContent = soNguoi;
     footer.innerHTML = `<span class="sx-field-label">Tổng</span>
-      <span>${formatNumber(tongHop)} sp · ${esc(formatVND(tongTien))}</span>`;
+      <span>${formatNumber(tongHop)} sp</span>`;
 
     // Dải SKU: mỗi loại công việc một ô, cuộn ngang — nhìn ra ngay hôm nay chạy loại gì
     const theoAct = {};
@@ -155,6 +157,12 @@ export async function render({ container, boot, call, ensureNgay }) {
       tbody.querySelectorAll('.sx-vh-sl').forEach((btn) => {
         btn.addEventListener('click', () => suaSoLuong(Number(btn.dataset.i)));
       });
+      tbody.querySelectorAll('.sx-vh-them').forEach((btn) => {
+        const nv = nhanVien.find((x) => x.name === btn.dataset.nv)
+          || { name: btn.dataset.nv };
+        btn.addEventListener('click',
+          () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa));
+      });
     }
   }
 
@@ -170,7 +178,6 @@ export async function render({ container, boot, call, ensureNgay }) {
       unitLabel: 'Số lượng',
       titleActions: nutAnCa({ name: r.nhan_vien }, anCa, save),
       initial: r.so_hop,
-      hint: (n) => (r.don_gia ? `${formatVND(n * Number(r.don_gia))}` : ''),
       onOk: async (v) => {
         const sl = Math.round(v);
         if (sl <= 0) { toastErr('Số lượng phải > 0. Muốn xoá thì bấm ✕.'); return; }
@@ -339,7 +346,6 @@ function nhapSoLuong(nv, ten, act, sanPham, rows, save, anCa) {
     title: ten,
     unitLabel: 'Số lượng',
     titleActions: nutAnCa(nv, anCa, save),
-    hint: (n) => (act.don_gia ? `${formatVND(n * Number(act.don_gia))}` : ''),
     onOk: async (v) => {
       const sl = Math.round(v);
       if (sl <= 0) { toastErr('Số lượng phải > 0.'); return; }
@@ -365,7 +371,8 @@ function openActivityPicker(ten, activities, actGanDay, onPick) {
   activities.forEach((a) => { byName[a.name] = a; });
 
   const chip = (a) => `<button type="button" class="sx-sp-chip sx-act-pick" data-act="${esc(a.name)}">`
-    + `${esc(a.name)}<div class="sx-muted">${esc(formatVND(a.don_gia))}${a.sku && a.sku.length ? ` · ${a.sku.length} SKU` : ''}</div>`
+    + `${esc(a.name)}${a.sku && a.sku.length > 1
+      ? `<div class="sx-muted">${a.sku.length} loại sản phẩm</div>` : ''}`
     + '</button>';
 
   function draw(q) {

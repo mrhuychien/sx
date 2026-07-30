@@ -1386,3 +1386,18 @@ body { background: var(--sx-bg) !important; }
   padding: 0;
   cursor: pointer;
 }
+
+/* Nút "+" ghi thêm loại khác cho cùng công nhân, ngay trên dòng bản ghi (D43) */
+.sx-vh-them {
+  min-width: var(--sx-tap);
+  min-height: var(--sx-tap);
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius);
+  background: var(--sx-surface);
+  color: var(--sx-primary-text);
+  font-family: var(--sx-font);
+  font-size: var(--sx-f-lg);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
