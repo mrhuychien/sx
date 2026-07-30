@@ -1401,3 +1401,58 @@ body { background: var(--sx-bg) !important; }
   line-height: 1;
   cursor: pointer;
 }
+
+/* ═══════════ MÀN GHI SỐ — chu trình ngày dạng stepper dọc (D45) ═══════════ */
+.sx-pipe { display: flex; flex-direction: column; }
+.sx-pipe-buoc { display: flex; gap: var(--sx-s3); }
+.sx-pipe-cot {
+  width: 30px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Số thứ tự trong vòng tròn — nói ra TRÌNH TỰ, thứ mà 4 thẻ rời không nói được */
+.sx-pipe-so {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--sx-ink);
+  background: var(--sx-ink);
+  color: var(--sx-on-ink);
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-xs);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sx-pipe-vach { flex: 1; width: 2px; background: var(--sx-line-2); }
+.sx-pipe-than { flex: 1; min-width: 0; padding-bottom: var(--sx-s3); }
+
+/* Biểu đồ cột 7 ngày dựng bằng CSS (D45) — không thư viện, chạy được cả khi mất mạng */
+.sx-cot { display: flex; align-items: flex-end; gap: var(--sx-s2); height: 200px; }
+.sx-cot-1 {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sx-s1);
+  height: 100%;
+}
+.sx-cot-so {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sx-cot-truc { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+.sx-cot-thanh { width: 100%; background: var(--sx-ink); border-radius: var(--sx-radius) var(--sx-radius) 0 0; }
+.sx-cot-nhan {
+  font-family: var(--sx-mono);
+  font-size: 12px;
+  color: var(--sx-text-3);
+  letter-spacing: .04em;
+}

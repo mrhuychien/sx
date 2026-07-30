@@ -1,25 +1,10 @@
 // View Quản lý (#/quanly) — gate isQuanLy (server guard thật): KPI 7/30 ngày,
-// mẻ trộn vs cán, tồn BTP, truy xuất lô 2 chiều (cây đệ quy), Chart.js lazy.
+// mẻ trộn vs cán, tồn BTP, truy xuất lô 2 chiều (cây đệ quy). Biểu đồ cột dựng bằng
+// CSS — bỏ Chart.js từ CDN vì portal phải chạy được cả khi mất mạng (D37/D45).
 
 import { esc, el } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber, formatVND } from '/assets/sx/sx/lib/format.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
-
-let chartLib = null;
-let currentChart = null;
-
-async function loadChartLib() {
-  if (chartLib) return chartLib;
-  await new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4';
-    s.onload = resolve;
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-  chartLib = window.Chart;
-  return chartLib;
-}
 
 export async function render({ container, ctx, call, cards, mountCard }) {
   container.innerHTML = '';
@@ -98,7 +83,27 @@ export async function render({ container, ctx, call, cards, mountCard }) {
     paint(d);
   }
 
+  // Cột dựng bằng CSS: cao theo tỉ lệ với ngày cao nhất, số ở trên, nhãn ở dưới.
+  // Không cần thư viện, không cần mạng, và đọc được cả khi font chưa tải xong.
+  function veCot(hop) {
+    const box = document.getElementById('sx-ql-cot');
+    if (!box) return;
+    const ds = (hop || []).slice(-7);
+    const max = Math.max(1, ...ds.map((x) => Number(x.tong) || 0));
+    box.innerHTML = ds.length ? ds.map((x) => {
+      const v = Number(x.tong) || 0;
+      const nhan = String(x.ngay || '').slice(5).replace('-', '/');
+      return `<div class="sx-cot-1">
+        <div class="sx-cot-so">${formatNumber(v)}</div>
+        <div class="sx-cot-truc"><div class="sx-cot-thanh" style="height:${
+          Math.max(2, Math.round((v / max) * 100))}%"></div></div>
+        <div class="sx-cot-nhan">${esc(nhan)}</div>
+      </div>`;
+    }).join('') : '<div class="sx-muted">Chưa có ngày chốt nào.</div>';
+  }
+
   function paint(d) {
+    veCot(d.phieu.map((p) => ({ ngay: p.ngay, tong: p.tong_hop_tp })));
     const tongHop = d.phieu.reduce((a, p) => a + p.tong_hop_tp, 0);
     const tongLuong = d.phieu.reduce((a, p) => a + p.tong_luong_sp, 0);
     const canhBaoTron = (d.tron_vs_can || []).filter((x) => x.canh_bao);
@@ -117,8 +122,8 @@ export async function render({ container, ctx, call, cards, mountCard }) {
         <div class="sx-card sx-kpi"><div class="sx-kpi-label">SKU đã đóng</div>
           <div class="sx-kpi-value">${(d.san_luong_sku || []).length}</div></div>
       </div>
-      <div class="sx-card"><div class="sx-field-label">Sản lượng theo ngày</div>
-        <div class="sx-chart-box"><canvas id="sx-ql-chart"></canvas></div></div>
+      <div class="sx-card"><div class="sx-field-label">Sản lượng theo ngày (sản phẩm)</div>
+        <div class="sx-cot" id="sx-ql-cot"></div></div>
       <div class="sx-card"><div class="sx-field-label">Sản lượng theo SKU</div>
         <table class="sx-table"><thead><tr><th>SKU</th><th>Hộp</th></tr></thead>
         <tbody>${(d.san_luong_sku || []).map((r) => `<tr><td>${esc(r.san_pham)}</td><td><b>${formatNumber(r.so_hop)}</b></td></tr>`).join('')
@@ -137,23 +142,6 @@ export async function render({ container, ctx, call, cards, mountCard }) {
         <a class="sx-desk-link" href="/app/stock-reconciliation" target="_blank" rel="noopener">Kiểm kê (Stock Reconciliation) ↗</a>
       </div>
     `;
-    drawChart(d);
-  }
-
-  async function drawChart(d) {
-    let Chart;
-    try { Chart = await loadChartLib(); } catch (e) { return; }
-    const canvas = body.querySelector('#sx-ql-chart');
-    if (!canvas) return;
-    if (currentChart) { currentChart.destroy(); currentChart = null; }
-    currentChart = new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels: d.phieu.map((p) => p.ngay.slice(5)),
-        datasets: [{ label: 'Hộp TP', data: d.phieu.map((p) => p.tong_hop_tp), backgroundColor: '#1d6ef5', borderRadius: 6 }],
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
-    });
   }
 
   await load();
