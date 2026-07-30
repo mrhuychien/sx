@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"><style>body{margin:0;background:#efece5;font-family:Archivo,system-ui,sans-serif}a{color:#c2551f}a:hover{color:#9c3f10}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px "IBM Plex Mono",monospace;padding:3px 7px;background:#16130f;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 Archivo,sans-serif;color:#16130f}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px "IBM Plex Mono",monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#16130f;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 Archivo,sans-serif;color:rgba(0,0,0,.55);max-width:390px}.dv-card{background:#16130f;border-radius:34px;padding:8px;box-shadow:0 8px 28px rgba(0,0,0,.18)}.dv-opt:target .dv-oid{background:#c2551f;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 Archivo,sans-serif;color:rgba(0,0,0,.5)}.scr::-webkit-scrollbar{width:0}</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Redesign app xưởng — công nghiệp sạch, 3 hướng</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Đầy đủ 3 tab · bấm tên → bàn phím số trong sheet. Ưu tiên "hay nhập", 43 người thu gọn sau tìm kiếm.</div>
+<div class="dv-card">
+<div style="width:374px;height:812px;background:#f7f5f1;border-radius:27px;overflow:hidden;position:relative;display:flex;flex-direction:column;color:#16130f">
+
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 22px 4px;font:600 12px 'IBM Plex Mono',monospace;color:#16130f;background:#fffdf9">
+    <span>9:41</span><span style="display:flex;gap:5px;align-items:center"><span style="width:16px;height:9px;border:1.5px solid #16130f;border-radius:2px;display:block"></span></span>
+  </div>
+
+  <div style="background:#fffdf9;border-bottom:1px solid #e2ddd4;padding:6px 16px 12px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button style="width:44px;height:44px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;font-size:15px;color:#16130f;cursor:pointer" style-active="background:#efece5">◀</button>
+      <div style="flex:1;text-align:center">
+        <div style="font:700 17px/1 Archivo,sans-serif;letter-spacing:-.2px">Thứ 5, 30/07</div>
+        <div style="font:500 11px/1.4 'IBM Plex Mono',monospace;color:#8a827a;margin-top:3px">CA 1 · 06:00–14:00</div>
+      </div>
+      <button style="width:44px;height:44px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;font-size:15px;color:#16130f;cursor:pointer">▶</button>
+    </div>
+  </div>
+
+  <div class="scr" style="flex:1;overflow-y:auto;padding:0 0 12px">
+
+    <sc-if value="{{ isBox }}" hint-placeholder-val="{{ true }}">
+    <div>
+      <div style="background:#16130f;color:#fffdf9;padding:16px 18px 18px;display:flex;align-items:flex-end;justify-content:space-between">
+        <div>
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#a9a29a">VÀO HỘP HÔM NAY</div>
+          <div style="display:flex;align-items:baseline;gap:7px;margin-top:6px">
+            <span style="font:700 42px/1 'IBM Plex Mono',monospace;letter-spacing:-1.5px">{{ boxTotal }}</span>
+            <span style="font:500 14px/1 Archivo,sans-serif;color:#a9a29a">hộp</span>
+          </div>
+          <sc-if value="{{ showMoney }}" hint-placeholder-val="{{ true }}">
+          <div style="font:500 13px/1 'IBM Plex Mono',monospace;color:#e8a06d;margin-top:8px">{{ boxMoney }} đ lương SP</div>
+          </sc-if>
+        </div>
+        <div style="text-align:right">
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#a9a29a">ĐÃ NHẬP</div>
+          <div style="font:700 22px/1 'IBM Plex Mono',monospace;margin-top:6px">{{ doneCount }}<span style="color:#6f6862">/43</span></div>
+        </div>
+      </div>
+
+      <div style="padding:16px 16px 0">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a;margin-bottom:9px">HAY NHẬP — BẤM TÊN ĐỂ CHẤM</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <sc-for list="{{ topWorkers }}" as="w" hint-placeholder-count="8">
+            <button onClick="{{ w.onPress }}" style="position:relative;min-height:62px;border:1px solid {{ w.border }};background:{{ w.bg }};color:{{ w.fg }};border-radius:14px;padding:10px 12px;text-align:left;font:600 16px/1.2 Archivo,sans-serif;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px">
+              <span>{{ w.name }}</span>
+              <span style="font:600 11px/1 'IBM Plex Mono',monospace;color:{{ w.sub }}">{{ w.qtyText }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="padding:16px 16px 0">
+        <div style="display:flex;align-items:center;gap:8px;background:#fffdf9;border:1px solid #e2ddd4;border-radius:14px;padding:0 14px;height:48px">
+          <span style="font-size:14px;color:#8a827a">⌕</span>
+          <input value="{{ queryText }}" onChange="{{ onQuery }}" placeholder="Tìm trong 43 công nhân" style="flex:1;border:0;outline:0;background:transparent;font:500 15px Archivo,sans-serif;color:#16130f;min-width:0" />
+        </div>
+        <sc-if value="{{ showRest }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px">
+          <sc-for list="{{ restWorkers }}" as="w" hint-placeholder-count="6">
+            <button onClick="{{ w.onPress }}" style="min-height:54px;border:1px solid {{ w.border }};background:{{ w.bg }};color:{{ w.fg }};border-radius:14px;padding:10px 12px;text-align:left;font:600 15px/1.2 Archivo,sans-serif;cursor:pointer">
+              <span>{{ w.name }}</span>
+              <span style="display:block;font:600 11px/1 'IBM Plex Mono',monospace;color:{{ w.sub }};margin-top:4px">{{ w.qtyText }}</span>
+            </button>
+          </sc-for>
+        </div>
+        </sc-if>
+        <button onClick="{{ toggleAll }}" style="width:100%;height:46px;margin-top:9px;border:1px dashed #cfc8bd;background:transparent;border-radius:14px;font:600 13px Archivo,sans-serif;color:#6f6862;cursor:pointer">{{ toggleAllLabel }}</button>
+      </div>
+
+      <div style="padding:20px 16px 0">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a;margin-bottom:9px">BẢN GHI HÔM NAY</div>
+        <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;overflow:hidden">
+          <sc-for list="{{ entryRows }}" as="e" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid #efece5">
+              <div style="flex:1;min-width:0">
+                <div style="font:600 15px/1.2 Archivo,sans-serif">{{ e.name }}</div>
+                <div style="font:500 11px/1.3 'IBM Plex Mono',monospace;color:#8a827a;margin-top:3px">{{ e.sku }} · {{ e.money }} đ</div>
+              </div>
+              <div style="font:700 20px/1 'IBM Plex Mono',monospace">{{ e.qty }}</div>
+              <button onClick="{{ e.onDelete }}" style="width:34px;height:34px;border:1px solid #e6d4cd;background:#fdf1ec;color:#b3341f;border-radius:10px;font-size:14px;cursor:pointer">✕</button>
+            </div>
+          </sc-for>
+          <div style="display:flex;justify-content:space-between;padding:13px 14px;background:#f7f5f1">
+            <span style="font:600 12px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#6f6862">TỔNG</span>
+            <span style="font:700 14px 'IBM Plex Mono',monospace">{{ boxTotal }} hộp · {{ boxMoney }} đ</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:16px 16px 0;display:grid;gap:9px">
+        <button style="height:52px;border:1px solid #e2ddd4;background:#fffdf9;border-radius:14px;font:600 15px Archivo,sans-serif;color:#16130f;cursor:pointer;text-align:left;padding:0 16px">Chấm ăn ca / ăn đêm</button>
+        <button style="height:52px;border:1px solid #e2ddd4;background:#fffdf9;border-radius:14px;font:600 15px Archivo,sans-serif;color:#16130f;cursor:pointer;text-align:left;padding:0 16px">Copy sản lượng gửi nhóm</button>
+        <div style="border:1px solid #e2ddd4;background:#fffdf9;border-radius:16px;padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a">SỰ CỐ HÔM NAY</span>
+            <span style="font:700 12px 'IBM Plex Mono',monospace;color:#2f6b4f">0</span>
+          </div>
+          <button style="width:100%;height:48px;margin-top:12px;border:0;background:#c2551f;color:#fffdf9;border-radius:12px;font:700 15px Archivo,sans-serif;cursor:pointer">+ Ghi sự cố</button>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isLog }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:16px">
+      <div style="font:700 22px/1.1 Archivo,sans-serif;letter-spacing:-.4px">Ghi số — luồng tầng 1</div>
+      <button style="width:100%;height:62px;margin-top:14px;border:0;background:#c2551f;color:#fffdf9;border-radius:16px;font:800 19px Archivo,sans-serif;letter-spacing:.02em;cursor:pointer">XUẤT KHO ĐỖ</button>
+
+      <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a;margin:20px 0 9px">LÔ ĐANG CHẠY</div>
+      <div style="display:grid;gap:10px">
+        <sc-for list="{{ batches }}" as="b" hint-placeholder-count="3">
+          <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px 16px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font:700 16px 'IBM Plex Mono',monospace;letter-spacing:-.3px">{{ b.code }}</span>
+              <span style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.08em;color:{{ b.stateFg }};background:{{ b.stateBg }};padding:4px 7px;border-radius:6px">{{ b.state }}</span>
+            </div>
+            <div style="font:500 13px/1.4 Archivo,sans-serif;color:#6f6862;margin-top:6px">{{ b.desc }}</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+              <div style="flex:1">
+                <div style="font:500 10px 'IBM Plex Mono',monospace;color:#8a827a">ĐỖ Ở XƯỞNG</div>
+                <div style="font:700 20px 'IBM Plex Mono',monospace;margin-top:2px">{{ b.kg }}</div>
+              </div>
+              <span style="color:#cfc8bd">→</span>
+              <div style="flex:1;text-align:right">
+                <div style="font:500 10px 'IBM Plex Mono',monospace;color:#8a827a">ĐÃ VÀO KHO</div>
+                <div style="font:700 20px 'IBM Plex Mono',monospace;margin-top:2px">{{ b.done }}</div>
+              </div>
+            </div>
+            <div style="height:5px;border-radius:3px;background:#efece5;margin-top:12px;overflow:hidden">
+              <div style="height:5px;background:#c2551f;width:{{ b.pct }}"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a;margin:20px 0 9px">BÁO SỐ</div>
+      <div style="display:grid;gap:9px">
+        <sc-for list="{{ reportRows }}" as="r" hint-placeholder-count="3">
+          <button style="display:flex;align-items:center;justify-content:space-between;height:58px;padding:0 16px;border:1px solid #e2ddd4;background:#fffdf9;border-radius:14px;cursor:pointer">
+            <span style="font:600 15px Archivo,sans-serif;color:#16130f">{{ r.label }}</span>
+            <span style="font:500 12px 'IBM Plex Mono',monospace;color:#8a827a">{{ r.meta }} ›</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isMgmt }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:16px">
+      <div style="font:700 22px/1.1 Archivo,sans-serif;letter-spacing:-.4px">Quản lý</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:13px 14px">
+            <div style="font:600 9.5px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8a827a">{{ k.label }}</div>
+            <div style="font:700 24px/1.1 'IBM Plex Mono',monospace;margin-top:7px;letter-spacing:-.8px">{{ k.value }}</div>
+            <div style="font:500 11px Archivo,sans-serif;color:#8a827a;margin-top:4px">{{ k.sub }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px;margin-top:10px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a">SẢN LƯỢNG 7 NGÀY (HỘP)</div>
+        <div style="display:flex;align-items:flex-end;gap:8px;height:110px;margin-top:14px">
+          <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div style="font:600 9px 'IBM Plex Mono',monospace;color:#8a827a">{{ b.value }}</div>
+              <div style="width:100%;background:{{ b.fill }};height:{{ b.h }};border-radius:4px 4px 0 0"></div>
+              <div style="font:500 9px 'IBM Plex Mono',monospace;color:#8a827a">{{ b.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px;margin-top:10px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a">NĂNG SUẤT VÀO HỘP</div>
+        <sc-for list="{{ people }}" as="p" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #efece5">
+            <span style="flex:1;font:600 14px Archivo,sans-serif">{{ p.name }}</span>
+            <span style="font:700 15px 'IBM Plex Mono',monospace">{{ p.box }}</span>
+            <span style="width:88px;text-align:right;font:500 12px 'IBM Plex Mono',monospace;color:#8a827a">{{ p.money }} đ</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px;margin-top:10px">
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a">MỞ TRONG ERPNEXT</div>
+        <div style="display:grid;gap:1px;margin-top:8px">
+          <sc-for list="{{ links }}" as="l" hint-placeholder-count="3">
+            <a href="#1a" style="font:600 14px Archivo,sans-serif;color:#c2551f;text-decoration:none;padding:10px 0;border-bottom:1px solid #efece5">{{ l }} ↗</a>
+          </sc-for>
+        </div>
+      </div>
+
+      <button style="width:100%;height:58px;margin-top:14px;border:1.5px solid #b3341f;background:transparent;color:#b3341f;border-radius:16px;font:800 16px Archivo,sans-serif;letter-spacing:.02em;cursor:pointer">CHỐT NGÀY</button>
+    </div>
+    </sc-if>
+
+  </div>
+
+  <div style="display:flex;background:#fffdf9;border-top:1px solid #e2ddd4;padding:6px 8px 16px">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+      <button onClick="{{ t.onPress }}" style="flex:1;height:54px;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:{{ t.fg }}">
+        <span style="width:22px;height:3px;border-radius:2px;background:{{ t.mark }}"></span>
+        <span style="font:600 12px Archivo,sans-serif">{{ t.label }}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(22,19,15,.42)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fffdf9;border-radius:24px 24px 0 0;padding:18px 16px 20px;box-shadow:0 -8px 30px rgba(0,0,0,.2)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a">CHẤM VÀO HỘP</div>
+          <div style="font:700 22px/1.1 Archivo,sans-serif;margin-top:5px">{{ sheetName }}</div>
+        </div>
+        <button onClick="{{ closeSheet }}" style="width:40px;height:40px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;font-size:15px;cursor:pointer;color:#16130f">✕</button>
+      </div>
+
+      <div style="display:flex;gap:7px;margin-top:14px">
+        <sc-for list="{{ skuChips }}" as="s" hint-placeholder-count="3">
+          <button onClick="{{ s.onPress }}" style="flex:1;height:44px;border:1px solid {{ s.border }};background:{{ s.bg }};color:{{ s.fg }};border-radius:12px;font:600 13px Archivo,sans-serif;cursor:pointer">{{ s.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;background:#16130f;border-radius:16px;padding:14px 18px;margin-top:12px;color:#fffdf9">
+        <div>
+          <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#a9a29a">SỐ HỘP</div>
+          <div style="font:700 44px/1 'IBM Plex Mono',monospace;letter-spacing:-2px;margin-top:4px">{{ sheetBuf }}</div>
+        </div>
+        <div style="text-align:right;font:500 13px 'IBM Plex Mono',monospace;color:#e8a06d">{{ sheetMoney }} đ</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px">
+        <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+          <button onClick="{{ k.onPress }}" style="height:56px;border:1px solid #e2ddd4;background:{{ k.bg }};color:{{ k.fg }};border-radius:14px;font:600 22px 'IBM Plex Mono',monospace;cursor:pointer">{{ k.label }}</button>
+        </sc-for>
+      </div>
+
+      <button onClick="{{ saveSheet }}" style="width:100%;height:56px;margin-top:12px;border:0;background:#c2551f;color:#fffdf9;border-radius:14px;font:700 17px Archivo,sans-serif;cursor:pointer">Lưu</button>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Vào hộp · nhật ký một tay: gõ 2 chữ đầu để lọc tên, +/− nhanh ngay trên dòng, không sheet. Feed ca có hoàn tác.</div>
+<div class="dv-card">
+<div style="width:374px;height:812px;background:#f7f5f1;border-radius:27px;overflow:hidden;position:relative;display:flex;flex-direction:column;color:#16130f">
+  <div style="display:flex;justify-content:space-between;padding:12px 22px 8px;font:600 12px 'IBM Plex Mono',monospace;background:#fffdf9"><span>9:41</span><span style="width:16px;height:9px;border:1.5px solid #16130f;border-radius:2px"></span></div>
+
+  <div style="background:#fffdf9;padding:4px 16px 14px;border-bottom:1px solid #e2ddd4">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font:700 19px/1 Archivo,sans-serif;letter-spacing:-.3px">Vào hộp · Ca 1</div>
+      <div style="font:500 12px 'IBM Plex Mono',monospace;color:#8a827a">30/07</div>
+    </div>
+    <div style="display:flex;align-items:baseline;gap:8px;margin-top:10px">
+      <span style="font:700 34px/1 'IBM Plex Mono',monospace;letter-spacing:-1.2px">{{ bTotal }}</span>
+      <span style="font:500 12.5px/1.2 Archivo,sans-serif;color:#8a827a;white-space:nowrap">hộp · {{ bDone }} người · {{ bMoney }} đ</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;background:#f7f5f1;border:1px solid #e2ddd4;border-radius:12px;height:46px;padding:0 14px;margin-top:12px">
+      <span style="font:600 11px 'IBM Plex Mono',monospace;color:#8a827a">AZ</span>
+      <input value="{{ bQueryText }}" onChange="{{ bOnQuery }}" placeholder="Gõ tên: ha, ng, th…" style="flex:1;border:0;outline:0;background:transparent;font:500 15px Archivo,sans-serif;min-width:0;color:#16130f" />
+      <sc-if value="{{ bHasQuery }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ bClear }}" style="border:0;background:#e2ddd4;color:#16130f;border-radius:8px;width:26px;height:26px;font-size:12px;cursor:pointer">✕</button>
+      </sc-if>
+    </div>
+  </div>
+
+  <div class="scr" style="flex:1;overflow-y:auto">
+    <div style="padding:12px 16px 0">
+      <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a;margin-bottom:8px">{{ bListLabel }}</div>
+      <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;overflow:hidden">
+        <sc-for list="{{ bRows }}" as="r" hint-placeholder-count="7">
+          <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #efece5;background:{{ r.rowBg }}">
+            <div style="flex:1;min-width:0">
+              <div style="font:600 16px/1.2 Archivo,sans-serif">{{ r.name }}</div>
+              <div style="font:500 10.5px/1.3 'IBM Plex Mono',monospace;color:#8a827a;margin-top:2px">{{ r.meta }}</div>
+            </div>
+            <button onClick="{{ r.onMinus }}" style="width:44px;height:44px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;font:600 20px 'IBM Plex Mono',monospace;color:#16130f;cursor:pointer">−</button>
+            <div style="width:46px;text-align:center;font:700 20px 'IBM Plex Mono',monospace;color:{{ r.qtyFg }}">{{ r.qty }}</div>
+            <button onClick="{{ r.onPlus }}" style="width:44px;height:44px;border:0;background:#c2551f;color:#fffdf9;border-radius:12px;font:600 20px 'IBM Plex Mono',monospace;cursor:pointer">+</button>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:10px">
+        <sc-for list="{{ bSteps }}" as="s" hint-placeholder-count="4">
+          <button onClick="{{ s.onPress }}" style="flex:1;height:44px;border:1px solid {{ s.border }};background:{{ s.bg }};color:{{ s.fg }};border-radius:12px;font:600 13px 'IBM Plex Mono',monospace;cursor:pointer">{{ s.label }}</button>
+        </sc-for>
+      </div>
+      <div style="font:500 11px/1.4 Archivo,sans-serif;color:#8a827a;margin-top:8px">Bước nhảy áp cho nút + và −. Bấm giữ để nhập số chính xác.</div>
+    </div>
+
+    <div style="padding:18px 16px 20px">
+      <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#8a827a;margin-bottom:8px">NHẬT KÝ CA</div>
+      <div style="display:grid;gap:7px">
+        <sc-for list="{{ bFeedRows }}" as="f" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:10px;background:#fffdf9;border:1px solid #e2ddd4;border-radius:12px;padding:11px 13px">
+            <span style="font:500 11px 'IBM Plex Mono',monospace;color:#8a827a;width:38px">{{ f.time }}</span>
+            <span style="flex:1;font:500 13px/1.3 Archivo,sans-serif">{{ f.text }}</span>
+            <button onClick="{{ f.onUndo }}" style="border:1px solid #e2ddd4;background:#f7f5f1;color:#6f6862;border-radius:9px;height:32px;padding:0 10px;font:600 11px Archivo,sans-serif;cursor:pointer">Hoàn tác</button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#fffdf9;border-top:1px solid #e2ddd4;padding:10px 16px 18px;display:flex;gap:9px">
+    <button style="flex:1;height:50px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:13px;font:600 14px Archivo,sans-serif;color:#16130f;cursor:pointer">Ghi sự cố</button>
+    <button style="flex:1.4;height:50px;border:0;background:#16130f;color:#fffdf9;border-radius:13px;font:700 14px Archivo,sans-serif;cursor:pointer">Gửi nhóm</button>
+  </div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Vào hộp · bảng ca đậm: chip tên dày đặc, bấm chip → editor dán đáy màn, số cực lớn. Xem hết 43 người không cuộn nhiều.</div>
+<div class="dv-card">
+<div style="width:374px;height:812px;background:#f2efe8;border-radius:27px;overflow:hidden;position:relative;display:flex;flex-direction:column;color:#16130f">
+  <div style="display:flex;justify-content:space-between;padding:12px 22px 8px;font:600 12px 'IBM Plex Mono',monospace;background:#c2551f;color:#fff"><span>9:41</span><span style="width:16px;height:9px;border:1.5px solid #fff;border-radius:2px"></span></div>
+
+  <div style="background:#c2551f;color:#fff;padding:8px 18px 20px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font:700 11px 'IBM Plex Mono',monospace;letter-spacing:.14em">VÀO HỘP · CA 1 · 30/07</span>
+      <span style="font:600 11px 'IBM Plex Mono',monospace;opacity:.75">{{ cDone }}/43 người</span>
+    </div>
+    <div style="display:flex;align-items:flex-end;gap:10px;margin-top:12px">
+      <span style="font:800 62px/1 'IBM Plex Mono',monospace;letter-spacing:-3px">{{ cTotal }}</span>
+      <span style="font:600 15px Archivo,sans-serif;padding-bottom:8px;opacity:.85">hộp</span>
+      <span style="flex:1;text-align:right;font:600 14px 'IBM Plex Mono',monospace;padding-bottom:8px;opacity:.9">{{ cMoney }} đ</span>
+    </div>
+  </div>
+
+  <div class="scr" style="flex:1;overflow-y:auto;padding:16px 14px 150px">
+    <div style="font:700 10px 'IBM Plex Mono',monospace;letter-spacing:.14em;color:#8a827a;margin-bottom:10px">BẤM TÊN — ĐÃ CHẤM HIỆN SỐ</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <sc-for list="{{ cChips }}" as="c" hint-placeholder-count="43">
+        <button onClick="{{ c.onPress }}" style="min-height:46px;padding:8px 13px;border:1.5px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }};border-radius:11px;font:700 14.5px Archivo,sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px">
+          <span>{{ c.name }}</span>
+          <span style="font:700 13px 'IBM Plex Mono',monospace;background:{{ c.badgeBg }};color:{{ c.badgeFg }};border-radius:6px;padding:2px 6px">{{ c.qty }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#16130f;color:#fffdf9;padding:16px 16px 20px;border-radius:22px 22px 0 0">
+    <sc-if value="{{ cHasActive }}" hint-placeholder-val="{{ true }}">
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font:700 18px Archivo,sans-serif">{{ cName }}</div>
+        <div style="font:500 11px 'IBM Plex Mono',monospace;color:#a9a29a">{{ cSku }}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px">
+        <button onClick="{{ cMinus }}" style="width:64px;height:64px;border:1.5px solid #4a4340;background:transparent;color:#fffdf9;border-radius:16px;font:600 26px 'IBM Plex Mono',monospace;cursor:pointer">−</button>
+        <div style="flex:1;text-align:center">
+          <div style="font:800 50px/1 'IBM Plex Mono',monospace;letter-spacing:-2px">{{ cActiveQty }}</div>
+          <div style="font:500 11px 'IBM Plex Mono',monospace;color:#e8a06d;margin-top:5px">{{ cRowMoney }} đ</div>
+        </div>
+        <button onClick="{{ cPlus }}" style="width:64px;height:64px;border:0;background:#c2551f;color:#fff;border-radius:16px;font:600 26px 'IBM Plex Mono',monospace;cursor:pointer">+</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <sc-for list="{{ cQuick }}" as="q" hint-placeholder-count="4">
+          <button onClick="{{ q.onPress }}" style="flex:1;height:44px;border:1px solid #4a4340;background:#241f1a;color:#fffdf9;border-radius:11px;font:600 13px 'IBM Plex Mono',monospace;cursor:pointer">{{ q.label }}</button>
+        </sc-for>
+        <button onClick="{{ cDoneBtn }}" style="flex:1.2;height:44px;border:0;background:#fffdf9;color:#16130f;border-radius:11px;font:700 14px Archivo,sans-serif;cursor:pointer">Xong</button>
+      </div>
+    </div>
+    </sc-if>
+    <sc-if value="{{ cIdle }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;color:#a9a29a">CHƯA CHỌN AI</div>
+        <div style="font:600 14px Archivo,sans-serif;margin-top:5px">Bấm một tên ở trên để chấm</div>
+      </div>
+      <button style="height:48px;padding:0 18px;border:0;background:#c2551f;color:#fff;border-radius:12px;font:700 14px Archivo,sans-serif;cursor:pointer">Gửi nhóm</button>
+    </div>
+    </sc-if>
+  </div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Thử tiếp: "lấy <a class="dv-oid" href="#1c">1c</a> làm chính, ghép bàn phím số của <a class="dv-oid" href="#1a">1a</a>" · "làm nốt Ghi số + Quản lý theo <a class="dv-oid" href="#1b">1b</a>" · "thêm màn chốt ngày và ghi sự cố"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showMoney&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Hiển thị&quot;},&quot;workerOrder&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;recent&quot;,&quot;alpha&quot;],&quot;default&quot;:&quot;recent&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Danh sách công nhân&quot;}}">
+const RATES = { "Vào hộp 170": 788, "Vào hộp H25": 1350, "Vào HN": 1470 };
+const TOP = ["Hiền Đăng", "Song", "Hà Dương", "Nguyệt Đào", "Lập", "Dân", "Nga Đỗ", "Thúy"];
+const REST = ["Mới","Phúc","LT Hòa","Chinh","Hiền Lê","Thứ","Huyền","Thức","LT Lượt","Mát","Hà Nguyễn","Hoài","Miến","Miền","Mùi","Anh","Huế Nguyễn","Thì","Quỳnh","LT Oanh","Thủy Phạm T.","Hạnh","Lư","Hồng","Loan","Thủy Phạm T.T.","Huế Phùng","LT Sáu","Nga Trần","Thêu","LT Vân","Giang","Lý","Nguyệt Vũ","Yến"];
+const ALL = TOP.concat(REST);
+const fmt = (n) => (n || 0).toLocaleString("vi-VN");
+const norm = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").toLowerCase();
+
+class Component extends DCLogic {
+  state = {
+    tab: "box",
+    entries: [{ name: "Hiền Đăng", sku: "Vào hộp 170", qty: 88 }, { name: "Song", sku: "Vào hộp 170", qty: 8 }],
+    query: "", showAll: false,
+    sheet: null, sku: "Vào hộp 170", buf: "",
+    bQty: { "Hiền Đăng": 88, Song: 8 }, bQuery: "", bStep: 6,
+    bFeed: [{ id: 2, time: "08:14", text: "Song +8 hộp · Vào hộp 170" }, { id: 1, time: "07:52", text: "Hiền Đăng +88 hộp · Vào hộp 170" }],
+    cQty: { "Hiền Đăng": 88, Song: 8 }, cActive: null,
+  };
+
+  chip = (on) => on
+    ? { bg: "#16130f", fg: "#fffdf9", border: "#16130f", sub: "#e8a06d" }
+    : { bg: "#fffdf9", fg: "#16130f", border: "#e2ddd4", sub: "#a9a29a" };
+
+  qtyOf(name) { const e = this.state.entries.find((x) => x.name === name); return e ? e.qty : 0; }
+
+  openSheet = (name) => this.setState({ sheet: name, buf: String(this.qtyOf(name) || "") });
+  closeSheet = () => this.setState({ sheet: null, buf: "" });
+  saveSheet = () => {
+    const { sheet, buf, sku, entries } = this.state;
+    const qty = parseInt(buf || "0", 10);
+    let next = entries.filter((e) => e.name !== sheet);
+    if (qty > 0) next = [{ name: sheet, sku, qty }].concat(next);
+    this.setState({ entries: next, sheet: null, buf: "" });
+  };
+
+  bAdd = (name, d) => {
+    const q = Math.max(0, (this.state.bQty[name] || 0) + d);
+    const feed = [{ id: Date.now(), time: "09:41", text: name + " " + (d > 0 ? "+" : "") + d + " hộp · Vào hộp 170" }].concat(this.state.bFeed).slice(0, 6);
+    this.setState({ bQty: Object.assign({}, this.state.bQty, { [name]: q }), bFeed: feed });
+  };
+
+  cAdd = (d) => {
+    const n = this.state.cActive; if (!n) return;
+    this.setState({ cQty: Object.assign({}, this.state.cQty, { [n]: Math.max(0, (this.state.cQty[n] || 0) + d) }) });
+  };
+
+  renderVals() {
+    const s = this.state;
+    const rate = RATES[s.sku];
+    const showMoney = this.props.showMoney ?? true;
+    const boxTotal = s.entries.reduce((a, e) => a + e.qty, 0);
+    const boxMoney = s.entries.reduce((a, e) => a + e.qty * RATES[e.sku], 0);
+
+    const mkWorker = (name) => {
+      const q = this.qtyOf(name); const c = this.chip(q > 0);
+      return { name, qtyText: q > 0 ? q + " hộp" : "chưa nhập", bg: c.bg, fg: c.fg, border: c.border, sub: c.sub, onPress: () => this.openSheet(name) };
+    };
+    const sorted = (this.props.workerOrder ?? "recent") === "alpha" ? ALL.slice().sort((a, b) => a.localeCompare(b, "vi")) : ALL;
+    const q = norm(s.query.trim());
+    const restPool = q ? sorted.filter((n) => norm(n).includes(q)) : REST;
+
+    const bq = norm(s.bQuery.trim());
+    const bNames = bq ? ALL.filter((n) => norm(n).includes(bq)) : TOP;
+    const bTotal = Object.values(s.bQty).reduce((a, v) => a + v, 0);
+
+    const cName = s.cActive;
+
+    return {
+      showMoney,
+      isBox: s.tab === "box", isLog: s.tab === "log", isMgmt: s.tab === "mgmt",
+      tabs: [["box", "Ghi hộp"], ["log", "Ghi số"], ["mgmt", "Quản lý"]].map(([k, label]) => ({
+        label, fg: s.tab === k ? "#16130f" : "#8a827a", mark: s.tab === k ? "#c2551f" : "transparent",
+        onPress: () => this.setState({ tab: k }),
+      })),
+
+      boxTotal, boxMoney: fmt(boxMoney), doneCount: s.entries.length,
+      topWorkers: TOP.map(mkWorker), restWorkers: restPool.map(mkWorker),
+      showRest: s.showAll || !!q,
+      toggleAll: () => this.setState({ showAll: !s.showAll }),
+      toggleAllLabel: s.showAll || q ? "Thu gọn danh sách" : "Xem hết 43 công nhân",
+      queryText: s.query, onQuery: (e) => this.setState({ query: e.target.value }),
+      entryRows: s.entries.map((e, i) => ({
+        name: e.name, sku: e.sku, qty: e.qty, money: fmt(e.qty * RATES[e.sku]),
+        onDelete: () => this.setState({ entries: s.entries.filter((_, j) => j !== i) }),
+      })),
+
+      sheetOpen: !!s.sheet, sheetName: s.sheet || "", sheetBuf: s.buf || "0",
+      sheetMoney: fmt(parseInt(s.buf || "0", 10) * rate),
+      closeSheet: this.closeSheet, saveSheet: this.saveSheet,
+      skuChips: Object.keys(RATES).map((k) => {
+        const on = s.sku === k; const c = this.chip(on);
+        return { label: k.replace("Vào hộp ", "").replace("Vào ", ""), bg: c.bg, fg: c.fg, border: c.border, onPress: () => this.setState({ sku: k }) };
+      }),
+      keys: ["1","2","3","4","5","6","7","8","9","C","0","⌫"].map((label) => ({
+        label,
+        bg: label === "C" || label === "⌫" ? "#f2efe8" : "#fffdf9",
+        fg: label === "C" ? "#b3341f" : "#16130f",
+        onPress: () => {
+          if (label === "C") return this.setState({ buf: "" });
+          if (label === "⌫") return this.setState({ buf: s.buf.slice(0, -1) });
+          if (s.buf.length > 4) return;
+          this.setState({ buf: (s.buf === "0" ? "" : s.buf) + label });
+        },
+      })),
+
+      batches: [
+        { code: "R–300726–2", desc: "Đỗ xanh · xuất 200 kg · rang 30/07", state: "ĐANG RANG", stateBg: "#fdf1ec", stateFg: "#c2551f", kg: "120 kg", done: "80 kg", pct: "40%" },
+        { code: "R–300726–1", desc: "Đỗ xanh · xuất 500 kg · rang 30/07", state: "VÀO KHO HẾT", stateBg: "#eaf2ed", stateFg: "#2f6b4f", kg: "0 kg", done: "500 kg", pct: "100%" },
+        { code: "R–290726–2", desc: "Đỗ xanh · xuất 500 kg · rang 29/07", state: "VÀO KHO HẾT", stateBg: "#eaf2ed", stateFg: "#2f6b4f", kg: "0 kg", done: "500 kg", pct: "100%" },
+      ],
+      reportRows: [
+        { label: "Báo mẻ — nấu + trộn", meta: "5 mẻ hôm nay" },
+        { label: "Báo cán bột bánh", meta: "0 mẻ" },
+        { label: "Sự cố dừng chuyền", meta: "0 phút" },
+      ],
+      kpis: [
+        { label: "SẢN LƯỢNG", value: "943", sub: "hộp · 1 ngày chốt" },
+        { label: "LƯƠNG SP", value: "1,25 tr", sub: "1.248.910 đ" },
+        { label: "DỪNG SỰ CỐ", value: "0", sub: "phút · 0 sự cố" },
+        { label: "SKU ĐÃ ĐÓNG", value: "3", sub: "trên 7 SKU" },
+      ],
+      bars: [
+        { label: "24", value: 620, h: "48px", fill: "#dcd5c9" },
+        { label: "25", value: 740, h: "58px", fill: "#dcd5c9" },
+        { label: "26", value: 510, h: "40px", fill: "#dcd5c9" },
+        { label: "27", value: 880, h: "68px", fill: "#dcd5c9" },
+        { label: "28", value: 790, h: "62px", fill: "#dcd5c9" },
+        { label: "29", value: 943, h: "76px", fill: "#c2551f" },
+        { label: "30", value: boxTotal, h: "14px", fill: "#16130f" },
+      ],
+      people: [
+        { name: "Đoàn Thị Hải Khanh", box: 550, money: "493.750" },
+        { name: "Lê Thị Chinh", box: 250, money: "498.750" },
+        { name: "Phạm Thị Thu Thủy", box: 88, money: "175.560" },
+        { name: "Vũ Thị Lý", box: 55, money: "80.850" },
+      ],
+      links: ["Phiếu ngày sản xuất", "Serial & Batch Traceability", "Kiểm kê (Stock Reconciliation)"],
+
+      bTotal, bMoney: fmt(bTotal * 788), bDone: Object.values(s.bQty).filter((v) => v > 0).length,
+      bQueryText: s.bQuery, bHasQuery: !!s.bQuery,
+      bOnQuery: (e) => this.setState({ bQuery: e.target.value }),
+      bClear: () => this.setState({ bQuery: "" }),
+      bListLabel: bq ? "KẾT QUẢ “" + s.bQuery + "” — " + bNames.length + " NGƯỜI" : "HAY NHẬP NHẤT — 8 NGƯỜI",
+      bRows: bNames.slice(0, 12).map((name) => {
+        const v = s.bQty[name] || 0;
+        return {
+          name, qty: v, qtyFg: v > 0 ? "#16130f" : "#cfc8bd", rowBg: v > 0 ? "#fdf8f4" : "#fffdf9",
+          meta: v > 0 ? "Vào hộp 170 · " + fmt(v * 788) + " đ" : "chưa nhập",
+          onPlus: () => this.bAdd(name, s.bStep), onMinus: () => this.bAdd(name, -s.bStep),
+        };
+      }),
+      bSteps: [1, 6, 12, 24].map((n) => {
+        const on = s.bStep === n; const c = this.chip(on);
+        return { label: "± " + n, bg: c.bg, fg: c.fg, border: c.border, onPress: () => this.setState({ bStep: n }) };
+      }),
+      bFeedRows: s.bFeed.map((f) => ({ ...f, onUndo: () => this.setState({ bFeed: s.bFeed.filter((x) => x.id !== f.id) }) })),
+
+      cTotal: Object.values(s.cQty).reduce((a, v) => a + v, 0),
+      cMoney: fmt(Object.values(s.cQty).reduce((a, v) => a + v, 0) * 788),
+      cDone: Object.values(s.cQty).filter((v) => v > 0).length,
+      cChips: ALL.map((name) => {
+        const v = s.cQty[name] || 0; const on = cName === name;
+        return {
+          name, qty: v > 0 ? String(v) : "",
+          bg: on ? "#16130f" : v > 0 ? "#fffdf9" : "#e8e4db",
+          fg: on ? "#fffdf9" : "#16130f",
+          border: on ? "#16130f" : v > 0 ? "#c2551f" : "#dcd5c9",
+          badgeBg: v === 0 ? "transparent" : on ? "#c2551f" : "#f6e6dc",
+          badgeFg: on ? "#fff" : "#c2551f",
+          onPress: () => this.setState({ cActive: name }),
+        };
+      }),
+      cHasActive: !!cName, cIdle: !cName, cName: cName || "", cSku: "Vào hộp 170",
+      cActiveQty: cName ? s.cQty[cName] || 0 : 0,
+      cRowMoney: fmt((cName ? s.cQty[cName] || 0 : 0) * 788),
+      cPlus: () => this.cAdd(1), cMinus: () => this.cAdd(-1),
+      cQuick: [6, 12, 24, 50].map((n) => ({ label: "+" + n, onPress: () => this.cAdd(n) })),
+      cDoneBtn: () => this.setState({ cActive: null }),
+    };
+  }
+}
+</script>
+</body>
+</html>

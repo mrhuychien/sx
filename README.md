@@ -5,6 +5,7 @@ Custom app Frappe/ERPNext v16: số hoá + **truy xuất nguồn gốc** sản x
 **công nhân 0 chạm** — 2 QC nhập toàn bộ số liệu. Truy xuất mức **ngày × loại**, FIFO tự động
 toàn tuyến (không ai chọn lô).
 
+- **Bản thiết kế giao diện**: [`docs/design/`](docs/design/) — file gốc + đã áp tới đâu
 - Spec đầy đủ: [`docs/CODER-PACK.md`](docs/CODER-PACK.md) (v3 — thay thế hoàn toàn v1/v2)
 - Site đích: `a.rongvanghoanggia.com`
 - Phương pháp: nextcode + skills `frappe-app-build-profile` / `nextcode-build` /

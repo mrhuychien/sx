@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"><script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script><style>body{margin:0;background:#efece5;font-family:Archivo,system-ui,sans-serif;display:flex;justify-content:center;padding:28px 0}a{color:#c2551f}a:hover{color:#9c3f10}svg.lucide{width:18px;height:18px;stroke-width:2}.scr::-webkit-scrollbar{width:0}.mono{font-family:'IBM Plex Mono',monospace}.lbl{font:600 10px 'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase}</style></helmet>
+
+<div style="background:#16130f;border-radius:34px;padding:8px;box-shadow:0 8px 28px rgba(0,0,0,.18);height:fit-content">
+<div style="width:374px;height:812px;background:#f7f5f1;border-radius:27px;overflow:hidden;position:relative;display:flex;flex-direction:column;color:#16130f">
+
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 22px 4px;background:#fffdf9">
+    <span class="mono" style="font-weight:600;font-size:12px">9:41</span>
+    <span style="width:16px;height:9px;border:1.5px solid #16130f;border-radius:2px;display:block"></span>
+  </div>
+
+  <div style="background:#fffdf9;border-bottom:1px solid #e2ddd4;padding:6px 16px 12px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onClick="{{ prevDay }}" style="width:44px;height:44px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;color:#16130f;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#efece5"><i data-lucide="chevron-left"></i></button>
+      <div style="flex:1;text-align:center">
+        <div style="font:700 17px/1 Archivo,sans-serif;letter-spacing:-.2px">{{ dayLabel }}</div>
+        <div class="lbl" style="color:#8a827a;margin-top:4px;letter-spacing:.08em">{{ shiftLabel }}</div>
+      </div>
+      <button onClick="{{ nextDay }}" style="width:44px;height:44px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;color:#16130f;cursor:pointer;display:flex;align-items:center;justify-content:center" style-hover="background:#efece5"><i data-lucide="chevron-right"></i></button>
+    </div>
+  </div>
+
+  <div class="scr" style="flex:1;overflow-y:auto;padding:0 0 16px">
+
+    <sc-if value="{{ isBox }}" hint-placeholder-val="{{ true }}">
+    <div>
+      <div style="background:#16130f;color:#fffdf9;padding:16px 18px 18px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+        <div>
+          <div class="lbl" style="color:#a9a29a">Vào hộp hôm nay</div>
+          <div style="display:flex;align-items:baseline;gap:7px;margin-top:6px">
+            <span class="mono" style="font-weight:700;font-size:42px;line-height:1;letter-spacing:-1.5px">{{ boxTotal }}</span>
+            <span style="font:500 14px/1 Archivo,sans-serif;color:#a9a29a">hộp</span>
+          </div>
+          <sc-if value="{{ showMoney }}" hint-placeholder-val="{{ true }}">
+          <div class="mono" style="font-weight:500;font-size:12.5px;color:#e8a06d;margin-top:8px;white-space:nowrap">{{ boxMoney }} đ lương SP</div>
+          </sc-if>
+        </div>
+        <div style="text-align:right">
+          <div class="lbl" style="color:#a9a29a">Đã nhập</div>
+          <div class="mono" style="font-weight:700;font-size:22px;margin-top:6px">{{ doneCount }}<span style="color:#6f6862">/43</span></div>
+        </div>
+      </div>
+
+      <div class="scr" style="display:flex;gap:7px;overflow-x:auto;padding:12px 16px 0">
+        <sc-for list="{{ skuStrip }}" as="k" hint-placeholder-count="2">
+          <div style="flex:none;background:#fffdf9;border:1px solid #e2ddd4;border-radius:12px;padding:8px 12px">
+            <div class="lbl" style="color:#8a827a;font-size:9px">{{ k.short }}</div>
+            <div class="mono" style="font-weight:700;font-size:17px;margin-top:3px">{{ k.qty }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="padding:16px 16px 0">
+        <div class="lbl" style="color:#8a827a;margin-bottom:9px">Hay nhập — bấm tên để chấm</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+          <sc-for list="{{ topWorkers }}" as="w" hint-placeholder-count="8">
+            <button onClick="{{ w.onPress }}" style="min-height:62px;border:1px solid {{ w.border }};background:{{ w.bg }};color:{{ w.fg }};border-radius:14px;padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:4px">
+              <span style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+                <span style="font:600 16px/1.2 Archivo,sans-serif">{{ w.name }}</span>
+                <span class="lbl" style="color:{{ w.mealFg }};font-size:9px;letter-spacing:.06em">{{ w.mealText }}</span>
+              </span>
+              <span class="mono" style="font-weight:600;font-size:11px;color:{{ w.sub }}">{{ w.qtyText }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="padding:16px 16px 0">
+        <div style="display:flex;align-items:center;gap:9px;background:#fffdf9;border:1px solid #e2ddd4;border-radius:14px;padding:0 14px;height:48px;color:#8a827a">
+          <i data-lucide="search"></i>
+          <input value="{{ queryText }}" onChange="{{ onQuery }}" placeholder="Tìm trong 43 công nhân" style="flex:1;border:0;outline:0;background:transparent;font:500 15px Archivo,sans-serif;color:#16130f;min-width:0" />
+        </div>
+        <sc-if value="{{ showRest }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px">
+          <sc-for list="{{ restWorkers }}" as="w" hint-placeholder-count="6">
+            <button onClick="{{ w.onPress }}" style="min-height:54px;border:1px solid {{ w.border }};background:{{ w.bg }};color:{{ w.fg }};border-radius:14px;padding:10px 12px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:center;gap:3px">
+              <span style="font:600 15px/1.2 Archivo,sans-serif">{{ w.name }}</span>
+              <span class="mono" style="font-weight:600;font-size:11px;color:{{ w.sub }}">{{ w.qtyText }}</span>
+            </button>
+          </sc-for>
+        </div>
+        </sc-if>
+        <button onClick="{{ toggleAll }}" style="width:100%;height:46px;margin-top:9px;border:1px dashed #cfc8bd;background:transparent;border-radius:14px;font:600 13px Archivo,sans-serif;color:#6f6862;cursor:pointer" style-hover="background:#f2efe8">{{ toggleAllLabel }}</button>
+      </div>
+
+      <div style="padding:20px 16px 0">
+        <div class="lbl" style="color:#8a827a;margin-bottom:9px">Bản ghi hôm nay</div>
+        <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;overflow:hidden">
+          <sc-for list="{{ entryRows }}" as="e" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #efece5">
+              <div style="flex:1;min-width:0">
+                <div style="font:600 15px/1.2 Archivo,sans-serif">{{ e.name }}</div>
+                <div class="mono" style="font-weight:500;font-size:11px;color:#8a827a;margin-top:3px">{{ e.meta }}</div>
+              </div>
+              <div class="mono" style="font-weight:700;font-size:20px">{{ e.qty }}</div>
+              <button onClick="{{ e.onEdit }}" style="width:36px;height:36px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:10px;cursor:pointer;color:#6f6862;display:flex;align-items:center;justify-content:center" style-hover="background:#efece5"><i data-lucide="pencil"></i></button>
+              <button onClick="{{ e.onDelete }}" style="width:36px;height:36px;border:1px solid #e6d4cd;background:#fdf1ec;border-radius:10px;cursor:pointer;color:#b3341f;display:flex;align-items:center;justify-content:center" style-hover="background:#fbe4da"><i data-lucide="x"></i></button>
+            </div>
+          </sc-for>
+          <div style="display:flex;justify-content:space-between;padding:13px 14px;background:#f7f5f1">
+            <span class="lbl" style="color:#6f6862;letter-spacing:.08em">Tổng</span>
+            <span class="mono" style="font-weight:700;font-size:14px">{{ totalLine }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:16px 16px 0;display:grid;gap:9px">
+        <button onClick="{{ doCopy }}" style="display:flex;align-items:center;justify-content:space-between;height:52px;border:1px solid #e2ddd4;background:#fffdf9;border-radius:14px;font:600 15px Archivo,sans-serif;color:#16130f;cursor:pointer;padding:0 16px" style-hover="background:#fdfaf4">
+          <span>Copy sản lượng gửi nhóm</span><i data-lucide="copy" style="color:#8a827a"></i>
+        </button>
+        <div style="border:1px solid #e2ddd4;background:#fffdf9;border-radius:16px;padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="lbl" style="color:#8a827a">Sự cố hôm nay</span>
+            <span class="mono" style="font-weight:700;font-size:12px;color:{{ incidentFg }}">{{ incidentCount }} · {{ stopMinutes }} phút</span>
+          </div>
+          <sc-for list="{{ incidents }}" as="i" hint-placeholder-count="0">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #efece5">
+              <span style="font:600 14px Archivo,sans-serif">{{ i.reason }}</span>
+              <span class="mono" style="font-weight:500;font-size:12px;color:#8a827a">{{ i.mins }} phút · {{ i.time }}</span>
+            </div>
+          </sc-for>
+          <button onClick="{{ openStop }}" style="width:100%;height:48px;margin-top:12px;border:0;background:#c2551f;color:#fffdf9;border-radius:12px;font:700 15px Archivo,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="background:#a8461a"><i data-lucide="plus"></i><span>Ghi sự cố</span></button>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isLog }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:16px">
+      <div style="font:700 22px/1.1 Archivo,sans-serif;letter-spacing:-.4px">Ghi số — luồng tầng 1</div>
+      <button onClick="{{ openXuat }}" style="width:100%;height:62px;margin-top:14px;border:0;background:#c2551f;color:#fffdf9;border-radius:16px;font:800 19px Archivo,sans-serif;letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px" style-hover="background:#a8461a"><i data-lucide="package-open" style="width:22px;height:22px"></i><span>XUẤT KHO ĐỖ</span></button>
+
+      <div class="lbl" style="color:#8a827a;margin:20px 0 9px">Lô rang — {{ batchCount }} lô</div>
+      <div style="display:grid;gap:10px">
+        <sc-for list="{{ batches }}" as="b" hint-placeholder-count="3">
+          <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px 16px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+              <span class="mono" style="font-weight:700;font-size:16px;letter-spacing:-.3px">{{ b.code }}</span>
+              <span class="lbl" style="color:{{ b.stateFg }};background:{{ b.stateBg }};padding:4px 8px;border-radius:7px;letter-spacing:.08em">{{ b.state }}</span>
+            </div>
+            <div style="font:500 13px/1.4 Archivo,sans-serif;color:#6f6862;margin-top:6px">{{ b.desc }}</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+              <div style="flex:1">
+                <div class="lbl" style="color:#8a827a;font-size:9px">Đỗ ở xưởng</div>
+                <div class="mono" style="font-weight:700;font-size:20px;margin-top:3px">{{ b.kg }}</div>
+              </div>
+              <i data-lucide="arrow-right" style="color:#cfc8bd"></i>
+              <div style="flex:1;text-align:right">
+                <div class="lbl" style="color:#8a827a;font-size:9px">Đã vào kho</div>
+                <div class="mono" style="font-weight:700;font-size:20px;margin-top:3px">{{ b.done }}</div>
+              </div>
+            </div>
+            <div style="height:5px;border-radius:3px;background:#efece5;margin-top:12px;overflow:hidden">
+              <div style="height:5px;background:#c2551f;width:{{ b.pct }}"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div class="lbl" style="color:#8a827a;margin:20px 0 9px">Báo số</div>
+      <div style="display:grid;gap:9px">
+        <sc-for list="{{ reportRows }}" as="r" hint-placeholder-count="3">
+          <button onClick="{{ r.onPress }}" style="display:flex;align-items:center;justify-content:space-between;height:58px;padding:0 16px;border:1px solid #e2ddd4;background:#fffdf9;border-radius:14px;cursor:pointer;font:600 15px Archivo,sans-serif;color:#16130f" style-hover="background:#fdfaf4">
+            <span>{{ r.label }}</span>
+            <span style="display:flex;align-items:center;gap:7px;color:#8a827a"><span class="mono" style="font-weight:500;font-size:12px">{{ r.meta }}</span><i data-lucide="chevron-right"></i></span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isMgmt }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font:700 22px/1.1 Archivo,sans-serif;letter-spacing:-.4px">Quản lý</div>
+        <span class="lbl" style="color:{{ closedFg }};background:{{ closedBg }};padding:5px 9px;border-radius:8px;letter-spacing:.08em">{{ closedLabel }}</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:13px 14px">
+            <div class="lbl" style="color:#8a827a;font-size:9px">{{ k.label }}</div>
+            <div class="mono" style="font-weight:700;font-size:24px;margin-top:7px;letter-spacing:-.8px">{{ k.value }}</div>
+            <div style="font:500 11px Archivo,sans-serif;color:#8a827a;margin-top:4px">{{ k.sub }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px;margin-top:10px">
+        <div class="lbl" style="color:#8a827a">Sản lượng 7 ngày (hộp)</div>
+        <div style="display:flex;align-items:flex-end;gap:8px;height:112px;margin-top:14px">
+          <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end">
+              <div class="mono" style="font-weight:600;font-size:9px;color:#8a827a">{{ b.value }}</div>
+              <div style="width:100%;background:{{ b.fill }};height:{{ b.h }};border-radius:4px 4px 0 0"></div>
+              <div class="mono" style="font-weight:500;font-size:9px;color:#8a827a">{{ b.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px;margin-top:10px">
+        <div class="lbl" style="color:#8a827a">Sản lượng theo loại</div>
+        <sc-for list="{{ skuRows }}" as="k" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #efece5">
+            <span style="flex:1;min-width:0">
+              <span style="display:block;font:600 14px Archivo,sans-serif">{{ k.name }}</span>
+              <span class="mono" style="display:block;font-size:10.5px;font-weight:500;color:#8a827a;margin-top:2px">{{ k.group }}</span>
+            </span>
+            <span class="mono" style="font-weight:700;font-size:15px">{{ k.qty }}</span>
+            <span class="mono" style="width:88px;text-align:right;font-weight:500;font-size:12px;color:#8a827a">{{ k.money }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px;margin-top:10px">
+        <div class="lbl" style="color:#8a827a">Năng suất vào hộp hôm nay</div>
+        <sc-for list="{{ people }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #efece5">
+            <span style="flex:1;font:600 14px Archivo,sans-serif">{{ p.name }}</span>
+            <span class="mono" style="font-weight:700;font-size:15px">{{ p.box }}</span>
+            <span class="mono" style="width:88px;text-align:right;font-weight:500;font-size:12px;color:#8a827a">{{ p.money }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fffdf9;border:1px solid #e2ddd4;border-radius:16px;padding:14px;margin-top:10px">
+        <div class="lbl" style="color:#8a827a">Mở trong ERPNext</div>
+        <div style="display:grid;margin-top:6px">
+          <sc-for list="{{ links }}" as="l" hint-placeholder-count="3">
+            <a href="#" style="display:flex;align-items:center;justify-content:space-between;font:600 14px Archivo,sans-serif;color:#c2551f;text-decoration:none;padding:11px 0;border-bottom:1px solid #efece5"><span>{{ l }}</span><i data-lucide="arrow-up-right"></i></a>
+          </sc-for>
+        </div>
+      </div>
+
+      <button onClick="{{ openClose }}" style="width:100%;height:58px;margin-top:14px;border:1.5px solid {{ closeBtnFg }};background:transparent;color:{{ closeBtnFg }};border-radius:16px;font:800 16px Archivo,sans-serif;letter-spacing:.02em;cursor:pointer">{{ closeBtnLabel }}</button>
+    </div>
+    </sc-if>
+
+  </div>
+
+  <div style="display:flex;background:#fffdf9;border-top:1px solid #e2ddd4;padding:6px 8px 16px">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+      <button onClick="{{ t.onPress }}" style="flex:1;height:54px;border:0;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:{{ t.fg }}">
+        <i data-lucide="{{ t.icon }}"></i>
+        <span style="font:600 12px Archivo,sans-serif">{{ t.label }}</span>
+        <span style="width:20px;height:3px;border-radius:2px;background:{{ t.mark }}"></span>
+      </button>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ padOpen }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <div onClick="{{ closeModal }}" style="position:absolute;inset:0;background:rgba(22,19,15,.42)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fffdf9;border-radius:24px 24px 0 0;padding:18px 16px 20px;box-shadow:0 -8px 30px rgba(0,0,0,.2)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div style="min-width:0">
+          <div class="lbl" style="color:#8a827a">{{ padKicker }}</div>
+          <div style="display:flex;align-items:center;gap:9px;margin-top:5px;flex-wrap:wrap">
+            <span style="font:700 22px/1.1 Archivo,sans-serif">{{ padTitle }}</span>
+            <sc-if value="{{ padIsQty }}" hint-placeholder-val="{{ true }}">
+            <span style="display:flex;gap:6px">
+              <sc-for list="{{ padMealToggles }}" as="m" hint-placeholder-count="2">
+                <button onClick="{{ m.onPress }}" style="height:32px;padding:0 11px;border:1px solid {{ m.border }};background:{{ m.bg }};color:{{ m.fg }};border-radius:9px;font:600 12px Archivo,sans-serif;cursor:pointer">{{ m.label }}</button>
+              </sc-for>
+            </span>
+            </sc-if>
+          </div>
+        </div>
+        <button onClick="{{ closeModal }}" style="width:40px;height:40px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;cursor:pointer;color:#16130f;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="x"></i></button>
+      </div>
+
+      <sc-if value="{{ padIsQty }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <sc-for list="{{ padExisting }}" as="e" hint-placeholder-count="0">
+          <button onClick="{{ e.onPress }}" class="mono" style="height:30px;padding:0 10px;border:0;background:{{ e.bg }};color:{{ e.fg }};border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer">{{ e.label }}</button>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <div style="display:flex;gap:7px;margin-top:12px;flex-wrap:wrap">
+        <sc-for list="{{ padChips }}" as="c" hint-placeholder-count="3">
+          <button onClick="{{ c.onPress }}" style="flex:1 1 22%;min-height:44px;padding:0 10px;border:1px solid {{ c.border }};background:{{ c.bg }};color:{{ c.fg }};border-radius:12px;font:600 13px Archivo,sans-serif;cursor:pointer">{{ c.label }}</button>
+        </sc-for>
+        <sc-if value="{{ padIsQty }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ openSkuPick }}" style="flex:1 1 22%;min-height:44px;padding:0 10px;border:1px dashed #cfc8bd;background:{{ padOtherBg }};color:{{ padOtherFg }};border-radius:12px;font:600 12.5px Archivo,sans-serif;cursor:pointer">{{ padOtherLabel }}</button>
+        </sc-if>
+      </div>
+
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;background:#16130f;border-radius:16px;padding:14px 18px;margin-top:12px;color:#fffdf9">
+        <div>
+          <div class="lbl" style="color:#a9a29a">{{ padUnitLabel }}</div>
+          <div class="mono" style="font-weight:700;font-size:44px;line-height:1;letter-spacing:-2px;margin-top:4px">{{ padBuf }}</div>
+        </div>
+        <div class="mono" style="font-weight:500;font-size:13px;color:#e8a06d;text-align:right">{{ padHint }}</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px">
+        <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+          <button onClick="{{ k.onPress }}" style="height:56px;border:1px solid #e2ddd4;background:{{ k.bg }};color:{{ k.fg }};border-radius:14px;font:600 22px 'IBM Plex Mono',monospace;cursor:pointer" style-hover="background:#f2efe8">{{ k.label }}</button>
+        </sc-for>
+      </div>
+
+      <button onClick="{{ padSave }}" style="width:100%;height:56px;margin-top:12px;border:0;background:#c2551f;color:#fffdf9;border-radius:14px;font:700 17px Archivo,sans-serif;cursor:pointer" style-hover="background:#a8461a">{{ padSaveLabel }}</button>
+    </div>
+
+      <sc-if value="{{ skuPickOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:0;right:0;bottom:0;top:92px;z-index:3;background:#fffdf9;border-radius:24px 24px 0 0;padding:18px 16px 16px;display:flex;flex-direction:column;box-shadow:0 -8px 30px rgba(0,0,0,.2)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div>
+            <div class="lbl" style="color:#8a827a">Chọn loại sản phẩm</div>
+            <div style="font:700 20px/1.1 Archivo,sans-serif;margin-top:5px">{{ padTitle }}</div>
+          </div>
+          <button onClick="{{ closeSkuPick }}" style="width:40px;height:40px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;cursor:pointer;color:#16130f;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="chevron-down"></i></button>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;background:#f7f5f1;border:1px solid #e2ddd4;border-radius:12px;height:46px;padding:0 13px;margin-top:12px;color:#8a827a">
+          <i data-lucide="search"></i>
+          <input value="{{ skuQueryText }}" onChange="{{ onSkuQuery }}" placeholder="Tìm loại: cốm, sầu riêng, H25…" style="flex:1;border:0;outline:0;background:transparent;font:500 15px Archivo,sans-serif;color:#16130f;min-width:0" />
+        </div>
+        <div class="scr" style="flex:1;overflow-y:auto;margin-top:12px;display:grid;gap:7px;align-content:start">
+          <sc-for list="{{ skuPickRows }}" as="k" hint-placeholder-count="12">
+            <button onClick="{{ k.onPress }}" style="display:flex;align-items:center;gap:10px;min-height:56px;padding:9px 13px;border:1px solid {{ k.border }};background:{{ k.bg }};color:{{ k.fg }};border-radius:13px;cursor:pointer;text-align:left">
+              <span style="flex:1;min-width:0">
+                <span style="display:block;font:600 15px/1.2 Archivo,sans-serif">{{ k.name }}</span>
+                <span class="mono" style="display:block;font-size:11px;font-weight:500;color:{{ k.sub }};margin-top:3px">{{ k.group }} · {{ k.rate }}</span>
+              </span>
+              <span class="lbl" style="color:{{ k.sub }};letter-spacing:.08em">{{ k.runLabel }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ mealOpen }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <div onClick="{{ closeModal }}" style="position:absolute;inset:0;background:rgba(22,19,15,.42)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;top:92px;background:#fffdf9;border-radius:24px 24px 0 0;padding:18px 16px 0;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div class="lbl" style="color:#8a827a">Chấm ăn ca / ăn đêm</div>
+          <div style="font:700 20px/1.1 Archivo,sans-serif;margin-top:5px">Đã chọn {{ mealCount }} người</div>
+        </div>
+        <button onClick="{{ closeModal }}" style="width:40px;height:40px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;cursor:pointer;color:#16130f;display:flex;align-items:center;justify-content:center"><i data-lucide="x"></i></button>
+      </div>
+      <div style="display:flex;gap:7px;margin-top:12px">
+        <button onClick="{{ mealAll }}" style="flex:1;height:44px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;font:600 13px Archivo,sans-serif;color:#16130f;cursor:pointer">Chọn cả ca đang làm</button>
+        <button onClick="{{ mealNone }}" style="flex:1;height:44px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;font:600 13px Archivo,sans-serif;color:#16130f;cursor:pointer">Bỏ hết</button>
+      </div>
+      <div class="scr" style="flex:1;overflow-y:auto;margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-content:flex-start">
+        <sc-for list="{{ mealChips }}" as="m" hint-placeholder-count="12">
+          <button onClick="{{ m.onPress }}" style="min-height:46px;padding:7px 13px;border:1.5px solid {{ m.border }};background:{{ m.bg }};color:{{ m.fg }};border-radius:11px;cursor:pointer;text-align:left">
+            <span style="display:block;font:600 14.5px Archivo,sans-serif">{{ m.name }}</span>
+            <span class="lbl" style="display:block;color:{{ m.sub }};font-size:9px;letter-spacing:.06em;margin-top:2px">{{ m.note }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <button onClick="{{ mealSave }}" style="width:100%;height:56px;margin:12px 0 20px;border:0;background:#c2551f;color:#fffdf9;border-radius:14px;font:700 17px Archivo,sans-serif;cursor:pointer">Lưu chấm ăn</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ closeOpen }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <div onClick="{{ closeModal }}" style="position:absolute;inset:0;background:rgba(22,19,15,.42)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#fffdf9;border-radius:24px 24px 0 0;padding:18px 16px 20px;box-shadow:0 -8px 30px rgba(0,0,0,.2)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <div class="lbl" style="color:#8a827a">Chốt ngày 30/07</div>
+          <div style="font:700 20px/1.1 Archivo,sans-serif;margin-top:5px">Kiểm 4 mục trước khi chốt</div>
+        </div>
+        <button onClick="{{ closeModal }}" style="width:40px;height:40px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:12px;cursor:pointer;color:#16130f;display:flex;align-items:center;justify-content:center"><i data-lucide="x"></i></button>
+      </div>
+      <div style="margin-top:14px;border:1px solid #e2ddd4;border-radius:16px;overflow:hidden">
+        <sc-for list="{{ checks }}" as="c" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #efece5;background:{{ c.bg }}">
+            <span style="width:28px;height:28px;border-radius:9px;background:{{ c.dotBg }};color:{{ c.dotFg }};display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="{{ c.icon }}"></i></span>
+            <span style="flex:1;font:600 14px Archivo,sans-serif">{{ c.label }}</span>
+            <span class="mono" style="font-weight:500;font-size:12px;color:#6f6862">{{ c.value }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font:500 12px/1.5 Archivo,sans-serif;color:#8a827a;margin-top:12px">Chốt xong sẽ đẩy phiếu ngày sản xuất sang ERPNext và khoá mọi ô nhập của ngày này.</div>
+      <div style="display:flex;gap:9px;margin-top:12px">
+        <button onClick="{{ closeModal }}" style="flex:1;height:56px;border:1px solid #e2ddd4;background:#f7f5f1;border-radius:14px;font:600 15px Archivo,sans-serif;color:#16130f;cursor:pointer">Để sau</button>
+        <button onClick="{{ doClose }}" style="flex:1.4;height:56px;border:0;background:#b3341f;color:#fffdf9;border-radius:14px;font:700 16px Archivo,sans-serif;cursor:pointer">Chốt ngày</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;left:16px;right:16px;bottom:88px;background:#16130f;color:#fffdf9;border-radius:14px;padding:14px 16px;font:600 14px Archivo,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25)">{{ toast }}</div>
+  </sc-if>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:880},&quot;showMoney&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Hiển thị&quot;},&quot;workerOrder&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;recent&quot;,&quot;alpha&quot;],&quot;default&quot;:&quot;recent&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Danh sách công nhân&quot;}}">
+const SKUS = [
+  { name: "Vào hộp 170", short: "Hộp 170", group: "Bánh đậu xanh", rate: 788, running: true },
+  { name: "Vào hộp H25", short: "Hộp H25", group: "Bánh đậu xanh", rate: 1350, running: true },
+  { name: "Vào HN", short: "HN", group: "Bánh đậu xanh", rate: 1470, running: true },
+  { name: "Vào hộp 340", short: "Hộp 340", group: "Bánh đậu xanh", rate: 1576, running: false },
+  { name: "Đậu xanh truyền thống", short: "Truyền thống", group: "Bánh đậu xanh", rate: 760, running: false },
+  { name: "Bánh cốm hộp 8", short: "Cốm 8", group: "Bánh cốm", rate: 920, running: false },
+  { name: "Bánh cốm hộp 12", short: "Cốm 12", group: "Bánh cốm", rate: 1180, running: false },
+  { name: "Sầu riêng 170", short: "SR 170", group: "Bánh sầu riêng", rate: 860, running: false },
+  { name: "Sầu riêng H25", short: "SR H25", group: "Bánh sầu riêng", rate: 1410, running: false },
+  { name: "Thượng hạng 250", short: "TH 250", group: "Thượng hạng", rate: 1620, running: false },
+  { name: "Khoai môn 170", short: "KM 170", group: "Khoai môn", rate: 812, running: false },
+  { name: "Bột đậu túi 500g", short: "Bột 500g", group: "Bột đậu", rate: 640, running: false },
+];
+const SKU_BY = {};
+SKUS.forEach((s) => { SKU_BY[s.name] = s; });
+const RATE = (n) => (SKU_BY[n] ? SKU_BY[n].rate : 788);
+const SHORT = (n) => (SKU_BY[n] ? SKU_BY[n].short : n);
+const RUNNING = SKUS.filter((s) => s.running);
+const TOP = ["Hiền Đăng", "Song", "Hà Dương", "Nguyệt Đào", "Lập", "Dân", "Nga Đỗ", "Thúy"];
+const REST = ["Mới","Phúc","LT Hòa","Chinh","Hiền Lê","Thứ","Huyền","Thức","LT Lượt","Mát","Hà Nguyễn","Hoài","Miến","Miền","Mùi","Anh","Huế Nguyễn","Thì","Quỳnh","LT Oanh","Thủy Phạm T.","Hạnh","Lư","Hồng","Loan","Thủy Phạm T.T.","Huế Phùng","LT Sáu","Nga Trần","Thêu","LT Vân","Giang","Lý","Nguyệt Vũ","Yến"];
+const ALL = TOP.concat(REST);
+const BEANS = ["Đỗ xanh", "Đỗ vàng", "Đỗ đen"];
+const DOUGH = ["Bánh cốm", "Sầu riêng", "Thượng hạng", "Truyền thống", "Màu vàng", "Màu đỏ"];
+const REASONS = ["Máy đóng gói", "Mất điện", "Hết bột", "Vệ sinh", "Khác"];
+const fmt = (n) => (n || 0).toLocaleString("vi-VN");
+const norm = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").toLowerCase();
+
+class Component extends DCLogic {
+  state = {
+    tab: "box", day: 0,
+    entries: [
+      { name: "Hiền Đăng", sku: "Vào hộp 170", qty: 88 },
+      { name: "Hiền Đăng", sku: "Vào hộp H25", qty: 24 },
+      { name: "Song", sku: "Vào hộp 170", qty: 8 },
+    ],
+    query: "", showAll: false,
+    modal: null, chip: "", buf: "", skuPick: false, skuQuery: "",
+    skuUse: { "Vào hộp 170": 34, "Vào hộp H25": 12, "Bánh cốm hộp 8": 7, "Vào HN": 4, "Sầu riêng 170": 2 },
+    meals: {}, incidents: [],
+    batches: [
+      { code: "R–300726–2", desc: "Đỗ xanh · xuất 200 kg · rang 30/07", done: 80, total: 200 },
+      { code: "R–300726–1", desc: "Đỗ xanh · xuất 500 kg · rang 30/07", done: 500, total: 500 },
+      { code: "R–290726–2", desc: "Đỗ xanh · xuất 500 kg · rang 29/07", done: 500, total: 500 },
+    ],
+    me: { nau: 5, can: 0 },
+    closed: false, toast: "",
+  };
+
+  icons = () => { if (window.lucide) window.lucide.createIcons(); };
+  componentDidMount() { this.icons(); setTimeout(this.icons, 600); }
+  componentDidUpdate() { this.icons(); }
+  componentWillUnmount() { clearTimeout(this._t); }
+
+  toast = (t) => {
+    this.setState({ toast: t });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ toast: "" }), 2400);
+  };
+
+  chipStyle = (on) => on
+    ? { bg: "#16130f", fg: "#fffdf9", border: "#16130f", sub: "#e8a06d" }
+    : { bg: "#fffdf9", fg: "#16130f", border: "#e2ddd4", sub: "#a9a29a" };
+
+  qtyOf(name) { return this.state.entries.filter((x) => x.name === name).reduce((a, x) => a + x.qty, 0); }
+  kindsOf(name) { return this.state.entries.filter((x) => x.name === name).length; }
+  qtyFor(name, sku) { const e = this.state.entries.find((x) => x.name === name && x.sku === sku); return e ? e.qty : 0; }
+
+  openPad = (kind, opts) => this.setState(Object.assign({ modal: kind, buf: "", skuPick: false, skuQuery: "" }, opts));
+  closeModal = () => this.setState({ modal: null, buf: "", skuPick: false, skuQuery: "" });
+  pickSku = (name) => this.setState({ chip: name, skuPick: false, skuQuery: "", buf: String(this.qtyFor(this.state.target, name) || "") });
+
+  key = (label) => () => {
+    const b = this.state.buf;
+    if (label === "C") return this.setState({ buf: "" });
+    if (label === "⌫") return this.setState({ buf: b.slice(0, -1) });
+    if (b.length > 4) return;
+    this.setState({ buf: (b === "0" ? "" : b) + label });
+  };
+
+  savePad = () => {
+    const s = this.state;
+    const n = parseInt(s.buf || "0", 10);
+    if (s.modal === "qty") {
+      let next = s.entries.filter((e) => !(e.name === s.target && e.sku === s.chip));
+      if (n > 0) next = [{ name: s.target, sku: s.chip, qty: n }].concat(next);
+      const use = Object.assign({}, s.skuUse);
+      if (n > 0) use[s.chip] = (use[s.chip] || 0) + 1;
+      this.setState({ entries: next, skuUse: use, modal: null, buf: "" });
+      return this.toast(n > 0 ? s.target + " · " + SHORT(s.chip) + " · " + n + " hộp" : "Đã xoá " + SHORT(s.chip) + " của " + s.target);
+    }
+    if (s.modal === "xuat") {
+      if (n <= 0) return this.toast("Nhập số kg trước đã");
+      const code = "R–300726–" + (s.batches.length + 1);
+      this.setState({ batches: [{ code, desc: s.chip + " · xuất " + n + " kg · rang 30/07", done: 0, total: n }].concat(s.batches), modal: null, buf: "" });
+      return this.toast("Đã xuất " + n + " kg " + s.chip.toLowerCase() + " · lô " + code);
+    }
+    if (s.modal === "me" || s.modal === "can") {
+      if (n <= 0) return this.toast("Nhập số mẻ trước đã");
+      const k = s.modal === "me" ? "nau" : "can";
+      this.setState({ me: Object.assign({}, s.me, { [k]: s.me[k] + n }), modal: null, buf: "" });
+      return this.toast("+" + n + " mẻ " + s.chip.toLowerCase() + (k === "nau" ? " (nấu + trộn)" : " (cán)"));
+    }
+    if (s.modal === "stop") {
+      if (n <= 0) return this.toast("Nhập số phút dừng");
+      this.setState({ incidents: [{ reason: s.chip, mins: n, time: "09:41" }].concat(s.incidents), modal: null, buf: "" });
+      return this.toast("Đã ghi sự cố · " + n + " phút");
+    }
+  };
+
+  renderVals() {
+    const s = this.state;
+    const showMoney = this.props.showMoney ?? true;
+    const boxTotal = s.entries.reduce((a, e) => a + e.qty, 0);
+    const boxMoney = s.entries.reduce((a, e) => a + e.qty * RATE(e.sku), 0);
+    const skuTotals = SKUS.map((k) => ({
+      sku: k, qty: s.entries.filter((e) => e.sku === k.name).reduce((a, e) => a + e.qty, 0),
+    })).filter((r) => r.qty > 0).sort((a, b) => b.qty - a.qty);
+    const stopMinutes = s.incidents.reduce((a, i) => a + i.mins, 0);
+    const mealOf = (n) => s.meals[n] || {};
+    const mealCount = Object.keys(s.meals).filter((k) => mealOf(k).ca || mealOf(k).dem).length;
+    const nightCount = Object.keys(s.meals).filter((k) => mealOf(k).dem).length;
+    const days = ["Thứ 5, 30/07", "Thứ 4, 29/07", "Thứ 3, 28/07"];
+    const dayIdx = Math.min(2, Math.max(0, s.day));
+
+    const mkWorker = (name) => {
+      const q = this.qtyOf(name); const kinds = this.kindsOf(name); const c = this.chipStyle(q > 0);
+      const m = s.meals[name] || {};
+      const meal = [m.ca ? "ăn ca" : "", m.dem ? "ăn đêm" : ""].filter(Boolean).join(" + ");
+      return { name, bg: c.bg, fg: c.fg, border: c.border, sub: c.sub,
+        qtyText: q > 0 ? q + " hộp" + (kinds > 1 ? " · " + kinds + " loại" : "") : "chưa nhập",
+        mealText: meal, mealFg: q > 0 ? "#e8a06d" : "#c2551f",
+        onPress: () => this.openPad("qty", { target: name, chip: RUNNING[0].name, buf: String(this.qtyFor(name, RUNNING[0].name) || "") }) };
+    };
+    const sorted = (this.props.workerOrder ?? "recent") === "alpha" ? ALL.slice().sort((a, b) => a.localeCompare(b, "vi")) : ALL;
+    const q = norm(s.query.trim());
+    const restPool = q ? sorted.filter((n) => norm(n).includes(q)) : REST;
+
+    const use = (k) => s.skuUse[k.name] || 0;
+    const byUse = SKUS.slice().sort((a, b) => use(b) - use(a) || (b.running ? 1 : 0) - (a.running ? 1 : 0) || a.name.localeCompare(b.name, "vi"));
+    const topSkus = byUse.slice(0, 3);
+    if (s.chip && !topSkus.some((k) => k.name === s.chip) && SKU_BY[s.chip]) topSkus[2] = SKU_BY[s.chip];
+
+    const padConf = {
+      qty: { kicker: "Chấm vào hộp", title: s.target || "", chips: topSkus.map((k) => ({ key: k.name, label: k.short })), unit: "Số hộp", save: "Lưu" },
+      xuat: { kicker: "Xuất kho đỗ", title: "Xuất cho lô rang mới", chips: BEANS.map((k) => ({ key: k, label: k })), unit: "Số kg", save: "Xuất kho" },
+      me: { kicker: "Báo mẻ — nấu + trộn", title: "Số mẻ vừa xong", chips: DOUGH.map((k) => ({ key: k, label: k })), unit: "Số mẻ", save: "Lưu mẻ" },
+      can: { kicker: "Báo cán bột bánh", title: "Số mẻ đã cán", chips: DOUGH.map((k) => ({ key: k, label: k })), unit: "Số mẻ", save: "Lưu mẻ" },
+      stop: { kicker: "Sự cố dừng chuyền", title: "Dừng bao nhiêu phút?", chips: REASONS.map((k) => ({ key: k, label: k })), unit: "Số phút", save: "Ghi sự cố" },
+    }[s.modal];
+    const nBuf = parseInt(s.buf || "0", 10);
+    const padHint = s.modal === "qty"
+      ? (showMoney ? fmt(nBuf * RATE(s.chip)) + " đ" : "")
+      : s.modal === "xuat" ? "≈ " + fmt(Math.round(nBuf * 4.6)) + " hộp TP" : "";
+
+    const checks = [
+      { label: "Công nhân đã chấm", value: s.entries.length + "/43", ok: s.entries.length > 0 },
+      { label: "Lô rang đã vào kho hết", value: s.batches.filter((b) => b.done >= b.total).length + "/" + s.batches.length, ok: s.batches.every((b) => b.done >= b.total) },
+      { label: "Mẻ nấu = mẻ cán", value: s.me.nau + " / " + s.me.can, ok: s.me.nau === s.me.can },
+      { label: "Sự cố đã ghi lý do", value: s.incidents.length + " sự cố", ok: true },
+    ];
+
+    return {
+      showMoney,
+      dayLabel: days[dayIdx], shiftLabel: s.closed ? "Ca 1 · đã chốt" : "Ca 1 · 06:00–14:00",
+      prevDay: () => this.setState({ day: Math.min(2, s.day + 1) }),
+      nextDay: () => this.setState({ day: Math.max(0, s.day - 1) }),
+      isBox: s.tab === "box", isLog: s.tab === "log", isMgmt: s.tab === "mgmt",
+      tabs: [["box", "Ghi hộp", "package"], ["log", "Ghi số", "clipboard-list"], ["mgmt", "Quản lý", "bar-chart-3"]].map(([k, label, icon]) => ({
+        label, icon, fg: s.tab === k ? "#16130f" : "#8a827a", mark: s.tab === k ? "#c2551f" : "transparent",
+        onPress: () => this.setState({ tab: k }),
+      })),
+
+      boxTotal, boxMoney: fmt(boxMoney), doneCount: s.entries.length,
+      totalLine: boxTotal + " hộp" + (showMoney ? " · " + fmt(boxMoney) + " đ" : ""),
+      topWorkers: TOP.map(mkWorker), restWorkers: restPool.map(mkWorker),
+      showRest: s.showAll || !!q,
+      toggleAll: () => this.setState({ showAll: !s.showAll }),
+      toggleAllLabel: s.showAll || q ? "Thu gọn danh sách" : "Xem hết 43 công nhân",
+      queryText: s.query, onQuery: (e) => this.setState({ query: e.target.value }),
+      entryRows: s.entries.map((e, i) => ({
+        name: e.name, qty: e.qty,
+        meta: SHORT(e.sku) + (showMoney ? " · " + fmt(e.qty * RATE(e.sku)) + " đ" : ""),
+        onEdit: () => this.openPad("qty", { target: e.name, chip: e.sku, buf: String(e.qty) }),
+        onDelete: () => this.setState({ entries: s.entries.filter((_, j) => j !== i) }),
+      })),
+      skuStrip: skuTotals.map((r) => ({ short: r.sku.short, qty: r.qty })),
+      skuRows: skuTotals.map((r) => ({
+        name: r.sku.name, group: r.sku.group, qty: r.qty,
+        money: showMoney ? fmt(r.qty * r.sku.rate) + " đ" : r.sku.rate + " đ/hộp",
+      })),
+      incidents: s.incidents, incidentCount: s.incidents.length, stopMinutes,
+      incidentFg: s.incidents.length ? "#b3341f" : "#2f6b4f",
+      mealMeta: mealCount ? mealCount + " ăn ca · " + nightCount + " ăn đêm" : "chưa chấm",
+      openMeal: () => this.setState({ modal: "meal" }),
+      doCopy: () => this.toast("Đã copy: " + boxTotal + " hộp · " + s.entries.length + " người · 30/07"),
+      openStop: () => this.openPad("stop", { chip: REASONS[0] }),
+      openXuat: () => this.openPad("xuat", { chip: BEANS[0] }),
+
+      batchCount: s.batches.length,
+      batches: s.batches.map((b) => {
+        const full = b.done >= b.total;
+        return { code: b.code, desc: b.desc,
+          state: full ? "Vào kho hết" : "Đang rang",
+          stateBg: full ? "#eaf2ed" : "#fdf1ec", stateFg: full ? "#2f6b4f" : "#c2551f",
+          kg: (b.total - b.done) + " kg", done: b.done + " kg",
+          pct: Math.round((b.done / b.total) * 100) + "%" };
+      }),
+      reportRows: [
+        { label: "Báo mẻ — nấu + trộn", meta: s.me.nau + " mẻ", onPress: () => this.openPad("me", { chip: DOUGH[0] }) },
+        { label: "Báo cán bột bánh", meta: s.me.can + " mẻ", onPress: () => this.openPad("can", { chip: DOUGH[0] }) },
+        { label: "Sự cố dừng chuyền", meta: stopMinutes + " phút", onPress: () => this.openPad("stop", { chip: REASONS[0] }) },
+      ],
+
+      kpis: [
+        { label: "Sản lượng", value: fmt(boxTotal), sub: "hộp · hôm nay" },
+        { label: "Lương SP", value: showMoney ? fmt(boxMoney) : "—", sub: showMoney ? "đ · hôm nay" : "đang ẩn" },
+        { label: "Dừng sự cố", value: String(stopMinutes), sub: "phút · " + s.incidents.length + " sự cố" },
+        { label: "Mẻ nấu / cán", value: s.me.nau + "/" + s.me.can, sub: "cần khớp cuối ngày" },
+      ],
+      bars: [
+        { label: "24", value: 620, h: "48px", fill: "#dcd5c9" },
+        { label: "25", value: 740, h: "58px", fill: "#dcd5c9" },
+        { label: "26", value: 510, h: "40px", fill: "#dcd5c9" },
+        { label: "27", value: 880, h: "68px", fill: "#dcd5c9" },
+        { label: "28", value: 790, h: "62px", fill: "#dcd5c9" },
+        { label: "29", value: 943, h: "76px", fill: "#c2551f" },
+        { label: "30", value: boxTotal, h: Math.max(4, Math.round((boxTotal / 943) * 76)) + "px", fill: "#16130f" },
+      ],
+      people: Object.values(s.entries.reduce((acc, e) => {
+        const r = acc[e.name] || (acc[e.name] = { name: e.name, box: 0, money: 0, kinds: 0 });
+        r.box += e.qty; r.money += e.qty * RATE(e.sku); r.kinds += 1;
+        return acc;
+      }, {})).sort((a, b) => b.box - a.box).map((r) => ({
+        name: r.name, box: r.box,
+        money: showMoney ? fmt(r.money) + " đ" : r.kinds + " loại",
+      })),
+      links: ["Phiếu ngày sản xuất", "Serial & Batch Traceability", "Kiểm kê (Stock Reconciliation)"],
+      closedLabel: s.closed ? "Đã chốt 30/07" : "Đang mở",
+      closedBg: s.closed ? "#eaf2ed" : "#f6e6dc", closedFg: s.closed ? "#2f6b4f" : "#c2551f",
+      closeBtnLabel: s.closed ? "Đã chốt ngày" : "Chốt ngày",
+      closeBtnFg: s.closed ? "#8a827a" : "#b3341f",
+      openClose: () => (s.closed ? this.toast("Ngày 30/07 đã chốt") : this.setState({ modal: "close" })),
+
+      padOpen: !!padConf, padKicker: padConf ? padConf.kicker : "", padTitle: padConf ? padConf.title : "",
+      padUnitLabel: padConf ? padConf.unit : "", padSaveLabel: padConf ? padConf.save : "",
+      padBuf: s.buf || "0", padHint,
+      padChips: padConf ? padConf.chips.map((c) => {
+        const st = this.chipStyle(s.chip === c.key);
+        return { label: c.label, bg: st.bg, fg: st.fg, border: st.border, onPress: () => this.setState({ chip: c.key, buf: s.modal === "qty" ? String(this.qtyFor(s.target, c.key) || "") : s.buf }) };
+      }) : [],
+      padIsQty: s.modal === "qty",
+      padOtherLabel: "Loại khác (" + (SKUS.length - 3) + ")",
+      padOtherBg: "#fffdf9", padOtherFg: "#6f6862",
+      openSkuPick: () => this.setState({ skuPick: true, skuQuery: "" }),
+      closeSkuPick: () => this.setState({ skuPick: false, skuQuery: "" }),
+      skuPickOpen: !!s.skuPick,
+      skuQueryText: s.skuQuery,
+      onSkuQuery: (e) => this.setState({ skuQuery: e.target.value }),
+      skuPickRows: (function (self) {
+        const qq = norm(s.skuQuery.trim());
+        return byUse.filter((k) => !qq || norm(k.name).includes(qq) || norm(k.group).includes(qq)).map((k) => {
+          const on = s.chip === k.name;
+          const n = use(k);
+          return { name: k.name, group: k.group, rate: k.rate + " đ/hộp",
+            runLabel: n > 0 ? "hay chọn · " + n : k.running ? "đang chạy" : "",
+            bg: on ? "#16130f" : "#fffdf9", fg: on ? "#fffdf9" : "#16130f",
+            sub: on ? "#a9a29a" : "#8a827a", border: on ? "#16130f" : "#e2ddd4",
+            onPress: () => self.pickSku(k.name) };
+        });
+      })(this),
+      padExisting: s.target ? s.entries.filter((e) => e.name === s.target).map((e) => ({
+        label: SHORT(e.sku) + " · " + e.qty,
+        bg: e.sku === s.chip ? "#f6e6dc" : "#f7f5f1", fg: e.sku === s.chip ? "#c2551f" : "#6f6862",
+        onPress: () => this.setState({ chip: e.sku, buf: String(e.qty) }),
+      })) : [],
+      padMealToggles: [["ca", "Ăn ca"], ["dem", "Ăn đêm"]].map(([k, label]) => {
+        const m = s.meals[s.target] || {}; const on = !!m[k];
+        return { label, bg: on ? "#c2551f" : "#fffdf9", fg: on ? "#fffdf9" : "#6f6862", border: on ? "#c2551f" : "#e2ddd4",
+          onPress: () => this.setState({ meals: Object.assign({}, s.meals, { [s.target]: Object.assign({}, m, { [k]: !on }) }) }) };
+      }),
+      keys: ["1","2","3","4","5","6","7","8","9","C","0","⌫"].map((label) => ({
+        label, bg: label === "C" || label === "⌫" ? "#f2efe8" : "#fffdf9",
+        fg: label === "C" ? "#b3341f" : "#16130f", onPress: this.key(label),
+      })),
+      padSave: this.savePad, closeModal: this.closeModal,
+
+      mealOpen: false, mealCount,
+      mealChips: ALL.map((name) => {
+        const m = mealOf(name); const on = !!(m.ca || m.dem);
+        const st = this.chipStyle(on);
+        return { name, note: m.dem ? "ăn đêm" : m.ca ? "ăn ca" : "", bg: st.bg, fg: st.fg, sub: st.sub, border: on ? "#16130f" : "#dcd5c9",
+          onPress: () => this.setState({ meals: Object.assign({}, s.meals, { [name]: m.ca && !m.dem ? { ca: true, dem: true } : m.dem ? {} : { ca: true } }) }) };
+      }),
+      mealAll: () => { const m = {}; ALL.forEach((n) => { m[n] = { ca: true }; }); this.setState({ meals: m }); },
+      mealNone: () => this.setState({ meals: {} }),
+      mealSave: () => { this.setState({ modal: null }); this.toast("Đã chấm ăn cho " + mealCount + " người"); },
+
+      closeOpen: s.modal === "close",
+      checks: checks.map((c) => ({
+        label: c.label, value: c.value, icon: c.ok ? "check" : "alert-triangle",
+        bg: c.ok ? "#fffdf9" : "#fdf9f4",
+        dotBg: c.ok ? "#eaf2ed" : "#fdf1ec", dotFg: c.ok ? "#2f6b4f" : "#b3341f",
+      })),
+      doClose: () => { this.setState({ closed: true, modal: null }); this.toast("Đã chốt ngày 30/07 · đẩy phiếu sang ERPNext"); },
+
+      hasToast: !!s.toast, toast: s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
