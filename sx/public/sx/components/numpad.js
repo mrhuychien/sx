@@ -25,7 +25,7 @@ export function openNumpad({
   allowDecimal = false,
   unit = '',
   unitLabel = '',      // nhãn mono trong ô mực; bỏ trống thì suy từ `unit`
-  titleActions = null, // [{ label, on, onToggle }] — nút bật/tắt NGAY CẠNH tên
+  titleActions = null, // [{ label, value, onChange }] — Ô ĐẾM ngay cạnh tên
   chips = null,        // [{ label, value, on }] — hàng chọn loại phía trên ô số
   onChip = null,       // (value) => nhãn đơn vị mới (hoặc không trả gì)
   hint = null,         // (soNhap) => string — dòng phụ bên phải ô mực (vd tiền)
@@ -33,19 +33,38 @@ export function openNumpad({
   onOk,
 }) {
   const m = openModal({ title, kicker });
+  // Nút cạnh tên = Ô ĐẾM, không phải bật/tắt: bấm +1 suất (0→1→2→0), bấm giữ mở
+  // bàn số để nhập thẳng. Ăn 2 suất là có thật nên phải nhập được số, nhưng 1 suất
+  // là phần lớn nên bấm một cái vẫn xong.
   (titleActions || []).forEach((a) => {
-    const b = el('button', `sx-title-tog${a.on ? ' sx-title-tog-on' : ''}`);
+    const b = el('button', 'sx-title-tog');
     b.type = 'button';
-    b.textContent = a.label;
-    b.setAttribute('aria-pressed', a.on ? 'true' : 'false');
-    b.addEventListener('click', () => {
-      const bat = !b.classList.contains('sx-title-tog-on');
-      b.classList.toggle('sx-title-tog-on', bat);
-      b.setAttribute('aria-pressed', bat ? 'true' : 'false');
-      if (a.onToggle) a.onToggle(bat ? 1 : 0);
+    let n = Number(a.value) || 0;
+    const ve = () => {
+      b.textContent = n > 0 ? `${a.label} ${n}` : a.label;
+      b.classList.toggle('sx-title-tog-on', n > 0);
+      b.setAttribute('aria-label', `${a.label}: ${n} suất`);
+    };
+    ve();
+    const dat = (v) => { n = Math.max(0, Math.round(v)); ve(); if (a.onChange) a.onChange(n); };
+    b.addEventListener('click', () => { if (!b._giuXong) dat(n >= 2 ? 0 : n + 1); });
+    let giu = null;
+    b.addEventListener('pointerdown', () => {
+      b._giuXong = false;
+      giu = setTimeout(() => {
+        giu = null;
+        b._giuXong = true;         // chặn click phát sinh ngay sau khi thả
+        openNumpad({
+          kicker: `Số suất ${a.label.toLowerCase()}`, title, unitLabel: 'Số suất',
+          initial: n, onOk: dat,
+        });
+      }, 500);
     });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((e) =>
+      b.addEventListener(e, () => { if (giu) { clearTimeout(giu); giu = null; } }));
     m.titleRow.appendChild(b);
   });
+
   let value = String(initial === 0 || initial == null ? '' : initial);
   let nhanDonVi = unitLabel || unit || 'SỐ';
 

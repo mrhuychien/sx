@@ -1530,3 +1530,23 @@ body { background: var(--sx-bg) !important; }
   .sx-view { gap: var(--sx-s3); }
 }
 .sx-tu-canh { align-self: flex-start; }
+
+/* Lô trong Ghi sổ: gập lại, bấm mới xổ (D48) */
+.sx-lt-lo > summary.sx-lt-head {
+  list-style: none;
+  cursor: pointer;
+  min-height: var(--sx-tap);
+  padding: var(--sx-s1) 0;
+  user-select: none;
+}
+.sx-lt-lo > summary::-webkit-details-marker { display: none; }
+/* Mũi chỉ hướng đổi HÌNH DẠNG khi mở, không chỉ đổi màu */
+.sx-lt-lo > summary::after {
+  content: "▸";
+  margin-left: auto;
+  color: var(--sx-text-3);
+  font-size: var(--sx-f-lg);
+  transition: transform var(--sx-t-fast);
+}
+.sx-lt-lo[open] > summary::after { transform: rotate(90deg); }
+.sx-lt-lo[open] > summary { border-bottom: 1px solid var(--sx-line); margin-bottom: var(--sx-s2); }

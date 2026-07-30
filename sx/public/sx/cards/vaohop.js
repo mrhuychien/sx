@@ -66,7 +66,6 @@ export async function render({ container, boot, call, ensureNgay }) {
     <div class="sx-vh-footer" id="sx-vh-footer"></div>
     <div class="sx-vh-footer" id="sx-vh-an"></div>
     <div class="sx-vh-actions">
-      ${daChot ? '' : '<button type="button" class="sx-btn" id="sx-vh-anca">Chấm ăn ca / ăn đêm</button>'}
       <button type="button" class="sx-btn" id="sx-vh-copy">Copy sản lượng gửi nhóm</button>
     </div>
   `;
@@ -188,9 +187,6 @@ export async function render({ container, boot, call, ensureNgay }) {
   }
 
   if (!daChot) {
-    container.querySelector('#sx-vh-anca').addEventListener('click', () => {
-      openAnCa(nhanVien, tenNgan, anCa, boot, save);
-    });
   }
 
   container.querySelector('#sx-vh-copy').addEventListener('click', () => {
@@ -323,12 +319,11 @@ export async function render({ container, boot, call, ensureNgay }) {
 function nutAnCa(nv, anCa, save) {
   if (!anCa) return null;
   const cur = () => (anCa[nv.name] = anCa[nv.name] || { an_ca: 0, an_dem: 0 });
-  const nhan = (ten, n) => (n > 1 ? `${ten} ×${n}` : ten);
   return [
-    { label: nhan('Ăn ca', Number(cur().an_ca) || 0), on: !!cur().an_ca,
-      onToggle: (v) => { cur().an_ca = v; save(); } },
-    { label: nhan('Ăn đêm', Number(cur().an_dem) || 0), on: !!cur().an_dem,
-      onToggle: (v) => { cur().an_dem = v; save(); } },
+    { label: 'Ăn ca', value: Number(cur().an_ca) || 0,
+      onChange: (n) => { cur().an_ca = n; save(); } },
+    { label: 'Ăn đêm', value: Number(cur().an_dem) || 0,
+      onChange: (n) => { cur().an_dem = n; save(); } },
   ];
 }
 
@@ -446,87 +441,4 @@ function hienDeChepTay(text) {
   ta.value = text;
   ta.focus();
   ta.select();
-}
-
-
-// Modal chấm ăn ca / ăn đêm cho từng công nhân công khoán (D30).
-// Số tiền lấy từ SX Settings khi chốt ngày — QC chỉ tick, không nhập tiền.
-function openAnCa(nhanVien, tenNgan, anCa, boot, save) {
-  if (!nhanVien.length) { toastErr('Chưa có công nhân công khoán nào.'); return; }
-  const m = openModal({ title: 'Chấm ăn ca / ăn đêm' });
-  const tamThoi = {};
-  nhanVien.forEach((nv) => {
-    const cu = anCa[nv.name] || {};
-    tamThoi[nv.name] = { an_ca: cu.an_ca || 0, an_dem: cu.an_dem || 0 };
-  });
-
-  m.body.innerHTML = `
-    <div class="sx-muted">Bấm ô để cộng 1 suất; bấm giữ nguyên số để nhập thẳng.
-      Đơn giá lấy từ SX Settings khi chốt ngày.</div>
-    <div class="sx-vh-actions">
-      <button type="button" class="sx-btn" id="sx-ac-all">Tất cả ăn ca</button>
-      <button type="button" class="sx-btn" id="sx-ac-none">Bỏ hết</button>
-    </div>
-    <table class="sx-table"><tbody id="sx-ac-rows"></tbody></table>
-    <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-ac-ok">LƯU</button>
-  `;
-  const body = m.body.querySelector('#sx-ac-rows');
-
-  function ve() {
-    body.innerHTML = nhanVien.map((nv) => {
-      const t = tamThoi[nv.name];
-      // Ghi bằng SỐ SUẤT (D44): bấm = +1 suất, vòng về 0 sau khi quá 2; bấm giữ mở
-      // bàn số để nhập thẳng. Hầu hết là 1 suất nên bấm một cái là xong.
-      const o = (f, nhan) => `<td><button type="button"
-        class="sx-ac-tog${t[f] ? ' sx-ac-on' : ''}" data-nv="${esc(nv.name)}" data-f="${f}"
-        aria-label="${nhan} của ${esc(tenNgan[nv.name] || nv.name)}: ${t[f]} suất"
-        >${nhan} ${t[f] || 0}</button></td>`;
-      return `<tr>
-        <td>${esc(tenNgan[nv.name] || nv.employee_name || nv.name)}</td>
-        ${o('an_ca', 'Ca')}${o('an_dem', 'Đêm')}
-      </tr>`;
-    }).join('');
-    body.querySelectorAll('.sx-ac-tog').forEach((b) => {
-      const t = () => tamThoi[b.dataset.nv];
-      const f = b.dataset.f;
-      b.addEventListener('click', () => {
-        t()[f] = (Number(t()[f]) || 0) >= 2 ? 0 : (Number(t()[f]) || 0) + 1;
-        ve();
-      });
-      // Bấm giữ -> nhập thẳng số suất (hiếm, nhưng phải có đường vào)
-      let giu = null;
-      const batDau = () => {
-        giu = setTimeout(() => {
-          giu = null;
-          openNumpad({
-            kicker: f === 'an_ca' ? 'Số suất ăn ca' : 'Số suất ăn đêm',
-            title: tenNgan[b.dataset.nv] || b.dataset.nv,
-            unitLabel: 'Số suất', initial: t()[f],
-            onOk: (v) => { t()[f] = Math.max(0, Math.round(v)); ve(); },
-          });
-        }, 500);
-      };
-      const huy = () => { if (giu) { clearTimeout(giu); giu = null; } };
-      b.addEventListener('pointerdown', batDau);
-      ['pointerup', 'pointerleave', 'pointercancel'].forEach((e) => b.addEventListener(e, huy));
-    });
-  }
-  ve();
-
-  m.body.querySelector('#sx-ac-all').addEventListener('click', () => {
-    nhanVien.forEach((nv) => { tamThoi[nv.name].an_ca = 1; });   // 1 suất/người
-    ve();
-  });
-  m.body.querySelector('#sx-ac-none').addEventListener('click', () => {
-    nhanVien.forEach((nv) => { tamThoi[nv.name] = { an_ca: 0, an_dem: 0 }; });
-    ve();
-  });
-  m.body.querySelector('#sx-ac-ok').addEventListener('click', async () => {
-    Object.keys(anCa).forEach((k) => delete anCa[k]);
-    Object.entries(tamThoi).forEach(([nv, v]) => {
-      if (v.an_ca || v.an_dem) anCa[nv] = v;
-    });
-    m.close();
-    await save();
-  });
 }

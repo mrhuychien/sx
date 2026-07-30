@@ -67,18 +67,21 @@ function veLo(lo) {
           : ''}
       </div>`;
   }).join('');
+  // Lô nào CÒN việc phải làm ở xưởng thì mở sẵn; lô đã vào kho hết thì gập lại —
+  // mở sẵn cái không còn việc chỉ tổ đẩy lô đang chạy xuống dưới màn hình.
+  const con = lo.con_o_xuong > 0;
   return `
-    <div class="sx-lt-lo">
-      <div class="sx-lt-head">
+    <details class="sx-lt-lo"${con ? ' open' : ''}>
+      <summary class="sx-lt-head">
         <b class="sx-lt-ma">${esc(lo.lo_rang)}</b>
         <span class="sx-muted">${esc(lo.loai_dau)} · xuất ${esc(formatKg(lo.dau_kg))}
           · rang ${esc(lo.ngay_rang)}</span>
-        ${lo.con_o_xuong > 0
+        ${con
           ? `<span class="sx-lt-tag">còn ${esc(formatKg(lo.con_o_xuong))} ở xưởng</span>`
           : '<span class="sx-lt-tag sx-lt-xong">đã vào kho hết</span>'}
-      </div>
+      </summary>
       <div class="sx-lt-day">${o}</div>
-    </div>`;
+    </details>`;
 }
 
 // Hoàn tất công đoạn: mặc định LẤY HẾT tồn chặng trước; muốn làm một phần thì nhập số
