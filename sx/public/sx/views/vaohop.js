@@ -6,10 +6,12 @@ export async function render({ container, viewName, cards, mountCard, boot }) {
   container.innerHTML = '';
   const wrap = el('div', 'sx-view');
   container.appendChild(wrap);
+  // KHÔNG có tiêu đề trang: thanh ngày đã nói ngày, khối mực đầu thẻ đã nói
+  // "VÀO HỘP HÔM NAY". Thêm h1 nữa là lặp ba lần và ăn mất một dòng màn hình.
   const ngay = boot.ngay_sx;
-  wrap.appendChild(el('h1', 'sx-h1',
-    `Vào hộp${ngay ? ` — ${ngay.ngay}` : ''}`
-    + (ngay && ngay.docstatus === 1 ? ' <span class="sx-badge sx-badge-ok">Đã chốt</span>' : '')));
+  if (ngay && ngay.docstatus === 1) {
+    wrap.appendChild(el('div', 'sx-badge sx-badge-ok sx-tu-canh', 'Đã chốt'));
+  }
   for (const c of cards) {
     await mountCard(c, wrap);
   }

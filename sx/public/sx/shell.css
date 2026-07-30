@@ -1504,3 +1504,29 @@ body { background: var(--sx-bg) !important; }
   .sx-lt-mui::after, .sx-lb-mui::after { content: "→"; }
   .sx-lb-tp { flex: 0 0 148px; }
 }
+
+/* ═══════════ ĐIỆN THOẠI: THẺ CHẠM MÉP MÀN HÌNH (D47) ═══════════
+ *
+ * Trên điện thoại, .sx-main đệm 16px mỗi bên RỒI thẻ lại đệm 16px nữa -> mất 32px
+ * chiều ngang chỉ để lấy một viền và một góc bo mà không ai cần. Trên màn 375px đó
+ * là gần 9% bề ngang, đủ để tên công nhân bị cắt và số bị xuống dòng.
+ *
+ * Dưới 700px: bỏ đệm hai bên của .sx-main, thẻ bỏ viền trái/phải và góc bo -> chạy
+ * hết bề ngang. Đệm TRONG thẻ giữ nguyên vì chữ dính mép mới là khó đọc thật.
+ * Từ 700px trở lên giữ dạng thẻ rời có viền như cũ.
+ */
+@media (max-width: 699px) {
+  .sx-main { padding-left: 0; padding-right: 0; }
+  .sx-card, .sx-fold {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+  }
+  /* Thứ nằm NGOÀI thẻ vẫn phải thụt vào, không thì dính sát mép kính */
+  .sx-h1, .sx-boot-loading, .sx-view > .sx-badge { padding-left: var(--sx-s3); padding-right: var(--sx-s3); }
+  .sx-daybar { padding-left: var(--sx-s3); padding-right: var(--sx-s3); }
+  /* Khối mực đầu thẻ tràn hết bề ngang, bỏ luôn góc bo trên */
+  .sx-vh-top { border-radius: 0; }
+  .sx-view { gap: var(--sx-s3); }
+}
+.sx-tu-canh { align-self: flex-start; }
