@@ -41,7 +41,7 @@ function veNhanh(n) {
       </div>
       <div class="sx-lb-day">
         ${o}
-        <div class="sx-lb-mui">→</div>
+        <div class="sx-lb-mui" aria-hidden="true"></div>
         ${veTP(n.tp)}
       </div>
     </div>`;
@@ -51,7 +51,7 @@ function veChang(c, i) {
   const tong = Number(c.tong) || 0;
   const am = (c.items || []).some((it) => it.am);
   return `
-    ${i ? '<div class="sx-lb-mui">→</div>' : ''}
+    ${i ? '<div class="sx-lb-mui" aria-hidden="true"></div>' : ''}
     <div class="sx-lb-o${tong > 0 ? ' sx-lb-co' : ''}${am ? ' sx-lb-canhbao' : ''}">
       <div class="sx-lb-nhan">${esc(c.nhan)}${
         c.dung_chung ? '<span class="sx-lb-chung">chung</span>' : ''}</div>

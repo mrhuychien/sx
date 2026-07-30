@@ -57,7 +57,7 @@ function veLo(lo) {
     const con = Number(c.ton) || 0;
     const bat = cd && con > 0 && !c.thieu_item;
     return `
-      ${i ? '<div class="sx-lt-mui">→</div>' : ''}
+      ${i ? '<div class="sx-lt-mui" aria-hidden="true"></div>' : ''}
       <div class="sx-lt-o${con > 0 ? ' sx-lt-co' : ''}">
         <div class="sx-lt-nhan">${esc(c.nhan)}</div>
         <div class="sx-lt-ton">${c.thieu_item ? '—' : esc(formatKg(con))}</div>

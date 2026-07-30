@@ -1456,3 +1456,51 @@ body { background: var(--sx-bg) !important; }
   color: var(--sx-text-3);
   letter-spacing: .04em;
 }
+
+/* ═══════════ LƯU ĐỒ XẾP DỌC TRÊN ĐIỆN THOẠI (D46) ═══════════
+ *
+ * Trước đây các chặng xếp NGANG và cuộn ngang khi hẹp. Trên điện thoại việc đó hỏng
+ * hai đường: ô bị bóp còn ~140px nên số bị xuống dòng, và phần lớn chặng nằm ngoài
+ * màn hình — người dùng không biết là có, vì thanh cuộn ngang gần như vô hình.
+ * Xếp DỌC thì mọi chặng nhìn thấy hết, ô rộng bằng cả màn, số đọc thoải mái.
+ * Từ 700px trở lên (tablet) mới quay lại hàng ngang — ở đó nó vốn đọc tốt.
+ */
+.sx-lt-day, .sx-lb-day {
+  flex-direction: column;
+  align-items: stretch;
+  overflow-x: visible;
+  gap: 0;
+}
+.sx-lt-o, .sx-lb-o {
+  flex: 1 1 auto;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: var(--sx-s3);
+  flex-wrap: wrap;
+}
+/* Xếp dọc thì nhãn và số nằm CẠNH nhau, không chồng lên nhau — đỡ tốn chiều cao */
+.sx-lt-o .sx-lt-nhan, .sx-lb-o .sx-lb-nhan { flex: 1; min-width: 0; margin: 0; }
+.sx-lt-o .sx-lt-ton, .sx-lb-o .sx-lb-so { margin: 0; white-space: nowrap; }
+.sx-lt-o .sx-lt-btn { width: auto; flex: 0 0 auto; padding: 0 var(--sx-s4); }
+.sx-lb-o .sx-lb-ct { flex: 1 0 100%; }
+
+/* Mũi tên: xuống khi xếp dọc, sang phải khi xếp ngang */
+.sx-lt-mui, .sx-lb-mui { align-self: center; line-height: 1; padding: var(--sx-s1) 0; }
+.sx-lt-mui::after, .sx-lb-mui::after { content: "↓"; }
+
+@media (min-width: 700px) {
+  .sx-lt-day, .sx-lb-day {
+    flex-direction: row;
+    align-items: stretch;
+    overflow-x: auto;
+    gap: var(--sx-s1);
+  }
+  .sx-lt-o, .sx-lb-o { text-align: center; display: block; }
+  .sx-lt-o { flex: 1 0 140px; }
+  .sx-lb-o { flex: 1 0 172px; }
+  .sx-lt-o .sx-lt-ton, .sx-lb-o .sx-lb-so { margin: 2px 0 var(--sx-s2); }
+  .sx-lt-o .sx-lt-btn { width: 100%; padding: 0; }
+  .sx-lt-mui::after, .sx-lb-mui::after { content: "→"; }
+  .sx-lb-tp { flex: 0 0 148px; }
+}
