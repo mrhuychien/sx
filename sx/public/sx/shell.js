@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-25';
+const BUILD = 'sx-26';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -30,8 +30,8 @@ const CARD_PATHS = {
   chotngay: '/assets/sx/sx/cards/chotngay.js',
 };
 const VIEW_META = {
-  ghiso: { label: 'Ghi số', icon: '📝' },
-  vaohop: { label: 'Vào hộp', icon: '📦' },
+  ghiso: { label: 'Ghi số', icon: '📋' },
+  vaohop: { label: 'Ghi hộp', icon: '📦' },
   quanly: { label: 'Quản lý', icon: '📊' },
 };
 
@@ -129,10 +129,11 @@ function buildShell() {
   daybar.innerHTML = `
     <button type="button" class="sx-day-nav" id="sx-day-prev"
             aria-label="Ngày trước" title="Ngày trước">◀</button>
-    <div class="sx-day-mid">
-      <input type="date" class="sx-day-input" id="sx-day-input" aria-label="Chọn ngày xem">
+    <button type="button" class="sx-day-mid" id="sx-day-open" aria-label="Chọn ngày xem">
+      <span class="sx-day-ten" id="sx-day-ten">—</span>
       <span class="sx-day-tag" id="sx-day-tag"></span>
-    </div>
+      <input type="date" class="sx-day-input" id="sx-day-input" tabindex="-1" aria-hidden="true">
+    </button>
     <button type="button" class="sx-day-nav" id="sx-day-next"
             aria-label="Ngày sau" title="Ngày sau">▶</button>
     <button type="button" class="sx-day-today" id="sx-day-today">Hôm nay</button>
@@ -185,6 +186,12 @@ function buildShell() {
   daybar.querySelector('#sx-day-prev').addEventListener('click', () => doiNgay(dichNgay(-1)));
   daybar.querySelector('#sx-day-next').addEventListener('click', () => doiNgay(dichNgay(1)));
   daybar.querySelector('#sx-day-today').addEventListener('click', () => doiNgay(null));
+  // Bấm cả khối ngày để mở lịch — vùng chạm rộng hơn hẳn ô date bé tí
+  daybar.querySelector('#sx-day-open').addEventListener('click', (e) => {
+    if (e.target.id === 'sx-day-input') return;
+    const inp = daybar.querySelector('#sx-day-input');
+    if (inp.showPicker) inp.showPicker(); else inp.focus();
+  });
   return { main, nav, daybar };
 }
 
@@ -212,6 +219,15 @@ function paintDayBar() {
   if (input && b.ngay_xem) input.value = b.ngay_xem;
   if (!tag) return;
   const daChot = b.ngay_sx && b.ngay_sx.docstatus === 1;
+  // "Thứ 5, 30/07" — người ở xưởng nhớ THỨ, không nhớ ngày (bản thiết kế)
+  const tenNgay = daybar.querySelector('#sx-day-ten');
+  if (tenNgay && b.ngay_sx && b.ngay_sx.ngay) {
+    const [y, mo, d] = String(b.ngay_sx.ngay).split('-').map(Number);
+    const THU = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const dt = new Date(Date.UTC(y, mo - 1, d));
+    tenNgay.textContent = `${THU[dt.getUTCDay()]}, ${String(d).padStart(2, '0')}/${String(mo).padStart(2, '0')}`;
+  }
+
   // Số liệu từ bản lưu trên máy phải NÓI RA: có thể đã cũ so với server (D37)
   if (store.tuBoNho) {
     tag.textContent = '📴 số liệu lưu trên máy';

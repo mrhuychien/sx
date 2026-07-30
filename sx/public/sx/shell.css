@@ -1301,3 +1301,88 @@ body { background: var(--sx-bg) !important; }
   border-color: var(--sx-ink);
   color: var(--sx-on-ink);
 }
+
+/* ═══════════ MÀN GHI HỘP — bám sát bản render (D42) ═══════════ */
+
+/* Khối tổng = dải nền MỰC tràn ngang thẻ, không phải chữ trên nền sáng */
+.sx-vh-top {
+  background: var(--sx-ink);
+  color: var(--sx-on-ink);
+  border-radius: var(--sx-radius-lg);
+  padding: var(--sx-s4);
+  margin: calc(var(--sx-s4) * -1) calc(var(--sx-s4) * -1) 0;
+  border-radius: var(--sx-radius-lg) var(--sx-radius-lg) 0 0;
+}
+.sx-vh-top .sx-field-label { color: var(--sx-text-3); }
+.sx-vh-top .sx-vh-tong i { color: var(--sx-on-ink); font-weight: 700; }
+.sx-vh-tien { color: var(--sx-accent-2); }
+.sx-vh-done-so i { color: var(--sx-text-3); }
+
+/* Thẻ công nhân: LƯỚI 2 CỘT, tên trên — số dưới */
+.sx-nv-luoi { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sx-s2); }
+@media (min-width: 700px) { .sx-nv-luoi { grid-template-columns: repeat(3, 1fr); } }
+.sx-nv-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--sx-s1);
+  width: 100%;
+  min-height: 76px;
+  margin: 0;
+  padding: var(--sx-s3);
+}
+.sx-nv-ten { font-size: var(--sx-f-md); font-weight: 700; line-height: 1.2; }
+.sx-nv-qty { white-space: normal; }
+
+/* Ô tìm có kính lúp, và nút xem hết viền đứt */
+.sx-vh-tim-wrap { position: relative; }
+.sx-vh-tim-icon {
+  position: absolute;
+  left: var(--sx-s3);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--sx-f-lg);
+  color: var(--sx-text-3);
+  pointer-events: none;
+}
+.sx-vh-search { padding-left: calc(var(--sx-s5) + var(--sx-s3)); }
+.sx-vh-xemhet {
+  width: 100%;
+  min-height: var(--sx-tap-lg);
+  border: 1px dashed var(--sx-line-2);
+  border-radius: var(--sx-radius);
+  background: transparent;
+  color: var(--sx-text-2);
+  font-family: var(--sx-font);
+  font-size: var(--sx-f-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Thanh ngày: THỨ + ngày đậm, trạng thái mono bên dưới (D42) */
+.sx-day-mid {
+  position: relative;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: var(--sx-s1) var(--sx-s2);
+}
+.sx-day-ten {
+  display: block;
+  font-size: var(--sx-f-md);
+  font-weight: 700;
+  letter-spacing: -.2px;
+  color: var(--sx-text);
+}
+.sx-day-mid .sx-day-tag { display: block; margin-top: 2px; }
+/* Ô date thật nằm chồng, trong suốt — bấm đâu trong khối cũng mở được lịch */
+.sx-day-mid .sx-day-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}

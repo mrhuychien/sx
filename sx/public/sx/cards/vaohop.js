@@ -38,7 +38,7 @@ export async function render({ container, boot, call, ensureNgay }) {
   container.innerHTML = `
     <div class="sx-vh-top">
       <div>
-        <div class="sx-field-label">Vào hộp ${esc(nhanNgay(boot))}</div>
+        <div class="sx-field-label">Vào hộp hôm nay</div>
         <div class="sx-vh-tong"><span id="sx-vh-tonghop">0</span> <i>sp</i></div>
         <div class="sx-vh-tien" id="sx-vh-tongtien"></div>
       </div>
@@ -53,8 +53,13 @@ export async function render({ container, boot, call, ensureNgay }) {
     ${daChot ? '' : `
       <div class="sx-field-label">Hay nhập — bấm tên để chấm</div>
       <div id="sx-vh-nv"></div>
-      <input class="sx-textarea sx-vh-search" id="sx-vh-tim" type="search"
-             aria-label="Tìm công nhân" placeholder="Tìm trong ${nhanVien.length} công nhân">
+      <div class="sx-vh-tim-wrap">
+        <span class="sx-vh-tim-icon" aria-hidden="true">⌕</span>
+        <input class="sx-textarea sx-vh-search" id="sx-vh-tim" type="search"
+               aria-label="Tìm công nhân" placeholder="Tìm trong ${nhanVien.length} công nhân">
+      </div>
+      <button type="button" class="sx-vh-xemhet" id="sx-vh-xemhet"
+        >Xem hết ${nhanVien.length} công nhân</button>
     `}
     <div class="sx-field-label">Bản ghi hôm nay</div>
     <div class="sx-vh-list" id="sx-vh-rows"></div>
@@ -66,6 +71,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     </div>
   `;
   let timKiem = '';
+  let xemHet = false;
   const tbody = container.querySelector('#sx-vh-rows');
   const footer = container.querySelector('#sx-vh-footer');
   const anBox = container.querySelector('#sx-vh-an');
@@ -239,30 +245,45 @@ export async function render({ container, boot, call, ensureNgay }) {
     const khop = (nv) => !loc
       || (tenNgan[nv.name] || '').toLowerCase().includes(loc)
       || (nv.employee_name || '').toLowerCase().includes(loc);
-    const ds = nhanVien.filter(khop)
+    const sapXep = nhanVien.filter(khop)
       .sort((a, b) => (daNhap[a.name] ? 1 : 0) - (daNhap[b.name] ? 1 : 0));
+    // Mặc định chỉ 8 người "hay nhập" — 43 thẻ đổ ra màn hình thì không ai đọc.
+    // Gõ tìm hoặc bấm "Xem hết" thì hiện toàn bộ.
+    const ds = (loc || xemHet) ? sapXep : sapXep.slice(0, 8);
 
-    nvGrid.innerHTML = ds.length ? ds.map((nv) => {
+    const veThe = (nv) => {
       const q = daNhap[nv.name] || 0;
       const nLoai = soLoai[nv.name] ? soLoai[nv.name].size : 0;
       const an = anCa[nv.name] || {};
       const nhanAn = [an.an_ca ? 'ăn ca' : '', an.an_dem ? 'ăn đêm' : ''].filter(Boolean).join(' + ');
       return `<button type="button" class="sx-nv-row${q ? ' sx-nv-row-xong' : ''}"
           data-nv="${esc(nv.name)}" title="${esc(nv.employee_name || nv.name)}">
-        <span class="sx-nv-who">
-          <span class="sx-nv-ten">${esc(tenNgan[nv.name])}</span>
-          ${nhanAn ? `<span class="sx-field-label sx-nv-an">${esc(nhanAn)}</span>` : ''}
-        </span>
+        <span class="sx-nv-ten">${esc(tenNgan[nv.name])}</span>
         <span class="sx-nv-qty">${q
           ? `${formatNumber(q)} sp${nLoai > 1 ? ` · ${nLoai} loại` : ''}`
-          : 'chưa nhập'}</span>
+          : 'chưa nhập'}${nhanAn ? ` · ${esc(nhanAn)}` : ''}</span>
       </button>`;
-    }).join('') : '<div class="sx-muted">Không tìm thấy ai khớp.</div>';
+    };
+
+    nvGrid.innerHTML = ds.length
+      ? `<div class="sx-nv-luoi">${ds.map(veThe).join('')}</div>`
+      : '<div class="sx-muted">Không tìm thấy ai khớp.</div>';
 
     nvGrid.querySelectorAll('.sx-nv-row').forEach((b) => {
       const nv = nhanVien.find((x) => x.name === b.dataset.nv);
       b.addEventListener('click',
         () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa));
+    });
+  }
+
+  const btnHet = container.querySelector('#sx-vh-xemhet');
+  if (btnHet) {
+    btnHet.addEventListener('click', () => {
+      xemHet = !xemHet;
+      btnHet.textContent = xemHet
+        ? 'Thu gọn — chỉ hiện người hay nhập'
+        : `Xem hết ${nhanVien.length} công nhân`;
+      veNV();
     });
   }
 
