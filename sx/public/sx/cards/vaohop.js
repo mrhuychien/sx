@@ -27,22 +27,45 @@ export async function render({ container, boot, call, ensureNgay }) {
   const tenNgan = {};
   nhanVien.forEach((nv) => { tenNgan[nv.name] = nv.ten_hien_thi || nv.employee_name || nv.name; });
 
+  // Bố cục theo bản thiết kế "Xưởng SX - App (1a)" (D40):
+  //   [tổng hôm nay + lương SP]        [đã nhập N/43]
+  //   [dải SKU: mỗi loại một ô, cuộn ngang]
+  //   HAY NHẬP — BẤM TÊN ĐỂ CHẤM
+  //   [hàng công nhân: tên + ăn ca bên trái · số hộp bên phải]
+  //   [ô tìm 43 công nhân] → hiện nốt người còn lại
+  //   BẢN GHI HÔM NAY  [tên · loại | SL | ✎ | ✕] … [Tổng]
+  //   [Copy sản lượng gửi nhóm]
   container.innerHTML = `
-    <div class="sx-field-label">Bảng vào hộp ${nhanNgay(boot)} ${daChot ? '(đã chốt — chỉ xem)' : '(bấm tên công nhân)'}</div>
+    <div class="sx-vh-top">
+      <div>
+        <div class="sx-field-label">Vào hộp ${esc(nhanNgay(boot))}</div>
+        <div class="sx-vh-tong"><span id="sx-vh-tonghop">0</span> <i>sp</i></div>
+        <div class="sx-vh-tien" id="sx-vh-tongtien"></div>
+      </div>
+      <div class="sx-vh-done">
+        <div class="sx-field-label">Đã nhập</div>
+        <div class="sx-vh-done-so"><span id="sx-vh-donecount">0</span><i>/${nhanVien.length}</i></div>
+      </div>
+    </div>
     ${boot.canh_bao_nhan_vien ? `<div class="sx-warn-text">⚠ ${esc(boot.canh_bao_nhan_vien)}</div>` : ''}
-    ${daChot ? '<div class="sx-muted">Muốn sửa: bấm HUỶ CHỐT NGÀY ở thẻ Chốt ngày, sửa xong chốt lại.</div>' : ''}
-    ${daChot ? '' : '<div class="sx-nv-grid" id="sx-vh-nv"></div>'}
-    <table class="sx-table">
-      <thead><tr><th>Công nhân</th><th>Loại công việc</th><th>SL</th><th>Tiền</th>${daChot ? '' : '<th></th>'}</tr></thead>
-      <tbody id="sx-vh-rows"></tbody>
-    </table>
+    ${daChot ? '<div class="sx-muted">Đã chốt — chỉ xem. Muốn sửa: bấm HUỶ CHỐT NGÀY bên thẻ Chốt ngày.</div>' : ''}
+    <div class="sx-vh-strip" id="sx-vh-strip"></div>
+    ${daChot ? '' : `
+      <div class="sx-field-label">Hay nhập — bấm tên để chấm</div>
+      <div id="sx-vh-nv"></div>
+      <input class="sx-textarea sx-vh-search" id="sx-vh-tim" type="search"
+             aria-label="Tìm công nhân" placeholder="Tìm trong ${nhanVien.length} công nhân">
+    `}
+    <div class="sx-field-label">Bản ghi hôm nay</div>
+    <div class="sx-vh-list" id="sx-vh-rows"></div>
     <div class="sx-vh-footer" id="sx-vh-footer"></div>
     <div class="sx-vh-footer" id="sx-vh-an"></div>
     <div class="sx-vh-actions">
-      ${daChot ? '' : '<button type="button" class="sx-btn" id="sx-vh-anca">🍚 Chấm ăn ca / ăn đêm</button>'}
-      <button type="button" class="sx-btn" id="sx-vh-copy">📋 Copy sản lượng gửi nhóm</button>
+      ${daChot ? '' : '<button type="button" class="sx-btn" id="sx-vh-anca">Chấm ăn ca / ăn đêm</button>'}
+      <button type="button" class="sx-btn" id="sx-vh-copy">Copy sản lượng gửi nhóm</button>
     </div>
   `;
+  let timKiem = '';
   const tbody = container.querySelector('#sx-vh-rows');
   const footer = container.querySelector('#sx-vh-footer');
   const anBox = container.querySelector('#sx-vh-an');
@@ -67,36 +90,60 @@ export async function render({ container, boot, call, ensureNgay }) {
   function paint() { veBang(); veNV(); }
 
   function veBang() {
-    const nhom = theoNguoi();
+    // Danh sách bản ghi: TÊN + loại bên trái, SỐ bên phải, rồi ✎ và ✕.
+    // Bảng 3 cột trên tablet dọc bị bóp chữ; danh sách đọc lướt được theo chiều dọc.
     let html = '';
-    nhom.forEach((g) => {
-      g.dong.forEach((r, k) => {
-        html += `<tr>
-          <td>${k === 0 ? `<b>${esc(g.ten)}</b>` : ''}</td>
-          <td>${esc(r.activity_type || '—')}${r.san_pham ? `<div class="sx-muted">${esc(tenSP(r.san_pham))}</div>` : ''}</td>
-          <td><button type="button" class="sx-vh-sl" data-i="${r._i}"${daChot ? ' disabled' : ''}>${esc(formatNumber(r.so_hop))}</button></td>
-          <td>${esc(r.thanh_tien != null ? formatVND(r.thanh_tien) : '…')}</td>
-          ${daChot ? '' : `<td><button type="button" class="sx-cell-btn sx-cell-del" data-i="${r._i}">✕</button></td>`}
-        </tr>`;
+    theoNguoi().forEach((g) => {
+      g.dong.forEach((r) => {
+        html += `<div class="sx-vh-row">
+          <div class="sx-vh-who">
+            <div class="sx-vh-name">${esc(g.ten)}</div>
+            <div class="sx-vh-meta">${esc(r.activity_type || '—')}${
+              r.san_pham ? ` · ${esc(tenSP(r.san_pham))}` : ''}${
+              r.thanh_tien != null ? ` · ${esc(formatVND(r.thanh_tien))}` : ''}</div>
+          </div>
+          <button type="button" class="sx-vh-sl" data-i="${r._i}"${daChot ? ' disabled' : ''}
+            >${esc(formatNumber(r.so_hop))}</button>
+          ${daChot ? '' : `<button type="button" class="sx-vh-del" data-i="${r._i}"
+            aria-label="Xoá dòng ${esc(g.ten)}">✕</button>`}
+        </div>`;
       });
-      if (g.dong.length > 1) {
-        const tien = g.dong.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
-        html += `<tr class="sx-vh-nguoi"><td></td><td>Cộng ${esc(g.ten)}</td>
-          <td>${esc(formatNumber(g.dong.reduce((a, r) => a + (Number(r.so_hop) || 0), 0)))}</td>
-          <td>${esc(formatVND(tien))}</td>${daChot ? '' : '<td></td>'}</tr>`;
-      }
     });
-    tbody.innerHTML = html || `<tr><td colspan="5" class="sx-muted">Chưa có dòng nào.</td></tr>`;
+    tbody.innerHTML = html || '<div class="sx-muted">Chưa có bản ghi nào.</div>';
+
     const tongHop = rows.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
-    footer.innerHTML = `Tổng: <b>${formatNumber(tongHop)}</b> sản phẩm · <b>${esc(formatVND(tongTien))}</b>`;
+    const soNguoi = new Set(rows.map((r) => r.nhan_vien)).size;
+    container.querySelector('#sx-vh-tonghop').textContent = formatNumber(tongHop);
+    container.querySelector('#sx-vh-tongtien').textContent =
+      tongTien ? `${formatVND(tongTien)} lương SP` : '';
+    container.querySelector('#sx-vh-donecount').textContent = soNguoi;
+    footer.innerHTML = `<span class="sx-field-label">Tổng</span>
+      <span>${formatNumber(tongHop)} sp · ${esc(formatVND(tongTien))}</span>`;
+
+    // Dải SKU: mỗi loại công việc một ô, cuộn ngang — nhìn ra ngay hôm nay chạy loại gì
+    const theoAct = {};
+    rows.forEach((r) => {
+      const k = r.activity_type || '—';
+      theoAct[k] = (theoAct[k] || 0) + (Number(r.so_hop) || 0);
+    });
+    const strip = container.querySelector('#sx-vh-strip');
+    const dsAct = Object.entries(theoAct).sort((a, b) => b[1] - a[1]);
+    strip.innerHTML = dsAct.length
+      ? dsAct.map(([k, v]) => `<div class="sx-vh-sku">
+          <div class="sx-field-label">${esc(k)}</div>
+          <div class="sx-vh-sku-so">${formatNumber(v)}</div></div>`).join('')
+      : '';
+    strip.style.display = dsAct.length ? '' : 'none';
+
     const soCa = Object.values(anCa).filter((x) => x.an_ca).length;
     const soDem = Object.values(anCa).filter((x) => x.an_dem).length;
     anBox.innerHTML = (soCa || soDem)
-      ? `Ăn ca: <b>${soCa}</b> người · Ăn đêm: <b>${soDem}</b> người`
+      ? `<span class="sx-field-label">Ăn ca</span> <span>${soCa} người · đêm ${soDem}</span>`
       : '<span class="sx-muted">Chưa chấm ăn ca / ăn đêm.</span>';
+
     if (!daChot) {
-      tbody.querySelectorAll('.sx-cell-del').forEach((btn) => {
+      tbody.querySelectorAll('.sx-vh-del').forEach((btn) => {
         btn.addEventListener('click', async () => { rows.splice(Number(btn.dataset.i), 1); await save(); });
       });
       tbody.querySelectorAll('.sx-vh-sl').forEach((btn) => {
@@ -179,40 +226,48 @@ export async function render({ container, boot, call, ensureNgay }) {
       return;
     }
     const daNhap = {};
+    const soLoai = {};
     rows.forEach((r) => {
       daNhap[r.nhan_vien] = (daNhap[r.nhan_vien] || 0) + (Number(r.so_hop) || 0);
+      (soLoai[r.nhan_vien] = soLoai[r.nhan_vien] || new Set()).add(r.activity_type);
     });
-    const chua = nhanVien.filter((nv) => !daNhap[nv.name]);
-    const roi = nhanVien.filter((nv) => daNhap[nv.name]);
 
-    nvGrid.innerHTML = '';
-    const them = (ds, xong) => {
-      const luoi = el('div', xong ? 'sx-nv-grid sx-nv-grid-xong' : 'sx-nv-grid');
-      ds.forEach((nv) => {
-        const btn = el('button', xong ? 'sx-nv-card sx-nv-xong' : 'sx-nv-card');
-        btn.type = 'button';
-        btn.title = nv.employee_name || nv.name;   // tên đầy đủ khi cần đối chiếu
-        btn.innerHTML = xong
-          ? `${esc(tenNgan[nv.name])}<span class="sx-nv-so">${daNhap[nv.name]}</span>`
-          : esc(tenNgan[nv.name]);
-        btn.addEventListener('click',
-          () => themDong(nv, activities, actGanDay, rows, save, tenNgan));
-        luoi.appendChild(btn);
-      });
-      nvGrid.appendChild(luoi);
-    };
+    // Chưa nhập lên trước: câu hỏi duy nhất trong đầu QC khi đi dọc chuyền là
+    // "còn ai chưa hỏi". Không tìm gì thì chỉ hiện người chưa nhập + người đã nhập.
+    const loc = timKiem.trim().toLowerCase();
+    const khop = (nv) => !loc
+      || (tenNgan[nv.name] || '').toLowerCase().includes(loc)
+      || (nv.employee_name || '').toLowerCase().includes(loc);
+    const ds = nhanVien.filter(khop)
+      .sort((a, b) => (daNhap[a.name] ? 1 : 0) - (daNhap[b.name] ? 1 : 0));
 
-    if (chua.length) {
-      nvGrid.appendChild(el('div', 'sx-field-label', `Chưa nhập — còn ${chua.length} người`));
-      them(chua, false);
-    } else {
-      nvGrid.appendChild(el('div', 'sx-nv-het', '✓ Đã hỏi hết cả chuyền'));
-    }
-    if (roi.length) {
-      nvGrid.appendChild(
-        el('div', 'sx-field-label', `Đã nhập — ${roi.length} người (bấm để ghi thêm)`));
-      them(roi, true);
-    }
+    nvGrid.innerHTML = ds.length ? ds.map((nv) => {
+      const q = daNhap[nv.name] || 0;
+      const nLoai = soLoai[nv.name] ? soLoai[nv.name].size : 0;
+      const an = anCa[nv.name] || {};
+      const nhanAn = [an.an_ca ? 'ăn ca' : '', an.an_dem ? 'ăn đêm' : ''].filter(Boolean).join(' + ');
+      return `<button type="button" class="sx-nv-row${q ? ' sx-nv-row-xong' : ''}"
+          data-nv="${esc(nv.name)}" title="${esc(nv.employee_name || nv.name)}">
+        <span class="sx-nv-who">
+          <span class="sx-nv-ten">${esc(tenNgan[nv.name])}</span>
+          ${nhanAn ? `<span class="sx-field-label sx-nv-an">${esc(nhanAn)}</span>` : ''}
+        </span>
+        <span class="sx-nv-qty">${q
+          ? `${formatNumber(q)} sp${nLoai > 1 ? ` · ${nLoai} loại` : ''}`
+          : 'chưa nhập'}</span>
+      </button>`;
+    }).join('') : '<div class="sx-muted">Không tìm thấy ai khớp.</div>';
+
+    nvGrid.querySelectorAll('.sx-nv-row').forEach((b) => {
+      const nv = nhanVien.find((x) => x.name === b.dataset.nv);
+      b.addEventListener('click',
+        () => themDong(nv, activities, actGanDay, rows, save, tenNgan));
+    });
+  }
+
+  const oTim = container.querySelector('#sx-vh-tim');
+  if (oTim) {
+    oTim.addEventListener('input', (e) => { timKiem = e.target.value; veNV(); });
   }
 
   if (!daChot && !activities.length) {

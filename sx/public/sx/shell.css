@@ -1146,3 +1146,131 @@ body { background: var(--sx-bg) !important; }
 /* Phím phụ (C / xoá) lún xuống để không tranh chấp với phím số */
 .sx-np-key-phu { background: var(--sx-surface-2); }
 .sx-np-key-xoa { color: var(--sx-primary-text); }
+
+/* ═══════════ MÀN VÀO HỘP theo bản thiết kế (D40) ═══════════ */
+
+/* Khối tổng đầu màn: trái = sản lượng + lương, phải = đã hỏi bao nhiêu người */
+.sx-vh-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sx-s4);
+  flex-wrap: wrap;
+}
+.sx-vh-tong {
+  font-family: var(--sx-mono);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--sx-s1);
+}
+.sx-vh-tong i { font-style: normal; font-size: var(--sx-f-sm); color: var(--sx-text-3); }
+.sx-vh-tien {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-xs);
+  color: var(--sx-primary-text);
+  font-weight: 600;
+}
+.sx-vh-done { text-align: right; }
+.sx-vh-done-so {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-top: var(--sx-s1);
+}
+.sx-vh-done-so i { font-style: normal; color: var(--sx-text-3); font-size: var(--sx-f-sm); }
+
+/* Dải loại công việc — cuộn NGANG trong dải, thân trang không cuộn ngang */
+.sx-vh-strip {
+  display: flex;
+  gap: var(--sx-s2);
+  overflow-x: auto;
+  padding-bottom: var(--sx-s1);
+}
+.sx-vh-sku {
+  flex: 0 0 auto;
+  min-width: 96px;
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius);
+  padding: var(--sx-s2) var(--sx-s3);
+  background: var(--sx-surface);
+}
+.sx-vh-sku-so {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+/* Hàng công nhân: tên + ăn ca bên trái, số bên phải. Người đã nhập tô nền mực. */
+.sx-nv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sx-s3);
+  width: 100%;
+  min-height: var(--sx-tap-lg);
+  padding: var(--sx-s2) var(--sx-s3);
+  margin-bottom: var(--sx-s1);
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius);
+  background: var(--sx-surface);
+  color: var(--sx-text);
+  text-align: left;
+  cursor: pointer;
+}
+.sx-nv-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sx-nv-ten { font-size: var(--sx-f-md); font-weight: 700; }
+.sx-nv-an { color: var(--sx-primary-text); }
+.sx-nv-qty {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-sm);
+  font-weight: 600;
+  color: var(--sx-text-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sx-nv-row-xong { background: var(--sx-ink); border-color: var(--sx-ink); color: var(--sx-on-ink); }
+.sx-nv-row-xong .sx-nv-qty { color: var(--sx-accent-2); }
+.sx-nv-row-xong .sx-nv-an { color: var(--sx-accent-2); }
+.sx-vh-search { margin-top: var(--sx-s2); }
+
+/* Bản ghi hôm nay — danh sách, không phải bảng 3 cột */
+.sx-vh-list { display: flex; flex-direction: column; }
+.sx-vh-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sx-s3);
+  padding: var(--sx-s2) 0;
+  border-bottom: 1px solid var(--sx-line);
+}
+.sx-vh-row:last-child { border-bottom: 0; }
+.sx-vh-who { flex: 1; min-width: 0; }
+.sx-vh-name { font-size: var(--sx-f-sm); font-weight: 700; }
+.sx-vh-meta {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-xs);
+  color: var(--sx-text-3);
+}
+.sx-vh-del {
+  min-width: var(--sx-tap);
+  min-height: var(--sx-tap);
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius);
+  background: var(--sx-surface);
+  color: var(--sx-danger);
+  font-size: var(--sx-f-sm);
+  cursor: pointer;
+}
+.sx-vh-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sx-s3);
+  font-family: var(--sx-mono);
+  font-weight: 700;
+  text-align: left;
+}
