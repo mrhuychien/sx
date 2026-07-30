@@ -880,3 +880,38 @@ body { background: var(--sx-bg) !important; }
   font-size: var(--sx-f-sm);
   font-weight: 700;
 }
+/* ══════════════════ HÀNG CHỜ GỬI OFFLINE (D37) ══════════════════ */
+/* Không bao giờ im lặng: QC phải biết số mình gõ đã lên server hay còn trên máy */
+.sx-queue-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sx-s3);
+  flex-wrap: wrap;
+  background: var(--sx-warning-soft);
+  color: var(--sx-warning);
+  border-bottom: 1px solid var(--sx-warning);
+  padding: var(--sx-s2) var(--sx-s4);
+  font-size: var(--sx-f-sm);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1150;
+}
+.sx-queue-loi {
+  background: var(--sx-danger-soft);
+  color: var(--sx-danger);
+  border-bottom-color: var(--sx-danger);
+}
+.sx-queue-btn {
+  min-height: var(--sx-tap);
+  padding: 0 var(--sx-s4);
+  border: 1px solid currentColor;
+  border-radius: var(--sx-radius);
+  background: var(--sx-surface);
+  color: inherit;
+  font-size: var(--sx-f-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+.sx-queue-btn:disabled { opacity: .5; }

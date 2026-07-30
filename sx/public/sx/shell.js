@@ -1,12 +1,12 @@
 // Shell portal /sx (v3) — hash router, nav theo views, view lắp từ CARDS.
 // Card-based: view render bằng mountCard(name) → dynamic import card (withV).
 
-import { call, onOffline } from '/assets/sx/sx/lib/api.js';
+import { call, guiHangCho, onOffline, onQueue } from '/assets/sx/sx/lib/api.js';
 import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-20';
+const BUILD = 'sx-21';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -38,11 +38,45 @@ const VIEW_META = {
 const views = (CTX.views && CTX.views.length) ? CTX.views : ['ghiso'];
 const landing = CTX.landing || views[0];
 
+// Bản boot lưu trên máy (D37): danh mục công nhân / loại công việc / item đổi rất ít,
+// nên mất mạng vẫn dựng được form để nhập. Có mạng thì luôn lấy bản tươi.
+const BOOT_KEY = 'sx-boot-v1';
+
+function luuBoot(ngay, boot) {
+  try {
+    localStorage.setItem(BOOT_KEY, JSON.stringify({ ngay: ngay || null, boot, luc: Date.now() }));
+  } catch (e) { /* hết chỗ -> bỏ qua, chỉ mất tiện nghi offline */ }
+}
+
+function docBoot(ngay) {
+  try {
+    const d = JSON.parse(localStorage.getItem(BOOT_KEY) || 'null');
+    if (!d || !d.boot) return null;
+    // Chỉ dùng lại khi ĐÚNG ngày đang xem: số liệu của ngày khác là số sai, thà
+    // báo không tải được còn hơn cho QC nhìn số của hôm qua mà tưởng hôm nay.
+    if ((d.ngay || null) !== (ngay || null)) return null;
+    return d.boot;
+  } catch (e) {
+    return null;
+  }
+}
+
 const store = {
   boot: null,
   ngayXem: null,   // null = hôm nay (D25)
+  tuBoNho: false,  // boot đang là bản lưu trên máy?
   async refresh() {
-    this.boot = await call('sx.api.portal.get_boot', this.ngayXem ? { ngay: this.ngayXem } : {});
+    const ngay = this.ngayXem;
+    try {
+      this.boot = await call('sx.api.portal.get_boot', ngay ? { ngay } : {});
+      this.tuBoNho = false;
+      luuBoot(this.boot.ngay_xem || null, this.boot);
+    } catch (e) {
+      const cu = e.mat_mang ? docBoot(ngay) : null;
+      if (!cu) throw e;
+      this.boot = cu;
+      this.tuBoNho = true;
+    }
     this.ngayXem = this.boot.ngay_xem || null;
     return this.boot;
   },
@@ -109,11 +143,38 @@ function buildShell() {
     btn.innerHTML = `<span class="sx-nav-icon">${meta.icon}</span><span>${meta.label}</span>`;
     nav.appendChild(btn);
   });
+  // Thanh hàng chờ: luôn nói rõ còn bao nhiêu thao tác chưa gửi được (D37).
+  // Im lặng ở đây là tệ nhất — QC phải biết số mình gõ đã lên server chưa.
+  const hang = el('div', 'sx-queue-banner');
+  hang.setAttribute('role', 'status');
+  hang.style.display = 'none';
+
   app.appendChild(banner);
+  app.appendChild(hang);
   app.appendChild(daybar);
   app.appendChild(main);
   app.appendChild(nav);
   onOffline((isOff) => { banner.style.display = isOff ? '' : 'none'; });
+
+  onQueue((tt) => {
+    if (!tt.so_luong) { hang.style.display = 'none'; return; }
+    hang.style.display = '';
+    hang.classList.toggle('sx-queue-loi', tt.loi > 0);
+    hang.innerHTML = `
+      <span>${tt.loi
+        ? `⚠ ${tt.loi} thao tác server TỪ CHỐI, ${tt.so_luong - tt.loi} đang chờ gửi`
+        : `💾 ${tt.so_luong} thao tác đã lưu trên máy, đang chờ có mạng`}</span>
+      <button type="button" class="sx-queue-btn" id="sx-queue-go">GỬI LẠI</button>`;
+    hang.querySelector('#sx-queue-go').addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      const kq = await guiHangCho();
+      if (kq.da_gui) { store.boot = null; router.go(router.currentRoute()); }
+      e.currentTarget.disabled = false;
+    });
+  });
+
+  // Mở app là thử gửi lại ngay — QC mở lại tab sau khi về vùng có wifi
+  guiHangCho();
 
   daybar.querySelector('#sx-day-input').addEventListener('change', (e) => {
     if (e.target.value) doiNgay(e.target.value);
@@ -148,7 +209,11 @@ function paintDayBar() {
   if (input && b.ngay_xem) input.value = b.ngay_xem;
   if (!tag) return;
   const daChot = b.ngay_sx && b.ngay_sx.docstatus === 1;
-  if (daChot) { tag.textContent = '🔒 đã chốt'; tag.className = 'sx-day-tag sx-day-chot'; }
+  // Số liệu từ bản lưu trên máy phải NÓI RA: có thể đã cũ so với server (D37)
+  if (store.tuBoNho) {
+    tag.textContent = '📴 số liệu lưu trên máy';
+    tag.className = 'sx-day-tag sx-day-cu';
+  } else if (daChot) { tag.textContent = '🔒 đã chốt'; tag.className = 'sx-day-tag sx-day-chot'; }
   else if (b.la_hom_nay) { tag.textContent = ''; tag.className = 'sx-day-tag'; }
   else { tag.textContent = '✎ ngày cũ'; tag.className = 'sx-day-tag sx-day-cu'; }
 }
