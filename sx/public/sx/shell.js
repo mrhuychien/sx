@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-21';
+const BUILD = 'sx-22';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -125,14 +125,17 @@ function buildShell() {
   banner.style.display = 'none';
   const main = el('main', 'sx-main');
   const daybar = el('div', 'sx-daybar');
+  // Bố cục theo bản thiết kế: nút ◀ ▶ hai đầu, ô ngày + trạng thái xếp giữa
   daybar.innerHTML = `
     <button type="button" class="sx-day-nav" id="sx-day-prev"
             aria-label="Ngày trước" title="Ngày trước">◀</button>
-    <input type="date" class="sx-day-input" id="sx-day-input" aria-label="Chọn ngày xem">
+    <div class="sx-day-mid">
+      <input type="date" class="sx-day-input" id="sx-day-input" aria-label="Chọn ngày xem">
+      <span class="sx-day-tag" id="sx-day-tag"></span>
+    </div>
     <button type="button" class="sx-day-nav" id="sx-day-next"
             aria-label="Ngày sau" title="Ngày sau">▶</button>
     <button type="button" class="sx-day-today" id="sx-day-today">Hôm nay</button>
-    <span class="sx-day-tag" id="sx-day-tag"></span>
   `;
   const nav = el('nav', 'sx-bottom-nav');
   views.forEach((v) => {
