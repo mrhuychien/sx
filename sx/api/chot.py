@@ -414,20 +414,33 @@ def _dong_ngay(phieu, ngay):
     return phieu.append(SALARY_CHILD, {"ngay": ngay})
 
 
-def _ghi_an(dong, fieldname, co_an, so_tien):
-    """Ghi 1 ô ăn ca / ăn đêm theo ĐÚNG kiểu field bên app lương (D30).
+def _ghi_an(dong, fieldname, so_suat, so_tien):
+    """Ghi 1 ô ăn ca / ăn đêm theo ĐÚNG kiểu field bên app lương (D30, D44).
 
-    Check  -> đánh dấu 1/0, tiền do bên lương tự quy đổi (không cộng vào thu nhập).
-    Số     -> ghi số tiền lấy từ SX Settings, và CÓ cộng vào thunhapngay.
+    `so_suat` là SỐ SUẤT trong ngày (0 = không ăn). Từ D44 QC ghi được nhiều suất,
+    nên tiền = số suất × đơn giá, không còn là "có/không × đơn giá".
+
+    Check  -> chỉ giữ được 0/1: đánh dấu 1 khi có ăn, tiền do bên lương tự quy đổi.
+              Ghi nhiều suất vào ô Check là mất thông tin -> cảnh báo để người làm
+              lương biết mà nới field bên đó.
+    Số     -> ghi THÀNH TIỀN (suất × đơn giá) và CÓ cộng vào thunhapngay.
     Trả phần tiền đã ghi (0 nếu là ô đánh dấu / không có field).
     """
+    n = cint(so_suat)
     df = frappe.get_meta(_salary_child_dt()).get_field(fieldname)
     if not df:
         return 0.0
     if df.fieldtype == "Check":
-        dong.set(fieldname, 1 if co_an else 0)
+        if n > 1:
+            frappe.msgprint(
+                _("Ô {0} bên phiếu lương là ô ĐÁNH DẤU nên chỉ ghi được 'có ăn', "
+                  "không ghi được {1} suất. Nhờ bên lương đổi field sang kiểu số.")
+                .format(fieldname, n),
+                indicator="orange", alert=True,
+            )
+        dong.set(fieldname, 1 if n else 0)
         return 0.0
-    tien = flt(so_tien) if co_an else 0.0
+    tien = flt(so_tien) * n
     dong.set(fieldname, tien)
     return tien
 

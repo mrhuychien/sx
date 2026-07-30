@@ -27,15 +27,19 @@
   },
   {
    "fieldname": "an_ca",
-   "fieldtype": "Check",
-   "label": "Ăn ca",
-   "in_list_view": 1
+   "fieldtype": "Int",
+   "label": "Suất ăn ca",
+   "in_list_view": 1,
+   "non_negative": 1,
+   "description": "Số suất trong ngày (0 = không ăn). Nới từ Check sang Int — giá trị 0/1 cũ vẫn đúng."
   },
   {
    "fieldname": "an_dem",
-   "fieldtype": "Check",
-   "label": "Ăn đêm",
-   "in_list_view": 1
+   "fieldtype": "Int",
+   "label": "Suất ăn đêm",
+   "in_list_view": 1,
+   "non_negative": 1,
+   "description": "Số suất trong ngày (0 = không ăn). Nới từ Check sang Int — giá trị 0/1 cũ vẫn đúng."
   }
  ],
  "istable": 1,

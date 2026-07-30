@@ -4,7 +4,7 @@
 // Đơn giá luôn do server tính lại từ Activity Type.
 
 import { esc, el } from '/assets/sx/sx/lib/dom.js';
-import { formatNumber, formatVND, nhanNgay } from '/assets/sx/sx/lib/format.js';
+import { formatNumber, nhanNgay } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal } from '/assets/sx/sx/components/modal.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
@@ -144,10 +144,10 @@ export async function render({ container, boot, call, ensureNgay }) {
       : '';
     strip.style.display = dsAct.length ? '' : 'none';
 
-    const soCa = Object.values(anCa).filter((x) => x.an_ca).length;
-    const soDem = Object.values(anCa).filter((x) => x.an_dem).length;
-    anBox.innerHTML = (soCa || soDem)
-      ? `<span class="sx-field-label">Ăn ca</span> <span>${soCa} người · đêm ${soDem}</span>`
+    const suatCa = Object.values(anCa).reduce((a, x) => a + (Number(x.an_ca) || 0), 0);
+    const suatDem = Object.values(anCa).reduce((a, x) => a + (Number(x.an_dem) || 0), 0);
+    anBox.innerHTML = (suatCa || suatDem)
+      ? `<span class="sx-field-label">Suất ăn</span> <span>ca ${suatCa} · đêm ${suatDem}</span>`
       : '<span class="sx-muted">Chưa chấm ăn ca / ăn đêm.</span>';
 
     if (!daChot) {
@@ -262,7 +262,9 @@ export async function render({ container, boot, call, ensureNgay }) {
       const q = daNhap[nv.name] || 0;
       const nLoai = soLoai[nv.name] ? soLoai[nv.name].size : 0;
       const an = anCa[nv.name] || {};
-      const nhanAn = [an.an_ca ? 'ăn ca' : '', an.an_dem ? 'ăn đêm' : ''].filter(Boolean).join(' + ');
+      const suat = (n, ten) => (n ? (n > 1 ? `${ten} ×${n}` : ten) : '');
+      const nhanAn = [suat(Number(an.an_ca) || 0, 'ăn ca'),
+                      suat(Number(an.an_dem) || 0, 'ăn đêm')].filter(Boolean).join(' + ');
       return `<button type="button" class="sx-nv-row${q ? ' sx-nv-row-xong' : ''}"
           data-nv="${esc(nv.name)}" title="${esc(nv.employee_name || nv.name)}">
         <span class="sx-nv-ten">${esc(tenNgan[nv.name])}</span>
@@ -321,10 +323,11 @@ export async function render({ container, boot, call, ensureNgay }) {
 function nutAnCa(nv, anCa, save) {
   if (!anCa) return null;
   const cur = () => (anCa[nv.name] = anCa[nv.name] || { an_ca: 0, an_dem: 0 });
+  const nhan = (ten, n) => (n > 1 ? `${ten} ×${n}` : ten);
   return [
-    { label: 'Ăn ca', on: !!cur().an_ca,
+    { label: nhan('Ăn ca', Number(cur().an_ca) || 0), on: !!cur().an_ca,
       onToggle: (v) => { cur().an_ca = v; save(); } },
-    { label: 'Ăn đêm', on: !!cur().an_dem,
+    { label: nhan('Ăn đêm', Number(cur().an_dem) || 0), on: !!cur().an_dem,
       onToggle: (v) => { cur().an_dem = v; save(); } },
   ];
 }
@@ -457,10 +460,9 @@ function openAnCa(nhanVien, tenNgan, anCa, boot, save) {
     tamThoi[nv.name] = { an_ca: cu.an_ca || 0, an_dem: cu.an_dem || 0 };
   });
 
-  const gia = (n) => (n ? ` (${formatVND(n)})` : '');
   m.body.innerHTML = `
-    <div class="sx-muted">Ăn ca${gia(boot.tien_an_ca)} · Ăn đêm${gia(boot.tien_an_dem)}
-      — đơn giá lấy từ SX Settings.</div>
+    <div class="sx-muted">Bấm ô để cộng 1 suất; bấm giữ nguyên số để nhập thẳng.
+      Đơn giá lấy từ SX Settings khi chốt ngày.</div>
     <div class="sx-vh-actions">
       <button type="button" class="sx-btn" id="sx-ac-all">Tất cả ăn ca</button>
       <button type="button" class="sx-btn" id="sx-ac-none">Bỏ hết</button>
@@ -473,26 +475,46 @@ function openAnCa(nhanVien, tenNgan, anCa, boot, save) {
   function ve() {
     body.innerHTML = nhanVien.map((nv) => {
       const t = tamThoi[nv.name];
+      // Ghi bằng SỐ SUẤT (D44): bấm = +1 suất, vòng về 0 sau khi quá 2; bấm giữ mở
+      // bàn số để nhập thẳng. Hầu hết là 1 suất nên bấm một cái là xong.
+      const o = (f, nhan) => `<td><button type="button"
+        class="sx-ac-tog${t[f] ? ' sx-ac-on' : ''}" data-nv="${esc(nv.name)}" data-f="${f}"
+        aria-label="${nhan} của ${esc(tenNgan[nv.name] || nv.name)}: ${t[f]} suất"
+        >${nhan} ${t[f] || 0}</button></td>`;
       return `<tr>
         <td>${esc(tenNgan[nv.name] || nv.employee_name || nv.name)}</td>
-        <td><button type="button" class="sx-ac-tog${t.an_ca ? ' sx-ac-on' : ''}"
-          data-nv="${esc(nv.name)}" data-f="an_ca">Ca</button></td>
-        <td><button type="button" class="sx-ac-tog${t.an_dem ? ' sx-ac-on' : ''}"
-          data-nv="${esc(nv.name)}" data-f="an_dem">Đêm</button></td>
+        ${o('an_ca', 'Ca')}${o('an_dem', 'Đêm')}
       </tr>`;
     }).join('');
     body.querySelectorAll('.sx-ac-tog').forEach((b) => {
+      const t = () => tamThoi[b.dataset.nv];
+      const f = b.dataset.f;
       b.addEventListener('click', () => {
-        const t = tamThoi[b.dataset.nv];
-        t[b.dataset.f] = t[b.dataset.f] ? 0 : 1;
-        b.classList.toggle('sx-ac-on', !!t[b.dataset.f]);
+        t()[f] = (Number(t()[f]) || 0) >= 2 ? 0 : (Number(t()[f]) || 0) + 1;
+        ve();
       });
+      // Bấm giữ -> nhập thẳng số suất (hiếm, nhưng phải có đường vào)
+      let giu = null;
+      const batDau = () => {
+        giu = setTimeout(() => {
+          giu = null;
+          openNumpad({
+            kicker: f === 'an_ca' ? 'Số suất ăn ca' : 'Số suất ăn đêm',
+            title: tenNgan[b.dataset.nv] || b.dataset.nv,
+            unitLabel: 'Số suất', initial: t()[f],
+            onOk: (v) => { t()[f] = Math.max(0, Math.round(v)); ve(); },
+          });
+        }, 500);
+      };
+      const huy = () => { if (giu) { clearTimeout(giu); giu = null; } };
+      b.addEventListener('pointerdown', batDau);
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach((e) => b.addEventListener(e, huy));
     });
   }
   ve();
 
   m.body.querySelector('#sx-ac-all').addEventListener('click', () => {
-    nhanVien.forEach((nv) => { tamThoi[nv.name].an_ca = 1; });
+    nhanVien.forEach((nv) => { tamThoi[nv.name].an_ca = 1; });   // 1 suất/người
     ve();
   });
   m.body.querySelector('#sx-ac-none').addEventListener('click', () => {
