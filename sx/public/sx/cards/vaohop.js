@@ -162,6 +162,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       kicker: `Sửa · ${r.activity_type || ''}`,
       title: tenNV(r),
       unitLabel: 'Số lượng',
+      titleActions: nutAnCa({ name: r.nhan_vien }, anCa, save),
       initial: r.so_hop,
       hint: (n) => (r.don_gia ? `${formatVND(n * Number(r.don_gia))}` : ''),
       onOk: async (v) => {
@@ -261,7 +262,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     nvGrid.querySelectorAll('.sx-nv-row').forEach((b) => {
       const nv = nhanVien.find((x) => x.name === b.dataset.nv);
       b.addEventListener('click',
-        () => themDong(nv, activities, actGanDay, rows, save, tenNgan));
+        () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa));
     });
   }
 
@@ -279,22 +280,44 @@ export async function render({ container, boot, call, ensureNgay }) {
   paint();
 }
 
-function themDong(nv, activities, actGanDay, rows, save, tenNgan) {
+/** Hai nút bật/tắt ăn ca · ăn đêm gắn cạnh TÊN trong bàn số (D41).
+ *
+ * Chấm ăn là việc của cùng một lần chạm vào người đó: QC đang hỏi "hôm nay chị làm
+ * bao nhiêu" thì hỏi luôn "có ăn ca không". Bắt đi hai vòng chuyền cho hai việc là
+ * cách chắc chắn để lần thứ hai bị quên. Thẻ riêng vẫn giữ cho thao tác HÀNG LOẠT
+ * (tất cả ăn ca / bỏ hết).
+ *
+ * Lưu NGAY khi bấm, không đợi bấm LƯU của bàn số: người dùng có thể bấm ✕ đóng bàn
+ * số mà vẫn muốn giữ phần chấm ăn vừa bật.
+ */
+function nutAnCa(nv, anCa, save) {
+  if (!anCa) return null;
+  const cur = () => (anCa[nv.name] = anCa[nv.name] || { an_ca: 0, an_dem: 0 });
+  return [
+    { label: 'Ăn ca', on: !!cur().an_ca,
+      onToggle: (v) => { cur().an_ca = v; save(); } },
+    { label: 'Ăn đêm', on: !!cur().an_dem,
+      onToggle: (v) => { cur().an_dem = v; save(); } },
+  ];
+}
+
+function themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa) {
   const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
   openActivityPicker(ten, activities, actGanDay, (act) => {
     // Loại có nhiều SKU -> hỏi thêm SKU nào (cần cho lệnh SX tầng 3).
     // 1 SKU tự gán, 0 SKU thì để trống -> chỉ tính lương khoán.
-    const tiep = (sanPham) => nhapSoLuong(nv, ten, act, sanPham, rows, save);
+    const tiep = (sanPham) => nhapSoLuong(nv, ten, act, sanPham, rows, save, anCa);
     if (act.sku && act.sku.length > 1) openSkuPicker(ten, act, tiep);
     else tiep(act.sku && act.sku.length === 1 ? act.sku[0].name : null);
   });
 }
 
-function nhapSoLuong(nv, ten, act, sanPham, rows, save) {
+function nhapSoLuong(nv, ten, act, sanPham, rows, save, anCa) {
   openNumpad({
     kicker: act.name,
     title: ten,
     unitLabel: 'Số lượng',
+    titleActions: nutAnCa(nv, anCa, save),
     hint: (n) => (act.don_gia ? `${formatVND(n * Number(act.don_gia))}` : ''),
     onOk: async (v) => {
       const sl = Math.round(v);

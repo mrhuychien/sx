@@ -25,6 +25,7 @@ export function openNumpad({
   allowDecimal = false,
   unit = '',
   unitLabel = '',      // nhãn mono trong ô mực; bỏ trống thì suy từ `unit`
+  titleActions = null, // [{ label, on, onToggle }] — nút bật/tắt NGAY CẠNH tên
   chips = null,        // [{ label, value, on }] — hàng chọn loại phía trên ô số
   onChip = null,       // (value) => nhãn đơn vị mới (hoặc không trả gì)
   hint = null,         // (soNhap) => string — dòng phụ bên phải ô mực (vd tiền)
@@ -32,6 +33,19 @@ export function openNumpad({
   onOk,
 }) {
   const m = openModal({ title, kicker });
+  (titleActions || []).forEach((a) => {
+    const b = el('button', `sx-title-tog${a.on ? ' sx-title-tog-on' : ''}`);
+    b.type = 'button';
+    b.textContent = a.label;
+    b.setAttribute('aria-pressed', a.on ? 'true' : 'false');
+    b.addEventListener('click', () => {
+      const bat = !b.classList.contains('sx-title-tog-on');
+      b.classList.toggle('sx-title-tog-on', bat);
+      b.setAttribute('aria-pressed', bat ? 'true' : 'false');
+      if (a.onToggle) a.onToggle(bat ? 1 : 0);
+    });
+    m.titleRow.appendChild(b);
+  });
   let value = String(initial === 0 || initial == null ? '' : initial);
   let nhanDonVi = unitLabel || unit || 'SỐ';
 

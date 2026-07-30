@@ -1274,3 +1274,30 @@ body { background: var(--sx-bg) !important; }
   font-weight: 700;
   text-align: left;
 }
+
+/* Nút bật/tắt cạnh TÊN trong bàn số — chấm ăn ca / ăn đêm ngay lúc chấm sản lượng (D41) */
+.sx-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sx-s2);
+  flex-wrap: wrap;
+}
+.sx-title-tog {
+  min-height: 40px;
+  padding: 0 var(--sx-s3);
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius);
+  background: var(--sx-surface);
+  color: var(--sx-text-3);
+  font-family: var(--sx-font);
+  font-size: var(--sx-f-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+/* Đang bật: tô nền mực — cùng ngôn ngữ với chip loại và thẻ công nhân đã nhập */
+.sx-title-tog-on {
+  background: var(--sx-ink);
+  border-color: var(--sx-ink);
+  color: var(--sx-on-ink);
+}

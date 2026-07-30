@@ -18,7 +18,12 @@ export function openModal({ title = '', kicker = '', onClose = null } = {}) {
   }
   const titleNode = el('div', 'sx-modal-title');
   titleNode.textContent = title;
-  titleWrap.appendChild(titleNode);
+  // Hàng tiêu đề có thể mang thêm nút phụ NGAY CẠNH tên (vd chấm ăn ca / ăn đêm):
+  // chấm ăn là việc của cùng một lần chạm vào người đó, tách ra màn khác là bắt QC
+  // đi hai vòng chuyền cho hai việc.
+  const titleRow = el('div', 'sx-modal-title-row');
+  titleRow.appendChild(titleNode);
+  titleWrap.appendChild(titleRow);
   const closeBtn = el('button', 'sx-modal-close', '&times;');
   closeBtn.type = 'button';
   head.appendChild(titleWrap);
@@ -35,7 +40,7 @@ export function openModal({ title = '', kicker = '', onClose = null } = {}) {
   }
   closeBtn.addEventListener('click', close);
   overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-  return { body, close, sheet };
+  return { body, close, sheet, titleRow };
 }
 
 export function confirm2Step({ title, message, confirmLabel, onConfirm }) {
