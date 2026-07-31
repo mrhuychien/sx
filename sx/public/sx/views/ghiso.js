@@ -20,39 +20,22 @@ export async function render({ container, viewName, cards, mountCard, boot }) {
   const wrap = el('div', 'sx-view');
   container.appendChild(wrap);
   const ngay = boot.ngay_sx;
-  wrap.appendChild(el('h1', 'sx-h1', 'Ghi số — chu trình ngày'
+  wrap.appendChild(el('h1', 'sx-h1', 'Ghi số'
     + (ngay && ngay.docstatus === 1 ? ' <span class="sx-badge sx-badge-ok">Đã chốt</span>' : '')));
 
-  // CHU TRÌNH NGÀY dạng stepper dọc (bản thiết kế): số thứ tự trong vòng tròn, nối
-  // bằng vạch dọc. Ghi số là việc theo TRÌNH TỰ trong ngày, không phải 4 thẻ rời —
-  // stepper nói ra thứ tự đó, và nhìn là biết đang ở bước nào.
-  const chuTrinh = el('div', 'sx-pipe');
-  wrap.appendChild(chuTrinh);
-
-  for (let i = 0; i < cards.length; i++) {
-    const c = cards[i];
-    const buoc = el('div', 'sx-pipe-buoc');
-    const cot = el('div', 'sx-pipe-cot');
-    const so = el('div', 'sx-pipe-so', String(i + 1));
-    cot.appendChild(so);
-    if (i < cards.length - 1) cot.appendChild(el('div', 'sx-pipe-vach'));
-    buoc.appendChild(cot);
-
-    const than = el('div', 'sx-pipe-than');
-    buoc.appendChild(than);
-    chuTrinh.appendChild(buoc);
-
+  for (const c of cards) {
     if (!GAP[c]) {
-      await mountCard(c, than);          // việc chính: mở sẵn
+      await mountCard(c, wrap);        // việc chính: mở sẵn
       continue;
     }
+    // <details> gốc: gập/mở không cần JS, bàn phím và trình đọc màn hình hiểu sẵn
     const fold = el('details', 'sx-fold');
     const sum = el('summary', 'sx-fold-head');
     sum.textContent = GAP[c];
     fold.appendChild(sum);
     const slot = el('div', 'sx-fold-body');
     fold.appendChild(slot);
-    than.appendChild(fold);
+    wrap.appendChild(fold);
     await mountCard(c, slot);
   }
 }

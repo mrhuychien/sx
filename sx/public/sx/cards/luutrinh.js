@@ -67,11 +67,11 @@ function veLo(lo) {
           : ''}
       </div>`;
   }).join('');
-  // Lô nào CÒN việc phải làm ở xưởng thì mở sẵn; lô đã vào kho hết thì gập lại —
-  // mở sẵn cái không còn việc chỉ tổ đẩy lô đang chạy xuống dưới màn hình.
+  // GẬP HẾT, bấm mới xổ — cùng kiểu với Báo mẻ / Báo cán. Dòng đầu đã nói đủ để
+  // quyết định có mở hay không: mã lô, loại đỗ, và còn bao nhiêu kg ở xưởng.
   const con = lo.con_o_xuong > 0;
   return `
-    <details class="sx-lt-lo"${con ? ' open' : ''}>
+    <details class="sx-lt-lo">
       <summary class="sx-lt-head">
         <b class="sx-lt-ma">${esc(lo.lo_rang)}</b>
         <span class="sx-muted">${esc(lo.loai_dau)} · xuất ${esc(formatKg(lo.dau_kg))}
