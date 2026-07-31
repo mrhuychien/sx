@@ -122,7 +122,7 @@ export async function render({ container, ctx, call, cards, mountCard }) {
         <div class="sx-card sx-kpi"><div class="sx-kpi-label">SKU đã đóng</div>
           <div class="sx-kpi-value">${(d.san_luong_sku || []).length}</div></div>
       </div>
-      <div class="sx-card"><div class="sx-field-label">Sản lượng theo ngày (sản phẩm)</div>
+      <div class="sx-card sx-ql-rong"><div class="sx-field-label">Sản lượng theo ngày (sản phẩm)</div>
         <div class="sx-cot" id="sx-ql-cot"></div></div>
       <div class="sx-card"><div class="sx-field-label">Sản lượng theo SKU</div>
         <table class="sx-table"><thead><tr><th>SKU</th><th>Hộp</th></tr></thead>

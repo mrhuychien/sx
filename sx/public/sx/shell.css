@@ -1521,3 +1521,45 @@ body { background: var(--sx-bg) !important; }
 }
 .sx-lt-lo[open] > summary::after { transform: rotate(90deg); }
 .sx-lt-lo[open] > summary { border-bottom: 1px solid var(--sx-line); margin-bottom: var(--sx-s2); }
+
+/* ═══════════ MÀN QUẢN LÝ TRÊN MÁY TÍNH (D50) ═══════════
+ *
+ * Ghi hộp / Ghi số dùng trên tablet cầm tay -> giữ dải hẹp 900px, dòng ngắn dễ đọc.
+ * Quản lý thì ngược lại: mở trên máy tính để ĐỌC và so sánh, mà dải 900px giữa màn
+ * 1920px làm bảng bị bóp, biểu đồ thấp tè, còn hai bên bỏ trống hai phần ba màn hình.
+ * Phải cuộn rất nhiều mới thấy hết 6 khối — đúng thứ cần nhìn cùng lúc.
+ */
+@media (min-width: 1100px) {
+  .sx-main-rong { max-width: 1360px; }
+
+  /* Dashboard chia 2 cột; khối nào cần nhìn TOÀN CẢNH thì chiếm cả hàng */
+  .sx-main-rong #sx-ql-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sx-s4);
+    align-items: start;
+  }
+  .sx-main-rong #sx-ql-body > .sx-error-box,
+  .sx-main-rong #sx-ql-body > .sx-ok-box,
+  .sx-main-rong #sx-ql-body > .sx-kpi-grid { grid-column: 1 / -1; }
+
+  /* Biểu đồ cột được cả hàng và cao hơn — đây là thứ quản lý nhìn đầu tiên.
+     Đánh dấu bằng class tường minh, KHÔNG dùng :has() (chưa chắc có trên mọi máy). */
+  .sx-main-rong #sx-ql-body > .sx-ql-rong { grid-column: 1 / -1; }
+  .sx-main-rong .sx-cot { height: 280px; }
+
+  /* Thẻ trong lưới không co giãn theo nhau -> tự cao theo nội dung */
+  .sx-main-rong #sx-ql-body > .sx-card { margin: 0; }
+
+  /* Truy xuất lô: ô nhập rộng ra thay vì dài bằng cả màn */
+  .sx-main-rong .sx-tx-row .sx-textarea { max-width: 520px; }
+
+  /* Lưu đồ tồn BTP: có chỗ thì mỗi chặng rộng hơn, đọc được cả tên item dài */
+  .sx-main-rong .sx-lb-o { flex: 1 0 200px; }
+}
+
+/* Rất rộng: 3 cột cho phần bảng, biểu đồ + KPI vẫn cả hàng */
+@media (min-width: 1600px) {
+  .sx-main-rong { max-width: 1600px; }
+  .sx-main-rong #sx-ql-body { grid-template-columns: repeat(3, 1fr); }
+}

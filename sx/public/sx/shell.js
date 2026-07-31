@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-33';
+const BUILD = 'sx-34';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -258,6 +258,9 @@ async function renderView(viewName, container) {
     router.go(`#/${landing}`);
     return;
   }
+  // Màn Quản lý là màn ĐỌC trên máy tính (không phải nhập liệu trên tablet) nên
+  // được nới rộng và chia 2 cột; hai màn kia giữ dải hẹp cho dễ đọc khi cầm tay.
+  container.classList.toggle('sx-main-rong', viewName === 'quanly');
   const mod = await import(withV(VIEW_PATHS[viewName]));
   const cards = (store.boot.viewCards && store.boot.viewCards[viewName]) || [];
   await mod.render({
