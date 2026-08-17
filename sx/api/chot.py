@@ -319,7 +319,10 @@ def _chot_tang_3(doc, bang, chung_tu):
         batch = tao_batch(sp, sinh_ma_lo(sp, doc.ngay), ngay_sx=doc.name)
         wo = tao_wo(
             settings.cong_ty, sp, so_hop, bom_sp,
-            source_wh=settings.kho_nvl, fg_wh=settings.kho_tp,
+            # TP vào KHO CHỜ NHẬN (khu đóng gói) nếu có cấu hình — thủ kho nhận
+            # vào Kho TP bằng phiếu riêng (D51). Chưa cấu hình thì vào Kho TP như cũ.
+            source_wh=settings.kho_nvl,
+            fg_wh=(settings.get("kho_tp_cho_nhan") or settings.kho_tp),
             ngay_sx=doc.name, planned_date=doc.ngay,
         )
         se = tao_se_manufacture(

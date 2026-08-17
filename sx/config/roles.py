@@ -18,8 +18,8 @@ SUPER_ROLES = {QUAN_LY, "System Manager", "Administrator"}
 # view nào role nào được vào
 ROLE_VIEWS = {
     GHI_SO: ["ghiso"],
-    VAO_HOP: ["vaohop"],
-    QUAN_LY: ["ghiso", "vaohop", "quanly"],
+    VAO_HOP: ["vaohop", "nhapkho"],
+    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "quanly"],
 }
 
 # view lắp từ những card nào (thứ tự hiển thị).
@@ -29,6 +29,7 @@ ROLE_VIEWS = {
 VIEW_CARDS = {
     "ghiso": ["luutrinh", "baome", "baocan", "suco"],
     "vaohop": ["vaohop", "suco"],
+    "nhapkho": ["nhapkhotp"],
     "quanly": ["chotngay", "luutrinhbtp"],
 }
 
@@ -43,6 +44,7 @@ CARD_ROLES = {
     "vaohop": [VAO_HOP],
     # D33: chốt ngày về tay QUẢN LÝ. QC#2 chỉ nhập bảng vào hộp; ai chốt sổ là người
     # khác — vừa gọn màn nhập liệu, vừa tách vai đúng §2.1 (người nhập ≠ người chốt).
+    "nhapkhotp": [VAO_HOP, QUAN_LY],   # thủ kho nhận TP (D51)
     "chotngay": [QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
@@ -60,7 +62,7 @@ def allowed_views(roles=None):
     """Danh sách view user được vào (super = tất cả), giữ thứ tự ổn định."""
     roles = roles or user_roles()
     if is_super(roles):
-        return ["ghiso", "vaohop", "quanly"]
+        return ["ghiso", "vaohop", "nhapkho", "quanly"]
     out = []
     for r in roles:
         for v in ROLE_VIEWS.get(r, []):

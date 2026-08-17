@@ -10,6 +10,7 @@
   "kho_btp",
   "kho_tp",
   "kho_xuong",
+  "kho_tp_cho_nhan",
   "section_vao_hop",
   "nguon_cong_khoan",
   "column_break_vh",
@@ -55,6 +56,13 @@
    "label": "Kho Xưởng sản xuất",
    "options": "Warehouse",
    "description": "Nơi giữ bán thành phẩm đang dở dang ngoài xưởng (đỗ ủ, đỗ vỡ). Bỏ trống thì dùng Kho BTP."
+  },
+  {
+   "fieldname": "kho_tp_cho_nhan",
+   "fieldtype": "Link",
+   "label": "Kho nhận TP từ tầng 3",
+   "options": "Warehouse",
+   "description": "Nơi TP nằm sau khi đóng hộp, TRƯỚC khi thủ kho nhận vào Kho TP. Bỏ trống thì dùng Kho Xưởng. Để bằng Kho TP thì bỏ hẳn bước nhận."
   },
   {
    "fieldname": "section_vao_hop",

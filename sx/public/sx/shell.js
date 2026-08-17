@@ -6,7 +6,7 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
-const BUILD = 'sx-34';
+const BUILD = 'sx-35';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -17,12 +17,14 @@ function withV(path) {
 const VIEW_PATHS = {
   ghiso: '/assets/sx/sx/views/ghiso.js',
   vaohop: '/assets/sx/sx/views/vaohop.js',
+  nhapkho: '/assets/sx/sx/views/nhapkho.js',
   quanly: '/assets/sx/sx/views/quanly.js',
 };
 const CARD_PATHS = {
   xuatdau: '/assets/sx/sx/cards/xuatdau.js',
   luutrinh: '/assets/sx/sx/cards/luutrinh.js',
   luutrinhbtp: '/assets/sx/sx/cards/luutrinhbtp.js',
+  nhapkhotp: '/assets/sx/sx/cards/nhapkhotp.js',
   baome: '/assets/sx/sx/cards/baome.js',
   baocan: '/assets/sx/sx/cards/baocan.js',
   suco: '/assets/sx/sx/cards/suco.js',
@@ -32,6 +34,7 @@ const CARD_PATHS = {
 const VIEW_META = {
   ghiso: { label: 'Ghi số', icon: '📋' },
   vaohop: { label: 'Ghi hộp', icon: '📦' },
+  nhapkho: { label: 'Nhập kho', icon: '🏭' },
   quanly: { label: 'Quản lý', icon: '📊' },
 };
 
