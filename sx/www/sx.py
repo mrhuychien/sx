@@ -7,7 +7,7 @@ import frappe
 from sx.config.roles import allowed_views, is_super, landing_view, view_cards
 
 # Build marker chống "shell cũ" (LUẬT VÀNG #2 — frappe-portal-spa)
-SHELL_BUILD = "sx-35"
+SHELL_BUILD = "sx-36"
 
 ALLOWED_ROLES = {"SX Ghi So", "SX Vao Hop", "SX Quan Ly", "System Manager", "Administrator"}
 

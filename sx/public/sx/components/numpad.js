@@ -33,36 +33,48 @@ export function openNumpad({
   onOk,
 }) {
   const m = openModal({ title, kicker });
-  // Nút cạnh tên = Ô ĐẾM, không phải bật/tắt: bấm +1 suất (0→1→2→0), bấm giữ mở
-  // bàn số để nhập thẳng. Ăn 2 suất là có thật nên phải nhập được số, nhưng 1 suất
-  // là phần lớn nên bấm một cái vẫn xong.
+  // Nút cạnh tên = Ô ĐẾM hai phần, KHÔNG phải bật/tắt:
+  //   [ Ăn ca 2 ][ 123 ]
+  //   ^ bấm +1 suất (0→1→2→0)   ^ bấm mở bàn số, nhập tay số suất bất kỳ
+  //
+  // Trước đây nhập tay phải BẤM GIỮ 500ms — không ai nhìn thấy chức năng đó, và
+  // giữ nhầm lúc cuộn màn hình thì tự mở bàn số. Giờ tách hẳn thành một ô riêng
+  // có chữ, thấy là bấm được (D52). Ăn 3 suất trở lên chỉ nhập tay mới ra được,
+  // nên phần lớn bấm một cái là xong mà trường hợp lạ vẫn ghi đúng.
   (titleActions || []).forEach((a) => {
+    const nhom = el('div', 'sx-title-dem');
+    nhom.setAttribute('role', 'group');
+    nhom.setAttribute('aria-label', a.label);
+
     const b = el('button', 'sx-title-tog');
     b.type = 'button';
+    const bNhap = el('button', 'sx-title-nhap');
+    bNhap.type = 'button';
+    bNhap.textContent = '123';
+
     let n = Number(a.value) || 0;
     const ve = () => {
       b.textContent = n > 0 ? `${a.label} ${n}` : a.label;
       b.classList.toggle('sx-title-tog-on', n > 0);
-      b.setAttribute('aria-label', `${a.label}: ${n} suất`);
+      nhom.classList.toggle('sx-title-dem-on', n > 0);
+      b.setAttribute('aria-label', `${a.label}: ${n} suất — bấm để cộng thêm`);
+      bNhap.setAttribute('aria-label', `Nhập tay số suất ${a.label.toLowerCase()}`);
     };
     ve();
     const dat = (v) => { n = Math.max(0, Math.round(v)); ve(); if (a.onChange) a.onChange(n); };
-    b.addEventListener('click', () => { if (!b._giuXong) dat(n >= 2 ? 0 : n + 1); });
-    let giu = null;
-    b.addEventListener('pointerdown', () => {
-      b._giuXong = false;
-      giu = setTimeout(() => {
-        giu = null;
-        b._giuXong = true;         // chặn click phát sinh ngay sau khi thả
-        openNumpad({
-          kicker: `Số suất ${a.label.toLowerCase()}`, title, unitLabel: 'Số suất',
-          initial: n, onOk: dat,
-        });
-      }, 500);
-    });
-    ['pointerup', 'pointerleave', 'pointercancel'].forEach((e) =>
-      b.addEventListener(e, () => { if (giu) { clearTimeout(giu); giu = null; } }));
-    m.titleRow.appendChild(b);
+
+    b.addEventListener('click', () => dat(n >= 2 ? 0 : n + 1));
+    bNhap.addEventListener('click', () => openNumpad({
+      kicker: `Số suất ${a.label.toLowerCase()}`,
+      title,
+      unitLabel: 'Số suất',
+      initial: n,
+      onOk: dat,
+    }));
+
+    nhom.appendChild(b);
+    nhom.appendChild(bNhap);
+    m.titleRow.appendChild(nhom);
   });
 
   let value = String(initial === 0 || initial == null ? '' : initial);

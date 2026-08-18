@@ -1275,18 +1275,36 @@ body { background: var(--sx-bg) !important; }
   text-align: left;
 }
 
-/* Nút bật/tắt cạnh TÊN trong bàn số — chấm ăn ca / ăn đêm ngay lúc chấm sản lượng (D41) */
+/* Ô ĐẾM cạnh TÊN trong bàn số — chấm ăn ca / ăn đêm ngay lúc chấm sản lượng (D41).
+   Hai ô dính nhau trong một khung: [ Ăn ca 2 ][ 123 ] — ô trái cộng suất, ô phải
+   mở bàn số nhập tay (D52). Viền chung để đọc ra là MỘT điều khiển, không phải
+   hai nút rời. */
 .sx-modal-title-row {
   display: flex;
   align-items: center;
   gap: var(--sx-s2);
   flex-wrap: wrap;
 }
-.sx-title-tog {
-  min-height: 40px;
-  padding: 0 var(--sx-s3);
+.sx-title-dem {
+  display: inline-flex;
+  align-items: stretch;
   border: 1px solid var(--sx-line);
   border-radius: var(--sx-radius);
+}
+/* Bo góc trên TỪNG ô chứ không overflow:hidden ở khung — vòng focus là box-shadow,
+   khung mà cắt overflow thì bàn phím tab đi qua không thấy ô nào đang được chọn. */
+.sx-title-dem > :first-child {
+  border-radius: calc(var(--sx-radius) - 1px) 0 0 calc(var(--sx-radius) - 1px);
+}
+.sx-title-dem > :last-child {
+  border-radius: 0 calc(var(--sx-radius) - 1px) calc(var(--sx-radius) - 1px) 0;
+}
+.sx-title-dem :focus-visible { position: relative; z-index: 1; }
+.sx-title-dem-on { border-color: var(--sx-ink); }
+.sx-title-tog,
+.sx-title-nhap {
+  min-height: 44px;
+  border: 0;
   background: var(--sx-surface);
   color: var(--sx-text-3);
   font-family: var(--sx-font);
@@ -1295,11 +1313,28 @@ body { background: var(--sx-bg) !important; }
   white-space: nowrap;
   cursor: pointer;
 }
+.sx-title-tog { padding: 0 var(--sx-s3); }
+/* Ô nhập tay: mono + rộng tối thiểu 44px cho vừa đầu ngón tay đeo găng */
+.sx-title-nhap {
+  min-width: 44px;
+  padding: 0 var(--sx-s2);
+  border-left: 1px solid var(--sx-line);
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-xs);
+  letter-spacing: .04em;
+  color: var(--sx-primary-text);
+  background: var(--sx-surface-2);
+}
 /* Đang bật: tô nền mực — cùng ngôn ngữ với chip loại và thẻ công nhân đã nhập */
 .sx-title-tog-on {
   background: var(--sx-ink);
   border-color: var(--sx-ink);
   color: var(--sx-on-ink);
+}
+.sx-title-dem-on .sx-title-nhap {
+  border-left-color: var(--sx-text-3);
+  background: var(--sx-ink);
+  color: var(--sx-accent-2);
 }
 
 /* ═══════════ MÀN GHI HỘP — bám sát bản render (D42) ═══════════ */
