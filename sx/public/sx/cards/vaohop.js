@@ -8,6 +8,7 @@ import { formatNumber, nhanNgay } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal } from '/assets/sx/sx/components/modal.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
+import { moQuet } from '/assets/sx/sx/components/quet.js';
 
 export async function render({ container, boot, call, ensureNgay }) {
   container.className = 'sx-card';
@@ -58,8 +59,12 @@ export async function render({ container, boot, call, ensureNgay }) {
         <input class="sx-textarea sx-vh-search" id="sx-vh-tim" type="search"
                aria-label="Tìm công nhân" placeholder="Tìm trong ${nhanVien.length} công nhân">
       </div>
-      <button type="button" class="sx-vh-xemhet" id="sx-vh-xemhet"
-        >Xem hết ${nhanVien.length} công nhân</button>
+      <div class="sx-vh-hang2">
+        <button type="button" class="sx-btn sx-quet-nut" id="sx-vh-quet"
+          >⌗ QUÉT THẺ</button>
+        <button type="button" class="sx-vh-xemhet" id="sx-vh-xemhet"
+          >Xem hết ${nhanVien.length} công nhân</button>
+      </div>
     `}
     <div class="sx-field-label">Bản ghi hôm nay</div>
     <div class="sx-vh-list" id="sx-vh-rows"></div>
@@ -67,6 +72,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     <div class="sx-vh-footer" id="sx-vh-an"></div>
     <div class="sx-vh-actions">
       <button type="button" class="sx-btn" id="sx-vh-copy">Copy sản lượng gửi nhóm</button>
+      <button type="button" class="sx-btn" id="sx-vh-inthe">In thẻ quét</button>
     </div>
   `;
   let timKiem = '';
@@ -160,7 +166,7 @@ export async function render({ container, boot, call, ensureNgay }) {
         const nv = nhanVien.find((x) => x.name === btn.dataset.nv)
           || { name: btn.dataset.nv };
         btn.addEventListener('click',
-          () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa));
+          () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa, boot));
       });
     }
   }
@@ -188,6 +194,19 @@ export async function render({ container, boot, call, ensureNgay }) {
 
   if (!daChot) {
   }
+
+  // Mở bằng blob thay vì điều hướng: giữ nguyên trang đang nhập liệu (QC hay bị
+  // ngắt quãng), và chạy được cả khi mất mạng vì HTML đã nằm trong tay client.
+  container.querySelector('#sx-vh-inthe').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    try {
+      const html = await call('sx.api.the.the_nhan_vien');
+      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      if (!window.open(url, '_blank')) toastErr('Trình duyệt chặn cửa sổ mới — cho phép pop-up rồi thử lại.');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err) { toastErr(err.message); }
+    e.target.disabled = false;
+  });
 
   container.querySelector('#sx-vh-copy').addEventListener('click', () => {
     copySanLuong(theoNguoi(), (boot.ngay_sx && boot.ngay_sx.ngay) || boot.ngay_xem);
@@ -282,7 +301,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     nvGrid.querySelectorAll('.sx-nv-row').forEach((b) => {
       const nv = nhanVien.find((x) => x.name === b.dataset.nv);
       b.addEventListener('click',
-        () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa));
+        () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa, boot));
     });
   }
 
@@ -295,6 +314,21 @@ export async function render({ container, boot, call, ensureNgay }) {
         : `Xem hết ${nhanVien.length} công nhân`;
       veNV();
     });
+  }
+
+  // Quét thẻ = đường TẮT tới đúng người, không thay đường bấm tay. Thẻ ướt, bẩn,
+  // quên ở nhà, người mới chưa có thẻ — bấm tay vẫn phải chạy.
+  const btnQuet = container.querySelector('#sx-vh-quet');
+  if (btnQuet) {
+    btnQuet.addEventListener('click', () => moQuet({
+      ma_quet: boot.ma_quet, loai: 'nv',
+      kicker: 'Ghi hộp', title: 'Quét thẻ công nhân',
+      onTim: (emp) => {
+        const nv = nhanVien.find((x) => x.name === emp);
+        if (!nv) { toastErr('Người này không thuộc nhóm công khoán hôm nay.'); return; }
+        themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa, boot);
+      },
+    }));
   }
 
   const oTim = container.querySelector('#sx-vh-tim');
@@ -332,15 +366,17 @@ function nutAnCa(nv, anCa, save) {
   ];
 }
 
-function themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa) {
+function themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa, boot) {
   const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
-  openActivityPicker(ten, activities, actGanDay, (act) => {
+  openActivityPicker(ten, activities, actGanDay, (act, skuQuet) => {
     // Loại có nhiều SKU -> hỏi thêm SKU nào (cần cho lệnh SX tầng 3).
     // 1 SKU tự gán, 0 SKU thì để trống -> chỉ tính lương khoán.
+    // QUÉT vỏ hộp thì đã biết chính xác SKU -> bỏ luôn bước hỏi.
     const tiep = (sanPham) => nhapSoLuong(nv, ten, act, sanPham, rows, save, anCa);
-    if (act.sku && act.sku.length > 1) openSkuPicker(ten, act, tiep);
+    if (skuQuet) tiep(skuQuet);
+    else if (act.sku && act.sku.length > 1) openSkuPicker(ten, act, tiep);
     else tiep(act.sku && act.sku.length === 1 ? act.sku[0].name : null);
-  });
+  }, boot);
 }
 
 function nhapSoLuong(nv, ten, act, sanPham, rows, save, anCa) {
@@ -361,13 +397,34 @@ function nhapSoLuong(nv, ten, act, sanPham, rows, save, anCa) {
   });
 }
 
-function openActivityPicker(ten, activities, actGanDay, onPick) {
-  const m = openModal({ title: `${ten} — chọn loại công việc` });
+function openActivityPicker(ten, activities, actGanDay, onPick, boot) {
+  const m = openModal({ kicker: 'Chọn loại công việc', title: ten });
   m.body.innerHTML = `
-    <input class="sx-textarea" id="sx-act-search" aria-label="Tìm loại công việc"
-      placeholder="Tìm loại công việc…" autocomplete="off">
+    <div class="sx-vh-hang2">
+      <input class="sx-textarea" id="sx-act-search" aria-label="Tìm loại công việc"
+        placeholder="Tìm loại công việc…" autocomplete="off">
+      <button type="button" class="sx-btn sx-quet-nut" id="sx-act-quet">⌗ QUÉT HỘP</button>
+    </div>
     <div id="sx-act-list"></div>
   `;
+  // Quét vỏ hộp -> ra SKU -> lọc còn đúng những loại công việc CÓ sản phẩm đó.
+  // Mã vạch nói "hộp gì", KHÔNG nói "vừa làm công đoạn nào" — cùng một hộp đi qua
+  // cán rồi vào hộp, hai đơn giá khoán khác nhau. Nên quét xong vẫn phải chọn
+  // công đoạn; chỉ khi lọc còn đúng một thì mới tự chọn hộ.
+  m.body.querySelector('#sx-act-quet').addEventListener('click', () => moQuet({
+    ma_quet: boot && boot.ma_quet, loai: 'sp',
+    kicker: ten, title: 'Quét mã vạch trên hộp',
+    onTim: (item) => {
+      const hop = activities.filter(
+        (a) => (a.sku || []).some((x) => x.name === item));
+      if (!hop.length) {
+        toastErr('Sản phẩm này chưa gắn với loại công việc khoán nào.');
+        return;
+      }
+      if (hop.length === 1) { m.close(); onPick(hop[0], item); return; }
+      veLoc(hop, item);
+    },
+  }));
   const list = m.body.querySelector('#sx-act-list');
   const search = m.body.querySelector('#sx-act-search');
   const byName = {};
@@ -398,6 +455,16 @@ function openActivityPicker(ten, activities, actGanDay, onPick) {
       b.addEventListener('click', () => { m.close(); onPick(byName[b.dataset.act]); });
     });
   }
+  // Sau khi quét: chỉ còn các loại công việc dùng SKU đó, và giữ SKU đã quét để
+  // khỏi hỏi lại ở bước sau.
+  function veLoc(hop, item) {
+    list.innerHTML = `<div class="sx-field-label">Đã quét — chọn công đoạn</div>`
+      + '<div class="sx-sp-grid">' + hop.map(chip).join('') + '</div>';
+    list.querySelectorAll('.sx-act-pick').forEach((b) => {
+      b.addEventListener('click', () => { m.close(); onPick(byName[b.dataset.act], item); });
+    });
+  }
+
   search.addEventListener('input', () => draw(search.value));
   draw('');
 }

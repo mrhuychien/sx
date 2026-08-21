@@ -12,8 +12,9 @@ import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 import { confirm2Step } from '/assets/sx/sx/components/modal.js';
+import { moQuet } from '/assets/sx/sx/components/quet.js';
 
-export async function render({ container, call, refresh }) {
+export async function render({ container, call, refresh, boot }) {
   container.className = 'sx-card';
   container.innerHTML = '<div class="sx-muted">Đang tải…</div>';
 
@@ -25,7 +26,7 @@ export async function render({ container, call, refresh }) {
     return;
   }
 
-  if (r.nhap) return vePhieu(container, r, call, refresh);
+  if (r.nhap) return vePhieu(container, r, call, refresh, boot);
   return veLapMoi(container, r, call, refresh);
 }
 
@@ -92,7 +93,7 @@ async function veLapMoi(container, r, call, refresh) {
 }
 
 // ─────────────────────────────── có phiếu nháp: kiểm + duyệt ───────────────
-function vePhieu(container, r, call, refresh) {
+function vePhieu(container, r, call, refresh, boot) {
   const p = r.nhap;
   const rows = p.dong.map((x) => ({ ...x }));
 
@@ -110,6 +111,7 @@ function vePhieu(container, r, call, refresh) {
     </div>
     <div class="sx-muted">${esc(p.kho_nguon)} → ${esc(p.kho_dich)} · lập bởi
       ${esc(p.nguoi_lap || '')}. Bấm số để sửa theo đúng số ĐẾM ĐƯỢC.</div>
+    <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-quet">⌗ QUÉT HỘP ĐỂ TÌM DÒNG</button>
     <div class="sx-vh-list" id="sx-nk-rows"></div>
     ${p.duoc_duyet
       ? `<button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-duyet">
@@ -152,6 +154,19 @@ function vePhieu(container, r, call, refresh) {
       lechTong ? `lệch ${lechTong > 0 ? '+' : ''}${formatNumber(lechTong)} so với sổ` : '';
   }
   ve();
+
+  // Quét ở đây làm đúng một việc mã vạch giỏi nhất: ĐỊNH DANH. Nó nhảy tới đúng
+  // dòng rồi mở bàn số — số lượng vẫn do thủ kho ĐẾM và gõ. Không ai quét 1.240 hộp.
+  container.querySelector('#sx-nk-quet').addEventListener('click', () => moQuet({
+    ma_quet: boot && boot.ma_quet, loai: 'sp',
+    kicker: 'Nhập kho', title: 'Quét hộp để tìm dòng',
+    onTim: (item) => {
+      const i = rows.findIndex((x) => x.item === item);
+      if (i < 0) { toastErr('Sản phẩm này không có trong phiếu.'); return; }
+      const b = box.querySelector(`.sx-vh-sl[data-i="${i}"]`);
+      if (b) { b.scrollIntoView({ block: 'center' }); b.click(); }
+    },
+  }));
 
   const gui = () => rows.map((x) => ({ item: x.item, so_luong: x.so_dem }));
   const luu = async () => call('sx.api.khotp.sua_phieu',

@@ -1653,3 +1653,27 @@ main > .container {
   .sx-main-rong { max-width: 1600px; }
   .sx-main-rong #sx-ql-body { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ══════════════════ 20. QUÉT MÃ (D57) ══════════════════
+ * Ô nhập luôn focus để máy quét cầm tay gõ thẳng vào — đó là đường chính, camera
+ * chỉ là phương án khi chưa có máy. Chữ to và mono vì mã gõ tay hay lẫn 0/O.
+ */
+.sx-vh-hang2 { display: flex; gap: var(--sx-s2); align-items: stretch; }
+.sx-vh-hang2 > :first-child { flex: 1; min-width: 0; }
+.sx-quet-nut { flex: 0 0 auto; white-space: nowrap; font-size: var(--sx-f-sm); }
+.sx-quet-o { display: flex; }
+.sx-quet-input {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-lg);
+  letter-spacing: .04em;
+  min-height: var(--sx-tap-lg);
+}
+.sx-quet-tt { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-quet-loi { color: var(--sx-danger-text); font-weight: 700; }
+.sx-quet-video {
+  width: 100%;
+  max-height: 44vh;
+  border-radius: var(--sx-radius);
+  background: #0f172a;
+  object-fit: cover;
+}

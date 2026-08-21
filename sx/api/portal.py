@@ -68,9 +68,13 @@ def _nhan_vien_vao_hop():
                 "Vào SX Settings điền 'Nguồn nhóm công khoán' + 'Giá trị nhóm công khoán'."
             )
 
+    fields = ["name", "employee_name"]
+    # employee_number là mã người ta vốn đã in trên thẻ/bảng công. Ưu tiên nó làm mã
+    # quét để khỏi phát sinh mã thứ hai cho cùng một người.
+    if frappe.get_meta("Employee").has_field("employee_number"):
+        fields.append("employee_number")
     ds = frappe.get_all(
-        "Employee", filters=filters,
-        fields=["name", "employee_name"], order_by="employee_name",
+        "Employee", filters=filters, fields=fields, order_by="employee_name",
     )
     return dat_ten_hien_thi(ds), canh_bao
 
@@ -155,6 +159,7 @@ def get_boot(ngay=None):
         boot["nhan_vien"], canh_bao_nv = _nhan_vien_vao_hop()
         if canh_bao_nv:
             boot["canh_bao_nhan_vien"] = canh_bao_nv
+        boot["ma_quet"] = _ma_quet(boot["nhan_vien"], boot["activity_types"])
 
     return boot
 
@@ -266,6 +271,38 @@ def _activity_vao_hop():
             continue  # không đọc được đơn giá -> không dùng để ghi khoán
         ds.append({"name": act, "don_gia": gia, "sku": sku_theo_act.get(act, [])})
     return ds
+
+
+def _ma_quet(nhan_vien, activities):
+    """Bảng tra MÃ QUÉT → đối tượng, gửi kèm boot để tra NGAY TRÊN MÁY.
+
+    Tra ở client chứ không gọi server mỗi lần quét vì hai lý do: quét phải phản hồi
+    tức thì (đợi mạng giữa xưởng là mất luôn cái lợi của việc quét), và app phải
+    dùng được khi mất mạng (D37) — bản boot đã nằm sẵn trong localStorage.
+
+    Mã người: chấp nhận CẢ employee_number lẫn Employee ID. Nơi này chỉ có 45 người
+    nên bảng rất nhỏ; đổi lại QC quét được bất kỳ thẻ nào đang có sẵn.
+    Mã sản phẩm: mọi Item Barcode của SKU đang dùng — quét vỏ hộp là ra loại công việc.
+    """
+    nv = {}
+    for e in nhan_vien:
+        for ma in (e.get("employee_number"), e.get("name")):
+            if ma:
+                nv[str(ma).strip()] = e["name"]
+
+    ma_sku = {s["name"] for a in activities for s in (a.get("sku") or [])}
+    sp = {}
+    if ma_sku:
+        for b in frappe.get_all(
+            "Item Barcode", filters={"parent": ("in", list(ma_sku))},
+            fields=["barcode", "parent"],
+        ):
+            if b.barcode:
+                sp[str(b.barcode).strip()] = b.parent
+    # Quét thẳng mã Item cũng chạy — nhiều nơi in luôn item_code lên tem nội bộ
+    for code in ma_sku:
+        sp.setdefault(code, code)
+    return {"nv": nv, "sp": sp}
 
 
 # ─────────────────────────────────────────────── phiếu ngày ──
