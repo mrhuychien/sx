@@ -11,6 +11,9 @@ from frappe import _
 QUAN_LY = "SX Quan Ly"
 GHI_SO = "SX Ghi So"
 VAO_HOP = "SX Vao Hop"
+# D56: thủ kho là NGƯỜI THỨ HAI đếm lại hàng trước khi vào kho. Tách role riêng vì
+# cả giá trị của bước này nằm ở chỗ người duyệt KHÁC người lập.
+THU_KHO = "SX Thu Kho"
 
 # Role "siêu quyền" — thấy mọi view/card
 SUPER_ROLES = {QUAN_LY, "System Manager", "Administrator"}
@@ -19,6 +22,7 @@ SUPER_ROLES = {QUAN_LY, "System Manager", "Administrator"}
 ROLE_VIEWS = {
     GHI_SO: ["ghiso"],
     VAO_HOP: ["vaohop", "nhapkho"],
+    THU_KHO: ["nhapkho"],
     QUAN_LY: ["ghiso", "vaohop", "nhapkho", "quanly"],
 }
 
@@ -44,7 +48,9 @@ CARD_ROLES = {
     "vaohop": [VAO_HOP],
     # D33: chốt ngày về tay QUẢN LÝ. QC#2 chỉ nhập bảng vào hộp; ai chốt sổ là người
     # khác — vừa gọn màn nhập liệu, vừa tách vai đúng §2.1 (người nhập ≠ người chốt).
-    "nhapkhotp": [VAO_HOP, QUAN_LY],   # thủ kho nhận TP (D51)
+    # Lập phiếu nháp: người ở xưởng. DUYỆT: chỉ THU_KHO/QUAN_LY — chốt trong
+    # khotp._duoc_duyet(), không phải ở đây (card này cả hai bên đều mở được).
+    "nhapkhotp": [VAO_HOP, THU_KHO, QUAN_LY],
     "chotngay": [QUAN_LY],
     "quanly": [],  # chỉ super roles
 }

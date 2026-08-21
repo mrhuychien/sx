@@ -78,7 +78,7 @@ def _nhan_vien_vao_hop():
 def _any_sx_guard():
     """Cho phép mọi role SX (boot / phiếu ngày dùng chung)."""
     roles = user_roles()
-    if is_super(roles) or roles & {"SX Ghi So", "SX Vao Hop"}:
+    if is_super(roles) or roles & {"SX Ghi So", "SX Vao Hop", "SX Thu Kho"}:
         return
     frappe.throw(_("Bạn không có quyền vào portal sản xuất."), frappe.PermissionError)
 
@@ -168,6 +168,8 @@ def _ngay_summary(ten):
         "ngay": str(doc.ngay),
         "docstatus": doc.docstatus,
         "trang_thai": doc.trang_thai,
+        "chot_ghiso": cint(doc.chot_ghiso),
+        "chot_vaohop": cint(doc.chot_vaohop),
         "tong_hop_tp": doc.tong_hop_tp,
         "tong_luong_sp": doc.tong_luong_sp,
         "bao_me": [
@@ -285,13 +287,34 @@ def get_or_create_ngay(ngay=None):
     return _ngay_summary(ten)
 
 
+def _chan_neu_chot(ngay_sx, nua, viec):
+    """Chặn sửa dữ liệu của NỬA đã chốt (D55).
+
+    Từ D55 phiếu ngày còn NHÁP khi mới chốt một nửa, nên `docstatus != 0` không còn
+    là dấu hiệu "đã chốt" nữa — phải đọc đúng cờ của nửa đó. Chốt rồi mà vẫn sửa
+    được là phiếu một đằng chứng từ kho một nẻo.
+    """
+    d = frappe.db.get_value(
+        "SX Ngay San Xuat", ngay_sx, ["docstatus", "chot_ghiso", "chot_vaohop"],
+        as_dict=True)
+    if not d:
+        frappe.throw(_("Không tìm thấy phiếu ngày {0}.").format(ngay_sx))
+    if d.docstatus == 2:
+        frappe.throw(_("Phiếu ngày đã huỷ."))
+    if d.docstatus == 1 or cint(d.get(f"chot_{nua}")):
+        nhan = "Ghi sổ" if nua == "ghiso" else "Vào hộp"
+        frappe.throw(
+            _("Phần {0} của ngày này đã chốt — không {1} được nữa. Huỷ chốt {0} "
+              "trước nếu cần sửa.").format(nhan, viec)
+        )
+
+
 @frappe.whitelist()
 def bao_me(ngay_sx, rows):
     """Upsert child bao_me. rows = [{item_btp, so_me}]."""
     guard_card("baome")
+    _chan_neu_chot(ngay_sx, "ghiso", _("sửa báo mẻ"))
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    if doc.docstatus != 0:
-        frappe.throw(_("Phiếu ngày đã chốt — không sửa báo mẻ được"))
     doc.set("bao_me", [])
     for r in frappe.parse_json(rows) or []:
         if flt(r.get("so_me")) > 0:
@@ -304,9 +327,8 @@ def bao_me(ngay_sx, rows):
 def bao_can(ngay_sx, rows):
     """Upsert child bao_can. rows = [{item_bot_banh, so_me, ghi_chu?}]."""
     guard_card("baocan")
+    _chan_neu_chot(ngay_sx, "ghiso", _("sửa báo cán"))
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    if doc.docstatus != 0:
-        frappe.throw(_("Phiếu ngày đã chốt — không sửa báo cán được"))
     doc.set("bao_can", [])
     for r in frappe.parse_json(rows) or []:
         if flt(r.get("so_me")) > 0:
@@ -323,9 +345,12 @@ def bao_can(ngay_sx, rows):
 def ghi_su_co(ngay_sx, loai, mo_ta=None, phut_dung=0):
     """Append 1 dòng sự cố (QC nào cũng ghi được)."""
     guard_card("suco")
-    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    if doc.docstatus != 0:
+    # Sự cố thuộc nửa Ghi sổ (nó là nhật ký chuyền), nhưng ghi thêm sự cố KHÔNG
+    # sinh chứng từ kho nào — chỉ chặn khi cả ngày đã khoá hẳn.
+    d = frappe.db.get_value("SX Ngay San Xuat", ngay_sx, "docstatus")
+    if d != 0:
         frappe.throw(_("Phiếu ngày đã chốt — không ghi thêm sự cố được"))
+    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
     doc.append(
         "su_co",
         {"thoi_diem": frappe.utils.now(), "loai": loai, "mo_ta": mo_ta,
@@ -343,8 +368,7 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None):
     chấm ăn đang có — client nào chỉ sửa sản lượng sẽ không vô tình xoá dấu chấm ăn.
     """
     guard_card("vaohop")
-    if frappe.db.get_value("SX Ngay San Xuat", ngay_sx, "docstatus") != 0:
-        frappe.throw(_("Phiếu ngày đã chốt — không sửa bảng vào hộp được"))
+    _chan_neu_chot(ngay_sx, "vaohop", _("sửa bảng vào hộp"))
     ten = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": 0}, "name"
     )

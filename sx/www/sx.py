@@ -7,9 +7,10 @@ import frappe
 from sx.config.roles import allowed_views, is_super, landing_view, view_cards
 
 # Build marker chống "shell cũ" (LUẬT VÀNG #2 — frappe-portal-spa)
-SHELL_BUILD = "sx-38"
+SHELL_BUILD = "sx-39"
 
-ALLOWED_ROLES = {"SX Ghi So", "SX Vao Hop", "SX Quan Ly", "System Manager", "Administrator"}
+ALLOWED_ROLES = {"SX Ghi So", "SX Vao Hop", "SX Thu Kho", "SX Quan Ly",
+                 "System Manager", "Administrator"}
 
 
 def get_context(context):

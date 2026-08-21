@@ -12,7 +12,7 @@ import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 export async function render({ container, boot, call, ensureNgay }) {
   container.className = 'sx-card';
   const ngay = boot.ngay_sx;
-  const daChot = ngay && ngay.docstatus === 1;
+  const daChot = ngay && (ngay.docstatus === 1 || ngay.chot_vaohop);  // nửa Vào hộp (D55)
   const rows = ((boot.bang_vao_hop || {}).dong || []).map((r) => ({ ...r }));
   const itemsTp = boot.items_tp || [];
   const activities = boot.activity_types || [];

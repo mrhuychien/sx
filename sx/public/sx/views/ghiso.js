@@ -21,7 +21,8 @@ export async function render({ container, viewName, cards, mountCard, boot }) {
   container.appendChild(wrap);
   const ngay = boot.ngay_sx;
   wrap.appendChild(el('h1', 'sx-h1', 'Ghi số'
-    + (ngay && ngay.docstatus === 1 ? ' <span class="sx-badge sx-badge-ok">Đã chốt</span>' : '')));
+    + (ngay && (ngay.docstatus === 1 || ngay.chot_ghiso)
+      ? ' <span class="sx-badge sx-badge-ok">Đã chốt Ghi sổ</span>' : '')));
 
   for (const c of cards) {
     if (!GAP[c]) {

@@ -9,8 +9,8 @@ export async function render({ container, viewName, cards, mountCard, boot }) {
   // KHÔNG có tiêu đề trang: thanh ngày đã nói ngày, khối mực đầu thẻ đã nói
   // "VÀO HỘP HÔM NAY". Thêm h1 nữa là lặp ba lần và ăn mất một dòng màn hình.
   const ngay = boot.ngay_sx;
-  if (ngay && ngay.docstatus === 1) {
-    wrap.appendChild(el('div', 'sx-badge sx-badge-ok sx-tu-canh', 'Đã chốt'));
+  if (ngay && (ngay.docstatus === 1 || ngay.chot_vaohop)) {
+    wrap.appendChild(el('div', 'sx-badge sx-badge-ok sx-tu-canh', 'Đã chốt Vào hộp'));
   }
   for (const c of cards) {
     await mountCard(c, wrap);

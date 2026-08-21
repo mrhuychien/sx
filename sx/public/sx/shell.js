@@ -7,7 +7,7 @@ import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 
-const BUILD = 'sx-38';
+const BUILD = 'sx-39';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -256,7 +256,9 @@ function paintDayBar() {
   const tag = daybar.querySelector('#sx-day-tag');
   if (input && b.ngay_xem) input.value = b.ngay_xem;
   if (!tag) return;
-  const daChot = b.ngay_sx && b.ngay_sx.docstatus === 1;
+  const ng = b.ngay_sx || {};
+  const daChot = ng.docstatus === 1 || (ng.chot_ghiso && ng.chot_vaohop);
+  const chotMotPhan = !daChot && (ng.chot_ghiso || ng.chot_vaohop);
   // "Thứ 5, 30/07" — người ở xưởng nhớ THỨ, không nhớ ngày (bản thiết kế)
   const tenNgay = daybar.querySelector('#sx-day-ten');
   if (tenNgay && b.ngay_sx && b.ngay_sx.ngay) {
@@ -271,6 +273,11 @@ function paintDayBar() {
     tag.textContent = '📴 số liệu lưu trên máy';
     tag.className = 'sx-day-tag sx-day-cu';
   } else if (daChot) { tag.textContent = '🔒 đã chốt'; tag.className = 'sx-day-tag sx-day-chot'; }
+  else if (chotMotPhan) {
+    // Nói rõ NỬA NÀO đã chốt: "đã chốt" chung chung làm QC tưởng cả ngày xong rồi
+    tag.textContent = ng.chot_ghiso ? '🔒 xong Ghi sổ' : '🔒 xong Vào hộp';
+    tag.className = 'sx-day-tag sx-day-chot';
+  }
   else if (b.la_hom_nay) { tag.textContent = ''; tag.className = 'sx-day-tag'; }
   else { tag.textContent = '✎ ngày cũ'; tag.className = 'sx-day-tag sx-day-cu'; }
 }

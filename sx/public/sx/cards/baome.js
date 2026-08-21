@@ -8,7 +8,9 @@ import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 export async function render({ container, boot, call, ensureNgay, reload }) {
   container.className = 'sx-card';
   const ngay = boot.ngay_sx;
-  const daChot = ngay && ngay.docstatus === 1;
+  // D55: khoá theo NỬA Ghi sổ, không theo docstatus — phiếu ngày còn nháp khi
+  // mới chốt một nửa, mà chứng từ kho tầng 2 thì đã sinh theo đúng số này.
+  const daChot = ngay && (ngay.docstatus === 1 || ngay.chot_ghiso);
   const soMe = {};
   ((ngay && ngay.bao_me) || []).forEach((r) => { soMe[r.item_btp] = r.so_me; });
 

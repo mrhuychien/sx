@@ -14,10 +14,31 @@ class SXNgaySanXuat(Document):
         self.validate_duy_nhat_ngay()
         # Sau khi CHỐT: không tính lại cỡ mẻ/tổng kg nữa. WO/SE đã sinh theo số cũ —
         # nếu ai sửa BOM giữa chừng, tính lại sẽ làm phiếu lệch chứng từ kho.
-        if self.docstatus == 0:
+        # Từ D55 phiếu còn NHÁP khi mới chốt một nửa, nên không dựa vào docstatus
+        # được nữa: mốc là cờ chot_ghiso.
+        if self.docstatus == 0 and not cint(self.chot_ghiso):
             self.tinh_bao_me()
             self.validate_bao_can()
+        else:
+            self.chan_sua_bao_me()
         self.sync_trang_thai()
+
+    def chan_sua_bao_me(self):
+        """Chốt Ghi sổ rồi thì báo mẻ ĐÓNG BĂNG.
+
+        Phiếu vẫn còn nháp (chờ chốt nốt Vào hộp) nên Frappe không tự khoá — mà
+        chứng từ kho tầng 2 đã sinh theo đúng những con số này. Sửa được ở đây là
+        phiếu một đằng, kho một nẻo, và không ai phát hiện ra."""
+        truoc = self.get_doc_before_save()
+        if not truoc:
+            return
+        cu = [(r.item_btp, flt(r.so_me), flt(r.tong_kg)) for r in truoc.bao_me]
+        moi = [(r.item_btp, flt(r.so_me), flt(r.tong_kg)) for r in self.bao_me]
+        if cu != moi:
+            frappe.throw(
+                _("Ngày {0} đã chốt Ghi sổ — báo mẻ không sửa được nữa (chứng từ kho "
+                  "đã sinh theo số này). Huỷ chốt Ghi sổ trước nếu cần sửa.").format(self.name)
+            )
 
     def validate_duy_nhat_ngay(self):
         trung = frappe.db.exists(
@@ -52,8 +73,14 @@ class SXNgaySanXuat(Document):
                 frappe.throw(_("Báo cán dòng {0}: số mẻ phải > 0").format(row.idx))
 
     def sync_trang_thai(self):
-        if self.docstatus == 0:
-            self.trang_thai = "Đang chạy"
+        """Trạng thái đọc từ HAI CỜ, không từ docstatus (D55).
+
+        Phiếu chốt một nửa vẫn là nháp; nếu cứ thấy nháp là ghi "Đang chạy" thì mỗi
+        lần lưu lại xoá mất dấu vết đã chốt Ghi sổ."""
+        if self.docstatus != 0:
+            return
+        xong = cint(self.chot_ghiso) + cint(self.chot_vaohop)
+        self.trang_thai = ("Đang chạy", "Chốt một phần", "Đã chốt")[xong]
 
     def before_submit(self):
         # Submit CHỈ qua sx.api.chot.chot_ngay (spec 3.3)

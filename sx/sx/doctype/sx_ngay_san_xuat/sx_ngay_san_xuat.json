@@ -9,6 +9,14 @@
   "ngay",
   "column_break_head",
   "trang_thai",
+  "section_chot",
+  "chot_ghiso",
+  "chot_ghiso_luc",
+  "chot_ghiso_boi",
+  "column_break_chot",
+  "chot_vaohop",
+  "chot_vaohop_luc",
+  "chot_vaohop_boi",
   "section_bao_me",
   "bao_me",
   "section_bao_can",
@@ -20,6 +28,7 @@
   "tong_luong_sp",
   "column_break_th",
   "ghi_chu",
+  "ds_wo_se_ghiso",
   "ds_wo_se",
   "salary_products_json",
   "amended_from"
@@ -52,7 +61,7 @@
    "fieldname": "trang_thai",
    "fieldtype": "Select",
    "label": "Trạng thái",
-   "options": "Đang chạy\nĐã chốt\nĐã huỷ",
+   "options": "Đang chạy\nChốt một phần\nĐã chốt\nĐã huỷ",
    "read_only": 1,
    "allow_on_submit": 1,
    "in_list_view": 1
@@ -143,11 +152,73 @@
    "no_copy": 1,
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "section_chot",
+   "fieldtype": "Section Break",
+   "label": "Trạng thái chốt",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "chot_ghiso",
+   "fieldtype": "Check",
+   "label": "Đã chốt Ghi sổ",
+   "read_only": 1,
+   "description": "Tầng 2 (báo mẻ → bột bánh/bột đậu) đã sinh chứng từ kho. Chốt bằng nút trên portal."
+  },
+  {
+   "fieldname": "chot_ghiso_luc",
+   "fieldtype": "Datetime",
+   "label": "Chốt Ghi sổ lúc",
+   "read_only": 1,
+   "depends_on": "chot_ghiso"
+  },
+  {
+   "fieldname": "chot_ghiso_boi",
+   "fieldtype": "Link",
+   "options": "User",
+   "label": "Chốt Ghi sổ bởi",
+   "read_only": 1,
+   "depends_on": "chot_ghiso"
+  },
+  {
+   "fieldname": "column_break_chot",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "chot_vaohop",
+   "fieldtype": "Check",
+   "label": "Đã chốt Vào hộp",
+   "read_only": 1,
+   "description": "Tầng 3 (bảng vào hộp → thành phẩm) + lương khoán đã ghi."
+  },
+  {
+   "fieldname": "chot_vaohop_luc",
+   "fieldtype": "Datetime",
+   "label": "Chốt Vào hộp lúc",
+   "read_only": 1,
+   "depends_on": "chot_vaohop"
+  },
+  {
+   "fieldname": "chot_vaohop_boi",
+   "fieldtype": "Link",
+   "options": "User",
+   "label": "Chốt Vào hộp bởi",
+   "read_only": 1,
+   "depends_on": "chot_vaohop"
+  },
+  {
+   "fieldname": "ds_wo_se_ghiso",
+   "fieldtype": "Small Text",
+   "label": "Chứng từ Ghi sổ (JSON)",
+   "read_only": 1,
+   "hidden": 1,
+   "description": "WO/SE sinh bởi chốt Ghi sổ — dùng để huỷ ngược đúng nửa đó."
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-23 10:00:00.000000",
+ "modified": "2026-08-21 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Ngay San Xuat",

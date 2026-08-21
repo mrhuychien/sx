@@ -33,6 +33,23 @@ const XEP_HANG_DUOC = {
 };
 
 const LY_DO_CHAN = {
+  'sx.api.chot.chot_ghiso':
+    'Chốt Ghi sổ ghi kho thật (mẻ trộn / nấu) nên phải có mạng — số tồn phải kiểm '
+    + 'ngay lúc chốt. Cứ nhập tiếp, có mạng rồi chốt.',
+  'sx.api.chot.chot_vaohop':
+    'Chốt Vào hộp ghi kho và lương thật nên phải có mạng. Cứ nhập tiếp, có mạng rồi chốt.',
+  'sx.api.chot.huy_chot_ghiso':
+    'Huỷ chốt phải thu hồi chứng từ kho nên phải có mạng.',
+  'sx.api.chot.huy_chot_vaohop':
+    'Huỷ chốt phải thu hồi chứng từ kho và lương nên phải có mạng.',
+  'sx.api.khotp.tao_phieu_nhap':
+    'Lập phiếu nhận phải đọc tồn thật ở khu đóng gói nên phải có mạng.',
+  'sx.api.khotp.sua_phieu':
+    'Sửa phiếu nhận cần ghi lên phiếu trên server nên phải có mạng.',
+  'sx.api.khotp.duyet_phieu':
+    'Duyệt phiếu là ghi kho thật nên phải có mạng — tồn phải kiểm ngay lúc duyệt.',
+  'sx.api.khotp.huy_phieu':
+    'Huỷ phiếu nhận phải thu hồi phiếu kho nên phải có mạng.',
   'sx.api.chot.chot_ngay':
     'Chốt ngày ghi kho và lương thật nên phải có mạng — số tồn phải kiểm ngay lúc chốt. '
     + 'Cứ nhập tiếp, có mạng rồi chốt.',
