@@ -153,9 +153,27 @@
 
 /* ══════════════════ 3. NỀN & RESET ══════════════════ */
 
-/* Ẩn khung web mặc định của ERPNext trên trang /sx (stylesheet chỉ nạp ở đây) */
+/* Ẩn khung web mặc định của ERPNext trên trang /sx (stylesheet chỉ nạp ở đây,
+   nên các override trần dưới đây không chạm tới trang nào khác của site) */
 header.navbar, .web-footer, footer.web-footer, .page-breadcrumbs { display: none !important; }
-body { background: var(--sx-bg) !important; }
+body { background: var(--sx-bg) !important; margin: 0 !important; }
+
+/* Frappe bọc nội dung trang web trong .container: max-width + đệm 15px hai bên.
+   Trên điện thoại đó là 30px bề ngang bị lấy mất TRƯỚC khi app kịp bố trí gì —
+   nhìn ra thành viền nền màu chạy dọc hai bên thẻ. App tự lo dải giữa (.sx-main
+   max-width 900/1200 + margin auto) nên lớp bọc đó chỉ còn hại. */
+.page_content,
+.page_content > .container,
+.container > .page_content,
+body > .container,
+main > .container {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
+}
 .page_content { padding: 0 !important; margin: 0 !important; }
 
 .sx-app,
@@ -1370,8 +1388,11 @@ body { background: var(--sx-bg) !important; }
 .sx-vh-done-so { font-size: var(--sx-f-xl); font-weight: 800; margin-top: 2px; }
 .sx-vh-done-so i { font-style: normal; color: rgba(255, 255, 255, .7); font-size: var(--sx-f-sm); }
 
-/* Dải loại công việc — cuộn NGANG trong dải, thân trang không cuộn ngang */
+/* Dải loại công việc — cuộn NGANG trong dải, thân trang không cuộn ngang.
+   Rỗng thì KHÔNG chiếm chỗ: ô trống trên màn 390px là chỗ lẽ ra hiện được thêm
+   hai công nhân. */
 .sx-vh-strip { display: flex; gap: var(--sx-s2); overflow-x: auto; padding-bottom: var(--sx-s1); }
+.sx-vh-strip:empty, .sx-vh-tien:empty, .sx-vh-footer:empty { display: none; }
 .sx-vh-sku {
   flex: 0 0 auto;
   min-width: 104px;
@@ -1383,8 +1404,11 @@ body { background: var(--sx-bg) !important; }
 }
 .sx-vh-sku-so { font-size: var(--sx-f-lg); font-weight: 800; letter-spacing: -.02em; margin-top: 2px; }
 
-/* Thẻ công nhân: LƯỚI 2 CỘT (3 trên tablet), tên trên — số dưới. Người ĐÃ nhập
-   tô nền mùa nhạt + viền mùa: nhìn lướt là biết còn ai chưa hỏi. */
+/* Ô công nhân: LƯỚI 2 CỘT (3 trên tablet). KHÔNG viền, KHÔNG bóng — đây là 45 ô
+   nằm trong một thẻ đã có viền rồi; vẽ thêm 45 cái khung nữa chỉ làm màn hình vụn
+   ra và đẩy người thứ 9 trở đi xuống dưới màn hình. Nền xám nhạt đủ tách ô.
+   Người ĐÃ nhập: nền mùa nhạt + viền mùa + có dòng số — ba tín hiệu, nhìn lướt là
+   biết còn ai chưa hỏi. */
 .sx-nv-luoi { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sx-s2); }
 @media (min-width: 768px) { .sx-nv-luoi { grid-template-columns: repeat(3, 1fr); } }
 .sx-nv-row {
@@ -1392,28 +1416,26 @@ body { background: var(--sx-bg) !important; }
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: var(--sx-s1);
+  gap: 1px;
   width: 100%;
-  min-height: 78px;
-  padding: var(--sx-s3);
-  border: 1px solid var(--sx-line);
-  border-radius: var(--sx-radius);
-  background: var(--sx-surface);
+  min-height: var(--sx-tap);
+  padding: var(--sx-s2) var(--sx-s3);
+  border: 1px solid transparent;
+  border-radius: var(--sx-radius-sm);
+  background: var(--sx-surface-2);
   color: var(--sx-text);
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  box-shadow: var(--sx-shadow-sm);
-  transition: transform var(--sx-t-fast), box-shadow var(--sx-t-base);
+  transition: background var(--sx-t-fast), transform var(--sx-t-fast);
 }
-.sx-nv-row:hover { transform: translateY(-1px); box-shadow: var(--sx-shadow-md); }
-.sx-nv-row:active { transform: scale(.995); }
+.sx-nv-row:active { transform: scale(.97); }
 .sx-nv-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .sx-nv-ten { font-size: var(--sx-f-md); font-weight: 700; line-height: 1.2; }
 .sx-nv-an { color: var(--sx-season-text); font-size: var(--sx-f-xs); font-weight: 700; }
 .sx-nv-qty { font-size: var(--sx-f-sm); font-weight: 600; color: var(--sx-text-3); }
 .sx-nv-row-xong {
-  background: linear-gradient(135deg, var(--sx-surface) 60%, var(--sx-season-glow) 100%);
+  background: var(--sx-season-glow);
   border-color: var(--sx-season-1);
 }
 .sx-nv-row-xong .sx-nv-qty { color: var(--sx-season-text); }
@@ -1565,10 +1587,43 @@ body { background: var(--sx-bg) !important; }
  * hệ NPP nhận diện bằng góc bo, bỏ hết là mất chất.
  */
 @media (max-width: 767px) {
-  .sx-main { padding-left: var(--sx-s2); padding-right: var(--sx-s2); }
-  .sx-view { gap: var(--sx-s3); }
-  .sx-h1 { padding-left: var(--sx-s2); }
+  /* TRÀN MÉP. Trước đây: main đệm 8px -> thẻ đệm 16px -> ô công nhân lại có viền
+     + đệm 12px = ba lớp khung lồng nhau, ăn mất ~25% bề ngang màn 390px chỉ để vẽ
+     đường viền. Trên điện thoại mép màn hình LÀ mép thẻ rồi, không cần vẽ thêm. */
+  .sx-main { padding: var(--sx-s2) 0 var(--sx-s5); }
+  .sx-card, .sx-fold {
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+    padding: var(--sx-s3);
+  }
+  .sx-view { gap: var(--sx-s2); }
+  /* Thứ nằm NGOÀI thẻ vẫn phải thụt vào, không thì dính sát mép kính */
+  .sx-h1, .sx-boot-loading, .sx-view > .sx-badge { padding-left: var(--sx-s3); padding-right: var(--sx-s3); }
+  /* Khối mực đầu thẻ tràn hết bề ngang, bỏ luôn góc bo */
+  .sx-vh-top {
+    margin: calc(var(--sx-s3) * -1) calc(var(--sx-s3) * -1) 0;
+    border-radius: 0;
+  }
   .sx-numpad-value { font-size: 40px; }
+  /* Ô nhập / nút phụ hạ xuống 48px: vẫn đủ chạm, đỡ 16px mỗi cái */
+  .sx-textarea, .sx-vh-xemhet { min-height: var(--sx-tap); }
+
+  /* Lô / nhánh lưu đồ: bỏ khung, tách nhau bằng một đường kẻ. Cùng lý do như ô
+     công nhân — khung trong khung trong khung. Ô CHẶNG thì giữ khung vì viền ở
+     đó mang nghĩa: viền màu mùa = còn hàng, nền xám = rỗng. */
+  .sx-lt-lo, .sx-lb-nhanh {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    margin-top: 0;
+  }
+  .sx-lt-lo + .sx-lt-lo, .sx-lb-nhanh + .sx-lb-nhanh {
+    border-top: 1px solid var(--sx-line);
+    margin-top: var(--sx-s3);
+    padding-top: var(--sx-s3);
+  }
 }
 
 /* ══════════════════ 19. MÀN QUẢN LÝ TRÊN MÁY TÍNH (D50) ══════════════════

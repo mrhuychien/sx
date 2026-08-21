@@ -252,7 +252,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       .sort((a, b) => (daNhap[a.name] ? 1 : 0) - (daNhap[b.name] ? 1 : 0));
     // Mặc định chỉ 8 người "hay nhập" — 43 thẻ đổ ra màn hình thì không ai đọc.
     // Gõ tìm hoặc bấm "Xem hết" thì hiện toàn bộ.
-    const ds = (loc || xemHet) ? sapXep : sapXep.slice(0, 8);
+    const ds = (loc || xemHet) ? sapXep : sapXep.slice(0, 12);
 
     const veThe = (nv) => {
       const q = daNhap[nv.name] || 0;
@@ -261,12 +261,17 @@ export async function render({ container, boot, call, ensureNgay }) {
       const suat = (n, ten) => (n ? (n > 1 ? `${ten} ×${n}` : ten) : '');
       const nhanAn = [suat(Number(an.an_ca) || 0, 'ăn ca'),
                       suat(Number(an.an_dem) || 0, 'ăn đêm')].filter(Boolean).join(' + ');
+      // Người CHƯA nhập không in dòng "chưa nhập": 45 lần cùng một chữ thì nó
+      // không còn là thông tin, chỉ là mỗi ô cao gấp đôi. Chưa nhập = ô xám
+      // trống; đã nhập = ô tô màu mùa CÓ số. Chỗ tiết kiệm được đủ hiện thêm
+      // một hàng người.
+      const phu = q
+        ? `${formatNumber(q)} sp${nLoai > 1 ? ` · ${nLoai} loại` : ''}${nhanAn ? ` · ${nhanAn}` : ''}`
+        : nhanAn;
       return `<button type="button" class="sx-nv-row${q ? ' sx-nv-row-xong' : ''}"
           data-nv="${esc(nv.name)}" title="${esc(nv.employee_name || nv.name)}">
         <span class="sx-nv-ten">${esc(tenNgan[nv.name])}</span>
-        <span class="sx-nv-qty">${q
-          ? `${formatNumber(q)} sp${nLoai > 1 ? ` · ${nLoai} loại` : ''}`
-          : 'chưa nhập'}${nhanAn ? ` · ${esc(nhanAn)}` : ''}</span>
+        ${phu ? `<span class="sx-nv-qty">${esc(phu)}</span>` : ''}
       </button>`;
     };
 
