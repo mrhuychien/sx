@@ -3,6 +3,8 @@
 {% block title %}Sản xuất RVHG{% endblock %}
 
 {% block head_include %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <!-- LUẬT VÀNG #1: import map cache-bust MỌI shared module (lib/ + components/).
      Phải đứng TRƯỚC mọi <script type="module">. Thêm module mới -> THÊM vào đây.
@@ -17,7 +19,8 @@
     "/assets/sx/sx/lib/router.js":         "/assets/sx/sx/lib/router.js?v={{ v }}",
     "/assets/sx/sx/components/toast.js":   "/assets/sx/sx/components/toast.js?v={{ v }}",
     "/assets/sx/sx/components/modal.js":   "/assets/sx/sx/components/modal.js?v={{ v }}",
-    "/assets/sx/sx/components/numpad.js":  "/assets/sx/sx/components/numpad.js?v={{ v }}"
+    "/assets/sx/sx/components/numpad.js":  "/assets/sx/sx/components/numpad.js?v={{ v }}",
+    "/assets/sx/sx/components/mua.js":     "/assets/sx/sx/components/mua.js?v={{ v }}"
   }
 }
 </script>
