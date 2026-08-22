@@ -23,10 +23,27 @@ from frappe.model.document import Document
 from frappe.utils import flt, now_datetime
 
 
+def _tong_tu_uom(chi_tiet, mac_dinh):
+    """Σ (số lượng × hệ số) từ JSON chi tiết ĐVT. Không có chi tiết -> giữ số cũ."""
+    if not chi_tiet:
+        return flt(mac_dinh)
+    try:
+        ds = json.loads(chi_tiet)
+    except (ValueError, TypeError):
+        return flt(mac_dinh)
+    if not isinstance(ds, list) or not ds:
+        return flt(mac_dinh)
+    return flt(sum(flt(d.get("sl")) * flt(d.get("he_so") or 1) for d in ds))
+
+
 class SXPhieuNhapTP(Document):
     def validate(self):
         tong_dem = tong_lech = 0.0
         for r in self.dong:
+            # Có chi tiết ĐVT thì TÍNH LẠI tổng từ nó, không tin con số client gửi:
+            # đây là số vào sổ kho, mà phép nhân hệ số quy đổi thì để server làm.
+            r.so_lap = _tong_tu_uom(r.lap_uom, r.so_lap)
+            r.so_dem = _tong_tu_uom(r.dem_uom, r.so_dem)
             if flt(r.so_dem) < 0:
                 frappe.throw(_("Dòng {0}: số đếm không được âm.").format(r.idx))
             r.lech = flt(r.so_dem) - flt(r.so_lap)

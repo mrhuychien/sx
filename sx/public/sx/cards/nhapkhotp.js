@@ -9,8 +9,8 @@
 import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
-import { openNumpad } from '/assets/sx/sx/components/numpad.js';
-import { confirm2Step } from '/assets/sx/sx/components/modal.js';
+import { openSoLuong, moTaUom } from '/assets/sx/sx/components/soluong.js';
+import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
 
 export async function render({ container, call, refresh, boot }) {
@@ -99,16 +99,11 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     </div>
     <div class="sx-vh-list" id="sx-nk-rows"></div>
     ${danhMuc.length
-      ? '<div class="sx-field-label">Chọn sản phẩm — bấm để nhập số</div>'
+      ? `<div class="sx-vh-hang2">
+           <button type="button" class="sx-btn" id="sx-nk-tim">⌕ TÌM SẢN PHẨM</button>
+           <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-quet">⌗ QUÉT HỘP</button>
+         </div>`
       : veTrongDanhMuc(r.goi_y)}
-    ${danhMuc.length > 10
-      ? `<div class="sx-vh-tim-wrap">
-           <span class="sx-vh-tim-icon" aria-hidden="true">⌕</span>
-           <input class="sx-textarea sx-vh-search" id="sx-nk-tim" type="search"
-             aria-label="Tìm sản phẩm" placeholder="Tìm trong ${danhMuc.length} sản phẩm">
-         </div>` : ''}
-    <div class="sx-sp-grid" id="sx-nk-dm"></div>
-    <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-quet">⌗ QUÉT HỘP</button>
     ${p.duoc_duyet
       ? `<div class="sx-muted">Thủ kho: đếm thật rồi sửa số cho khớp —
            <b>số đếm là số vào kho</b>.</div>
@@ -131,10 +126,11 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         return `<div class="sx-vh-row">
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(x.ten || tenSP(x.item))}</div>
-            <div class="sx-vh-meta">${laThuKho
-              ? `phiếu ghi ${formatNumber(x.so_lap)}${
+            <div class="sx-vh-meta">${esc(moTaUom(laThuKho ? x.dem_uom : x.lap_uom))
+              || esc(x.dvt || '')}${laThuKho
+              ? ` · phiếu ghi ${formatNumber(x.so_lap)}${
                 lech ? ` · lệch ${lech > 0 ? '+' : ''}${formatNumber(lech)}` : ''}`
-              : esc(x.dvt || '')}</div>
+              : ''}</div>
           </div>
           <button type="button" class="sx-vh-sl${lech ? ' sx-cell-lech' : ''}"
             data-i="${i}">${formatNumber(x.so_dem)}</button>
@@ -142,23 +138,23 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
             aria-label="Bỏ dòng ${esc(x.ten || x.item)}">✕</button>
         </div>`;
       }).join('')
-      : `<div class="sx-muted">Chưa ghi sản phẩm nào — chọn ở lưới bên dưới${
-        danhMuc.length ? ', hoặc quét hộp' : ''}.</div>`;
+      : `<div class="sx-muted">Chưa ghi sản phẩm nào${
+        danhMuc.length ? ' — bấm TÌM SẢN PHẨM hoặc quét hộp' : ''}.</div>`;
 
     box.querySelectorAll('.sx-vh-sl').forEach((b) => {
       const x = rows[Number(b.dataset.i)];
-      b.addEventListener('click', () => openNumpad({
+      b.addEventListener('click', () => openSoLuong({
         kicker: laThuKho ? 'Số thủ kho đếm' : 'Số chuyển sang kho',
-        title: x.ten || tenSP(x.item),
-        unitLabel: 'Số lượng', initial: x.so_dem,
-        hint: (n) => (laThuKho && n !== x.so_lap
-          ? `phiếu ghi ${formatNumber(x.so_lap)} · lệch ${n - x.so_lap > 0 ? '+' : ''}${
-            formatNumber(n - x.so_lap)}` : ''),
-        onOk: (v) => {
-          x.so_dem = Math.max(0, Math.round(v));
+        ten: x.ten || tenSP(x.item),
+        uoms: uomCua(x.item),
+        chi_tiet: laThuKho ? x.dem_uom : x.lap_uom,
+        tong: x.so_dem,
+        onOk: (tong, ct) => {
+          x.so_dem = Math.max(0, Math.round(tong));
+          x.dem_uom = ct;
           // Người LẬP sửa số thì sửa cả hai; THỦ KHO sửa thì chỉ đụng số đếm —
           // giữ nguyên số người lập ghi, vì chỗ lệch mới là thứ đáng xem.
-          if (!laThuKho) x.so_lap = x.so_dem;
+          if (!laThuKho) { x.so_lap = x.so_dem; x.lap_uom = ct; }
           ve();
         },
       }));
@@ -172,46 +168,35 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     container.querySelector('#sx-nk-tong').textContent = formatNumber(tong);
     container.querySelector('#sx-nk-lech').textContent =
       (laThuKho && lech) ? `lệch ${lech > 0 ? '+' : ''}${formatNumber(lech)} so với phiếu` : '';
-    veDanhMuc();
   }
 
-  // Lưới sản phẩm hiện THẲNG trên màn, không giấu sau một nút: đây là việc chính
-  // của màn này, mà giấu đi thì người dùng mở phiếu ra thấy trống trơn.
-  // Sản phẩm đã ghi tô nền mùa kèm số — bấm lại là sửa.
-  const oTim = container.querySelector('#sx-nk-tim');
-  function veDanhMuc() {
-    const q = (oTim ? oTim.value : '').toLowerCase().trim();
-    const khop = danhMuc.filter((d) => !q || d.ten.toLowerCase().includes(q)
-      || d.item.toLowerCase().includes(q));
-    const grid = container.querySelector('#sx-nk-dm');
-    if (!danhMuc.length) { grid.innerHTML = ''; return; }
-    grid.innerHTML = khop.length
-      ? khop.map((d) => {
-        const co = rows.find((x) => x.item === d.item);
-        return `<button type="button" class="sx-sp-chip${co ? ' sx-sp-chip-on' : ''}"
-          data-item="${esc(d.item)}">${esc(d.ten)}${
-          co ? ` · ${formatNumber(co.so_dem)}` : ''}</button>`;
-      }).join('')
-      : '<div class="sx-muted">Không tìm thấy sản phẩm nào.</div>';
-    grid.querySelectorAll('[data-item]').forEach((b) => {
-      b.addEventListener('click', () => themItem(b.dataset.item));
-    });
-  }
-  if (oTim) oTim.addEventListener('input', veDanhMuc);
+  // Danh mục KHÔNG bày sẵn: vài chục SKU trải hết ra thì phiếu đang ghi bị đẩy khỏi
+  // màn hình. Bấm TÌM SẢN PHẨM mới xổ danh sách, có ô lọc.
+  const btnTim = container.querySelector('#sx-nk-tim');
+  if (btnTim) btnTim.addEventListener('click', () => moChonSP(danhMuc, rows, themItem));
   ve();
+
+  const uomCua = (item) => (danhMuc.find((x) => x.item === item) || {}).uoms || [];
 
   function themItem(item) {
     const co = rows.find((x) => x.item === item);
     const d = danhMuc.find((x) => x.item === item) || {};
-    openNumpad({
+    openSoLuong({
       kicker: co ? 'Sửa số' : 'Thêm sản phẩm',
-      title: d.ten || item,
-      unitLabel: 'Số lượng', initial: co ? co.so_dem : 0,
-      onOk: (v) => {
-        const n = Math.max(0, Math.round(v));
+      ten: d.ten || item,
+      uoms: d.uoms || [],
+      chi_tiet: co ? (laThuKho ? co.dem_uom : co.lap_uom) : null,
+      tong: co ? co.so_dem : 0,
+      onOk: (tong, ct) => {
+        const n = Math.max(0, Math.round(tong));
         if (!n) { if (co) rows.splice(rows.indexOf(co), 1); ve(); return; }
-        if (co) { co.so_dem = n; if (!laThuKho) co.so_lap = n; }
-        else rows.push({ item, ten: d.ten || item, dvt: d.dvt || '', so_lap: n, so_dem: n });
+        if (co) {
+          co.so_dem = n; co.dem_uom = ct;
+          if (!laThuKho) { co.so_lap = n; co.lap_uom = ct; }
+        } else {
+          rows.push({ item, ten: d.ten || item, dvt: d.dvt || '',
+                      so_lap: n, so_dem: n, lap_uom: ct, dem_uom: ct });
+        }
         ve();
       },
     });
@@ -233,6 +218,7 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     name: p.name,
     rows: JSON.stringify(rows.map((x) => ({
       item: x.item, so_lap: x.so_lap, so_dem: x.so_dem,
+      lap_uom: x.lap_uom || null, dem_uom: x.dem_uom || null,
     }))),
   });
 
@@ -282,6 +268,41 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       });
     });
   }
+}
+
+// Cửa sổ chọn sản phẩm: lọc theo tên/mã, sản phẩm đã ghi tô màu kèm số
+function moChonSP(danhMuc, rows, onPick) {
+  const m = openModal({ kicker: 'Nhập kho', title: 'Chọn sản phẩm' });
+  m.body.innerHTML = `
+    <input class="sx-textarea" id="sx-cs-tim" type="search" autocomplete="off"
+      placeholder="Tìm trong ${danhMuc.length} sản phẩm…">
+    <div id="sx-cs-ds"></div>
+  `;
+  const box = m.body.querySelector('#sx-cs-ds');
+  const oTim = m.body.querySelector('#sx-cs-tim');
+  function ve() {
+    const q = oTim.value.toLowerCase().trim();
+    const khop = danhMuc.filter((d) => !q || d.ten.toLowerCase().includes(q)
+      || d.item.toLowerCase().includes(q));
+    box.innerHTML = khop.length
+      ? `<div class="sx-vh-list">${khop.map((d) => {
+        const co = rows.find((x) => x.item === d.item);
+        return `<button type="button" class="sx-nv-row${co ? ' sx-nv-row-xong' : ''}"
+            data-item="${esc(d.item)}" style="flex-direction:row;align-items:center;
+            justify-content:space-between;min-height:var(--sx-tap-lg)">
+            <span class="sx-nv-ten">${esc(d.ten)}</span>
+            <span class="sx-nv-qty">${co ? formatNumber(co.so_dem) : (d.uoms && d.uoms.length > 1
+          ? `${d.uoms.length} đơn vị` : esc(d.dvt || ''))}</span>
+          </button>`;
+      }).join('')}</div>`
+      : '<div class="sx-muted">Không tìm thấy sản phẩm nào.</div>';
+    box.querySelectorAll('[data-item]').forEach((b) => {
+      b.addEventListener('click', () => { m.close(); onPick(b.dataset.item); });
+    });
+  }
+  oTim.addEventListener('input', ve);
+  ve();
+  return m;
 }
 
 // "2026-08-22" -> "22/08" — người ở xưởng đọc ngày kiểu này, không đọc ISO

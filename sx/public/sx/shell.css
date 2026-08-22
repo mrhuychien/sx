@@ -1704,3 +1704,35 @@ main > .container {
   box-shadow: 0 0 0 100vmax rgba(15, 23, 42, .35);
   pointer-events: none;
 }
+
+/* Nhập số theo nhiều đơn vị: mỗi đơn vị một hàng, bấm hàng nào nhập số hàng đó */
+.sx-sl-hang { display: flex; flex-direction: column; gap: var(--sx-s2); }
+.sx-sl-o {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sx-s3);
+  min-height: var(--sx-tap-lg);
+  padding: var(--sx-s2) var(--sx-s4);
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius);
+  background: var(--sx-surface);
+  color: var(--sx-text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sx-sl-o-co { border-color: var(--sx-season-1); background: var(--sx-season-glow); }
+.sx-sl-ten { font-size: var(--sx-f-md); font-weight: 700; }
+.sx-sl-ten i { font-style: normal; font-weight: 400; color: var(--sx-text-3); font-size: var(--sx-f-xs); }
+.sx-sl-so { font-size: var(--sx-f-xl); font-weight: 800; font-variant-numeric: tabular-nums; }
+.sx-sl-tong {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sx-s3);
+  padding: var(--sx-s3) var(--sx-s4);
+  border-radius: var(--sx-radius);
+  background: var(--sx-surface-2);
+  font-size: var(--sx-f-lg);
+}

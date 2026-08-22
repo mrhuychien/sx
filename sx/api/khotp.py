@@ -39,9 +39,11 @@ def danh_muc_tp():
     sản phẩm nào" mà không nói vì sao là bế tắc không lối ra.
     """
     guard_card("nhapkhotp")
+    ds = items_tp()
     rows = [
-        {"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or ""}
-        for i in items_tp()
+        {"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or "",
+         "uoms": _uom_cua(i.name, i.stock_uom)}
+        for i in ds
     ]
     if rows:
         return {"rows": rows, "goi_y": []}
@@ -69,6 +71,29 @@ def danh_muc_tp():
         "goi_y": [{"nhom": k, "so_item": len(v), "vi_du": v[:3]}
                   for k, v in sorted(cum.items(), key=lambda x: -len(x[1]))][:20],
     }
+
+
+def _uom_cua(item, stock_uom):
+    """Các đơn vị đếm được của một Item, kèm hệ số quy về đơn vị kho.
+
+    Thủ kho đếm theo cách hàng XẾP ngoài kho: 2 thùng 3 hộp, không phải 27 hộp.
+    Bắt quy đổi trong đầu là chỗ sinh lỗi, mà lỗi ở đây là lệch tồn kho thật.
+
+    Sắp hệ số GIẢM DẦN (thùng trước, hộp sau) — đúng thứ tự người ta đọc số khi đếm.
+    Đơn vị kho luôn có mặt với hệ số 1 dù Item chưa khai bảng quy đổi.
+    """
+    ra = {}
+    for r in frappe.get_all(
+        "UOM Conversion Detail", filters={"parent": item},
+        fields=["uom", "conversion_factor"],
+    ):
+        he_so = flt(r.conversion_factor)
+        if r.uom and he_so > 0:
+            ra[r.uom] = he_so
+    if stock_uom:
+        ra[stock_uom] = 1.0
+    return [{"uom": u, "he_so": h}
+            for u, h in sorted(ra.items(), key=lambda x: -x[1])]
 
 
 @frappe.whitelist()
@@ -115,8 +140,10 @@ def tao_phieu_nhap(rows=None, ngay=None, ghi_chu=None):
     doc.ghi_chu = ghi_chu
     for r in (json.loads(rows) if isinstance(rows, str) else rows) or []:
         so = flt(r.get("so_luong"))
+        ct = _ghi_json(r.get("chi_tiet"))
         if so > 0:
-            doc.append("dong", {"item": r.get("item"), "so_lap": so, "so_dem": so})
+            doc.append("dong", {"item": r.get("item"), "so_lap": so, "so_dem": so,
+                                "lap_uom": ct, "dem_uom": ct})
     doc.flags.ignore_permissions = True
     doc.insert()
     return chi_tiet_phieu(doc.name)
@@ -137,6 +164,7 @@ def chi_tiet_phieu(name):
         "dong": [
             {"item": r.item, "ten": r.ten or r.item, "dvt": r.dvt or "",
              "so_lap": flt(r.so_lap, 0), "so_dem": flt(r.so_dem, 0),
+             "lap_uom": _doc_json(r.lap_uom), "dem_uom": _doc_json(r.dem_uom),
              "lech": flt(r.lech, 0), "ghi_chu": r.ghi_chu}
             for r in doc.dong
         ],
@@ -170,16 +198,22 @@ def sua_phieu(name, rows, ghi_chu=None):
     if doc.docstatus != 0:
         frappe.throw(_("Phiếu {0} đã duyệt — không sửa được. Huỷ phiếu rồi lập lại.")
                      .format(name))
-    cu = {r.item: flt(r.so_lap) for r in doc.dong}
+    cu = {r.item: (flt(r.so_lap), r.lap_uom) for r in doc.dong}
     doc.set("dong", [])
     for r in (json.loads(rows) if isinstance(rows, str) else rows) or []:
         item = r.get("item")
         if not item:
             continue
         so_dem = flt(r.get("so_dem"))
-        so_lap = flt(r.get("so_lap")) if r.get("so_lap") is not None else cu.get(item, so_dem)
-        doc.append("dong", {"item": item, "so_lap": so_lap, "so_dem": so_dem,
-                            "ghi_chu": r.get("ghi_chu")})
+        lap_cu, lap_uom_cu = cu.get(item, (so_dem, None))
+        so_lap = flt(r.get("so_lap")) if r.get("so_lap") is not None else lap_cu
+        lap_uom = (_ghi_json(r.get("lap_uom")) if r.get("lap_uom") is not None
+                   else lap_uom_cu)
+        doc.append("dong", {
+            "item": item, "so_lap": so_lap, "so_dem": so_dem,
+            "lap_uom": lap_uom, "dem_uom": _ghi_json(r.get("dem_uom")),
+            "ghi_chu": r.get("ghi_chu"),
+        })
     if ghi_chu is not None:
         doc.ghi_chu = ghi_chu
     doc.flags.ignore_permissions = True
@@ -225,6 +259,27 @@ def huy_phieu(name, ly_do=None):
     doc.flags.ignore_permissions = True
     doc.cancel()
     return {"da_huy": name}
+
+
+def _doc_json(v):
+    if not v:
+        return None
+    try:
+        return json.loads(v)
+    except (ValueError, TypeError):
+        return None
+
+
+def _ghi_json(v):
+    """Chi tiết ĐVT về dạng chuỗi JSON gọn. Rỗng -> None (dòng chỉ có một đơn vị)."""
+    if not v:
+        return None
+    ds = json.loads(v) if isinstance(v, str) else v
+    if not isinstance(ds, list):
+        return None
+    sach = [{"uom": d.get("uom"), "sl": flt(d.get("sl")), "he_so": flt(d.get("he_so") or 1)}
+            for d in ds if d.get("uom") and flt(d.get("sl")) > 0]
+    return json.dumps(sach, ensure_ascii=False) if sach else None
 
 
 def _duoc_duyet():
