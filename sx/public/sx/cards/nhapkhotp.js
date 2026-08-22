@@ -40,14 +40,21 @@ async function veLapMoi(container, r, call, refresh) {
     return;
   }
 
-  // Cùng kho = chưa bật bước nhận. Nói rõ phải sửa ở đâu, đừng hiện danh sách rỗng.
-  if (t.cung_kho) {
+  // Chưa bật bước nhận -> NÓI RÕ phải làm gì. Trước đây chỉ bắt trường hợp trùng
+  // kho, mà chưa cấu hình thì kho nguồn rơi về Kho Xưởng (vốn khác Kho TP) nên
+  // lọt lưới: màn hình hiện "không còn hàng chờ nhận" — đúng chữ, vô dụng, vì
+  // nguyên nhân thật là tính năng chưa được bật chứ không phải hết hàng.
+  if (t.chua_bat || t.cung_kho) {
     container.innerHTML = `
       <div class="sx-field-label">Nhập kho thành phẩm</div>
-      <div class="sx-error-box">Chưa bật bước nhận: tầng 3 đang nhập TP thẳng vào
-        <b>${esc(t.kho_dich)}</b> nên khu đóng gói không có gì để nhận.<br><br>
-        Vào <b>SX Settings → Kho nhận TP từ tầng 3</b>, đặt là kho khu đóng gói
-        (khác Kho TP), rồi chốt ngày lại.</div>`;
+      <div class="sx-error-box">CHƯA BẬT BƯỚC NHẬN KHO.
+
+Chốt ngày đang nhập thành phẩm THẲNG vào ${esc(t.kho_dich)}, nên khu đóng gói không có gì để thủ kho nhận.
+
+Bật như sau:
+1. Desk → SX Settings → "Kho nhận TP từ tầng 3" = kho khu đóng gói (phải KHÁC ${esc(t.kho_dich)}).
+2. Chốt lại ngày (huỷ chốt Vào hộp rồi chốt lại) — từ lúc đó thành phẩm mới vào khu đóng gói.
+3. Quay lại màn này, bấm LẬP PHIẾU NHẬN.</div>`;
     return;
   }
 

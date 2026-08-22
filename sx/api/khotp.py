@@ -33,9 +33,22 @@ from sx.utils import get_settings, kho_xuong
 
 
 def _kho_nguon(settings=None):
-    """Kho đang giữ TP chờ thủ kho nhận. Chưa cấu hình -> Kho Xưởng."""
+    """Kho đang giữ TP chờ thủ kho nhận. Chưa cấu hình -> Kho Xưởng (chỉ để hiển thị)."""
     settings = settings or get_settings()
     return settings.get("kho_tp_cho_nhan") or kho_xuong(settings)
+
+
+def _da_bat(settings=None):
+    """Bước nhận đã BẬT chưa = `kho_tp_cho_nhan` có được điền không.
+
+    Không suy từ "kho nguồn khác kho đích" như bản đầu: chưa điền thì `_kho_nguon`
+    rơi về Kho Xưởng — vốn đã khác Kho TP — nên phép so đó luôn đúng và màn hình
+    hiện ra RỖNG KHÔNG LÝ DO. Mà tầng 3 lại đọc CHÍNH field này để quyết định nhập
+    TP vào đâu (chot._chot_tang_3), nên field rỗng nghĩa là TP đi thẳng vào Kho TP
+    và khu đóng gói vĩnh viễn không có gì để nhận. Một field, một sự thật.
+    """
+    settings = settings or get_settings()
+    return bool(settings.get("kho_tp_cho_nhan"))
 
 
 @frappe.whitelist()
@@ -64,6 +77,7 @@ def ton_cho_nhap():
         })
     rows.sort(key=lambda r: -r["cho_nhan"])
     return {"kho_nguon": nguon, "kho_dich": dich, "rows": rows,
+            "chua_bat": not _da_bat(settings),
             "cung_kho": nguon == dich}
 
 
@@ -78,11 +92,17 @@ def tao_phieu_nhap(rows=None, ngay=None, ghi_chu=None):
     guard_card("nhapkhotp")
     settings = get_settings()
     nguon, dich = _kho_nguon(settings), settings.kho_tp
+    if not _da_bat(settings):
+        frappe.throw(
+            _("Chưa bật bước nhận kho: SX Settings → 'Kho nhận TP từ tầng 3' đang "
+              "để trống nên chốt ngày nhập thành phẩm THẲNG vào {0}, khu đóng gói "
+              "không có gì để nhận. Đặt field đó là kho khu đóng gói (khác Kho TP) "
+              "rồi chốt lại ngày.").format(dich)
+        )
     if nguon == dich:
         frappe.throw(
-            _("Kho nguồn và Kho TP đang là cùng một kho ({0}) nên không có gì để "
-              "chuyển. Vào SX Settings đặt 'Kho nhận TP từ tầng 3' là kho khu đóng "
-              "gói, rồi chốt ngày lại.").format(dich)
+            _("'Kho nhận TP từ tầng 3' đang đặt trùng Kho TP ({0}) nên không có gì "
+              "để chuyển. Phải là một kho KHÁC — kho khu đóng gói.").format(dich)
         )
     nhap = frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")
     if nhap:
