@@ -9,6 +9,8 @@
   "kho_nvl",
   "kho_btp",
   "kho_tp",
+  "section_nhom_tp",
+  "nhom_tp",
   "kho_xuong",
   "section_vao_hop",
   "nguon_cong_khoan",
@@ -105,11 +107,23 @@
    "fieldtype": "Currency",
    "label": "Tiền ăn đêm / người / ngày",
    "description": "Bỏ trống (0) nếu bên lương tự quy đổi từ dấu chấm ăn đêm."
+  },
+  {
+   "fieldname": "section_nhom_tp",
+   "fieldtype": "Section Break",
+   "label": "Thành phẩm"
+  },
+  {
+   "fieldname": "nhom_tp",
+   "fieldtype": "Table MultiSelect",
+   "options": "SX Nhom Hang TP",
+   "label": "Nhóm hàng là thành phẩm",
+   "description": "Chọn Item Group nào là thành phẩm — mọi Item trong nhóm đó (và các nhóm con) tự được coi là TP, khỏi phải sửa từng Item. Item có 'Nhóm SX' = TP vẫn được tính, dù không thuộc nhóm nào ở đây."
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-22 10:00:00.000000",
+ "modified": "2026-08-22 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

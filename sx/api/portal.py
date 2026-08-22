@@ -21,6 +21,7 @@ from sx.utils import (
     get_dau_items,
     get_don_gia_activity,
     get_settings,
+    items_tp,
 )
 
 # Nguồn phân loại "công khoán" trên Employee -> fieldname tương ứng
@@ -148,10 +149,7 @@ def get_boot(ngay=None):
         boot["items_bot_dau"] = _items_nhom("BTP-Bot-SP")  # 8 bột đậu
 
     if can_vaohop:
-        boot["items_tp"] = frappe.get_all(
-            "Item", filters={"custom_sx_nhom": "TP", "disabled": 0},
-            fields=["name", "item_name", "item_group"], order_by="item_name",
-        )
+        boot["items_tp"] = items_tp(["name", "item_name", "item_group"])
         boot["tien_an_ca"] = flt(settings.get("tien_an_ca"))
         boot["tien_an_dem"] = flt(settings.get("tien_an_dem"))
         boot["activity_types"] = _activity_vao_hop()
@@ -251,12 +249,7 @@ def _activity_vao_hop():
     - loại có ≥2 SKU -> hỏi thêm 1 bước để biết SKU nào (cần cho lệnh SX tầng 3)
     """
     sku_theo_act = {}
-    for it in frappe.get_all(
-        "Item",
-        filters={"custom_sx_nhom": "TP", "disabled": 0},
-        fields=["name", "item_name", "custom_activity_type"],
-        order_by="item_name",
-    ):
+    for it in items_tp(["name", "item_name", "custom_activity_type"]):
         if it.custom_activity_type:
             sku_theo_act.setdefault(it.custom_activity_type, []).append(
                 {"name": it.name, "item_name": it.item_name or it.name}
@@ -633,9 +626,7 @@ def _tp_theo_nhanh():
     Không đoán theo tên SKU — tên đặt tay, đổi lúc nào không biết. BOM mới là sự thật.
     """
     nhanh = {"banh": [], "bot": []}
-    for tp in frappe.get_all(
-        "Item", filters={"custom_sx_nhom": "TP", "disabled": 0}, pluck="name"
-    ):
+    for tp in [i.name for i in items_tp(["name"])]:
         bom = get_bom_active(tp)
         if not bom:
             continue

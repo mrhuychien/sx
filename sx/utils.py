@@ -355,3 +355,60 @@ def cho_phep_ton_am():
     là vô nghĩa vì ERPNext bên dưới đã cho ghi âm rồi.
     """
     return cint(frappe.db.get_single_value("Stock Settings", "allow_negative_stock"))
+
+
+# ─────────────────────────────────────────── THÀNH PHẨM: ai là TP ──
+#
+# Có HAI cách đánh dấu, và cả hai đều tính:
+#   1. SX Settings → "Nhóm hàng là thành phẩm": chọn Item Group, cả nhánh con tính
+#      theo. Chọn một lần cho cả trăm Item.
+#   2. Item → "Nhóm SX" (custom_sx_nhom) = TP: đánh dấu lẻ từng Item.
+#
+# Cách 1 sinh ra ở D64 vì cách 2 bắt chủ site vào sửa TỪNG Item — với vài chục SKU
+# thì đó là buổi chiều ngồi bấm, và bấm sót một cái là nó biến mất khỏi màn nhập kho
+# mà không ai biết vì sao. Giữ cả cách 2 vì nó vẫn đúng khi một Item nằm lạc nhóm.
+
+
+def nhom_tp():
+    """Danh sách Item Group được coi là thành phẩm, ĐÃ bung cả nhánh con.
+
+    Bung nhánh con để chọn nhóm cha là xong: cây Item Group của ERPNext thường có
+    "Thành phẩm > Bánh > ...", chọn "Thành phẩm" mà không lấy nhánh dưới thì gần như
+    không khớp Item nào.
+    """
+    settings = get_settings()
+    goc = [r.item_group for r in (settings.get("nhom_tp") or []) if r.item_group]
+    if not goc:
+        return []
+    ra = list(goc)
+    for g in goc:
+        try:
+            ra += frappe.get_all(
+                "Item Group",
+                filters={"lft": (">", frappe.db.get_value("Item Group", g, "lft")),
+                         "rgt": ("<", frappe.db.get_value("Item Group", g, "rgt"))},
+                pluck="name",
+            )
+        except Exception:
+            pass   # cây nested set hỏng -> vẫn dùng được đúng nhóm đã chọn
+    return list(dict.fromkeys(ra))
+
+
+def items_tp(fields=None, filters=None):
+    """Mọi Item được coi là thành phẩm. `fields` mặc định [name, item_name, stock_uom].
+
+    Một chỗ duy nhất trả lời câu "cái gì là thành phẩm" — trước D64 câu này được
+    viết lại ở 4 nơi, nên thêm cách đánh dấu thứ hai là phải sửa cả 4.
+    """
+    fields = fields or ["name", "item_name", "stock_uom"]
+    loc = {"disabled": 0}
+    loc.update(filters or {})
+    nhom = nhom_tp()
+    if not nhom:
+        loc["custom_sx_nhom"] = "TP"
+        return frappe.get_all("Item", filters=loc, fields=fields, order_by="item_name")
+    return frappe.get_all(
+        "Item", filters=loc,
+        or_filters=[["custom_sx_nhom", "=", "TP"], ["item_group", "in", nhom]],
+        fields=fields, order_by="item_name",
+    )

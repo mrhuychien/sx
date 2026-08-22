@@ -26,41 +26,49 @@ from frappe import _
 from frappe.utils import cint, flt, nowdate
 
 from sx.config.roles import guard_card
-from sx.utils import get_settings
+from sx.utils import get_settings, items_tp, nhom_tp
 
 
 @frappe.whitelist()
 def danh_muc_tp():
-    """Thành phẩm chọn được khi lập phiếu = Item nhóm TP.
+    """Thành phẩm chọn được khi lập phiếu — xem sx.utils.items_tp: Item thuộc Item
+    Group đã chọn trong SX Settings, HOẶC Item gắn "Nhóm SX" = TP.
 
-    Rỗng thì kèm `goi_y`: những Item CÓ BOM active mà chưa gắn nhóm SX. Bế tắc kiểu
-    "không tìm thấy sản phẩm nào" mà không nói vì sao là bế tắc không lối ra — người
-    dùng không thể đoán rằng thiếu một field trên Item. Liệt kê thẳng ứng viên ra thì
-    thành một danh sách việc phải làm.
+    Rỗng thì kèm `goi_y`: những Item CÓ BOM active mà chưa được tính là TP, kèm Item
+    Group của nó để chọn thẳng nhóm đó trong SX Settings. Bế tắc kiểu "không tìm thấy
+    sản phẩm nào" mà không nói vì sao là bế tắc không lối ra.
     """
     guard_card("nhapkhotp")
     rows = [
         {"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or ""}
-        for i in frappe.get_all(
-            "Item", filters={"custom_sx_nhom": "TP", "disabled": 0},
-            fields=["name", "item_name", "stock_uom"], order_by="item_name",
-        )
+        for i in items_tp()
     ]
     if rows:
         return {"rows": rows, "goi_y": []}
 
     co_bom = frappe.get_all(
         "BOM", filters={"is_active": 1, "docstatus": 1}, pluck="item", distinct=True)
+    da_chon = set(nhom_tp())
     goi_y = [
         {"item": i.name, "ten": i.item_name or i.name,
-         "nhom": i.custom_sx_nhom or ""}
+         "nhom": i.item_group or "", "nhom_sx": i.custom_sx_nhom or ""}
         for i in frappe.get_all(
             "Item", filters={"name": ("in", co_bom or [""]), "disabled": 0},
-            fields=["name", "item_name", "custom_sx_nhom"], order_by="item_name",
+            fields=["name", "item_name", "item_group", "custom_sx_nhom"],
+            order_by="item_group, item_name",
         )
-        if (i.custom_sx_nhom or "") != "TP"
+        if (i.custom_sx_nhom or "") != "TP" and (i.item_group or "") not in da_chon
     ]
-    return {"rows": [], "goi_y": goi_y[:40]}
+    # Gom theo Item Group: chọn MỘT nhóm trong SX Settings là xong cả cụm, nên phải
+    # cho người dùng thấy cụm chứ không phải danh sách Item rời rạc.
+    cum = {}
+    for g in goi_y:
+        cum.setdefault(g["nhom"] or "(chưa có nhóm hàng)", []).append(g["ten"])
+    return {
+        "rows": [],
+        "goi_y": [{"nhom": k, "so_item": len(v), "vi_du": v[:3]}
+                  for k, v in sorted(cum.items(), key=lambda x: -len(x[1]))][:20],
+    }
 
 
 @frappe.whitelist()

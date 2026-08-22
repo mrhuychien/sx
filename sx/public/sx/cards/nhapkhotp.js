@@ -35,21 +35,24 @@ export async function render({ container, call, refresh, boot }) {
 // phẩm nào" là bế tắc không lối ra — người dùng không thể đoán rằng thiếu một field
 // trên Item.
 function veTrongDanhMuc(goi_y) {
-  return `<div class="sx-error-box">Danh mục thành phẩm đang TRỐNG nên chưa nhập kho được.
+  return `<div class="sx-error-box">Chưa khai báo thành phẩm nên chưa nhập kho được.
 
-Item thành phẩm phải gắn nhóm SX = TP: mở Item trên Desk → trường "Nhóm SX" (custom_sx_nhom) = <b>TP</b>, và bỏ tick Disabled. Item cũng phải có BOM active thì mới nhập kho được.</div>`
+Cách nhanh nhất: mở <b>SX Settings → Nhóm hàng là thành phẩm</b> rồi chọn Item Group chứa thành phẩm — cả nhóm con tính theo, khỏi phải sửa từng Item.
+
+(Cách lẻ: mở từng Item đặt "Nhóm SX" = TP.)</div>`
     + ((goi_y && goi_y.length)
-      ? `<div class="sx-field-label">Item ĐÃ có BOM nhưng chưa gắn nhóm TP (${goi_y.length})</div>
+      ? `<div class="sx-field-label">Nhóm hàng đang có Item CÓ BOM (${goi_y.length})</div>
+         <div class="sx-muted">Nhóm nào chứa thành phẩm bán ra thì chọn nhóm đó trong
+           SX Settings.</div>
          <div class="sx-vh-list">${goi_y.map((g) => `
            <div class="sx-vh-row">
              <div class="sx-vh-who">
-               <div class="sx-vh-name">${esc(g.ten)}</div>
-               <div class="sx-vh-meta">${esc(g.item)}${
-                 g.nhom ? ` · đang là nhóm ${esc(g.nhom)}` : ' · chưa gắn nhóm'}</div>
+               <div class="sx-vh-name">${esc(g.nhom)}</div>
+               <div class="sx-vh-meta">${g.so_item} item · ${esc((g.vi_du || []).join(', '))}${
+                 g.so_item > (g.vi_du || []).length ? '…' : ''}</div>
              </div>
-           </div>`).join('')}</div>
-         <div class="sx-muted">Cái nào là thành phẩm bán ra thì đổi nhóm SX thành TP,
-           rồi quay lại màn này.</div>`
+             <span class="sx-nv-qty">${g.so_item}</span>
+           </div>`).join('')}</div>`
       : '');
 }
 
