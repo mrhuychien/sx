@@ -10,7 +10,7 @@ import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
-import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
+import { confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
 
 export async function render({ container, call, refresh, boot }) {
@@ -32,14 +32,22 @@ export async function render({ container, call, refresh, boot }) {
 
 // ───────────────────────────── chưa có phiếu nháp ─────────────────────────
 function veChuaCo(container, r, ganDay, call, refresh) {
+  const trong = !(r.danh_muc || []).length;
   container.innerHTML = `
     <div class="sx-field-label">Nhập kho thành phẩm</div>
-    <div class="sx-muted">Ghi hàng chuyển sang kho, thủ kho đếm lại rồi duyệt —
-      duyệt xong hàng mới vào <b>${esc(r.kho_tp)}</b>.</div>
-    <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-tao">
-      + LẬP PHIẾU NHẬP KHO</button>
+    ${trong
+      ? `<div class="sx-error-box">Danh mục thành phẩm đang TRỐNG nên không có gì để
+nhập kho.
+
+Item thành phẩm phải được đánh dấu là nhóm TP thì mới hiện ở đây: mở Item trên Desk,
+đặt "Nhóm SX" (custom_sx_nhom) = TP, và bỏ tick Disabled.</div>`
+      : `<div class="sx-muted">Ghi hàng chuyển sang kho, thủ kho đếm lại rồi duyệt —
+           duyệt xong hàng mới vào <b>${esc(r.kho_tp)}</b>.</div>
+         <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-tao">
+           + LẬP PHIẾU NHẬP KHO</button>`}
     ${veGanDay(ganDay)}
   `;
+  if (trong) return;
   container.querySelector('#sx-nk-tao').addEventListener('click', async (e) => {
     e.currentTarget.disabled = true;
     try {
@@ -68,11 +76,16 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         <div class="sx-vh-done-so" style="font-size:var(--sx-f-md)">${esc(p.ngay)}</div>
       </div>
     </div>
-    <div class="sx-vh-hang2">
-      <button type="button" class="sx-btn" id="sx-nk-them">+ THÊM SẢN PHẨM</button>
-      <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-quet">⌗ QUÉT HỘP</button>
-    </div>
     <div class="sx-vh-list" id="sx-nk-rows"></div>
+    <div class="sx-field-label">Chọn sản phẩm — bấm để nhập số</div>
+    ${danhMuc.length > 10
+      ? `<div class="sx-vh-tim-wrap">
+           <span class="sx-vh-tim-icon" aria-hidden="true">⌕</span>
+           <input class="sx-textarea sx-vh-search" id="sx-nk-tim" type="search"
+             aria-label="Tìm sản phẩm" placeholder="Tìm trong ${danhMuc.length} sản phẩm">
+         </div>` : ''}
+    <div class="sx-sp-grid" id="sx-nk-dm"></div>
+    <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-quet">⌗ QUÉT HỘP</button>
     ${p.duoc_duyet
       ? `<div class="sx-muted">Thủ kho: đếm thật rồi sửa số cho khớp —
            <b>số đếm là số vào kho</b>.</div>
@@ -135,7 +148,31 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     container.querySelector('#sx-nk-tong').textContent = formatNumber(tong);
     container.querySelector('#sx-nk-lech').textContent =
       (laThuKho && lech) ? `lệch ${lech > 0 ? '+' : ''}${formatNumber(lech)} so với phiếu` : '';
+    veDanhMuc();
   }
+
+  // Lưới sản phẩm hiện THẲNG trên màn, không giấu sau một nút: đây là việc chính
+  // của màn này, mà giấu đi thì người dùng mở phiếu ra thấy trống trơn.
+  // Sản phẩm đã ghi tô nền mùa kèm số — bấm lại là sửa.
+  const oTim = container.querySelector('#sx-nk-tim');
+  function veDanhMuc() {
+    const q = (oTim ? oTim.value : '').toLowerCase().trim();
+    const khop = danhMuc.filter((d) => !q || d.ten.toLowerCase().includes(q)
+      || d.item.toLowerCase().includes(q));
+    const grid = container.querySelector('#sx-nk-dm');
+    grid.innerHTML = khop.length
+      ? khop.map((d) => {
+        const co = rows.find((x) => x.item === d.item);
+        return `<button type="button" class="sx-sp-chip${co ? ' sx-sp-chip-on' : ''}"
+          data-item="${esc(d.item)}">${esc(d.ten)}${
+          co ? ` · ${formatNumber(co.so_dem)}` : ''}</button>`;
+      }).join('')
+      : '<div class="sx-muted">Không tìm thấy sản phẩm nào.</div>';
+    grid.querySelectorAll('[data-item]').forEach((b) => {
+      b.addEventListener('click', () => themItem(b.dataset.item));
+    });
+  }
+  if (oTim) oTim.addEventListener('input', veDanhMuc);
   ve();
 
   function themItem(item) {
@@ -154,9 +191,6 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       },
     });
   }
-
-  container.querySelector('#sx-nk-them').addEventListener('click',
-    () => chonSanPham(danhMuc, themItem));
 
   container.querySelector('#sx-nk-quet').addEventListener('click', () => moQuet({
     ma_quet: boot && boot.ma_quet, loai: 'sp',
@@ -223,33 +257,6 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       });
     });
   }
-}
-
-// Chọn sản phẩm: có ô tìm vì danh mục TP có thể vài chục dòng
-function chonSanPham(danhMuc, onPick) {
-  const m = openModal({ kicker: 'Nhập kho', title: 'Chọn sản phẩm' });
-  m.body.innerHTML = `
-    <input class="sx-textarea" id="sx-nk-tim" autocomplete="off"
-      placeholder="Tìm trong ${danhMuc.length} sản phẩm…">
-    <div id="sx-nk-ds"></div>
-  `;
-  const ds = m.body.querySelector('#sx-nk-ds');
-  const tim = m.body.querySelector('#sx-nk-tim');
-  function ve(q) {
-    q = (q || '').toLowerCase().trim();
-    const khop = danhMuc.filter((d) => !q || d.ten.toLowerCase().includes(q)
-      || d.item.toLowerCase().includes(q));
-    ds.innerHTML = khop.length
-      ? '<div class="sx-sp-grid">' + khop.map((d) =>
-        `<button type="button" class="sx-sp-chip sx-nk-pick" data-item="${esc(d.item)}"
-          >${esc(d.ten)}</button>`).join('') + '</div>'
-      : '<div class="sx-muted">Không tìm thấy sản phẩm nào.</div>';
-    ds.querySelectorAll('.sx-nk-pick').forEach((b) => {
-      b.addEventListener('click', () => { m.close(); onPick(b.dataset.item); });
-    });
-  }
-  tim.addEventListener('input', () => ve(tim.value));
-  ve('');
 }
 
 function veGanDay(ds) {

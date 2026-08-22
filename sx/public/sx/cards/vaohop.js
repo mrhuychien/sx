@@ -195,15 +195,19 @@ export async function render({ container, boot, call, ensureNgay }) {
   if (!daChot) {
   }
 
-  // Mở bằng blob thay vì điều hướng: giữ nguyên trang đang nhập liệu (QC hay bị
-  // ngắt quãng), và chạy được cả khi mất mạng vì HTML đã nằm trong tay client.
+  // QR vẽ NGAY TRÊN MÁY (D63): server chỉ trả danh sách tên + mã. Nạp bộ sinh QR
+  // trễ để ai không in thẻ thì không phải tải nó.
   container.querySelector('#sx-vh-inthe').addEventListener('click', async (e) => {
     e.currentTarget.disabled = true;
     try {
-      const html = await call('sx.api.the.the_nhan_vien');
-      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-      if (!window.open(url, '_blank')) toastErr('Trình duyệt chặn cửa sổ mới — cho phép pop-up rồi thử lại.');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      const ds = await call('sx.api.the.danh_sach_the');
+      if (!ds || !ds.length) { toastErr('Chưa có công nhân nào để in thẻ.'); }
+      else {
+        const { moTrangInThe } = await import('/assets/sx/sx/lib/inthe.js');
+        if (!moTrangInThe(ds)) {
+          toastErr('Trình duyệt chặn cửa sổ mới — cho phép pop-up rồi thử lại.');
+        }
+      }
     } catch (err) { toastErr(err.message); }
     e.target.disabled = false;
   });
