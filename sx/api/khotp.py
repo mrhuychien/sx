@@ -31,14 +31,36 @@ from sx.utils import get_settings
 
 @frappe.whitelist()
 def danh_muc_tp():
-    """Danh mục thành phẩm để chọn khi lập phiếu, kèm mã vạch để quét."""
+    """Thành phẩm chọn được khi lập phiếu = Item nhóm TP.
+
+    Rỗng thì kèm `goi_y`: những Item CÓ BOM active mà chưa gắn nhóm SX. Bế tắc kiểu
+    "không tìm thấy sản phẩm nào" mà không nói vì sao là bế tắc không lối ra — người
+    dùng không thể đoán rằng thiếu một field trên Item. Liệt kê thẳng ứng viên ra thì
+    thành một danh sách việc phải làm.
+    """
     guard_card("nhapkhotp")
-    ds = frappe.get_all(
-        "Item", filters={"custom_sx_nhom": "TP", "disabled": 0},
-        fields=["name", "item_name", "stock_uom"], order_by="item_name",
-    )
-    return [{"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or ""}
-            for i in ds]
+    rows = [
+        {"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or ""}
+        for i in frappe.get_all(
+            "Item", filters={"custom_sx_nhom": "TP", "disabled": 0},
+            fields=["name", "item_name", "stock_uom"], order_by="item_name",
+        )
+    ]
+    if rows:
+        return {"rows": rows, "goi_y": []}
+
+    co_bom = frappe.get_all(
+        "BOM", filters={"is_active": 1, "docstatus": 1}, pluck="item", distinct=True)
+    goi_y = [
+        {"item": i.name, "ten": i.item_name or i.name,
+         "nhom": i.custom_sx_nhom or ""}
+        for i in frappe.get_all(
+            "Item", filters={"name": ("in", co_bom or [""]), "disabled": 0},
+            fields=["name", "item_name", "custom_sx_nhom"], order_by="item_name",
+        )
+        if (i.custom_sx_nhom or "") != "TP"
+    ]
+    return {"rows": [], "goi_y": goi_y[:40]}
 
 
 @frappe.whitelist()
@@ -49,10 +71,12 @@ def phieu_dang_mo():
     if not settings.get("kho_tp"):
         frappe.throw(_("SX Settings chưa cấu hình Kho TP."))
     nhap = frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")
+    dm = danh_muc_tp()
     return {
         "nhap": chi_tiet_phieu(nhap) if nhap else None,
         "kho_tp": settings.kho_tp,
-        "danh_muc": danh_muc_tp(),
+        "danh_muc": dm["rows"],
+        "goi_y": dm["goi_y"],
         "duoc_duyet": _duoc_duyet(),
     }
 

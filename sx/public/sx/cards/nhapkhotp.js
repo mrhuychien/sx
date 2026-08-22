@@ -31,16 +31,34 @@ export async function render({ container, call, refresh, boot }) {
 }
 
 // ───────────────────────────── chưa có phiếu nháp ─────────────────────────
+// Danh mục TP rỗng: nói rõ phải làm gì VÀ liệt kê ứng viên. "Không tìm thấy sản
+// phẩm nào" là bế tắc không lối ra — người dùng không thể đoán rằng thiếu một field
+// trên Item.
+function veTrongDanhMuc(goi_y) {
+  return `<div class="sx-error-box">Danh mục thành phẩm đang TRỐNG nên chưa nhập kho được.
+
+Item thành phẩm phải gắn nhóm SX = TP: mở Item trên Desk → trường "Nhóm SX" (custom_sx_nhom) = <b>TP</b>, và bỏ tick Disabled. Item cũng phải có BOM active thì mới nhập kho được.</div>`
+    + ((goi_y && goi_y.length)
+      ? `<div class="sx-field-label">Item ĐÃ có BOM nhưng chưa gắn nhóm TP (${goi_y.length})</div>
+         <div class="sx-vh-list">${goi_y.map((g) => `
+           <div class="sx-vh-row">
+             <div class="sx-vh-who">
+               <div class="sx-vh-name">${esc(g.ten)}</div>
+               <div class="sx-vh-meta">${esc(g.item)}${
+                 g.nhom ? ` · đang là nhóm ${esc(g.nhom)}` : ' · chưa gắn nhóm'}</div>
+             </div>
+           </div>`).join('')}</div>
+         <div class="sx-muted">Cái nào là thành phẩm bán ra thì đổi nhóm SX thành TP,
+           rồi quay lại màn này.</div>`
+      : '');
+}
+
 function veChuaCo(container, r, ganDay, call, refresh) {
   const trong = !(r.danh_muc || []).length;
   container.innerHTML = `
     <div class="sx-field-label">Nhập kho thành phẩm</div>
     ${trong
-      ? `<div class="sx-error-box">Danh mục thành phẩm đang TRỐNG nên không có gì để
-nhập kho.
-
-Item thành phẩm phải được đánh dấu là nhóm TP thì mới hiện ở đây: mở Item trên Desk,
-đặt "Nhóm SX" (custom_sx_nhom) = TP, và bỏ tick Disabled.</div>`
+      ? veTrongDanhMuc(r.goi_y)
       : `<div class="sx-muted">Ghi hàng chuyển sang kho, thủ kho đếm lại rồi duyệt —
            duyệt xong hàng mới vào <b>${esc(r.kho_tp)}</b>.</div>
          <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-tao">
@@ -73,11 +91,13 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       </div>
       <div class="sx-vh-done">
         <div class="sx-field-label">Ngày nhận</div>
-        <div class="sx-vh-done-so" style="font-size:var(--sx-f-md)">${esc(p.ngay)}</div>
+        <div class="sx-vh-done-so" style="font-size:var(--sx-f-md)">${esc(veNgay(p.ngay))}</div>
       </div>
     </div>
     <div class="sx-vh-list" id="sx-nk-rows"></div>
-    <div class="sx-field-label">Chọn sản phẩm — bấm để nhập số</div>
+    ${danhMuc.length
+      ? '<div class="sx-field-label">Chọn sản phẩm — bấm để nhập số</div>'
+      : veTrongDanhMuc(r.goi_y)}
     ${danhMuc.length > 10
       ? `<div class="sx-vh-tim-wrap">
            <span class="sx-vh-tim-icon" aria-hidden="true">⌕</span>
@@ -119,7 +139,8 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
             aria-label="Bỏ dòng ${esc(x.ten || x.item)}">✕</button>
         </div>`;
       }).join('')
-      : '<div class="sx-muted">Chưa có dòng nào. Bấm THÊM SẢN PHẨM hoặc quét hộp.</div>';
+      : `<div class="sx-muted">Chưa ghi sản phẩm nào — chọn ở lưới bên dưới${
+        danhMuc.length ? ', hoặc quét hộp' : ''}.</div>`;
 
     box.querySelectorAll('.sx-vh-sl').forEach((b) => {
       const x = rows[Number(b.dataset.i)];
@@ -160,6 +181,7 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     const khop = danhMuc.filter((d) => !q || d.ten.toLowerCase().includes(q)
       || d.item.toLowerCase().includes(q));
     const grid = container.querySelector('#sx-nk-dm');
+    if (!danhMuc.length) { grid.innerHTML = ''; return; }
     grid.innerHTML = khop.length
       ? khop.map((d) => {
         const co = rows.find((x) => x.item === d.item);
@@ -259,6 +281,12 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   }
 }
 
+// "2026-08-22" -> "22/08" — người ở xưởng đọc ngày kiểu này, không đọc ISO
+function veNgay(iso) {
+  const d = String(iso || '').split('-');
+  return d.length === 3 ? `${d[2]}/${d[1]}` : String(iso || '');
+}
+
 function veGanDay(ds) {
   if (!ds || !ds.length) return '';
   return `
@@ -267,7 +295,7 @@ function veGanDay(ds) {
       <div class="sx-vh-row">
         <div class="sx-vh-who">
           <div class="sx-vh-name">${esc(g.name)}</div>
-          <div class="sx-vh-meta">${esc(g.ngay)} · ${esc(g.nguoi_duyet || '')}${
+          <div class="sx-vh-meta">${esc(veNgay(g.ngay))} · ${esc(g.nguoi_duyet || '')}${
             g.tong_lech ? ` · lệch ${g.tong_lech > 0 ? '+' : ''}${formatNumber(g.tong_lech)}` : ''}</div>
         </div>
         <span class="sx-nv-qty">${formatNumber(g.tong_dem)}</span>
