@@ -38,19 +38,22 @@ function veChoLap(container, r, ganDay, call, refresh) {
   container.innerHTML = `
     <div class="sx-field-label">Nhập kho thành phẩm</div>
     ${ds.length
-      ? `<div class="sx-muted">Ngày đã chốt Vào hộp, chờ lập phiếu nhận. Bấm để lập
-           phiếu nháp — thủ kho đếm lại rồi duyệt, duyệt xong hàng mới vào
+      ? `<div class="sx-muted">Hàng chưa nhập kho, theo bảng vào hộp từng ngày. Bấm
+           để lập phiếu nháp — thủ kho đếm lại rồi duyệt, duyệt xong hàng mới vào
            <b>${esc(r.kho_tp)}</b>.</div>
          <div class="sx-vh-list">${ds.map((d, i) => `
            <div class="sx-vh-row">
              <div class="sx-vh-who">
-               <div class="sx-vh-name">${esc(d.ngay)}</div>
-               <div class="sx-vh-meta">${formatNumber(d.tong)} sp · ${d.so_loai} loại</div>
+               <div class="sx-vh-name">${esc(d.ngay)}${d.da_chot
+                 ? '' : ' <span class="sx-badge sx-badge-run">bảng chưa chốt</span>'}</div>
+               <div class="sx-vh-meta">${formatNumber(d.tong)} sp · ${d.so_loai} loại${
+                 d.da_chot ? '' : ' · số còn có thể đổi'}</div>
              </div>
              <button type="button" class="sx-btn sx-nk-lap" data-i="${i}">LẬP PHIẾU</button>
            </div>`).join('')}</div>`
-      : `<div class="sx-muted">Chưa có ngày nào chờ nhận. Phiếu nhập kho lập từ
-           <b>bảng vào hộp đã chốt</b> — chốt Vào hộp xong thì ngày đó hiện ở đây.</div>`}
+      : `<div class="sx-muted">Không còn hàng nào chưa nhập kho. Phiếu lập từ
+           <b>bảng vào hộp</b> — QC chấm được sản phẩm nào thì ngày đó hiện ở đây,
+           không cần chờ chốt Vào hộp.</div>`}
     ${veGanDay(ganDay)}
   `;
   container.querySelectorAll('.sx-nk-lap').forEach((b) => {
@@ -85,7 +88,11 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     </div>
     <div class="sx-muted">Duyệt xong hàng vào <b>${esc(p.kho_dich)}</b> · lập bởi
       ${esc(p.nguoi_lap || '')}. Bấm số để sửa theo đúng số ĐẾM ĐƯỢC.</div>
-    <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-quet">⌗ QUÉT HỘP ĐỂ TÌM DÒNG</button>
+    <div class="sx-vh-hang2">
+      <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-quet">⌗ QUÉT HỘP</button>
+      <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-lammoi"
+        title="Nạp lại số theo bảng vào hộp hiện tại">↻ LÀM MỚI SỐ THEO BẢNG</button>
+    </div>
     <div class="sx-vh-list" id="sx-nk-rows"></div>
     ${p.duoc_duyet
       ? `<button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-duyet">
@@ -152,6 +159,17 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       if (b) { b.scrollIntoView({ block: 'center' }); b.click(); }
     },
   }));
+
+  // Bảng vào hộp có thể đổi sau lúc lập phiếu (QC vẫn đang chấm). Nút này nạp lại
+  // cột "Theo bảng" mà GIỮ số đếm đã gõ — không phải xoá phiếu gõ lại từ đầu.
+  container.querySelector('#sx-nk-lammoi').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    try {
+      await call('sx.api.khotp.lam_moi_phieu', { name: p.name });
+      toast('Đã nạp lại số theo bảng vào hộp.');
+      refresh();
+    } catch (err) { e.target.disabled = false; toastErr(err.message); }
+  });
 
   const luu = () => call('sx.api.khotp.sua_phieu', {
     name: p.name,

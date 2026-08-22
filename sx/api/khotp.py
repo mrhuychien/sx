@@ -37,13 +37,21 @@ from sx.utils import get_settings
 
 
 def _bang_cua_ngay(ngay_sx):
+    """Bảng vào hộp của ngày — LẤY CẢ BẢN NHÁP (D60).
+
+    Không bắt phải chốt Vào hộp trước mới lập được phiếu nhập kho: chấm vào hộp và
+    nhận hàng là hai việc của hai người, hàng có thể được chuyển vào kho ngay giữa
+    ca. Chỗ nguy hiểm — số trên bảng còn đổi sau khi thủ kho cầm phiếu đi đếm — được
+    xử lý ở lúc DUYỆT (đối chiếu lại, lệch thì chặn), chứ không phải bằng cách cấm.
+    """
     ten = frappe.db.get_value(
-        "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": 1}, "name")
+        "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": ("<", 2)},
+        "name", order_by="docstatus desc")
     return frappe.get_doc("SX Bang Vao Hop", ten) if ten else None
 
 
 def _tong_theo_sku(bang):
-    """{item_tp: số hộp} từ bảng vào hộp đã chốt.
+    """{item_tp: số hộp} từ bảng vào hộp.
 
     Dòng KHÔNG gắn SKU bị bỏ qua: đó là loại công việc chưa gắn Item TP (D23), chỉ
     tính lương khoán chứ không sinh thành phẩm."""
@@ -54,9 +62,42 @@ def _tong_theo_sku(bang):
     return ra
 
 
+def _da_nhan(ngay_sx):
+    """{item: số hộp ĐÃ vào kho} của ngày — cộng theo cột "Theo bảng" của phiếu ĐÃ
+    DUYỆT, vì chính cột đó là số Work Order đã chạy.
+
+    Có nó thì nhận NHIỀU LẦN trong ngày mới đúng: đóng được bao nhiêu chuyển bấy
+    nhiêu, phiếu sau chỉ lấy phần CÒN LẠI, không nhập trùng phần đã nhận."""
+    ra = {}
+    for name in frappe.get_all(
+        "SX Phieu Nhap TP", filters={"ngay_sx": ngay_sx, "docstatus": 1}, pluck="name"
+    ):
+        for r in frappe.get_all(
+            "SX Phieu Nhap TP Item", filters={"parent": name},
+            fields=["item", "so_theo_so"],
+        ):
+            ra[r.item] = ra.get(r.item, 0) + flt(r.so_theo_so)
+    return ra
+
+
+def _con_lai(ngay_sx):
+    """{item: số hộp chưa nhập kho} = bảng vào hộp − đã nhận."""
+    bang = _bang_cua_ngay(ngay_sx)
+    if not bang:
+        return {}, None
+    tong = _tong_theo_sku(bang)
+    da = _da_nhan(ngay_sx)
+    con = {}
+    for item, so in tong.items():
+        du = flt(so) - flt(da.get(item, 0))
+        if du > 1e-6:
+            con[item] = du
+    return con, bang
+
+
 @frappe.whitelist()
 def cho_lap_phieu(ngay_sx=None):
-    """Ngày đã chốt Vào hộp mà CHƯA có phiếu nhập kho -> số liệu để lập phiếu nháp."""
+    """Ngày còn hàng chưa nhập kho -> số liệu để lập phiếu nháp."""
     guard_card("nhapkhotp")
     settings = get_settings()
     if not settings.get("kho_tp"):
@@ -68,30 +109,19 @@ def cho_lap_phieu(ngay_sx=None):
         return {"nhap": chi_tiet_phieu(nhap.name), "kho_tp": settings.kho_tp,
                 "cho_lap": [], "duoc_duyet": _duoc_duyet()}
 
-    # Ngày nào đã chốt Vào hộp mà chưa có phiếu -> mời lập. Quét 30 ngày gần đây
-    # cho trường hợp bỏ quên vài hôm, nhưng ngày mới nhất luôn đứng đầu.
-    da_co = {
-        r.ngay_sx for r in frappe.get_all(
-            "SX Phieu Nhap TP", filters={"docstatus": ("<", 2)}, fields=["ngay_sx"])
-        if r.ngay_sx
-    }
     cho = []
     for d in frappe.get_all(
         "SX Ngay San Xuat",
-        filters={"chot_vaohop": 1, "docstatus": ("<", 2)},
-        fields=["name", "ngay"], order_by="ngay desc", limit=30,
+        filters={"docstatus": ("<", 2)},
+        fields=["name", "ngay", "chot_vaohop"], order_by="ngay desc", limit=30,
     ):
-        if d.name in da_co:
-            continue
-        bang = _bang_cua_ngay(d.name)
-        if not bang:
-            continue
-        tong = _tong_theo_sku(bang)
-        if not tong:
+        con, _bang = _con_lai(d.name)
+        if not con:
             continue
         cho.append({
             "ngay_sx": d.name, "ngay": str(d.ngay),
-            "tong": sum(tong.values()), "so_loai": len(tong),
+            "tong": sum(con.values()), "so_loai": len(con),
+            "da_chot": cint(d.chot_vaohop),
         })
     return {"nhap": None, "kho_tp": settings.kho_tp, "cho_lap": cho,
             "duoc_duyet": _duoc_duyet()}
@@ -99,11 +129,14 @@ def cho_lap_phieu(ngay_sx=None):
 
 @frappe.whitelist()
 def tao_phieu_nhap(ngay_sx, ghi_chu=None):
-    """QC lập PHIẾU NHÁP từ bảng vào hộp ĐÃ CHỐT của một ngày.
+    """QC lập PHIẾU NHÁP cho phần hàng của một ngày CHƯA nhập kho.
 
-    Bắt buộc ngày phải chốt Vào hộp trước: chưa chốt thì con số còn đổi được, mà
-    thủ kho lại đang cầm phiếu đi đếm theo con số đó.
-    Mỗi lúc chỉ MỘT phiếu nháp — hai phiếu cùng lúc thì duyệt cái sau sẽ đè nhầm.
+    Không bắt ngày phải chốt Vào hộp trước (D60) — chấm vào hộp và nhận hàng là hai
+    việc của hai người. Bù lại, lúc DUYỆT sẽ đối chiếu lại với bảng: bảng đổi sau
+    khi lập phiếu thì chặn, để thủ kho không bao giờ duyệt theo số cũ.
+
+    Mỗi ngày chỉ MỘT phiếu nháp; nhận nhiều lần trong ngày thì duyệt phiếu này rồi
+    lập phiếu tiếp cho phần còn lại.
     """
     guard_card("nhapkhotp")
     settings = get_settings()
@@ -111,33 +144,26 @@ def tao_phieu_nhap(ngay_sx, ghi_chu=None):
         frappe.throw(_("SX Settings chưa cấu hình Kho TP."))
 
     ngay = frappe.db.get_value(
-        "SX Ngay San Xuat", ngay_sx, ["name", "ngay", "chot_vaohop", "docstatus"],
-        as_dict=True)
+        "SX Ngay San Xuat", ngay_sx, ["name", "ngay", "docstatus"], as_dict=True)
     if not ngay:
         frappe.throw(_("Không tìm thấy phiếu ngày {0}.").format(ngay_sx))
-    if not (cint(ngay.chot_vaohop) or ngay.docstatus == 1):
-        frappe.throw(
-            _("Ngày {0} chưa chốt Vào hộp. Chốt xong hãy lập phiếu nhập kho — chưa "
-              "chốt thì con số còn đổi được, mà thủ kho lại đang đếm theo con số đó.")
-            .format(frappe.utils.formatdate(ngay.ngay))
-        )
-    trung = frappe.db.get_value(
-        "SX Phieu Nhap TP", {"ngay_sx": ngay_sx, "docstatus": ("<", 2)}, "name")
-    if trung:
-        frappe.throw(_("Ngày này đã có phiếu {0}.").format(trung))
-    nhap = frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")
+    if ngay.docstatus == 2:
+        frappe.throw(_("Phiếu ngày {0} đã huỷ.").format(ngay_sx))
+    nhap = frappe.db.get_value(
+        "SX Phieu Nhap TP", {"ngay_sx": ngay_sx, "docstatus": 0}, "name")
     if nhap:
-        frappe.throw(
-            _("Đang có phiếu nháp {0} chưa duyệt. Duyệt hoặc xoá phiếu đó trước.")
-            .format(nhap)
-        )
+        frappe.throw(_("Ngày này đang có phiếu nháp {0} chưa duyệt.").format(nhap))
 
-    bang = _bang_cua_ngay(ngay_sx)
-    tong = _tong_theo_sku(bang) if bang else {}
-    if not tong:
+    con, bang = _con_lai(ngay_sx)
+    if not bang:
         frappe.throw(
-            _("Bảng vào hộp ngày {0} không có dòng nào gắn sản phẩm — không có "
-              "thành phẩm để nhập kho.").format(frappe.utils.formatdate(ngay.ngay))
+            _("Ngày {0} chưa có bảng vào hộp.").format(
+                frappe.utils.formatdate(ngay.ngay))
+        )
+    if not con:
+        frappe.throw(
+            _("Ngày {0} không còn hàng chưa nhập kho — bảng vào hộp trống, hoặc "
+              "phiếu trước đã nhận hết.").format(frappe.utils.formatdate(ngay.ngay))
         )
 
     doc = frappe.new_doc("SX Phieu Nhap TP")
@@ -146,11 +172,34 @@ def tao_phieu_nhap(ngay_sx, ghi_chu=None):
     doc.kho_dich = settings.kho_tp
     doc.nguoi_lap = frappe.session.user
     doc.ghi_chu = ghi_chu
-    for item, so in sorted(tong.items(), key=lambda x: -x[1]):
+    for item, so in sorted(con.items(), key=lambda x: -x[1]):
         # Điền sẵn số đếm = số theo bảng: phần lớn khớp, thủ kho chỉ sửa chỗ lệch.
         doc.append("dong", {"item": item, "so_theo_so": so, "so_dem": so})
     doc.flags.ignore_permissions = True
     doc.insert()
+    return chi_tiet_phieu(doc.name)
+
+
+@frappe.whitelist()
+def lam_moi_phieu(name):
+    """Nạp lại cột "Theo bảng" theo bảng vào hộp HIỆN TẠI (giữ số đếm đã gõ).
+
+    Dùng khi bảng đổi sau lúc lập phiếu — thay vì bắt xoá phiếu rồi gõ lại từ đầu.
+    """
+    guard_card("nhapkhotp")
+    doc = frappe.get_doc("SX Phieu Nhap TP", name)
+    if doc.docstatus != 0:
+        frappe.throw(_("Phiếu {0} đã duyệt — không làm mới được.").format(name))
+    con, _bang = _con_lai(doc.ngay_sx)
+    cu = {r.item: flt(r.so_dem) for r in doc.dong}
+    doc.set("dong", [])
+    for item, so in sorted(con.items(), key=lambda x: -x[1]):
+        # Số đếm cũ giữ lại nhưng KHÔNG vượt số bảng mới — bảng giảm xuống thì số
+        # đếm cũ có thể đã lớn hơn phần còn lại.
+        doc.append("dong", {"item": item, "so_theo_so": so,
+                            "so_dem": min(cu.get(item, so), so)})
+    doc.flags.ignore_permissions = True
+    doc.save()
     return chi_tiet_phieu(doc.name)
 
 

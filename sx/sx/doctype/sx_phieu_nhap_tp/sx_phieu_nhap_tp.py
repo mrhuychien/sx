@@ -47,10 +47,41 @@ class SXPhieuNhapTP(Document):
     def before_submit(self):
         if not any(flt(r.so_dem) > 0 for r in self.dong):
             frappe.throw(_("Chưa có dòng nào đếm được số > 0 — không duyệt phiếu rỗng."))
+        self.doi_chieu_bang()
         self.kiem_ton_nguyen_lieu()
         self.nguoi_duyet = frappe.session.user
         self.duyet_luc = now_datetime()
         self.trang_thai = "Đã duyệt"
+
+    def doi_chieu_bang(self):
+        """Cột "Theo bảng" phải KHỚP bảng vào hộp tại THỜI ĐIỂM DUYỆT (D60).
+
+        Phiếu được phép lập khi bảng chưa chốt, nên giữa lúc lập và lúc duyệt QC có
+        thể đã chấm thêm hoặc sửa. Duyệt theo số cũ nghĩa là Work Order chạy sai số
+        và nguyên liệu trừ sai — mà không ai phát hiện, vì phiếu vẫn "đẹp".
+        Chặn ở đây và chỉ thẳng nút Làm mới, thay vì cấm lập phiếu sớm.
+        """
+        from sx.api.khotp import _con_lai
+
+        con, bang = _con_lai(self.ngay_sx)
+        if not bang:
+            frappe.throw(_("Ngày {0} không còn bảng vào hộp.").format(self.ngay_sx))
+        lech = []
+        for r in self.dong:
+            gio = flt(con.get(r.item, 0))
+            if abs(gio - flt(r.so_theo_so)) > 1e-6:
+                lech.append(_("• {0}: phiếu ghi {1}, bảng hiện tại còn {2}").format(
+                    r.ten or r.item, flt(r.so_theo_so, 0), flt(gio, 0)))
+        for item, so in con.items():
+            if not any(r.item == item for r in self.dong):
+                lech.append(_("• {0}: bảng có thêm {1}, phiếu chưa có dòng này").format(
+                    item, flt(so, 0)))
+        if lech:
+            frappe.throw(
+                _("Bảng vào hộp đã thay đổi từ lúc lập phiếu:") + "<br>"
+                + "<br>".join(lech)
+                + "<br><br>" + _("Bấm LÀM MỚI SỐ THEO BẢNG rồi đếm lại phần chênh.")
+            )
 
     def kiem_ton_nguyen_lieu(self):
         """Kiểm đủ bột + bao bì TRƯỚC khi sinh chứng từ (D59).
