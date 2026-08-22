@@ -45,7 +45,7 @@ def _da_bat(settings=None):
     rơi về Kho Xưởng — vốn đã khác Kho TP — nên phép so đó luôn đúng và màn hình
     hiện ra RỖNG KHÔNG LÝ DO. Mà tầng 3 lại đọc CHÍNH field này để quyết định nhập
     TP vào đâu (chot._chot_tang_3), nên field rỗng nghĩa là TP đi thẳng vào Kho TP
-    và khu đóng gói vĩnh viễn không có gì để nhận. Một field, một sự thật.
+    và kho Chờ nhận vĩnh viễn không có gì để nhận. Một field, một sự thật.
     """
     settings = settings or get_settings()
     return bool(settings.get("kho_tp_cho_nhan"))
@@ -82,8 +82,50 @@ def ton_cho_nhap():
 
 
 @frappe.whitelist()
+def bat_buoc_nhan():
+    """BẬT bước nhận bằng MỘT NÚT: tự tạo kho "Chờ nhận TP" rồi ghi vào SX Settings.
+
+    Vì sao vẫn phải có một kho riêng, dù nghiệp vụ nghe như "nhập kho độc lập":
+    Kho TP xuất bán liên tục. Nếu thành phẩm vào thẳng Kho TP ngay lúc chốt, thì
+    đến lúc thủ kho đi đếm, con số đã bị trộn với hàng vừa xuất bán — không tách
+    được "hộp lỗi" với "đã bán", mà cái nhầm đó ăn thẳng vào giá vốn. Hàng chỉ
+    được vào Kho TP đúng lúc thủ kho DUYỆT, nên trước đó nó phải nằm ở đâu đó.
+
+    "Chờ nhận TP" không phải một cái kho mới ngoài đời — nó là TRẠNG THÁI "đã đóng
+    xong, chưa ai nhận", ghi trong sổ. Không ai phải dọn chỗ hay đi lại thêm bước nào.
+    """
+    guard_card("nhapkhotp")
+    settings = get_settings()
+    if settings.get("kho_tp_cho_nhan"):
+        return {"kho": settings.kho_tp_cho_nhan, "da_co": True}
+    if not settings.get("kho_tp"):
+        frappe.throw(_("SX Settings chưa cấu hình Kho TP."))
+
+    tp = frappe.get_doc("Warehouse", settings.kho_tp)
+    ten = _("Chờ nhận TP")
+    # Đặt CÙNG CẤP với Kho TP (chung parent) chứ không lồng bên trong: lồng vào thì
+    # tồn của nó cộng vào tổng Kho TP trong mọi báo cáo — đúng cái nhầm đang tránh.
+    kho = frappe.db.get_value(
+        "Warehouse", {"warehouse_name": ten, "company": tp.company}, "name")
+    if not kho:
+        w = frappe.new_doc("Warehouse")
+        w.warehouse_name = ten
+        w.company = tp.company
+        w.parent_warehouse = tp.parent_warehouse
+        w.is_group = 0
+        w.flags.ignore_permissions = True
+        w.insert()
+        kho = w.name
+
+    settings.kho_tp_cho_nhan = kho
+    settings.flags.ignore_permissions = True
+    settings.save()
+    return {"kho": kho, "da_co": False}
+
+
+@frappe.whitelist()
 def tao_phieu_nhap(rows=None, ngay=None, ghi_chu=None):
-    """Lập PHIẾU NHÁP từ hàng đang chờ ở khu đóng gói.
+    """Lập PHIẾU NHÁP từ hàng đang chờ ở kho Chờ nhận.
 
     `rows` bỏ trống -> lấy trọn hàng đang chờ, điền sẵn số đếm = số theo sổ (phần
     lớn khớp; thủ kho chỉ sửa chỗ lệch). Mỗi lúc chỉ cho MỘT phiếu nháp: hai phiếu
@@ -94,15 +136,14 @@ def tao_phieu_nhap(rows=None, ngay=None, ghi_chu=None):
     nguon, dich = _kho_nguon(settings), settings.kho_tp
     if not _da_bat(settings):
         frappe.throw(
-            _("Chưa bật bước nhận kho: SX Settings → 'Kho nhận TP từ tầng 3' đang "
-              "để trống nên chốt ngày nhập thành phẩm THẲNG vào {0}, khu đóng gói "
-              "không có gì để nhận. Đặt field đó là kho khu đóng gói (khác Kho TP) "
-              "rồi chốt lại ngày.").format(dich)
+            _("Chưa bật bước nhận kho: thành phẩm đang vào thẳng {0} ngay lúc chốt. "
+              "Bấm nút BẬT BƯỚC NHẬN trên màn Nhập kho (hoặc điền SX Settings → "
+              "'Kho nhận TP từ tầng 3'), rồi chốt Vào hộp lần sau.").format(dich)
         )
     if nguon == dich:
         frappe.throw(
             _("'Kho nhận TP từ tầng 3' đang đặt trùng Kho TP ({0}) nên không có gì "
-              "để chuyển. Phải là một kho KHÁC — kho khu đóng gói.").format(dich)
+              "để chuyển. Phải là một kho KHÁC — kho Chờ nhận.").format(dich)
         )
     nhap = frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")
     if nhap:
@@ -116,7 +157,8 @@ def tao_phieu_nhap(rows=None, ngay=None, ghi_chu=None):
     if not ds:
         ds = [{"item": k, "so_luong": v["cho_nhan"]} for k, v in cho.items()]
     if not ds:
-        frappe.throw(_("Khu đóng gói ({0}) không có hàng chờ nhận.").format(nguon))
+        frappe.throw(_("Không có hàng chờ nhận ở {0} — hôm nay chưa chốt Vào hộp, "
+                       "hoặc đã nhận hết.").format(nguon))
 
     doc = frappe.new_doc("SX Phieu Nhap TP")
     doc.ngay = ngay or nowdate()
@@ -196,7 +238,7 @@ def sua_phieu(name, rows, ghi_chu=None):
 
 @frappe.whitelist()
 def duyet_phieu(name):
-    """THỦ KHO duyệt: submit phiếu -> sinh phiếu kho chuyển khu đóng gói → Kho TP."""
+    """THỦ KHO duyệt: submit phiếu -> sinh phiếu kho chuyển kho Chờ nhận → Kho TP."""
     guard_card("nhapkhotp")
     if not _duoc_duyet():
         frappe.throw(
@@ -242,7 +284,7 @@ def _duoc_duyet():
 def phieu_sau_khi_chot(chot_luc):
     """Phiếu ĐÃ DUYỆT sinh sau mốc thời gian này — dùng để chặn huỷ chốt ngày.
 
-    Không so theo `ngay_sx` vì hàng ở khu đóng gói là hàng chung nhiều ngày, lấy ra
+    Không so theo `ngay_sx` vì hàng ở kho Chờ nhận là hàng chung nhiều ngày, lấy ra
     theo FIFO: phiếu nhận sau khi chốt ngày X thì CÓ THỂ đã lấy hàng của ngày X đi.
     Chặn theo thời gian là chặt hơn và không cần đoán.
     """

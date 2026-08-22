@@ -442,7 +442,7 @@ def _chot_tang_3(doc, bang, chung_tu):
         batch = tao_batch(sp, sinh_ma_lo(sp, doc.ngay), ngay_sx=doc.name)
         wo = tao_wo(
             settings.cong_ty, sp, so_hop, bom_sp,
-            # TP vào KHO CHỜ NHẬN (khu đóng gói) nếu có cấu hình — thủ kho nhận
+            # TP vào KHO CHỜ NHẬN nếu có cấu hình — thủ kho nhận
             # vào Kho TP bằng phiếu riêng (D51). Chưa cấu hình thì vào Kho TP như cũ.
             source_wh=settings.kho_nvl,
             fg_wh=(settings.get("kho_tp_cho_nhan") or settings.kho_tp),
@@ -996,10 +996,10 @@ def huy_chot_vaohop(ngay_sx, ly_do=None):
 def _chan_neu_da_nhap_kho(doc):
     """Thủ kho đã nhận hàng SAU khi chốt Vào hộp thì KHÔNG huỷ chốt được.
 
-    Huỷ chốt rút thành phẩm khỏi kho khu đóng gói; hàng đã chuyển sang Kho TP rồi
+    Huỷ chốt rút thành phẩm khỏi kho Chờ nhận; hàng đã chuyển sang Kho TP rồi
     thì kho đóng gói âm mà không ai biết. Đây chính là lỗ hổng của D51.
 
-    So theo THỜI GIAN chứ không theo ngày sản xuất: hàng ở khu đóng gói là hàng
+    So theo THỜI GIAN chứ không theo ngày sản xuất: hàng ở kho Chờ nhận là hàng
     chung của nhiều ngày và lấy ra theo FIFO, nên mọi phiếu nhận sau mốc chốt đều
     CÓ THỂ đã lấy hàng của ngày này đi. Chặt hơn, và không phải đoán.
     """
@@ -1010,6 +1010,6 @@ def _chan_neu_da_nhap_kho(doc):
         return
     frappe.throw(
         _("Thủ kho đã nhận thành phẩm của ngày này vào kho (phiếu {0}). Phải huỷ "
-          "phiếu nhận đó trước, nếu không kho khu đóng gói sẽ âm.").format(
+          "phiếu nhận đó trước, nếu không kho Chờ nhận sẽ âm.").format(
             ", ".join(ds))
     )

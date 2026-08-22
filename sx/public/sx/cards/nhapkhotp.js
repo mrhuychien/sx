@@ -1,7 +1,7 @@
 // Card Nhập kho thành phẩm (D51 → D56: NHÁP rồi DUYỆT).
 //
 // Hai tay, hai bước:
-//   1. Người ở xưởng LẬP PHIẾU NHÁP — điền sẵn số theo sổ (tồn ở khu đóng gói).
+//   1. Người ở xưởng LẬP PHIẾU NHÁP — điền sẵn số theo sổ (tồn ở kho Chờ nhận).
 //   2. THỦ KHO đi đếm thật, sửa số chỗ lệch, rồi DUYỆT. Duyệt mới sinh phiếu kho.
 //
 // Cả lý do tồn tại của màn này là có NGƯỜI THỨ HAI đếm lại. Vì vậy nút DUYỆT chỉ
@@ -40,21 +40,34 @@ async function veLapMoi(container, r, call, refresh) {
     return;
   }
 
-  // Chưa bật bước nhận -> NÓI RÕ phải làm gì. Trước đây chỉ bắt trường hợp trùng
-  // kho, mà chưa cấu hình thì kho nguồn rơi về Kho Xưởng (vốn khác Kho TP) nên
-  // lọt lưới: màn hình hiện "không còn hàng chờ nhận" — đúng chữ, vô dụng, vì
-  // nguyên nhân thật là tính năng chưa được bật chứ không phải hết hàng.
+  // Chưa bật bước nhận -> MỘT NÚT bật, không bắt đi Desk.
+  //
+  // Vì sao vẫn cần một kho "Chờ nhận": Kho TP xuất bán liên tục, nên nếu thành
+  // phẩm vào thẳng Kho TP lúc chốt thì đến lúc thủ kho đếm, con số đã trộn với
+  // hàng vừa bán — không tách được "hộp lỗi" với "đã xuất". Hàng chỉ vào Kho TP
+  // đúng lúc thủ kho DUYỆT, nên trước đó phải nằm ở một chỗ trong sổ.
   if (t.chua_bat || t.cung_kho) {
     container.innerHTML = `
       <div class="sx-field-label">Nhập kho thành phẩm</div>
-      <div class="sx-error-box">CHƯA BẬT BƯỚC NHẬN KHO.
+      <div class="sx-error-box">Chưa bật bước nhận.
 
-Chốt ngày đang nhập thành phẩm THẲNG vào ${esc(t.kho_dich)}, nên khu đóng gói không có gì để thủ kho nhận.
+Hiện thành phẩm vào thẳng ${esc(t.kho_dich)} ngay lúc chốt, nên thủ kho không có gì để nhận — mà Kho TP thì xuất bán liên tục, đếm lúc nào cũng lệch.
 
-Bật như sau:
-1. Desk → SX Settings → "Kho nhận TP từ tầng 3" = kho khu đóng gói (phải KHÁC ${esc(t.kho_dich)}).
-2. Chốt lại ngày (huỷ chốt Vào hộp rồi chốt lại) — từ lúc đó thành phẩm mới vào khu đóng gói.
-3. Quay lại màn này, bấm LẬP PHIẾU NHẬN.</div>`;
+Bật lên thì hàng nằm ở "Chờ nhận TP" cho tới khi thủ kho duyệt, duyệt xong mới vào ${esc(t.kho_dich)}.</div>
+      <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-bat">
+        BẬT BƯỚC NHẬN</button>
+      <div class="sx-muted">Tự tạo kho "Chờ nhận TP" (cùng cấp với ${esc(t.kho_dich)},
+        không cộng vào tồn Kho TP) và ghi vào SX Settings. Áp dụng từ lần
+        <b>chốt Vào hộp</b> kế tiếp; ngày đã chốt trước đó thì hàng đã nằm trong
+        ${esc(t.kho_dich)} rồi.</div>`;
+    container.querySelector('#sx-nk-bat').addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try {
+        const kq = await call('sx.api.khotp.bat_buoc_nhan');
+        toast(`Đã bật — hàng sẽ vào "${kq.kho}" trước khi thủ kho nhận.`);
+        refresh();
+      } catch (err) { e.target.disabled = false; toastErr(err.message); }
+    });
     return;
   }
 
@@ -82,8 +95,8 @@ Bật như sau:
            LẬP PHIẾU NHẬN</button>
          <div class="sx-muted">Phiếu lập ra ở dạng NHÁP. Thủ kho đếm lại rồi duyệt,
            duyệt xong hàng mới vào ${esc(t.kho_dich)}.</div>`
-      : `<div class="sx-muted">Khu đóng gói (${esc(t.kho_nguon)}) không còn hàng
-           chờ nhận.</div>`}
+      : `<div class="sx-muted">Không có hàng chờ nhận ở <b>${esc(t.kho_nguon)}</b>.
+           Hoặc hôm nay chưa chốt <b>Vào hộp</b>, hoặc thủ kho đã nhận hết rồi.</div>`}
     ${veGanDay(r.gan_day)}
   `;
   const btn = container.querySelector('#sx-nk-lap');
@@ -191,7 +204,7 @@ function vePhieu(container, r, call, refresh, boot) {
   if (btnHuy) {
     btnHuy.addEventListener('click', () => confirm2Step({
       title: 'Xoá phiếu nháp',
-      message: `Xoá phiếu ${p.name}. Hàng vẫn nằm nguyên ở khu đóng gói, `
+      message: `Xoá phiếu ${p.name}. Hàng vẫn nằm nguyên ở kho Chờ nhận, `
         + 'lập lại phiếu khác lúc nào cũng được.',
       confirmLabel: 'XOÁ PHIẾU',
       onConfirm: async () => {
@@ -213,7 +226,7 @@ function vePhieu(container, r, call, refresh, boot) {
         title: 'Duyệt phiếu nhận',
         message: `Nhận ${formatNumber(tong)} sản phẩm vào ${p.kho_dich}.`
           + (lech ? ` Lệch ${lech > 0 ? '+' : ''}${formatNumber(lech)} so với sổ — phần `
-            + 'chênh nằm lại khu đóng gói, kiểm kê sau.' : '')
+            + 'chênh nằm lại kho Chờ nhận, kiểm kê sau.' : '')
           + ' Duyệt xong phiếu kho được ghi; sửa thì phải huỷ phiếu.',
         confirmLabel: 'DUYỆT',
         onConfirm: async () => {

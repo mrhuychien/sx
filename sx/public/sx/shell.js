@@ -7,7 +7,7 @@ import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 
-const BUILD = 'sx-41';
+const BUILD = 'sx-42';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 

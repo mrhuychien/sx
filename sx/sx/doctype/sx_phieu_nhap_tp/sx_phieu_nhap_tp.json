@@ -21,7 +21,7 @@
    "options": "Nháp\nĐã duyệt\nĐã huỷ", "read_only": 1, "in_list_view": 1},
   {"fieldname": "column_break_head", "fieldtype": "Column Break"},
   {"fieldname": "kho_nguon", "fieldtype": "Link", "options": "Warehouse",
-   "label": "Kho chờ nhận (khu đóng gói)", "read_only": 1, "reqd": 1},
+   "label": "Kho chờ nhận", "read_only": 1, "reqd": 1},
   {"fieldname": "kho_dich", "fieldtype": "Link", "options": "Warehouse",
    "label": "Kho thành phẩm", "read_only": 1, "reqd": 1},
   {"fieldname": "section_dong", "fieldtype": "Section Break", "label": "Hàng nhận"},
