@@ -101,7 +101,7 @@ def chot_ghiso(ngay_sx):
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
     _kiem_chua_chot(doc, "ghiso")
     _validate_chung(doc)
-    _kiem_ton_kho(doc, None, get_settings())   # chỉ nhu cầu của tầng 2
+    _kiem_ton_kho(doc, get_settings())
 
     buoc = _("tầng 2 (nấu + trộn theo báo mẻ)")
     try:
@@ -128,17 +128,16 @@ def chot_ghiso(ngay_sx):
 
 @frappe.whitelist()
 def chot_vaohop(ngay_sx):
-    """Chốt nửa VÀO HỘP: bảng vào hộp -> tầng 3 (thành phẩm) -> lương khoán."""
+    """Chốt nửa VÀO HỘP: chốt bảng vào hộp + ghi lương khoán. KHÔNG đụng kho.
+
+    Từ D59 hai nửa THẬT SỰ độc lập, không còn bắt Ghi sổ phải chốt trước: tầng 3
+    không sinh ở đây nữa nên chốt Vào hộp chẳng cần bột của tầng 2 tồn tại. Ràng
+    buộc đó chuyển sang đúng chỗ nó thuộc về — lúc thủ kho DUYỆT phiếu nhập kho,
+    vì đó mới là lúc nguyên liệu bị trừ.
+    """
     guard_card("chotngay")
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
     _kiem_chua_chot(doc, "vaohop")
-    if not cint(doc.chot_ghiso):
-        frappe.throw(
-            _("Phải chốt GHI SỔ trước. Bột bánh / bột đậu của hôm nay sinh ra ở "
-              "bước đó; chốt Vào hộp trước thì tầng 3 không có nguyên liệu để trừ. "
-              "Hôm nay không nấu mẻ nào thì cứ bấm chốt Ghi sổ — đó là cách nói "
-              "'hôm nay không có mẻ'.")
-        )
     _validate_chung(doc)
     bang = _lay_bang(doc)
     if not _co_gi_de_ghi(bang):
@@ -150,7 +149,8 @@ def chot_vaohop(ngay_sx):
         # Controller lookup đơn giá khi save — save lại để chắc mọi dòng có giá
         bang.flags.ignore_permissions = True
         bang.save()
-    _kiem_ton_kho(doc, bang, get_settings(), chi_tang_3=True)
+    # KHÔNG kiểm tồn ở đây nữa (D59): chốt Vào hộp không đụng kho. Nguyên liệu chỉ
+    # bị trừ khi thủ kho duyệt phiếu nhập kho, và tồn được kiểm ở đúng lúc đó.
 
     buoc = _("submit bảng vào hộp")
     try:
@@ -158,15 +158,10 @@ def chot_vaohop(ngay_sx):
             bang.flags.ignore_permissions = True
             bang.submit()
 
-        buoc = _("tầng 3 (thành phẩm)")
-        chung_tu = []
-        _chot_tang_3(doc, bang, chung_tu)
-
         buoc = _("ghi phiếu lương khoán")
         ds_salary = _ghi_luong_khoan(doc, bang)
 
         buoc = _("ghi trạng thái chốt Vào hộp")
-        _ghi_chung_tu(doc, "ds_wo_se", chung_tu)
         doc.tong_hop_tp = cint(bang.tong_hop)
         doc.tong_luong_sp = flt(bang.tong_tien)
         doc.salary_products_json = json.dumps(ds_salary)
@@ -285,32 +280,18 @@ def _nhu_cau_bom(bom_name, qty_fg):
     return nhu_cau
 
 
-def _tong_hop_theo_sp(bang):
-    """Σ số hộp theo SKU. Dòng KHÔNG có SKU (loại công việc chưa gắn Item TP — D23)
-    chỉ tính lương khoán, không sinh lệnh SX tầng 3 nên bỏ qua ở đây."""
-    tong = {}
-    for r in bang.dong:
-        if not r.san_pham:
-            continue
-        tong[r.san_pham] = tong.get(r.san_pham, 0) + cint(r.so_hop)
-    return tong
+def _kiem_ton_kho(doc, settings):
+    """Kiểm đủ tồn nguyên liệu TRƯỚC khi sinh chứng từ tầng 2 (chốt Ghi sổ).
 
-
-def _kiem_ton_kho(doc, bang, settings, chi_tang_3=False):
-    """Kiểm đủ tồn TRƯỚC khi sinh chứng từ.
-
-    `chi_tang_3=True` (chốt Vào hộp): chỉ kiểm nhu cầu của tầng 3. Tầng 2 đã chốt
-    xong rồi, bột của nó ĐÃ nằm trong Bin — kiểm lại nhu cầu tầng 2 lúc này là
-    trừ hai lần cùng một lượng nguyên liệu và báo thiếu giả.
-    `bang=None` (chốt Ghi sổ): chỉ kiểm nhu cầu của tầng 2.
+    Chỉ tầng 2. Tầng 3 kiểm ở chỗ khác — lúc thủ kho duyệt phiếu nhập kho (D59) —
+    vì đó mới là lúc nguyên liệu của nó bị trừ.
 
     BTP sinh trong CÙNG lần chốt (bao_me) được cộng tín dụng (xấp xỉ — FIFO thật ở
     bước sinh sẽ bắt thiếu chính xác & rollback).
     """
     sx_hom_nay = {}
-    if not chi_tang_3:
-        for row in doc.bao_me:
-            sx_hom_nay[row.item_btp] = sx_hom_nay.get(row.item_btp, 0) + flt(row.tong_kg)
+    for row in doc.bao_me:
+        sx_hom_nay[row.item_btp] = sx_hom_nay.get(row.item_btp, 0) + flt(row.tong_kg)
     # KHÔNG cộng tín dụng bột "sắp nhập" nữa: từ D31 bột chỉ vào kho khi QC bấm
     # Nghiền trên lưu đồ. Cộng trước sẽ cho chốt qua rồi vỡ ở bước sinh SE.
 
@@ -322,21 +303,12 @@ def _kiem_ton_kho(doc, bang, settings, chi_tang_3=False):
     def _check(item_code, kho, can):
         can_tong[(item_code, kho)] = can_tong.get((item_code, kho), 0) + flt(can)
 
-    if not chi_tang_3:
-        for row in doc.bao_me:
-            bom = get_bom_active(row.item_btp)
-            if not bom:
-                frappe.throw(_("BTP {0} chưa có BOM active").format(row.item_btp))
-            for item_code, can in _nhu_cau_bom(bom, flt(row.tong_kg)).items():
-                _check(item_code, _kho_nguon(item_code, settings), can)
-
-    if bang:
-        for sp, so_hop in _tong_hop_theo_sp(bang).items():
-            bom_sp = get_bom_active(sp)
-            if not bom_sp:
-                frappe.throw(_("Sản phẩm {0} chưa có BOM active").format(sp))
-            for item_code, can in _nhu_cau_bom(bom_sp, so_hop).items():
-                _check(item_code, _kho_nguon(item_code, settings), can)
+    for row in doc.bao_me:
+        bom = get_bom_active(row.item_btp)
+        if not bom:
+            frappe.throw(_("BTP {0} chưa có BOM active").format(row.item_btp))
+        for item_code, can in _nhu_cau_bom(bom, flt(row.tong_kg)).items():
+            _check(item_code, _kho_nguon(item_code, settings), can)
 
     thieu = []
     thieu_bot_nen = False
@@ -430,33 +402,20 @@ def _chot_tang_2(doc, chung_tu):
         chung_tu.append({"dt": "Stock Entry", "name": se.name})
 
 
-def _chot_tang_3(doc, bang, chung_tu):
-    """Mỗi SKU trong bảng vào hộp: Batch TP -> WO -> SE (RM bột bánh/đậu FIFO Kho BTP
-    + bao bì Kho NVL; FG vào Kho TP). Trả {sku: batch}."""
-    settings = get_settings()
-    ket_qua = {}
-    for sp, so_hop in _tong_hop_theo_sp(bang).items():
-        if so_hop <= 0:
-            continue
-        bom_sp = get_bom_active(sp)
-        batch = tao_batch(sp, sinh_ma_lo(sp, doc.ngay), ngay_sx=doc.name)
-        wo = tao_wo(
-            settings.cong_ty, sp, so_hop, bom_sp,
-            # TP vào KHO CHỜ NHẬN nếu có cấu hình — thủ kho nhận
-            # vào Kho TP bằng phiếu riêng (D51). Chưa cấu hình thì vào Kho TP như cũ.
-            source_wh=settings.kho_nvl,
-            fg_wh=(settings.get("kho_tp_cho_nhan") or settings.kho_tp),
-            ngay_sx=doc.name, planned_date=doc.ngay,
-        )
-        se = tao_se_manufacture(
-            wo, so_hop, batch,
-            kho_nguon=lambda item: _kho_nguon(item, settings),
-            ngay=doc.ngay, ngay_sx=doc.name,
-        )
-        ket_qua[sp] = batch
-        chung_tu.append({"dt": "Work Order", "name": wo.name})
-        chung_tu.append({"dt": "Stock Entry", "name": se.name})
-    return ket_qua
+# ─── TẦNG 3 KHÔNG CÒN SINH Ở ĐÂY NỮA (D59) ───
+#
+# Trước D59 chốt Vào hộp sinh luôn Work Order + SE Manufacture, nhập thành phẩm
+# thẳng vào Kho TP. Giờ việc đó chuyển sang phiếu nhập kho (SX Phieu Nhap TP): thủ
+# kho DUYỆT thì mới sinh chứng từ, và sinh theo số đã đóng.
+#
+# Vì sao đổi: chấm vào hộp là việc của QC, nhận hàng là việc của thủ kho, mà Kho TP
+# thì xuất bán liên tục. Nếu chốt ngày nhập thẳng TP vào kho thì đến lúc thủ kho đi
+# đếm, con số đã trộn với hàng vừa bán — không tách được "hộp lỗi" với "đã xuất",
+# và cái nhầm đó ăn thẳng vào giá vốn. Để phiếu nhận là chứng từ DUY NHẤT sinh tồn
+# kho TP thì hai việc tách hẳn nhau và không cần kho trung gian nào.
+#
+# Hệ quả: chốt Vào hộp giờ chỉ submit bảng + ghi lương khoán. Nó KHÔNG đụng kho,
+# nên cũng không kiểm tồn — nguyên liệu chỉ bị trừ lúc duyệt phiếu nhập kho.
 
 
 # ─────────────────────────────────────── phiếu lương khoán (SalaryProduct) ──
@@ -955,10 +914,16 @@ def huy_chot_ghiso(ngay_sx, ly_do=None):
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
     # Tầng 3 đã tiêu thụ chính bột mà tầng 2 sinh ra -> rút bột ra trước khi rút
     # thành phẩm là để lại kho âm. Bắt gỡ theo đúng thứ tự ngược.
+    # Không còn ràng buộc "phải huỷ Vào hộp trước" (D59 — chốt Vào hộp không đụng
+    # kho). Nhưng phiếu nhập kho ĐÃ DUYỆT thì có: nó đã trừ chính lượng bột này.
+    from sx.api.khotp import phieu_da_duyet_sau
+
     dep = None
-    if cint(doc.chot_vaohop):
-        dep = _("Phải huỷ chốt VÀO HỘP trước: thành phẩm đã trừ chính lượng bột mà "
-                "Ghi sổ vừa sinh ra, rút bột ra trước sẽ để kho âm.")
+    da = phieu_da_duyet_sau(doc.chot_ghiso_luc)
+    if da:
+        dep = _("Phiếu nhập kho {0} đã duyệt sau khi chốt Ghi sổ và đã trừ bột của "
+                "mẻ này. Huỷ phiếu đó trước, nếu không rút bột ra sẽ để kho âm."
+                ).format(", ".join(da))
     log = _huy_nua(doc, "ghiso", "ds_wo_se_ghiso", ly_do, dep)
     return {"name": doc.name, "log": log}
 
@@ -969,7 +934,7 @@ def huy_chot_vaohop(ngay_sx, ly_do=None):
     guard_card("chotngay")
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
     _chan_neu_da_nhap_kho(doc)
-    log = _huy_nua(doc, "vaohop", "ds_wo_se", ly_do)
+    log = _huy_nua(doc, "vaohop", "ds_wo_se", ly_do)   # ds_wo_se rỗng từ D59
 
     bang = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": 1}, "name")
@@ -1003,13 +968,13 @@ def _chan_neu_da_nhap_kho(doc):
     chung của nhiều ngày và lấy ra theo FIFO, nên mọi phiếu nhận sau mốc chốt đều
     CÓ THỂ đã lấy hàng của ngày này đi. Chặt hơn, và không phải đoán.
     """
-    from sx.api.khotp import phieu_sau_khi_chot
+    from sx.api.khotp import phieu_cua_ngay
 
-    ds = phieu_sau_khi_chot(doc.chot_vaohop_luc)
+    ds = phieu_cua_ngay(doc.name)
     if not ds:
         return
     frappe.throw(
-        _("Thủ kho đã nhận thành phẩm của ngày này vào kho (phiếu {0}). Phải huỷ "
-          "phiếu nhận đó trước, nếu không kho Chờ nhận sẽ âm.").format(
+        _("Ngày này đang có phiếu nhập kho thành phẩm ({0}). Huỷ phiếu đó trước rồi "
+          "mới huỷ chốt Vào hộp — phiếu lấy số từ chính bảng vào hộp này.").format(
             ", ".join(ds))
     )

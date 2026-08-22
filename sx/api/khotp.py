@@ -1,177 +1,154 @@
-"""Nhập kho thành phẩm — thủ kho NHẬN hàng từ xưởng (D51).
+"""Phiếu nhập kho thành phẩm — PHIẾU NÀY LÀ CHỨNG TỪ SINH TỒN KHO TP (D59).
 
-═══ NGHIỆP VỤ: vì sao cần phiếu này khi chốt ngày đã nhập kho rồi ═══
+═══ LUỒNG ═══
+    QC chấm vào hộp  →  chốt Vào hộp  →  QC lập PHIẾU NHÁP nhập kho
+    →  thủ kho đếm thật, sửa số  →  DUYỆT  →  hàng vào Kho TP, tồn cập nhật
 
-Chốt ngày sinh lệnh SX tầng 3 và nhập TP thẳng vào Kho TP (D11). Đó là số theo
-SỔ SÁCH: "hôm nay bảng vào hộp ghi 1.240 hộp nên kho có 1.240 hộp".
+Chấm vào hộp là việc ĐỘC LẬP: nó ghi công cho từng người và tính lương khoán, nó
+KHÔNG đụng tới kho. Thành phẩm chỉ trở thành tồn kho khi thủ kho duyệt. Trước lúc
+đó, trong sổ chưa có hộp nào — đúng như ngoài đời, hộp còn nằm trên bàn chưa ai nhận.
 
-Thực tế xưởng khác: hộp đóng xong nằm ở khu vực đóng gói, thủ kho đếm rồi mới
-nhận vào kho. Hai con số đó lệch nhau là bình thường (hộp lỗi bị loại, hộp còn
-trên bàn chưa xếp pallet, chênh lệch đếm).
+═══ HAI CON SỐ, HAI CHỨNG TỪ (D59) ═══
+Một phiếu duyệt sinh tối đa hai chứng từ cho mỗi SKU:
 
-Phiếu này ghi lại LẦN NHẬN THẬT đó: chuyển kho Xưởng → Kho TP theo số thủ kho
-đếm, có ghi rõ lệch bao nhiêu so với sổ.
+  1. SỐ THEO BẢNG (số QC chấm)  →  Work Order + SE Manufacture
+     Trừ bột bánh/bột đậu + bao bì theo BOM, nhập TP vào Kho TP.
+     Dùng số BẢNG chứ không phải số đếm vì nguyên liệu đã tiêu thụ THẬT cho toàn bộ
+     số hộp đã đóng — kể cả hộp sau đó bị loại.
 
-D56: phiếu đi qua HAI TAY. Người ở xưởng LẬP phiếu nháp (điền sẵn số theo sổ), thủ
-kho đi đếm thật, sửa số rồi DUYỆT — duyệt mới sinh phiếu kho. Ghi thẳng một bước
-thì không ai kiểm ai, mà cả lý do tồn tại của phiếu này là để có người thứ hai đếm.
+  2. PHẦN LỆCH (bảng − đếm, nếu > 0)  →  SE Material Issue, lý do "hộp lỗi"
+     Xuất đúng lô vừa nhập ra khỏi kho.
 
-⚠️ ĐỂ PHIẾU NÀY CÓ NGHĨA, tầng 3 phải nhập TP vào KHO XƯỞNG chứ không phải Kho TP.
-Đổi ở SX Settings → "Kho nhận TP từ tầng 3". Chưa đổi thì TP vào Kho TP ngay lúc
-chốt, khu vực đóng gói không có gì để nhận, và card sẽ nói đúng như vậy thay vì
-hiện danh sách rỗng không lý do.
+Tồn Kho TP sau cùng = số thủ kho ĐẾM. Nguyên liệu tiêu thụ = cho số đã ĐÓNG.
+Cả hai đều đúng, và số hộp hỏng hiện ra thành một chứng từ có lý do thay vì biến mất.
+
+Nhập THIẾU thì cho (hộp lỗi là chuyện thật). Nhập THỪA hơn bảng thì CHẶN: thừa
+nghĩa là bảng vào hộp ghi sót, phải sửa bảng chứ không phải nhập bừa vào kho.
 """
 
 import json
 
 import frappe
 from frappe import _
-from frappe.utils import flt, nowdate
+from frappe.utils import cint, flt
 
 from sx.config.roles import guard_card
-from sx.utils import get_settings, kho_xuong
+from sx.utils import get_settings
 
 
-def _kho_nguon(settings=None):
-    """Kho đang giữ TP chờ thủ kho nhận. Chưa cấu hình -> Kho Xưởng (chỉ để hiển thị)."""
-    settings = settings or get_settings()
-    return settings.get("kho_tp_cho_nhan") or kho_xuong(settings)
+def _bang_cua_ngay(ngay_sx):
+    ten = frappe.db.get_value(
+        "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": 1}, "name")
+    return frappe.get_doc("SX Bang Vao Hop", ten) if ten else None
 
 
-def _da_bat(settings=None):
-    """Bước nhận đã BẬT chưa = `kho_tp_cho_nhan` có được điền không.
+def _tong_theo_sku(bang):
+    """{item_tp: số hộp} từ bảng vào hộp đã chốt.
 
-    Không suy từ "kho nguồn khác kho đích" như bản đầu: chưa điền thì `_kho_nguon`
-    rơi về Kho Xưởng — vốn đã khác Kho TP — nên phép so đó luôn đúng và màn hình
-    hiện ra RỖNG KHÔNG LÝ DO. Mà tầng 3 lại đọc CHÍNH field này để quyết định nhập
-    TP vào đâu (chot._chot_tang_3), nên field rỗng nghĩa là TP đi thẳng vào Kho TP
-    và kho Chờ nhận vĩnh viễn không có gì để nhận. Một field, một sự thật.
-    """
-    settings = settings or get_settings()
-    return bool(settings.get("kho_tp_cho_nhan"))
-
-
-@frappe.whitelist()
-def ton_cho_nhap():
-    """TP đang chờ nhận ở kho nguồn, kèm số theo SỔ hôm nay để đối chiếu."""
-    guard_card("nhapkhotp")
-    settings = get_settings()
-    nguon, dich = _kho_nguon(settings), settings.kho_tp
-    if not dich:
-        frappe.throw(_("SX Settings chưa cấu hình Kho TP."))
-
-    rows = []
-    for it in frappe.get_all(
-        "Item", filters={"custom_sx_nhom": "TP", "disabled": 0},
-        fields=["name", "item_name", "stock_uom"], order_by="item_name",
-    ):
-        ton = flt(frappe.db.get_value(
-            "Bin", {"item_code": it.name, "warehouse": nguon}, "actual_qty"))
-        if abs(ton) < 1e-9:
-            continue
-        rows.append({
-            "item": it.name,
-            "ten": it.item_name or it.name,
-            "dvt": it.stock_uom or "",
-            "cho_nhan": flt(ton, 0),
-        })
-    rows.sort(key=lambda r: -r["cho_nhan"])
-    return {"kho_nguon": nguon, "kho_dich": dich, "rows": rows,
-            "chua_bat": not _da_bat(settings),
-            "cung_kho": nguon == dich}
+    Dòng KHÔNG gắn SKU bị bỏ qua: đó là loại công việc chưa gắn Item TP (D23), chỉ
+    tính lương khoán chứ không sinh thành phẩm."""
+    ra = {}
+    for r in bang.dong:
+        if r.san_pham and cint(r.so_hop) > 0:
+            ra[r.san_pham] = ra.get(r.san_pham, 0) + cint(r.so_hop)
+    return ra
 
 
 @frappe.whitelist()
-def bat_buoc_nhan():
-    """BẬT bước nhận bằng MỘT NÚT: tự tạo kho "Chờ nhận TP" rồi ghi vào SX Settings.
-
-    Vì sao vẫn phải có một kho riêng, dù nghiệp vụ nghe như "nhập kho độc lập":
-    Kho TP xuất bán liên tục. Nếu thành phẩm vào thẳng Kho TP ngay lúc chốt, thì
-    đến lúc thủ kho đi đếm, con số đã bị trộn với hàng vừa xuất bán — không tách
-    được "hộp lỗi" với "đã bán", mà cái nhầm đó ăn thẳng vào giá vốn. Hàng chỉ
-    được vào Kho TP đúng lúc thủ kho DUYỆT, nên trước đó nó phải nằm ở đâu đó.
-
-    "Chờ nhận TP" không phải một cái kho mới ngoài đời — nó là TRẠNG THÁI "đã đóng
-    xong, chưa ai nhận", ghi trong sổ. Không ai phải dọn chỗ hay đi lại thêm bước nào.
-    """
+def cho_lap_phieu(ngay_sx=None):
+    """Ngày đã chốt Vào hộp mà CHƯA có phiếu nhập kho -> số liệu để lập phiếu nháp."""
     guard_card("nhapkhotp")
     settings = get_settings()
-    if settings.get("kho_tp_cho_nhan"):
-        return {"kho": settings.kho_tp_cho_nhan, "da_co": True}
     if not settings.get("kho_tp"):
         frappe.throw(_("SX Settings chưa cấu hình Kho TP."))
 
-    tp = frappe.get_doc("Warehouse", settings.kho_tp)
-    ten = _("Chờ nhận TP")
-    # Đặt CÙNG CẤP với Kho TP (chung parent) chứ không lồng bên trong: lồng vào thì
-    # tồn của nó cộng vào tổng Kho TP trong mọi báo cáo — đúng cái nhầm đang tránh.
-    kho = frappe.db.get_value(
-        "Warehouse", {"warehouse_name": ten, "company": tp.company}, "name")
-    if not kho:
-        w = frappe.new_doc("Warehouse")
-        w.warehouse_name = ten
-        w.company = tp.company
-        w.parent_warehouse = tp.parent_warehouse
-        w.is_group = 0
-        w.flags.ignore_permissions = True
-        w.insert()
-        kho = w.name
+    nhap = frappe.db.get_value(
+        "SX Phieu Nhap TP", {"docstatus": 0}, ["name", "ngay_sx"], as_dict=True)
+    if nhap:
+        return {"nhap": chi_tiet_phieu(nhap.name), "kho_tp": settings.kho_tp,
+                "cho_lap": [], "duoc_duyet": _duoc_duyet()}
 
-    settings.kho_tp_cho_nhan = kho
-    settings.flags.ignore_permissions = True
-    settings.save()
-    return {"kho": kho, "da_co": False}
+    # Ngày nào đã chốt Vào hộp mà chưa có phiếu -> mời lập. Quét 30 ngày gần đây
+    # cho trường hợp bỏ quên vài hôm, nhưng ngày mới nhất luôn đứng đầu.
+    da_co = {
+        r.ngay_sx for r in frappe.get_all(
+            "SX Phieu Nhap TP", filters={"docstatus": ("<", 2)}, fields=["ngay_sx"])
+        if r.ngay_sx
+    }
+    cho = []
+    for d in frappe.get_all(
+        "SX Ngay San Xuat",
+        filters={"chot_vaohop": 1, "docstatus": ("<", 2)},
+        fields=["name", "ngay"], order_by="ngay desc", limit=30,
+    ):
+        if d.name in da_co:
+            continue
+        bang = _bang_cua_ngay(d.name)
+        if not bang:
+            continue
+        tong = _tong_theo_sku(bang)
+        if not tong:
+            continue
+        cho.append({
+            "ngay_sx": d.name, "ngay": str(d.ngay),
+            "tong": sum(tong.values()), "so_loai": len(tong),
+        })
+    return {"nhap": None, "kho_tp": settings.kho_tp, "cho_lap": cho,
+            "duoc_duyet": _duoc_duyet()}
 
 
 @frappe.whitelist()
-def tao_phieu_nhap(rows=None, ngay=None, ghi_chu=None):
-    """Lập PHIẾU NHÁP từ hàng đang chờ ở kho Chờ nhận.
+def tao_phieu_nhap(ngay_sx, ghi_chu=None):
+    """QC lập PHIẾU NHÁP từ bảng vào hộp ĐÃ CHỐT của một ngày.
 
-    `rows` bỏ trống -> lấy trọn hàng đang chờ, điền sẵn số đếm = số theo sổ (phần
-    lớn khớp; thủ kho chỉ sửa chỗ lệch). Mỗi lúc chỉ cho MỘT phiếu nháp: hai phiếu
-    nháp cùng lấy một vũng hàng thì duyệt cái sau sẽ thiếu, mà lúc lập không ai thấy.
+    Bắt buộc ngày phải chốt Vào hộp trước: chưa chốt thì con số còn đổi được, mà
+    thủ kho lại đang cầm phiếu đi đếm theo con số đó.
+    Mỗi lúc chỉ MỘT phiếu nháp — hai phiếu cùng lúc thì duyệt cái sau sẽ đè nhầm.
     """
     guard_card("nhapkhotp")
     settings = get_settings()
-    nguon, dich = _kho_nguon(settings), settings.kho_tp
-    if not _da_bat(settings):
+    if not settings.get("kho_tp"):
+        frappe.throw(_("SX Settings chưa cấu hình Kho TP."))
+
+    ngay = frappe.db.get_value(
+        "SX Ngay San Xuat", ngay_sx, ["name", "ngay", "chot_vaohop", "docstatus"],
+        as_dict=True)
+    if not ngay:
+        frappe.throw(_("Không tìm thấy phiếu ngày {0}.").format(ngay_sx))
+    if not (cint(ngay.chot_vaohop) or ngay.docstatus == 1):
         frappe.throw(
-            _("Chưa bật bước nhận kho: thành phẩm đang vào thẳng {0} ngay lúc chốt. "
-              "Bấm nút BẬT BƯỚC NHẬN trên màn Nhập kho (hoặc điền SX Settings → "
-              "'Kho nhận TP từ tầng 3'), rồi chốt Vào hộp lần sau.").format(dich)
+            _("Ngày {0} chưa chốt Vào hộp. Chốt xong hãy lập phiếu nhập kho — chưa "
+              "chốt thì con số còn đổi được, mà thủ kho lại đang đếm theo con số đó.")
+            .format(frappe.utils.formatdate(ngay.ngay))
         )
-    if nguon == dich:
-        frappe.throw(
-            _("'Kho nhận TP từ tầng 3' đang đặt trùng Kho TP ({0}) nên không có gì "
-              "để chuyển. Phải là một kho KHÁC — kho Chờ nhận.").format(dich)
-        )
+    trung = frappe.db.get_value(
+        "SX Phieu Nhap TP", {"ngay_sx": ngay_sx, "docstatus": ("<", 2)}, "name")
+    if trung:
+        frappe.throw(_("Ngày này đã có phiếu {0}.").format(trung))
     nhap = frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")
     if nhap:
         frappe.throw(
-            _("Đang có phiếu nháp {0} chưa duyệt. Duyệt hoặc xoá phiếu đó trước — "
-              "hai phiếu nháp cùng lấy một lô hàng sẽ vênh nhau.").format(nhap)
+            _("Đang có phiếu nháp {0} chưa duyệt. Duyệt hoặc xoá phiếu đó trước.")
+            .format(nhap)
         )
 
-    cho = {r["item"]: r for r in ton_cho_nhap()["rows"]}
-    ds = json.loads(rows) if isinstance(rows, str) else rows
-    if not ds:
-        ds = [{"item": k, "so_luong": v["cho_nhan"]} for k, v in cho.items()]
-    if not ds:
-        frappe.throw(_("Không có hàng chờ nhận ở {0} — hôm nay chưa chốt Vào hộp, "
-                       "hoặc đã nhận hết.").format(nguon))
+    bang = _bang_cua_ngay(ngay_sx)
+    tong = _tong_theo_sku(bang) if bang else {}
+    if not tong:
+        frappe.throw(
+            _("Bảng vào hộp ngày {0} không có dòng nào gắn sản phẩm — không có "
+              "thành phẩm để nhập kho.").format(frappe.utils.formatdate(ngay.ngay))
+        )
 
     doc = frappe.new_doc("SX Phieu Nhap TP")
-    doc.ngay = ngay or nowdate()
-    doc.kho_nguon, doc.kho_dich = nguon, dich
+    doc.ngay = ngay.ngay
+    doc.ngay_sx = ngay_sx
+    doc.kho_dich = settings.kho_tp
     doc.nguoi_lap = frappe.session.user
     doc.ghi_chu = ghi_chu
-    for r in ds:
-        item = r.get("item")
-        doc.append("dong", {
-            "item": item,
-            "so_theo_so": flt((cho.get(item) or {}).get("cho_nhan")),
-            "so_dem": flt(r.get("so_luong")),
-        })
+    for item, so in sorted(tong.items(), key=lambda x: -x[1]):
+        # Điền sẵn số đếm = số theo bảng: phần lớn khớp, thủ kho chỉ sửa chỗ lệch.
+        doc.append("dong", {"item": item, "so_theo_so": so, "so_dem": so})
     doc.flags.ignore_permissions = True
     doc.insert()
     return chi_tiet_phieu(doc.name)
@@ -182,8 +159,8 @@ def chi_tiet_phieu(name):
     guard_card("nhapkhotp")
     doc = frappe.get_doc("SX Phieu Nhap TP", name)
     return {
-        "name": doc.name, "ngay": str(doc.ngay), "docstatus": doc.docstatus,
-        "trang_thai": doc.trang_thai, "kho_nguon": doc.kho_nguon,
+        "name": doc.name, "ngay": str(doc.ngay), "ngay_sx": doc.ngay_sx,
+        "docstatus": doc.docstatus, "trang_thai": doc.trang_thai,
         "kho_dich": doc.kho_dich, "nguoi_lap": doc.nguoi_lap,
         "nguoi_duyet": doc.nguoi_duyet,
         "duyet_luc": str(doc.duyet_luc) if doc.duyet_luc else None,
@@ -200,20 +177,16 @@ def chi_tiet_phieu(name):
 
 
 @frappe.whitelist()
-def phieu_dang_mo():
-    """Phiếu nháp đang chờ duyệt (nếu có) + 5 phiếu đã duyệt gần nhất."""
+def phieu_gan_day(limit=5):
     guard_card("nhapkhotp")
-    nhap = frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")
-    gan_day = frappe.get_all(
-        "SX Phieu Nhap TP", filters={"docstatus": 1},
-        fields=["name", "ngay", "tong_dem", "tong_lech", "nguoi_duyet"],
-        order_by="creation desc", limit=5,
-    )
-    return {
-        "nhap": chi_tiet_phieu(nhap) if nhap else None,
-        "gan_day": [{**g, "ngay": str(g["ngay"])} for g in gan_day],
-        "duoc_duyet": _duoc_duyet(),
-    }
+    return [
+        {**g, "ngay": str(g["ngay"])}
+        for g in frappe.get_all(
+            "SX Phieu Nhap TP", filters={"docstatus": 1},
+            fields=["name", "ngay", "tong_dem", "tong_lech", "nguoi_duyet"],
+            order_by="creation desc", limit=cint(limit) or 5,
+        )
+    ]
 
 
 @frappe.whitelist()
@@ -238,7 +211,7 @@ def sua_phieu(name, rows, ghi_chu=None):
 
 @frappe.whitelist()
 def duyet_phieu(name):
-    """THỦ KHO duyệt: submit phiếu -> sinh phiếu kho chuyển kho Chờ nhận → Kho TP."""
+    """THỦ KHO duyệt: submit phiếu -> sinh chứng từ kho -> hàng vào Kho TP."""
     guard_card("nhapkhotp")
     if not _duoc_duyet():
         frappe.throw(
@@ -256,7 +229,7 @@ def duyet_phieu(name):
 
 @frappe.whitelist()
 def huy_phieu(name, ly_do=None):
-    """Huỷ phiếu: nháp thì xoá, đã duyệt thì cancel (thu hồi phiếu kho đã sinh)."""
+    """Huỷ phiếu: nháp thì xoá, đã duyệt thì cancel (thu hồi chứng từ đã sinh)."""
     guard_card("nhapkhotp")
     if not _duoc_duyet():
         frappe.throw(_("Chỉ THỦ KHO mới huỷ được phiếu nhập kho."),
@@ -281,19 +254,31 @@ def _duoc_duyet():
     return bool(roles & {"SX Thu Kho", "SX Quan Ly", "System Manager", "Administrator"})
 
 
-def phieu_sau_khi_chot(chot_luc):
-    """Phiếu ĐÃ DUYỆT sinh sau mốc thời gian này — dùng để chặn huỷ chốt ngày.
+def phieu_da_duyet_sau(luc):
+    """Phiếu ĐÃ DUYỆT sinh sau một mốc thời gian — dùng để chặn huỷ chốt Ghi sổ.
 
-    Không so theo `ngay_sx` vì hàng ở kho Chờ nhận là hàng chung nhiều ngày, lấy ra
-    theo FIFO: phiếu nhận sau khi chốt ngày X thì CÓ THỂ đã lấy hàng của ngày X đi.
-    Chặn theo thời gian là chặt hơn và không cần đoán.
-    """
-    if not chot_luc:
+    Bột ở Kho BTP là bột chung nhiều mẻ, lấy ra theo FIFO, nên mọi phiếu duyệt sau
+    mốc chốt đều CÓ THỂ đã tiêu thụ bột của mẻ đó. Chặn theo thời gian là chặt hơn
+    và không phải đoán."""
+    if not luc:
         return []
     return [
         r.name for r in frappe.get_all(
             "SX Phieu Nhap TP",
-            filters={"docstatus": 1, "creation": (">=", chot_luc)},
+            filters={"docstatus": 1, "creation": (">=", luc)},
             fields=["name"], order_by="creation",
         )
     ]
+
+
+def phieu_cua_ngay(ngay_sx):
+    """Phiếu nhập kho (nháp hoặc đã duyệt) của một ngày — dùng để chặn huỷ chốt."""
+    return [
+        r.name for r in frappe.get_all(
+            "SX Phieu Nhap TP",
+            filters={"ngay_sx": ngay_sx, "docstatus": ("<", 2)},
+            fields=["name"], order_by="creation",
+        )
+    ]
+
+

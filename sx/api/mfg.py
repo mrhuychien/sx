@@ -186,6 +186,41 @@ def tao_se_chuyen_kho(cong_ty, item, kg, kho_di, kho_den, ngay=None, ghi_chu=Non
     return se
 
 
+def tao_se_xuat_huy(cong_ty, item, qty, kho, ngay=None, ghi_chu=None, batch=None,
+                    ngay_sx=None):
+    """Stock Entry Material Issue — xuất huỷ hàng hỏng ra khỏi kho (D59).
+
+    Dùng cho phần hộp LỖI: hộp đã đóng xong (nên nguyên liệu đã tiêu thụ thật) nhưng
+    thủ kho không nhận. Ghi thành một phiếu XUẤT riêng, có lý do, thay vì lặng lẽ
+    nhập thiếu — nhập thiếu thì nguyên liệu của mấy hộp đó nằm lại trong sổ mãi mãi
+    và không ai biết đã mất bao nhiêu.
+    """
+    se = frappe.new_doc("Stock Entry")
+    se.purpose = "Material Issue"
+    se.stock_entry_type = loai_phieu_kho("Material Issue")
+    se.company = cong_ty
+    se.custom_cong_doan = "hophong"
+    se.custom_ngay_sx = ngay_sx
+    if ngay:
+        se.set_posting_time = 1
+        se.posting_date = str(ngay)
+    if ghi_chu:
+        se.remarks = ghi_chu
+    dong = {"item_code": item, "qty": flt(qty), "s_warehouse": kho}
+    if batch:
+        # Chỉ định ĐÚNG lô vừa nhập, không để FIFO tự chọn: hộp lỗi là hộp của mẻ
+        # này, tính vào lô khác là hỏng luôn số liệu truy xuất của cả hai lô.
+        dong["use_serial_batch_fields"] = 1
+        dong["batch_no"] = batch
+    se.append("items", dong)
+    if not batch:
+        _gan_batch_fifo(se)
+    se.flags.ignore_permissions = True
+    se.insert()
+    se.submit()
+    return se
+
+
 def _gan_batch_fifo(se):
     """Gán batch FIFO cho dòng RM có has_batch_no; 1 dòng tách nhiều batch nếu cần.
 

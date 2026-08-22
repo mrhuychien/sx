@@ -3,27 +3,75 @@
  "creation": "2026-08-21 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": ["item", "ten", "dvt", "so_theo_so", "so_dem", "lech", "ghi_chu"],
+ "field_order": [
+  "item",
+  "ten",
+  "dvt",
+  "so_theo_so",
+  "so_dem",
+  "lech",
+  "ghi_chu"
+ ],
  "fields": [
-  {"fieldname": "item", "fieldtype": "Link", "options": "Item", "label": "Sản phẩm",
-   "in_list_view": 1, "reqd": 1, "columns": 3},
-  {"fieldname": "ten", "fieldtype": "Data", "label": "Tên", "fetch_from": "item.item_name",
-   "read_only": 1},
-  {"fieldname": "dvt", "fieldtype": "Data", "label": "ĐVT", "fetch_from": "item.stock_uom",
-   "read_only": 1},
-  {"fieldname": "so_theo_so", "fieldtype": "Float", "label": "Theo sổ", "read_only": 1,
-   "in_list_view": 1, "columns": 2,
-   "description": "Tồn ở kho chờ nhận tại thời điểm LẬP phiếu. Chỉ để đối chiếu, không phải số nhập."},
-  {"fieldname": "so_dem", "fieldtype": "Float", "label": "Thủ kho đếm", "reqd": 1,
-   "non_negative": 1, "in_list_view": 1, "columns": 2,
-   "description": "Số THẬT nhận vào kho. Đây mới là số ghi vào phiếu kho."},
-  {"fieldname": "lech", "fieldtype": "Float", "label": "Lệch", "read_only": 1,
-   "in_list_view": 1, "columns": 2},
-  {"fieldname": "ghi_chu", "fieldtype": "Data", "label": "Lý do lệch"}
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "label": "Sản phẩm",
+   "in_list_view": 1,
+   "reqd": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên",
+   "fetch_from": "item.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dvt",
+   "fieldtype": "Data",
+   "label": "ĐVT",
+   "fetch_from": "item.stock_uom",
+   "read_only": 1
+  },
+  {
+   "fieldname": "so_theo_so",
+   "fieldtype": "Float",
+   "label": "Theo bảng",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Số QC chấm trên bảng vào hộp. Đây là số ĐÃ ĐÓNG — nguyên liệu trừ theo số này, kể cả hộp sau đó bị loại."
+  },
+  {
+   "fieldname": "so_dem",
+   "fieldtype": "Float",
+   "label": "Thủ kho đếm",
+   "reqd": 1,
+   "non_negative": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Số thủ kho ĐẾM và nhận. Tồn Kho TP sau cùng bằng số này; phần thiếu so với bảng thành phiếu xuất huỷ 'hộp lỗi'."
+  },
+  {
+   "fieldname": "lech",
+   "fieldtype": "Float",
+   "label": "Lệch",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Data",
+   "label": "Lý do lệch"
+  }
  ],
  "istable": 1,
  "links": [],
- "modified": "2026-08-21 10:00:00.000000",
+ "modified": "2026-08-22 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Phieu Nhap TP Item",

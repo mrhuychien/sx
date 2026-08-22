@@ -3,8 +3,8 @@
 //   GHI SỔ  = báo mẻ → tầng 2 → bột bánh / bột đậu vào Kho BTP   (xong giữa ca)
 //   VÀO HỘP = bảng vào hộp → tầng 3 → thành phẩm + lương khoán   (xong hết ca)
 //
-// Thứ tự bắt buộc: Ghi sổ trước. Nút Vào hộp bị khoá và NÓI RÕ lý do cho tới khi
-// Ghi sổ chốt xong — khoá mà không giải thích thì người dùng tưởng app hỏng.
+// Hai nửa ĐỘC LẬP, chốt theo thứ tự nào cũng được (D59): Vào hộp chỉ ghi lương,
+// không đụng kho. Thành phẩm vào kho ở màn Nhập kho, khi thủ kho duyệt phiếu.
 
 import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
@@ -37,9 +37,7 @@ export async function render({ container, boot, call, ensureNgay, refresh }) {
     canhBao: 'Chốt Ghi sổ sẽ sinh chứng từ kho cho các mẻ đã báo và KHOÁ báo mẻ / '
       + 'báo cán của ngày. Kiểm lại số mẻ trước khi chốt.',
     khoa: null,
-    khoaHuy: vh && !xongCa
-      ? 'Phải huỷ chốt VÀO HỘP trước — thành phẩm đã trừ chính lượng bột mà Ghi sổ sinh ra.'
-      : null,
+    khoaHuy: null,
   }, { boot, call, ensureNgay, refresh, xongCa });
 
   veNua(container.querySelector('#sx-chot-vh'), {
@@ -47,12 +45,12 @@ export async function render({ container, boot, call, ensureNgay, refresh }) {
     ten: 'Vào hộp',
     icon: '📦',
     xong: vh,
-    mo_ta: 'Bảng vào hộp → thành phẩm + phiếu lương khoán của từng người.',
-    canhBao: 'Chốt Vào hộp sẽ sinh thành phẩm, ghi lương khoán và KHOÁ bảng vào hộp.',
-    khoa: !gs
-      ? 'Chốt GHI SỔ trước: bột của hôm nay sinh ra ở bước đó, chưa có thì tầng 3 '
-        + 'không có nguyên liệu để trừ.'
-      : null,
+    mo_ta: 'Chốt bảng vào hộp + ghi lương khoán. Thành phẩm vào kho ở màn Nhập kho.',
+    canhBao: 'Chốt Vào hộp sẽ ghi lương khoán và KHOÁ bảng vào hộp. Thành phẩm CHƯA '
+      + 'vào kho — hàng chỉ vào kho khi thủ kho duyệt phiếu nhập kho.',
+    // D59: hai nửa độc lập thật, không còn bắt Ghi sổ chốt trước. Ràng buộc nguyên
+    // liệu chuyển sang lúc duyệt phiếu nhập kho — đúng chỗ nó thuộc về.
+    khoa: null,
     khoaHuy: null,
   }, { boot, call, ensureNgay, refresh, xongCa });
 
