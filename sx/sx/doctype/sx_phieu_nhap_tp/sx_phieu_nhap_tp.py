@@ -1,8 +1,10 @@
-"""Phiếu nhập kho thành phẩm (D56 → D59: phiếu này SINH RA tồn kho TP).
+"""Phiếu nhập kho thành phẩm — chứng từ ĐỘC LẬP sinh ra tồn kho TP (D62).
 
-Chấm vào hộp là việc độc lập — nó tính lương khoán, không đụng kho. Thành phẩm chỉ
-trở thành tồn kho khi thủ kho DUYỆT phiếu này. Trước đó, trong sổ chưa có hộp nào,
-đúng như ngoài đời hộp còn nằm trên bàn chưa ai nhận.
+Không liên quan gì tới bảng vào hộp: bảng chấm công cho từng người để tính lương
+khoán, phiếu này ghi hàng thật chuyển vào kho. Hai việc, hai người, hai thời điểm.
+
+Thành phẩm chỉ trở thành tồn kho khi thủ kho DUYỆT phiếu này. Trước đó trong sổ
+chưa có hộp nào — đúng như ngoài đời, hộp còn nằm trên bàn chưa ai nhận.
 
 Duyệt sinh WO + SE Manufacture theo SỐ THỦ KHO ĐẾM: trừ bột + bao bì theo BOM,
 nhập thành phẩm vào Kho TP. Số đếm là số duy nhất quyết định — hàng đã qua bước
@@ -27,7 +29,7 @@ class SXPhieuNhapTP(Document):
         for r in self.dong:
             if flt(r.so_dem) < 0:
                 frappe.throw(_("Dòng {0}: số đếm không được âm.").format(r.idx))
-            r.lech = flt(r.so_dem) - flt(r.so_theo_so)
+            r.lech = flt(r.so_dem) - flt(r.so_lap)
             tong_dem += flt(r.so_dem)
             tong_lech += flt(r.lech)
         self.tong_dem = tong_dem
@@ -46,10 +48,10 @@ class SXPhieuNhapTP(Document):
     def kiem_ton_nguyen_lieu(self):
         """Kiểm đủ bột + bao bì TRƯỚC khi sinh chứng từ (D59).
 
-        Đây mới là lúc nguyên liệu bị trừ, nên kiểm ở đây chứ không phải lúc chốt
-        ngày. Cộng dồn nhu cầu rồi đối chiếu MỘT LẦN cho mỗi (item, kho): kiểm từng
-        dòng riêng lẻ là sai — 4 SKU cùng cần 100 kg bột, tồn 100 thì cả 4 lần kiểm
-        đều "đủ", duyệt qua rồi mới vỡ ở bước sinh phiếu kho.
+        Đây là lúc nguyên liệu bị trừ nên kiểm ở đây. Cộng dồn nhu cầu rồi đối
+        chiếu MỘT LẦN cho mỗi (item, kho): kiểm từng dòng riêng lẻ là sai — 4 SKU
+        cùng cần 100 kg bột, tồn 100 thì cả 4 lần kiểm đều "đủ", duyệt qua rồi mới
+        vỡ ở bước sinh phiếu kho.
         """
         from sx.api.chot import _kho_nguon as kho_nguon_rm
         from sx.api.chot import _nhu_cau_bom
@@ -79,9 +81,8 @@ class SXPhieuNhapTP(Document):
 
         # Thiếu bột thường là do chưa chốt Ghi sổ hôm đó — chỉ thẳng ra, đừng để
         # thủ kho ngồi đoán vì sao "không đủ tồn".
-        goi_y = _("\n\nThường là do ngày {0} chưa chốt GHI SỔ — mẻ trộn/nấu chưa "
-                  "sinh nên bột chưa vào kho. Nhờ QC chốt Ghi sổ rồi duyệt lại."
-                  ).format(frappe.utils.formatdate(self.ngay))
+        goi_y = _("\n\nThường là do chưa chốt GHI SỔ hôm nay — mẻ trộn/nấu chưa "
+                  "sinh nên bột chưa vào kho. Nhờ QC chốt Ghi sổ rồi duyệt lại.")
         if cho_phep_ton_am():
             # Site bật Allow Negative Stock -> chặn ở đây là vô nghĩa (ERPNext bên
             # dưới cho ghi âm rồi). Vẫn phải NÓI, để không âm kho mà không ai biết.
@@ -96,12 +97,8 @@ class SXPhieuNhapTP(Document):
         """Duyệt = SINH TỒN KHO theo SỐ THỦ KHO ĐẾM.
 
         Số đếm là số duy nhất quyết định: hàng đã qua bước kiểm đếm thực tế rồi mới
-        kéo vào kho. Cột "Theo bảng" chỉ để đối chiếu.
-
-        Phần chưa nhận KHÔNG bị xoá sổ và KHÔNG bị coi là hộp lỗi — phần lớn trường
-        hợp nó chỉ là "chưa chuyển hết", còn nằm ở xưởng chờ chuyến sau. Nó vẫn hiện
-        ở danh sách chờ lập phiếu cho tới khi nhận nốt, hoặc tới khi người quản lý
-        xử lý. Tự động xuất huỷ phần chênh là phá hàng còn tốt.
+        kéo vào kho. Cột "Số lập phiếu" chỉ để đối chiếu — chỗ lệch giữa hai số là
+        thứ đáng xem, không phải thứ để chặn.
         """
         from sx.api.chot import _kho_nguon as kho_nguon_rm
         from sx.api.mfg import tao_batch, tao_se_manufacture, tao_wo
@@ -117,16 +114,18 @@ class SXPhieuNhapTP(Document):
             if not bom:
                 frappe.throw(_("Sản phẩm {0} chưa có BOM active.").format(r.item))
 
-            batch = tao_batch(r.item, sinh_ma_lo(r.item, self.ngay), ngay_sx=self.ngay_sx)
+            # Mã lô sinh theo NGÀY NHẬN — truy xuất NGÀY × LOẠI (D3) vẫn nguyên,
+            # không cần bám vào phiếu ngày sản xuất nào.
+            batch = tao_batch(r.item, sinh_ma_lo(r.item, self.ngay))
             wo = tao_wo(
                 settings.cong_ty, r.item, nhan, bom,
                 source_wh=settings.kho_nvl, fg_wh=self.kho_dich,
-                ngay_sx=self.ngay_sx, planned_date=self.ngay,
+                planned_date=self.ngay,
             )
             se = tao_se_manufacture(
                 wo, nhan, batch,
                 kho_nguon=lambda item: kho_nguon_rm(item, settings),
-                ngay=self.ngay, ngay_sx=self.ngay_sx,
+                ngay=self.ngay,
             )
             chung_tu.append({"dt": "Work Order", "name": wo.name})
             chung_tu.append({"dt": "Stock Entry", "name": se.name})

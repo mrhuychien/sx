@@ -8,7 +8,6 @@
  "field_order": [
   "naming_series",
   "ngay",
-  "ngay_sx",
   "trang_thai",
   "column_break_head",
   "kho_dich",
@@ -40,7 +39,8 @@
    "fieldtype": "Date",
    "label": "Ngày nhận",
    "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "description": "Ngày hàng vào kho. Mã lô thành phẩm sinh theo ngày này."
   },
   {
    "fieldname": "trang_thai",
@@ -140,20 +140,10 @@
    "read_only": 1,
    "no_copy": 1,
    "print_hide": 1
-  },
-  {
-   "fieldname": "ngay_sx",
-   "fieldtype": "Link",
-   "options": "SX Ngay San Xuat",
-   "label": "Ngày sản xuất",
-   "reqd": 1,
-   "read_only": 1,
-   "in_list_view": 1,
-   "description": "Bảng vào hộp của ngày này là nguồn của cột 'Theo bảng'."
   }
  ],
  "links": [],
- "modified": "2026-08-22 10:00:00.000000",
+ "modified": "2026-08-22 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Phieu Nhap TP",

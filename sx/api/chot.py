@@ -933,7 +933,8 @@ def huy_chot_vaohop(ngay_sx, ly_do=None):
     """Mở lại nửa Vào hộp: đảo chứng từ tầng 3, gỡ lương khoán, mở lại bảng."""
     guard_card("chotngay")
     doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    _chan_neu_da_nhap_kho(doc)
+    # Không còn guard theo phiếu nhập kho (D62): phiếu nhập kho là chứng từ độc
+    # lập, không lấy số từ bảng vào hộp, nên sửa bảng không ảnh hưởng gì tới nó.
     log = _huy_nua(doc, "vaohop", "ds_wo_se", ly_do)   # ds_wo_se rỗng từ D59
 
     bang = frappe.db.get_value(
@@ -956,25 +957,3 @@ def huy_chot_vaohop(ngay_sx, ly_do=None):
     doc.db_set("tong_hop_tp", 0, update_modified=False)
     doc.db_set("tong_luong_sp", 0, update_modified=False)
     return {"name": doc.name, "log": log}
-
-
-def _chan_neu_da_nhap_kho(doc):
-    """Thủ kho đã nhận hàng SAU khi chốt Vào hộp thì KHÔNG huỷ chốt được.
-
-    Huỷ chốt rút thành phẩm khỏi kho Chờ nhận; hàng đã chuyển sang Kho TP rồi
-    thì kho đóng gói âm mà không ai biết. Đây chính là lỗ hổng của D51.
-
-    So theo THỜI GIAN chứ không theo ngày sản xuất: hàng ở kho Chờ nhận là hàng
-    chung của nhiều ngày và lấy ra theo FIFO, nên mọi phiếu nhận sau mốc chốt đều
-    CÓ THỂ đã lấy hàng của ngày này đi. Chặt hơn, và không phải đoán.
-    """
-    from sx.api.khotp import phieu_cua_ngay
-
-    ds = phieu_cua_ngay(doc.name)
-    if not ds:
-        return
-    frappe.throw(
-        _("Ngày này đang có phiếu nhập kho thành phẩm ({0}). Huỷ phiếu đó trước rồi "
-          "mới huỷ chốt Vào hộp — phiếu lấy số từ chính bảng vào hộp này.").format(
-            ", ".join(ds))
-    )

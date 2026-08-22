@@ -7,7 +7,7 @@
   "item",
   "ten",
   "dvt",
-  "so_theo_so",
+  "so_lap",
   "so_dem",
   "lech",
   "ghi_chu"
@@ -37,23 +37,23 @@
    "read_only": 1
   },
   {
-   "fieldname": "so_theo_so",
+   "fieldname": "so_lap",
    "fieldtype": "Float",
-   "label": "Theo bảng",
+   "label": "Số lập phiếu",
    "read_only": 1,
    "in_list_view": 1,
    "columns": 2,
-   "description": "Số QC chấm trên bảng vào hộp lúc lập phiếu. CHỈ ĐỂ ĐỐI CHIẾU — không phải số nhập kho."
+   "description": "Số người lập phiếu ghi (hàng chuyển sang kho). Để đối chiếu với số thủ kho đếm — KHÔNG phải số vào kho."
   },
   {
    "fieldname": "so_dem",
    "fieldtype": "Float",
-   "label": "Thủ kho đếm",
+   "label": "Thủ kho nhận",
    "reqd": 1,
    "non_negative": 1,
    "in_list_view": 1,
    "columns": 2,
-   "description": "Số thủ kho ĐẾM THẬT. Đây là số vào kho: lệnh SX và phiếu kho chạy theo số này."
+   "description": "Số thủ kho ĐẾM THẬT và nhận. Đây là số vào kho: lệnh SX và phiếu kho chạy theo số này."
   },
   {
    "fieldname": "lech",
@@ -62,7 +62,7 @@
    "read_only": 1,
    "in_list_view": 1,
    "columns": 2,
-   "description": "Đếm − bảng. Âm = phần chưa nhận, vẫn chờ ở danh sách."
+   "description": "Nhận − lập phiếu."
   },
   {
    "fieldname": "ghi_chu",
@@ -72,7 +72,7 @@
  ],
  "istable": 1,
  "links": [],
- "modified": "2026-08-22 10:00:00.000000",
+ "modified": "2026-08-22 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Phieu Nhap TP Item",
