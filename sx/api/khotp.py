@@ -63,8 +63,8 @@ def _tong_theo_sku(bang):
 
 
 def _da_nhan(ngay_sx):
-    """{item: số hộp ĐÃ vào kho} của ngày — cộng theo cột "Theo bảng" của phiếu ĐÃ
-    DUYỆT, vì chính cột đó là số Work Order đã chạy.
+    """{item: số hộp ĐÃ vào kho} của ngày — cộng theo SỐ ĐẾM của phiếu đã duyệt,
+    vì chính số đếm là số Work Order đã chạy và đã nhập kho.
 
     Có nó thì nhận NHIỀU LẦN trong ngày mới đúng: đóng được bao nhiêu chuyển bấy
     nhiêu, phiếu sau chỉ lấy phần CÒN LẠI, không nhập trùng phần đã nhận."""
@@ -74,9 +74,9 @@ def _da_nhan(ngay_sx):
     ):
         for r in frappe.get_all(
             "SX Phieu Nhap TP Item", filters={"parent": name},
-            fields=["item", "so_theo_so"],
+            fields=["item", "so_dem"],
         ):
-            ra[r.item] = ra.get(r.item, 0) + flt(r.so_theo_so)
+            ra[r.item] = ra.get(r.item, 0) + flt(r.so_dem)
     return ra
 
 
@@ -184,7 +184,8 @@ def tao_phieu_nhap(ngay_sx, ghi_chu=None):
 def lam_moi_phieu(name):
     """Nạp lại cột "Theo bảng" theo bảng vào hộp HIỆN TẠI (giữ số đếm đã gõ).
 
-    Dùng khi bảng đổi sau lúc lập phiếu — thay vì bắt xoá phiếu rồi gõ lại từ đầu.
+    QC vẫn đang chấm trong lúc thủ kho đi đếm, nên con số tham chiếu cũ hay lệch.
+    Không bắt buộc bấm — số đếm mới là số vào kho — nhưng bấm thì đối chiếu dễ hơn.
     """
     guard_card("nhapkhotp")
     doc = frappe.get_doc("SX Phieu Nhap TP", name)
@@ -194,10 +195,10 @@ def lam_moi_phieu(name):
     cu = {r.item: flt(r.so_dem) for r in doc.dong}
     doc.set("dong", [])
     for item, so in sorted(con.items(), key=lambda x: -x[1]):
-        # Số đếm cũ giữ lại nhưng KHÔNG vượt số bảng mới — bảng giảm xuống thì số
-        # đếm cũ có thể đã lớn hơn phần còn lại.
+        # Giữ nguyên số đếm đã gõ, KHÔNG cắt theo bảng: bảng là tham chiếu, còn số
+        # đếm là hàng thủ kho đã sờ tay vào.
         doc.append("dong", {"item": item, "so_theo_so": so,
-                            "so_dem": min(cu.get(item, so), so)})
+                            "so_dem": cu.get(item, so)})
     doc.flags.ignore_permissions = True
     doc.save()
     return chi_tiet_phieu(doc.name)

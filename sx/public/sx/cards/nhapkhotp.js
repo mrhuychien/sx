@@ -86,8 +86,9 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         <div class="sx-vh-done-so" style="font-size:var(--sx-f-md)">${esc(p.ngay)}</div>
       </div>
     </div>
-    <div class="sx-muted">Duyệt xong hàng vào <b>${esc(p.kho_dich)}</b> · lập bởi
-      ${esc(p.nguoi_lap || '')}. Bấm số để sửa theo đúng số ĐẾM ĐƯỢC.</div>
+    <div class="sx-muted">Thủ kho đếm thật rồi sửa số cho khớp — <b>số đếm là số vào
+      kho</b>, "bảng" chỉ để đối chiếu. Duyệt xong hàng vào
+      <b>${esc(p.kho_dich)}</b> · lập bởi ${esc(p.nguoi_lap || '')}.</div>
     <div class="sx-vh-hang2">
       <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-quet">⌗ QUÉT HỘP</button>
       <button type="button" class="sx-btn sx-quet-nut" id="sx-nk-lammoi"
@@ -112,7 +113,8 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         <div class="sx-vh-who">
           <div class="sx-vh-name">${esc(x.ten)}</div>
           <div class="sx-vh-meta">bảng ${formatNumber(x.so_theo_so)}${
-            lech ? ` · hộp lỗi ${formatNumber(-lech)}` : ''}</div>
+            lech ? (lech > 0 ? ` · hơn bảng ${formatNumber(lech)}`
+                             : ` · còn ${formatNumber(-lech)} chưa nhận`) : ''}</div>
         </div>
         <button type="button" class="sx-vh-sl${lech ? ' sx-cell-lech' : ''}"
           data-i="${i}">${formatNumber(x.so_dem)}</button>
@@ -122,28 +124,22 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       const x = rows[Number(b.dataset.i)];
       b.addEventListener('click', () => openNumpad({
         kicker: 'Số đếm thật', title: x.ten, unitLabel: 'Số lượng', initial: x.so_dem,
-        // Nhận nhiều hơn bảng là bảng ghi sót, không phải hàng từ đâu ra — chặn
-        // ngay ở bàn số thay vì để server từ chối sau khi gõ xong cả phiếu.
-        hint: (n) => (n > x.so_theo_so
-          ? `⚠ nhiều hơn bảng (${formatNumber(x.so_theo_so)})`
-          : (n < x.so_theo_so ? `hộp lỗi ${formatNumber(x.so_theo_so - n)}` : '')),
-        onOk: (v) => {
-          const n = Math.max(0, Math.round(v));
-          if (n > x.so_theo_so) {
-            toastErr(`Không nhận quá số trên bảng (${formatNumber(x.so_theo_so)}). `
-              + 'Bảng ghi sót thì phải sửa bảng.');
-            return;
-          }
-          x.so_dem = n;
-          ve();
+        // Số ĐẾM là số vào kho, không bị chặn theo bảng: hàng đã qua bước kiểm
+        // đếm thực tế rồi mới kéo vào kho. Bảng chỉ là số tham chiếu, và QC vẫn
+        // đang chấm trong lúc thủ kho đi đếm nên nó lệch là bình thường.
+        hint: (n) => {
+          const d = n - x.so_theo_so;
+          if (!d) return '';
+          return d > 0 ? `hơn bảng ${formatNumber(d)}` : `còn ${formatNumber(-d)} chưa nhận`;
         },
+        onOk: (v) => { x.so_dem = Math.max(0, Math.round(v)); ve(); },
       }));
     });
     const tong = rows.reduce((a, x) => a + x.so_dem, 0);
-    const hong = rows.reduce((a, x) => a + (x.so_theo_so - x.so_dem), 0);
+    const con = rows.reduce((a, x) => a + (x.so_theo_so - x.so_dem), 0);
     container.querySelector('#sx-nk-tong').textContent = formatNumber(tong);
-    container.querySelector('#sx-nk-lech').textContent =
-      hong ? `${formatNumber(hong)} hộp lỗi không nhận` : '';
+    container.querySelector('#sx-nk-lech').textContent = con > 0
+      ? `còn ${formatNumber(con)} chưa nhận` : (con < 0 ? `hơn bảng ${formatNumber(-con)}` : '');
   }
   ve();
 
@@ -205,15 +201,15 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   if (btnDuyet) {
     btnDuyet.addEventListener('click', async () => {
       const tong = rows.reduce((a, x) => a + x.so_dem, 0);
-      const hong = rows.reduce((a, x) => a + (x.so_theo_so - x.so_dem), 0);
+      const con = rows.reduce((a, x) => a + (x.so_theo_so - x.so_dem), 0);
       if (!tong) { toastErr('Chưa có dòng nào đếm được số > 0.'); return; }
       // Số đang sửa trên màn PHẢI lưu trước khi duyệt, không thì duyệt số cũ.
       try { await luu(); } catch (e) { toastErr(e.message); return; }
       confirm2Step({
         title: 'Duyệt phiếu nhận',
-        message: `Nhận ${formatNumber(tong)} sản phẩm vào ${p.kho_dich}.`
-          + (hong ? ` ${formatNumber(hong)} hộp lỗi được ghi thành phiếu xuất huỷ riêng `
-            + '— nguyên liệu của số hộp đó vẫn trừ, vì đã đóng thật.' : '')
+        message: `Nhận ${formatNumber(tong)} sản phẩm vào ${p.kho_dich} theo đúng số đếm.`
+          + (con > 0 ? ` ${formatNumber(con)} chưa nhận vẫn nằm chờ ở danh sách — `
+            + 'lập phiếu tiếp khi chuyển nốt.' : '')
           + ' Duyệt xong chứng từ kho được ghi; sửa thì phải huỷ phiếu.',
         confirmLabel: 'DUYỆT',
         onConfirm: async () => {

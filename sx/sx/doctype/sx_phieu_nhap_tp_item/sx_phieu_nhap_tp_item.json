@@ -43,7 +43,7 @@
    "read_only": 1,
    "in_list_view": 1,
    "columns": 2,
-   "description": "Số QC chấm trên bảng vào hộp. Đây là số ĐÃ ĐÓNG — nguyên liệu trừ theo số này, kể cả hộp sau đó bị loại."
+   "description": "Số QC chấm trên bảng vào hộp lúc lập phiếu. CHỈ ĐỂ ĐỐI CHIẾU — không phải số nhập kho."
   },
   {
    "fieldname": "so_dem",
@@ -53,7 +53,7 @@
    "non_negative": 1,
    "in_list_view": 1,
    "columns": 2,
-   "description": "Số thủ kho ĐẾM và nhận. Tồn Kho TP sau cùng bằng số này; phần thiếu so với bảng thành phiếu xuất huỷ 'hộp lỗi'."
+   "description": "Số thủ kho ĐẾM THẬT. Đây là số vào kho: lệnh SX và phiếu kho chạy theo số này."
   },
   {
    "fieldname": "lech",
@@ -61,7 +61,8 @@
    "label": "Lệch",
    "read_only": 1,
    "in_list_view": 1,
-   "columns": 2
+   "columns": 2,
+   "description": "Đếm − bảng. Âm = phần chưa nhận, vẫn chờ ở danh sách."
   },
   {
    "fieldname": "ghi_chu",
