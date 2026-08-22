@@ -23,4 +23,22 @@ for f in $(find sx/public -name '*.js' | sort); do
 done
 [ $loi -eq 0 ] && echo "JS-OK ($n file, parse kiểu ES module)"
 
+# Mỗi thư mục doctype phải đủ BA file. Thiếu `<ten>.py` thì py_compile không kêu
+# (không có file để compile) mà `bench migrate` chết ngay ở bước sync với
+# "ModuleNotFoundError" — đã dính thật ở D56.
+python3 - <<'PYEOF'
+import os, sys
+loi, base = [], "sx/sx/doctype"
+for d in sorted(os.listdir(base)):
+    p = os.path.join(base, d)
+    if not os.path.isdir(p) or d == "__pycache__":
+        continue
+    for f in ("__init__.py", f"{d}.json", f"{d}.py"):
+        if not os.path.exists(os.path.join(p, f)):
+            loi.append(f"DOCTYPE-FAIL {d}: thiếu {f}")
+print("\n".join(loi) if loi else "DOCTYPE-OK")
+sys.exit(1 if loi else 0)
+PYEOF
+[ $? -ne 0 ] && loi=1
+
 exit $loi
