@@ -132,6 +132,7 @@ export async function render({ container, ctx, call, cards, mountCard }) {
         <table class="sx-table"><thead><tr><th>Công nhân</th><th>Hộp</th><th>Lương SP</th></tr></thead>
         <tbody>${(d.nang_suat_vao_hop || []).map((r) => `<tr><td>${esc(r.ten || r.nhan_vien)}</td><td><b>${formatNumber(r.so_hop)}</b></td><td>${esc(formatVND(r.tien))}</td></tr>`).join('')
           || '<tr><td colspan="3" class="sx-muted">Chưa có dữ liệu.</td></tr>'}</tbody></table></div>
+      ${veDoiChieu(d.doi_chieu_kho)}
       <div class="sx-card"><div class="sx-field-label">Mẻ trộn vs cán (bột bánh)</div>
         <table class="sx-table"><thead><tr><th>Bột bánh</th><th>Mẻ trộn</th><th>Mẻ cán</th></tr></thead>
         <tbody>${(d.tron_vs_can || []).map((r) => `<tr class="${r.canh_bao ? 'sx-row-warn' : ''}"><td>${esc(r.item)}</td><td>${formatNumber(r.me_tron, 1)}</td><td>${formatNumber(r.me_can, 1)}</td></tr>`).join('')
@@ -145,6 +146,35 @@ export async function render({ container, ctx, call, cards, mountCard }) {
   }
 
   await load();
+}
+
+// Đối chiếu chấm vào hộp vs đã nhập kho (D66).
+//
+// Hai con số này KHÔNG ràng buộc nhau — chấm vào hộp tính lương, nhập kho ghi tồn,
+// hai chứng từ độc lập (D62). Nhưng lệch nhiều thì có chuyện: hộp lỗi, hàng còn ở
+// xưởng chưa chuyển, hoặc quên lập phiếu nhận. Đối chiếu thuộc về BÁO CÁO, đặt ở
+// đây thay vì chặn lúc nhập liệu.
+function veDoiChieu(ds) {
+  if (!ds || !ds.length) return '';
+  const tongVH = ds.reduce((a, r) => a + r.vao_hop, 0);
+  const tongNK = ds.reduce((a, r) => a + r.nhap_kho, 0);
+  return `
+    <div class="sx-card"><div class="sx-field-label">Vào hộp vs Nhập kho</div>
+      <div class="sx-muted">Chấm vào hộp tính lương, nhập kho ghi tồn — hai việc riêng.
+        Lệch âm là hàng chưa chuyển hết hoặc hộp lỗi; lệch dương thường là chấm sót.</div>
+      <table class="sx-table">
+        <thead><tr><th>Sản phẩm</th><th>Vào hộp</th><th>Nhập kho</th><th>Lệch</th></tr></thead>
+        <tbody>${ds.map((r) => `
+          <tr class="${r.lech > 0 ? 'sx-row-warn' : ''}">
+            <td>${esc(r.ten)}</td>
+            <td>${formatNumber(r.vao_hop)}</td>
+            <td>${formatNumber(r.nhap_kho)}</td>
+            <td><b>${r.lech > 0 ? '+' : ''}${formatNumber(r.lech)}</b></td>
+          </tr>`).join('')}
+          <tr><td><b>Tổng</b></td><td><b>${formatNumber(tongVH)}</b></td>
+            <td><b>${formatNumber(tongNK)}</b></td>
+            <td><b>${tongNK - tongVH > 0 ? '+' : ''}${formatNumber(tongNK - tongVH)}</b></td></tr>
+        </tbody></table></div>`;
 }
 
 // Cây truy xuất đệ quy: node {batch,item,nhom,nguon_lieu:[{item,batch,kg,nhom,con?,lo_rang?,lo_dau_ncc?,lo_ncc?}]}

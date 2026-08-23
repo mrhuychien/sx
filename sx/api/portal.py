@@ -275,7 +275,11 @@ def _ma_quet(nhan_vien, activities):
 
     Mã người: chấp nhận CẢ employee_number lẫn Employee ID. Nơi này chỉ có 45 người
     nên bảng rất nhỏ; đổi lại QC quét được bất kỳ thẻ nào đang có sẵn.
-    Mã sản phẩm: mọi Item Barcode của SKU đang dùng — quét vỏ hộp là ra loại công việc.
+
+    Mã sản phẩm: lấy theo MỌI Item thành phẩm (items_tp), không phải chỉ SKU đã gắn
+    loại công việc. Từ D64 thành phẩm xác định bằng Item Group, nên phần lớn Item
+    không có `custom_activity_type` — lấy theo activity thì nút quét ở màn Nhập kho
+    tra bảng rỗng và không quét được gì, mà lại im lặng.
     """
     nv = {}
     for e in nhan_vien:
@@ -284,6 +288,7 @@ def _ma_quet(nhan_vien, activities):
                 nv[str(ma).strip()] = e["name"]
 
     ma_sku = {s["name"] for a in activities for s in (a.get("sku") or [])}
+    ma_sku |= {i.name for i in items_tp(["name"])}
     sp = {}
     if ma_sku:
         for b in frappe.get_all(
@@ -439,15 +444,20 @@ def dashboard(tu_ngay=None, den_ngay=None):
     den_ngay = getdate(den_ngay or nowdate())
     tu_ngay = getdate(tu_ngay) if tu_ngay else add_days(den_ngay, -6)
 
+    # Lấy cả ngày mới chốt MỘT NỬA. Từ D55 phiếu ngày chỉ submit khi xong cả hai
+    # nửa, nên lọc docstatus=1 làm sản lượng của ngày đã chốt Vào hộp (nhưng chưa
+    # chốt Ghi sổ) biến mất khỏi dashboard — quản lý mở lên thấy hôm nay bằng 0.
     phieu = frappe.get_all(
         "SX Ngay San Xuat",
-        filters={"ngay": ("between", (tu_ngay, den_ngay)), "docstatus": 1},
+        filters={"ngay": ("between", (tu_ngay, den_ngay)), "docstatus": ("<", 2),
+                 "chot_vaohop": 1},
         fields=["name", "ngay", "tong_hop_tp", "tong_luong_sp"],
         order_by="ngay",
     )
     ds_phieu = [p.name for p in phieu]
 
     san_luong_sku, nang_suat, su_co, phut_dung = [], [], [], 0
+    rows = []
     if ds_phieu:
         bang = frappe.get_all(
             "SX Bang Vao Hop", filters={"ngay_sx": ("in", ds_phieu), "docstatus": 1},
@@ -486,6 +496,8 @@ def dashboard(tu_ngay=None, den_ngay=None):
         )
         phut_dung = sum(cint(r.phut_dung) for r in su_co)
 
+    doi_chieu = _vao_hop_vs_nhap_kho(rows, tu_ngay, den_ngay)
+
     # Mẻ trộn (bao_me) vs cán (bao_can) theo bột bánh — delta = cảnh báo
     tron_can = _tron_vs_can(ds_phieu)
     ton_btp = _ton_btp()
@@ -502,6 +514,7 @@ def dashboard(tu_ngay=None, den_ngay=None):
              "tong_luong_sp": flt(p.tong_luong_sp)}
             for p in phieu
         ],
+        "doi_chieu_kho": doi_chieu,
         "san_luong_sku": san_luong_sku,
         "nang_suat_vao_hop": nang_suat,
         "tron_vs_can": tron_can,
@@ -518,6 +531,54 @@ def dashboard(tu_ngay=None, den_ngay=None):
         ],
         "phut_dung": phut_dung,
     }
+
+
+def _vao_hop_vs_nhap_kho(rows_vao_hop, tu_ngay, den_ngay):
+    """Đối chiếu SỐ CHẤM VÀO HỘP với SỐ ĐÃ NHẬP KHO, theo từng SKU.
+
+    Hai con số này KHÔNG ràng buộc nhau (D62 — hai chứng từ độc lập), và đúng là
+    không nên ràng buộc: chấm vào hộp tính lương, nhập kho ghi tồn. Nhưng lệch nhiều
+    thì có chuyện — hộp lỗi, hàng còn ở xưởng chưa chuyển, hoặc quên lập phiếu nhận.
+    Đối chiếu là việc của BÁO CÁO, đặt đúng chỗ này thay vì chặn lúc nhập liệu.
+
+    Lệch ÂM = vào hộp nhiều hơn nhập kho (bình thường nếu chưa chuyển hết).
+    Lệch DƯƠNG = nhập kho nhiều hơn chấm — đáng xem, thường là chấm sót.
+    """
+    gop = {}
+    for r in rows_vao_hop:
+        if not r.get("san_pham"):
+            continue
+        g = gop.setdefault(r["san_pham"], {"item": r["san_pham"], "vao_hop": 0, "nhap_kho": 0})
+        g["vao_hop"] += cint(r.get("so_hop"))
+
+    phieu_kho = frappe.get_all(
+        "SX Phieu Nhap TP",
+        filters={"ngay": ("between", (tu_ngay, den_ngay)), "docstatus": 1},
+        pluck="name",
+    )
+    if phieu_kho:
+        for r in frappe.get_all(
+            "SX Phieu Nhap TP Item",
+            filters={"parent": ("in", phieu_kho), "parenttype": "SX Phieu Nhap TP"},
+            fields=["item", "so_dem"],
+        ):
+            g = gop.setdefault(r.item, {"item": r.item, "vao_hop": 0, "nhap_kho": 0})
+            g["nhap_kho"] += cint(r.so_dem)
+
+    ten = {}
+    if gop:
+        ten = {
+            i.name: (i.item_name or i.name)
+            for i in frappe.get_all(
+                "Item", filters={"name": ("in", list(gop))},
+                fields=["name", "item_name"])
+        }
+    ra = []
+    for g in gop.values():
+        g["ten"] = ten.get(g["item"], g["item"])
+        g["lech"] = g["nhap_kho"] - g["vao_hop"]
+        ra.append(g)
+    return sorted(ra, key=lambda x: (-abs(x["lech"]), -x["vao_hop"]))
 
 
 def _tron_vs_can(ds_phieu):
