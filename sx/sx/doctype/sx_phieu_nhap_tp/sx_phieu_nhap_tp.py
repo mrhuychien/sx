@@ -42,8 +42,10 @@ class SXPhieuNhapTP(Document):
         for r in self.dong:
             # Có chi tiết ĐVT thì TÍNH LẠI tổng từ nó, không tin con số client gửi:
             # đây là số vào sổ kho, mà phép nhân hệ số quy đổi thì để server làm.
-            r.so_lap = _tong_tu_uom(r.lap_uom, r.so_lap)
-            r.so_dem = _tong_tu_uom(r.dem_uom, r.so_dem)
+            # .get() chứ không .lap_uom: site chưa migrate thì field chưa có trong
+            # meta và truy cập thẳng là AttributeError -> 500 trống trơn.
+            r.so_lap = _tong_tu_uom(r.get("lap_uom"), r.so_lap)
+            r.so_dem = _tong_tu_uom(r.get("dem_uom"), r.so_dem)
             if flt(r.so_dem) < 0:
                 frappe.throw(_("Dòng {0}: số đếm không được âm.").format(r.idx))
             r.lech = flt(r.so_dem) - flt(r.so_lap)

@@ -164,7 +164,8 @@ def chi_tiet_phieu(name):
         "dong": [
             {"item": r.item, "ten": r.ten or r.item, "dvt": r.dvt or "",
              "so_lap": flt(r.so_lap, 0), "so_dem": flt(r.so_dem, 0),
-             "lap_uom": _doc_json(r.lap_uom), "dem_uom": _doc_json(r.dem_uom),
+             "lap_uom": _doc_json(r.get("lap_uom")),
+             "dem_uom": _doc_json(r.get("dem_uom")),
              "lech": flt(r.lech, 0), "ghi_chu": r.ghi_chu}
             for r in doc.dong
         ],
@@ -198,7 +199,8 @@ def sua_phieu(name, rows, ghi_chu=None):
     if doc.docstatus != 0:
         frappe.throw(_("Phiếu {0} đã duyệt — không sửa được. Huỷ phiếu rồi lập lại.")
                      .format(name))
-    cu = {r.item: (flt(r.so_lap), r.lap_uom) for r in doc.dong}
+    co_uom = _co_chi_tiet_uom()
+    cu = {r.item: (flt(r.so_lap), r.get("lap_uom")) for r in doc.dong}
     doc.set("dong", [])
     for r in (json.loads(rows) if isinstance(rows, str) else rows) or []:
         item = r.get("item")
@@ -207,17 +209,27 @@ def sua_phieu(name, rows, ghi_chu=None):
         so_dem = flt(r.get("so_dem"))
         lap_cu, lap_uom_cu = cu.get(item, (so_dem, None))
         so_lap = flt(r.get("so_lap")) if r.get("so_lap") is not None else lap_cu
-        lap_uom = (_ghi_json(r.get("lap_uom")) if r.get("lap_uom") is not None
-                   else lap_uom_cu)
-        doc.append("dong", {
-            "item": item, "so_lap": so_lap, "so_dem": so_dem,
-            "lap_uom": lap_uom, "dem_uom": _ghi_json(r.get("dem_uom")),
-            "ghi_chu": r.get("ghi_chu"),
-        })
+        dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem,
+                "ghi_chu": r.get("ghi_chu")}
+        if co_uom:
+            dong["lap_uom"] = (_ghi_json(r.get("lap_uom"))
+                               if r.get("lap_uom") is not None else lap_uom_cu)
+            dong["dem_uom"] = _ghi_json(r.get("dem_uom"))
+        doc.append("dong", dong)
     if ghi_chu is not None:
         doc.ghi_chu = ghi_chu
     doc.flags.ignore_permissions = True
-    doc.save()
+    try:
+        doc.save()
+    except Exception:
+        # Lỗi ORM ở đây rơi ra client thành 500 trống trơn — người dùng chỉ thấy
+        # "duyệt không được", không có gì để lần. Ghi log rồi ném lại câu đọc được.
+        frappe.log_error(title=f"sua_phieu {name} hỏng", message=frappe.get_traceback())
+        frappe.throw(
+            _("Không lưu được phiếu {0}. Thường là do site chưa chạy "
+              "`bench migrate` sau lần cập nhật gần nhất. Chi tiết trong Error Log.")
+            .format(name)
+        )
     return chi_tiet_phieu(doc.name)
 
 
@@ -259,6 +271,16 @@ def huy_phieu(name, ly_do=None):
     doc.flags.ignore_permissions = True
     doc.cancel()
     return {"da_huy": name}
+
+
+def _co_chi_tiet_uom():
+    """Bảng con đã có cột chi tiết ĐVT chưa (D65).
+
+    Deploy mà quên `bench migrate` thì field chưa có trong meta, và ghi vào nó là
+    lỗi 500 trống trơn — người dùng chỉ thấy "duyệt không được". Thà chạy ở chế độ
+    một đơn vị còn hơn chết cả nút bấm; và hàm này cũng là chỗ nói ra sự thật đó.
+    """
+    return bool(frappe.get_meta("SX Phieu Nhap TP Item").get_field("dem_uom"))
 
 
 def _doc_json(v):
