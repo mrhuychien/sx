@@ -427,7 +427,12 @@ def _chot_tang_2(doc, chung_tu):
 #   cộng tienanca/andem do bộ phận lương điền, thunhapngay = Σtt + tienanca.
 #
 # Chốt ngày UPSERT đúng dòng của ngày đó trong phiếu tháng, để phiếu ở DRAFT —
-# bộ phận lương kiểm và submit cuối tháng. KHÔNG đụng ăn ca / chuyên cần / bảo hiểm.
+# bộ phận lương kiểm và submit cuối tháng.
+#
+# ⚠️ CHỐT NGÀY GHI ĐÈ CẢ `tienanca` VÀ `andem` của dòng ngày đó (_ghi_an, D30/D44):
+# ăn ca / ăn đêm giờ do QC chấm trên portal, không phải bộ phận lương điền tay nữa.
+# Ngày nào không ai được chấm ăn thì hai ô đó bị ghi về 0. Chuyên cần / bảo hiểm và
+# mọi field khác của phiếu lương thì KHÔNG đụng tới.
 
 SALARY_DT = "SalaryProduct"
 SALARY_CHILD = "luongkhoan"

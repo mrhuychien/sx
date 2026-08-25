@@ -19,7 +19,12 @@ doc_events = {
 fixtures = [
     {
         "doctype": "Role",
-        "filters": [["name", "in", ["SX Ghi So", "SX Vao Hop", "SX Quan Ly"]]],
+        # Danh sách này phải KHỚP fixtures/role.json. Nó chỉ áp lúc `bench
+        # export-fixtures`, nên thiếu một tên thì lần export sau lặng lẽ XOÁ role đó
+        # khỏi file, và site cài mới sau đó thiếu role mà không ai biết.
+        "filters": [
+            ["name", "in", ["SX Ghi So", "SX Vao Hop", "SX Thu Kho", "SX Quan Ly"]]
+        ],
     },
     {"doctype": "Custom Field", "filters": [["module", "=", "SX"]]},
     {"doctype": "Print Format", "filters": [["module", "=", "SX"]]},

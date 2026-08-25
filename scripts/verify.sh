@@ -41,4 +41,8 @@ sys.exit(1 if loi else 0)
 PYEOF
 [ $? -ne 0 ] && loi=1
 
+# Bộ lọc fixtures trong hooks.py phải khớp nội dung fixtures/*.json — lệch thì lần
+# `bench export-fixtures` sau lặng lẽ xoá bản ghi khỏi file (đã dính thật ở D56).
+python3 scripts/soat-fixtures.py || loi=1
+
 exit $loi
