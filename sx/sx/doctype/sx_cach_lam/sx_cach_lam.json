@@ -1,0 +1,26 @@
+{
+ "actions": [],
+ "autoname": "prompt",
+ "creation": "2026-08-25 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["mo_ta", "disabled"],
+ "fields": [
+  {"fieldname": "mo_ta", "fieldtype": "Small Text", "label": "Mô tả",
+   "description": "Vd: làm hoàn toàn bằng tay, không dùng máy ép."},
+  {"fieldname": "disabled", "fieldtype": "Check", "label": "Ngừng dùng"}
+ ],
+ "links": [],
+ "modified": "2026-08-25 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Cach Lam",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1,
+   "report": 1, "export": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

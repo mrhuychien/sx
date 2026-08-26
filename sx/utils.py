@@ -412,3 +412,53 @@ def items_tp(fields=None, filters=None):
         or_filters=[["custom_sx_nhom", "=", "TP"], ["item_group", "in", nhom]],
         fields=fields, order_by="item_name",
     )
+
+
+# ─────────────────────────────────────── ĐƠN GIÁ KHOÁN THEO THÁNG (D67) ──
+
+
+def bang_don_gia(ngay):
+    """Tên bảng đơn giá ĐANG ÁP DỤNG cho một ngày. Không có -> None."""
+    d = getdate(ngay)
+    return frappe.db.get_value(
+        "SX Bang Don Gia", {"thang": d.month, "nam": d.year, "docstatus": 1}, "name")
+
+
+def don_gia_theo_thang(ngay):
+    """{(san_pham, cach_lam): don_gia} của tháng chứa `ngay`.
+
+    Đọc MỘT LẦN cho cả bảng rồi tra trong bộ nhớ: bảng vào hộp có hàng trăm dòng,
+    mỗi dòng một truy vấn là bốn trăm truy vấn cho một lần lưu.
+    Dòng để trống cách làm nằm dưới khoá `(san_pham, "")` — giá chung.
+    """
+    ten = bang_don_gia(ngay)
+    if not ten:
+        return {}
+    return {
+        (r.san_pham, r.cach_lam or ""): flt(r.don_gia)
+        for r in frappe.get_all(
+            "SX Bang Don Gia Item", filters={"parent": ten, "parenttype": "SX Bang Don Gia"},
+            fields=["san_pham", "cach_lam", "don_gia"],
+        )
+    }
+
+
+def tra_don_gia(bang, san_pham, cach_lam=None):
+    """Tra đơn giá trong bảng đã đọc. Ưu tiên đúng cách làm, không có thì giá chung.
+
+    Trả None khi không tra được — nơi gọi phải quyết định báo lỗi thế nào, vì câu
+    báo lỗi ở bảng vào hộp khác câu ở màn quản lý.
+    """
+    if cach_lam and (san_pham, cach_lam) in bang:
+        return bang[(san_pham, cach_lam)]
+    if (san_pham, "") in bang:
+        return bang[(san_pham, "")]
+    return None
+
+
+def cach_lam_cua(bang, san_pham):
+    """Các cách làm khai giá cho một mã hàng, trong bảng đã đọc.
+
+    Trả [] nghĩa là mã đó chỉ có giá chung — màn nhập liệu khỏi hỏi thêm bước nào.
+    """
+    return sorted({cl for (sp, cl) in bang if sp == san_pham and cl})

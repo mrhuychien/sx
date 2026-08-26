@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "autoname": "format:DG-{nam}-{thang}",
+ "creation": "2026-08-25 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "is_submittable": 1,
+ "field_order": [
+  "thang", "nam", "column_break_head", "trang_thai", "ap_dung_tu",
+  "section_dong", "dong",
+  "section_khac", "ghi_chu", "amended_from"
+ ],
+ "fields": [
+  {"fieldname": "thang", "fieldtype": "Int", "label": "Tháng", "reqd": 1,
+   "in_list_view": 1},
+  {"fieldname": "nam", "fieldtype": "Int", "label": "Năm", "reqd": 1,
+   "in_list_view": 1},
+  {"fieldname": "column_break_head", "fieldtype": "Column Break"},
+  {"fieldname": "trang_thai", "fieldtype": "Select", "label": "Trạng thái",
+   "options": "Nháp\nĐang áp dụng\nĐã huỷ", "read_only": 1, "in_list_view": 1},
+  {"fieldname": "ap_dung_tu", "fieldtype": "Date", "label": "Áp dụng từ ngày",
+   "read_only": 1,
+   "description": "Luôn là ngày 1 của tháng. Trong cùng một tháng đơn giá không đổi."},
+  {"fieldname": "section_dong", "fieldtype": "Section Break", "label": "Đơn giá khoán"},
+  {"fieldname": "dong", "fieldtype": "Table", "options": "SX Bang Don Gia Item",
+   "label": "Dòng"},
+  {"fieldname": "section_khac", "fieldtype": "Section Break"},
+  {"fieldname": "ghi_chu", "fieldtype": "Small Text", "label": "Ghi chú"},
+  {"fieldname": "amended_from", "fieldtype": "Link", "options": "SX Bang Don Gia",
+   "label": "Amended From", "read_only": 1, "no_copy": 1, "print_hide": 1}
+ ],
+ "links": [],
+ "modified": "2026-08-25 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Bang Don Gia",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1,
+   "submit": 1, "cancel": 1, "amend": 1, "report": 1, "export": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
