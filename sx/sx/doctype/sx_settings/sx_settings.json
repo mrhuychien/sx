@@ -20,7 +20,17 @@
   "section_an_ca",
   "tien_an_ca",
   "column_break_ac",
-  "tien_an_dem"
+  "tien_an_dem",
+  "section_luong",
+  "he_so_ngay_le",
+  "ngay_cong_chuan",
+  "ho_tro_ngay_cong",
+  "column_break_luong",
+  "chuyen_can_dat",
+  "chuyen_can_du",
+  "chuyen_can_du_cao_diem",
+  "thang_cao_diem",
+  "ty_le_tham_nien"
  ],
  "fields": [
   {
@@ -119,11 +129,75 @@
    "options": "SX Nhom Hang TP",
    "label": "Nhóm hàng là thành phẩm",
    "description": "Chọn Item Group nào là thành phẩm — mọi Item trong nhóm đó (và các nhóm con) tự được coi là TP, khỏi phải sửa từng Item. Item có 'Nhóm SX' = TP vẫn được tính, dù không thuộc nhóm nào ở đây."
+  },
+  {
+   "fieldname": "section_luong",
+   "fieldtype": "Section Break",
+   "label": "Tham số tính lương khoán"
+  },
+  {
+   "fieldname": "he_so_ngay_le",
+   "fieldtype": "Float",
+   "label": "Hệ số ngày Chủ nhật / 1-1",
+   "default": "1.2",
+   "description": "Lương sản phẩm ngày đó nhân hệ số này. Tiền ăn KHÔNG nhân."
+  },
+  {
+   "fieldname": "ngay_cong_chuan",
+   "fieldtype": "Float",
+   "label": "Ngày công chuẩn / tháng",
+   "default": "22",
+   "description": "Dùng để tính hỗ trợ khi xưởng chạy ít ngày hơn mức này."
+  },
+  {
+   "fieldname": "ho_tro_ngay_cong",
+   "fieldtype": "Currency",
+   "label": "Hỗ trợ mỗi ngày công thiếu",
+   "default": "70000",
+   "description": "Chỉ tính khi xưởng chạy ÍT ngày hơn chuẩn mà người ta vẫn đi gần đủ. Tháng 2 không tính."
+  },
+  {
+   "fieldname": "column_break_luong",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "chuyen_can_dat",
+   "fieldtype": "Currency",
+   "label": "Chuyên cần — mức thường",
+   "default": "200000",
+   "description": "Ngày công > 25, hoặc thiếu không quá nửa công so với số ngày xưởng chạy."
+  },
+  {
+   "fieldname": "chuyen_can_du",
+   "fieldtype": "Currency",
+   "label": "Chuyên cần — xưởng chạy > 29 ngày",
+   "default": "300000"
+  },
+  {
+   "fieldname": "chuyen_can_du_cao_diem",
+   "fieldtype": "Currency",
+   "label": "Chuyên cần — tháng cao điểm",
+   "default": "1000000",
+   "description": "Áp cho các tháng liệt kê bên dưới, khi xưởng chạy > 29 ngày mà đi đủ."
+  },
+  {
+   "fieldname": "thang_cao_diem",
+   "fieldtype": "Data",
+   "label": "Tháng cao điểm",
+   "default": "11,12,1",
+   "description": "Danh sách tháng, cách nhau dấu phẩy. Mặc định 11,12,1 (mùa Tết)."
+  },
+  {
+   "fieldname": "ty_le_tham_nien",
+   "fieldtype": "Float",
+   "label": "Tỉ lệ thưởng thâm niên",
+   "default": "0.05",
+   "description": "5% của lương sản phẩm tháng này + 2 tháng liền trước. Chỉ tính khi phiếu tick."
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-08-22 14:00:00.000000",
+ "modified": "2026-08-25 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

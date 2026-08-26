@@ -1,0 +1,84 @@
+{
+ "name": "SX Phieu Luong Chi Tiet",
+ "istable": 1,
+ "permissions": [],
+ "field_order": [
+  "ngay",
+  "san_pham",
+  "ten_san_pham",
+  "cach_lam",
+  "so_luong",
+  "don_gia",
+  "thanh_tien"
+ ],
+ "fields": [
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "san_pham",
+   "fieldtype": "Link",
+   "options": "Item",
+   "label": "Mã hàng",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "ten_san_pham",
+   "fieldtype": "Data",
+   "label": "Tên hàng",
+   "fetch_from": "san_pham.item_name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "cach_lam",
+   "fieldtype": "Link",
+   "options": "SX Cach Lam",
+   "label": "Cách làm",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "so_luong",
+   "fieldtype": "Int",
+   "label": "Số lượng",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "don_gia",
+   "fieldtype": "Currency",
+   "label": "Đơn giá",
+   "read_only": 1,
+   "description": "Chốt tại thời điểm ghi, theo bảng đơn giá của THÁNG đó."
+  },
+  {
+   "fieldname": "thanh_tien",
+   "fieldtype": "Currency",
+   "label": "Thành tiền",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  }
+ ],
+ "actions": [],
+ "links": [],
+ "creation": "2026-08-25 12:00:00.000000",
+ "modified": "2026-08-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "module": "SX",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

@@ -1,0 +1,312 @@
+{
+ "name": "SX Phieu Luong",
+ "autoname": "format:PL-{nam}-{thang}-{employee}",
+ "is_submittable": 1,
+ "doctype": "DocType",
+ "module": "SX",
+ "engine": "InnoDB",
+ "creation": "2026-08-25 12:00:00.000000",
+ "modified": "2026-08-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "actions": [],
+ "links": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "title_field": "ten_nhan_vien",
+ "field_order": [
+  "employee",
+  "ten_nhan_vien",
+  "column_break_head",
+  "thang",
+  "nam",
+  "trang_thai",
+  "section_nhap",
+  "ngay_san_xuat",
+  "ho_tro",
+  "column_break_nhap",
+  "bao_hiem",
+  "tinh_thuong_tham_nien",
+  "section_ngay",
+  "dong",
+  "section_ct",
+  "chi_tiet",
+  "section_phat",
+  "phat",
+  "section_tong",
+  "ngay_cong",
+  "luong_san_pham",
+  "tien_an",
+  "chuyen_can",
+  "ho_tro_ngay_cong",
+  "column_break_tong",
+  "tham_nien_thang_nay",
+  "tham_nien_thang_truoc",
+  "tham_nien_thang_truoc_nua",
+  "thuong_tham_nien",
+  "tien_phat",
+  "tong_khau_tru",
+  "section_ket",
+  "tong_tien",
+  "luong_thuc_nhan",
+  "column_break_ket",
+  "ghi_chu",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "options": "Employee",
+   "label": "Nhân viên",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ten_nhan_vien",
+   "fieldtype": "Data",
+   "label": "Tên",
+   "fetch_from": "employee.employee_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "thang",
+   "fieldtype": "Int",
+   "label": "Tháng",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nam",
+   "fieldtype": "Int",
+   "label": "Năm",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Nháp\nĐã duyệt\nĐã huỷ",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_nhap",
+   "fieldtype": "Section Break",
+   "label": "Nhập tay"
+  },
+  {
+   "fieldname": "ngay_san_xuat",
+   "fieldtype": "Float",
+   "label": "Số ngày xưởng chạy",
+   "precision": "1",
+   "description": "Số ngày sản xuất của tháng. Dùng để tính chuyên cần và hỗ trợ ngày công."
+  },
+  {
+   "fieldname": "ho_tro",
+   "fieldtype": "Currency",
+   "label": "Hỗ trợ khác"
+  },
+  {
+   "fieldname": "column_break_nhap",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "bao_hiem",
+   "fieldtype": "Currency",
+   "label": "Bảo hiểm (khấu trừ)"
+  },
+  {
+   "fieldname": "tinh_thuong_tham_nien",
+   "fieldtype": "Check",
+   "label": "Tính thưởng thâm niên",
+   "description": "5% của lương SP tháng này + 2 tháng liền trước."
+  },
+  {
+   "fieldname": "section_ngay",
+   "fieldtype": "Section Break",
+   "label": "Theo ngày"
+  },
+  {
+   "fieldname": "dong",
+   "fieldtype": "Table",
+   "options": "SX Phieu Luong Ngay",
+   "label": "Ngày"
+  },
+  {
+   "fieldname": "section_ct",
+   "fieldtype": "Section Break",
+   "label": "Chi tiết sản lượng",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "chi_tiet",
+   "fieldtype": "Table",
+   "options": "SX Phieu Luong Chi Tiet",
+   "label": "Chi tiết"
+  },
+  {
+   "fieldname": "section_phat",
+   "fieldtype": "Section Break",
+   "label": "Lỗi phạt",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "phat",
+   "fieldtype": "Table",
+   "options": "SX Phieu Luong Phat",
+   "label": "Lỗi phạt"
+  },
+  {
+   "fieldname": "section_tong",
+   "fieldtype": "Section Break",
+   "label": "Tổng hợp"
+  },
+  {
+   "fieldname": "ngay_cong",
+   "fieldtype": "Float",
+   "label": "Ngày công",
+   "read_only": 1,
+   "precision": "1",
+   "description": "Ngày có ăn ca = 1; ngày chỉ ăn đêm = 0,5."
+  },
+  {
+   "fieldname": "luong_san_pham",
+   "fieldtype": "Currency",
+   "label": "Lương sản phẩm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tien_an",
+   "fieldtype": "Currency",
+   "label": "Tiền ăn ca + ăn đêm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chuyen_can",
+   "fieldtype": "Currency",
+   "label": "Chuyên cần",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ho_tro_ngay_cong",
+   "fieldtype": "Currency",
+   "label": "Hỗ trợ ngày công",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tong",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tham_nien_thang_nay",
+   "fieldtype": "Currency",
+   "label": "Thâm niên tháng này",
+   "read_only": 1,
+   "depends_on": "tinh_thuong_tham_nien"
+  },
+  {
+   "fieldname": "tham_nien_thang_truoc",
+   "fieldtype": "Currency",
+   "label": "Thâm niên tháng trước",
+   "read_only": 1,
+   "depends_on": "tinh_thuong_tham_nien"
+  },
+  {
+   "fieldname": "tham_nien_thang_truoc_nua",
+   "fieldtype": "Currency",
+   "label": "Thâm niên tháng trước nữa",
+   "read_only": 1,
+   "depends_on": "tinh_thuong_tham_nien"
+  },
+  {
+   "fieldname": "thuong_tham_nien",
+   "fieldtype": "Currency",
+   "label": "Thưởng thâm niên",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tien_phat",
+   "fieldtype": "Currency",
+   "label": "Tiền phạt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tong_khau_tru",
+   "fieldtype": "Currency",
+   "label": "Tổng khấu trừ",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_ket",
+   "fieldtype": "Section Break",
+   "label": "Kết quả"
+  },
+  {
+   "fieldname": "tong_tien",
+   "fieldtype": "Currency",
+   "label": "Tổng thu nhập",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "luong_thuc_nhan",
+   "fieldtype": "Currency",
+   "label": "Lương thực nhận",
+   "read_only": 1,
+   "bold": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_ket",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "options": "SX Phieu Luong",
+   "label": "Amended From",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1
+  }
+ ]
+}

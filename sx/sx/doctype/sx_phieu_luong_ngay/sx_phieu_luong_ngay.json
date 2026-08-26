@@ -1,0 +1,95 @@
+{
+ "name": "SX Phieu Luong Ngay",
+ "istable": 1,
+ "permissions": [],
+ "field_order": [
+  "ngay",
+  "thu",
+  "an_ca",
+  "an_dem",
+  "tien_an",
+  "luong_sp",
+  "he_so",
+  "thu_nhap_ngay"
+ ],
+ "fields": [
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "thu",
+   "fieldtype": "Data",
+   "label": "Thứ",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "an_ca",
+   "fieldtype": "Int",
+   "label": "Ăn ca",
+   "in_list_view": 1,
+   "columns": 1,
+   "non_negative": 1,
+   "description": "Số SUẤT, không phải có/không."
+  },
+  {
+   "fieldname": "an_dem",
+   "fieldtype": "Int",
+   "label": "Ăn đêm",
+   "in_list_view": 1,
+   "columns": 1,
+   "non_negative": 1
+  },
+  {
+   "fieldname": "tien_an",
+   "fieldtype": "Currency",
+   "label": "Tiền ăn",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "luong_sp",
+   "fieldtype": "Currency",
+   "label": "Lương SP",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Σ thành tiền các dòng chi tiết của ngày này."
+  },
+  {
+   "fieldname": "he_so",
+   "fieldtype": "Float",
+   "label": "Hệ số",
+   "read_only": 1,
+   "precision": "2",
+   "description": "1.2 cho Chủ nhật và ngày lễ — theo quy tắc đang dùng."
+  },
+  {
+   "fieldname": "thu_nhap_ngay",
+   "fieldtype": "Currency",
+   "label": "Thu nhập ngày",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  }
+ ],
+ "actions": [],
+ "links": [],
+ "creation": "2026-08-25 12:00:00.000000",
+ "modified": "2026-08-25 12:00:00.000000",
+ "modified_by": "Administrator",
+ "owner": "Administrator",
+ "module": "SX",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}
