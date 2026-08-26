@@ -1,13 +1,19 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, getdate
 
-from sx.utils import get_activity_type, get_don_gia_activity
+from sx.utils import don_gia_theo_thang, tra_don_gia
 
 
 class SXBangVaoHop(Document):
-    """Bảng vào hộp — sản lượng TP + lương sản phẩm theo NGƯỜI (cả 2 nhánh bánh/bột)."""
+    """Bảng vào hộp — sản lượng TP + lương sản phẩm theo NGƯỜI (cả 2 nhánh bánh/bột).
+
+    Từ D68 đơn vị ghi là MÃ HÀNG (× cách làm), không còn Activity Type. Lý do: cùng
+    một mã hàng làm tay hay có máy hỗ trợ thì đơn giá khác nhau, mà Activity Type
+    của ERPNext không mang được chiều đó — nó lại còn giữ đơn giá trong một field
+    duy nhất, đổi giá là lương tháng cũ tính lại sai.
+    """
 
     def validate(self):
         self.validate_duy_nhat()
@@ -29,7 +35,7 @@ class SXBangVaoHop(Document):
 
         dong = sorted(
             self.dong,
-            key=lambda r: (_ten(r.nhan_vien), r.activity_type or "", r.san_pham or ""),
+            key=lambda r: (_ten(r.nhan_vien), r.san_pham or "", r.cach_lam or ""),
         )
         for i, r in enumerate(dong, start=1):
             r.idx = i
@@ -47,24 +53,40 @@ class SXBangVaoHop(Document):
             )
 
     def tinh_tien(self):
+        """Đơn giá LUÔN tra server-side từ bảng đơn giá của THÁNG đó — client gửi
+        giá lên cũng bị ghi đè. Giá là tiền lương thật của người ta."""
+        ngay = frappe.db.get_value("SX Ngay San Xuat", self.ngay_sx, "ngay")
+        bang = don_gia_theo_thang(ngay) if ngay else {}
+        thieu = []
         tong_hop = 0
         tong_tien = 0.0
         for row in self.dong:
             if cint(row.so_hop) <= 0:
                 frappe.throw(_("Dòng {0}: số hộp phải > 0").format(row.idx))
-            # Đơn vị tính lương khoán là LOẠI CÔNG VIỆC (D23). Có SKU thì SKU quyết
-            # định loại (map Item.custom_activity_type) — khỏi lệch tay.
-            if row.san_pham:
-                row.activity_type = get_activity_type(row.san_pham)
-            if not row.activity_type:
-                frappe.throw(
-                    _("Dòng {0}: chưa chọn loại công việc khoán (Activity Type).")
-                    .format(row.idx)
-                )
-            # Đơn giá luôn tính server-side từ Activity Type — client không sửa được.
-            row.don_gia = get_don_gia_activity(row.activity_type)
+            if not row.san_pham:
+                frappe.throw(_("Dòng {0}: chưa chọn mã hàng.").format(row.idx))
+            gia = tra_don_gia(bang, row.san_pham, row.cach_lam)
+            if gia is None:
+                thieu.append("• {0}{1}".format(
+                    row.san_pham,
+                    _(" (cách làm {0})").format(row.cach_lam) if row.cach_lam else ""))
+                gia = 0
+            row.don_gia = gia
             row.thanh_tien = flt(row.don_gia) * cint(row.so_hop)
             tong_hop += cint(row.so_hop)
             tong_tien += flt(row.thanh_tien)
         self.tong_hop = tong_hop
         self.tong_tien = tong_tien
+
+        # Thiếu giá thì CHO LƯU nhưng nói to: QC đang đứng giữa xưởng, chặn họ lại
+        # vì một dòng chưa khai giá là bắt cả chuyền dừng. Giá bổ sung sau, lưu lại
+        # bảng là tính lại đúng. Nhưng im lặng để giá 0 thì tới cuối tháng mới lộ.
+        if thieu:
+            ten_bang = _("tháng {0}").format(getdate(ngay).strftime("%m/%Y")) if ngay else ""
+            frappe.msgprint(
+                _("Chưa khai đơn giá khoán {0} cho:").format(ten_bang)
+                + "<br>" + "<br>".join(sorted(set(thieu)))
+                + "<br><br>" + _("Các dòng này đang tính 0 đồng. Khai giá ở "
+                                 "SX Bang Don Gia rồi lưu lại bảng vào hộp."),
+                title=_("Thiếu đơn giá"), indicator="orange",
+            )

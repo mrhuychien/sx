@@ -16,8 +16,11 @@ export async function render({ container, boot, call, ensureNgay }) {
   const daChot = ngay && (ngay.docstatus === 1 || ngay.chot_vaohop);  // nửa Vào hộp (D55)
   const rows = ((boot.bang_vao_hop || {}).dong || []).map((r) => ({ ...r }));
   const itemsTp = boot.items_tp || [];
-  const activities = boot.activity_types || [];
-  const actGanDay = boot.activity_gan_day || [];
+  // D68: ghi thẳng theo MÃ HÀNG, không còn Activity Type. Cùng một mã làm tay hay
+  // có máy hỗ trợ thì đơn giá khác nhau, nên cách làm là một chiều riêng.
+  const danhMuc = boot.danh_muc_khoan || [];
+  const spGanDay = boot.sp_gan_day || [];
+  const tenSPKhoan = (code) => (danhMuc.find((d) => d.item === code) || {}).ten || code;
   const nhanVien = boot.nhan_vien || [];
   // Chấm ăn ca / ăn đêm theo người (D30) — {nhan_vien: {an_ca, an_dem}}
   const anCa = {};
@@ -109,8 +112,8 @@ export async function render({ container, boot, call, ensureNgay }) {
         html += `<div class="sx-vh-row">
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(g.ten)}</div>
-            <div class="sx-vh-meta">${esc(r.activity_type || '—')}${
-              r.san_pham ? ` · ${esc(tenSP(r.san_pham))}` : ''}</div>
+            <div class="sx-vh-meta">${esc(tenSPKhoan(r.san_pham) || '—')}${
+              r.cach_lam ? ` · ${esc(r.cach_lam)}` : ''}</div>
           </div>
           <button type="button" class="sx-vh-sl" data-i="${r._i}"${daChot ? ' disabled' : ''}
             >${esc(formatNumber(r.so_hop))}</button>
@@ -137,14 +140,14 @@ export async function render({ container, boot, call, ensureNgay }) {
     // Dải SKU: mỗi loại công việc một ô, cuộn ngang — nhìn ra ngay hôm nay chạy loại gì
     const theoAct = {};
     rows.forEach((r) => {
-      const k = r.activity_type || '—';
+      const k = r.san_pham || '—';
       theoAct[k] = (theoAct[k] || 0) + (Number(r.so_hop) || 0);
     });
     const strip = container.querySelector('#sx-vh-strip');
     const dsAct = Object.entries(theoAct).sort((a, b) => b[1] - a[1]);
     strip.innerHTML = dsAct.length
       ? dsAct.map(([k, v]) => `<div class="sx-vh-sku">
-          <div class="sx-field-label">${esc(k)}</div>
+          <div class="sx-field-label">${esc(tenSPKhoan(k))}</div>
           <div class="sx-vh-sku-so">${formatNumber(v)}</div></div>`).join('')
       : '';
     strip.style.display = dsAct.length ? '' : 'none';
@@ -166,7 +169,7 @@ export async function render({ container, boot, call, ensureNgay }) {
         const nv = nhanVien.find((x) => x.name === btn.dataset.nv)
           || { name: btn.dataset.nv };
         btn.addEventListener('click',
-          () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa, boot));
+          () => themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot));
       });
     }
   }
@@ -178,7 +181,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     openNumpad({
       // Kicker = việc đang làm, title = NGƯỜI. Bị ngắt quãng rồi quay lại vẫn biết
       // mình đang chấm cho ai (D39).
-      kicker: `Sửa · ${r.activity_type || ''}`,
+      kicker: `Sửa · ${tenSPKhoan(r.san_pham) || ''}`,
       title: tenNV(r),
       unitLabel: 'Số lượng',
       titleActions: nutAnCa({ name: r.nhan_vien }, anCa, save),
@@ -222,7 +225,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       const r = await call('sx.api.portal.luu_bang_vao_hop', {
         ngay_sx: ng.name,
         rows: JSON.stringify(rows.map((x) => ({
-          nhan_vien: x.nhan_vien, activity_type: x.activity_type,
+          nhan_vien: x.nhan_vien, cach_lam: x.cach_lam,
           san_pham: x.san_pham, so_hop: x.so_hop,
         }))),
         an_ca: JSON.stringify(Object.entries(anCa).map(([nv, v]) => ({
@@ -262,7 +265,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     const soLoai = {};
     rows.forEach((r) => {
       daNhap[r.nhan_vien] = (daNhap[r.nhan_vien] || 0) + (Number(r.so_hop) || 0);
-      (soLoai[r.nhan_vien] = soLoai[r.nhan_vien] || new Set()).add(r.activity_type);
+      (soLoai[r.nhan_vien] = soLoai[r.nhan_vien] || new Set()).add(r.san_pham);
     });
 
     // Chưa nhập lên trước: câu hỏi duy nhất trong đầu QC khi đi dọc chuyền là
@@ -305,7 +308,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     nvGrid.querySelectorAll('.sx-nv-row').forEach((b) => {
       const nv = nhanVien.find((x) => x.name === b.dataset.nv);
       b.addEventListener('click',
-        () => themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa, boot));
+        () => themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot));
     });
   }
 
@@ -330,7 +333,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       onTim: (emp) => {
         const nv = nhanVien.find((x) => x.name === emp);
         if (!nv) { toastErr('Người này không thuộc nhóm công khoán hôm nay.'); return; }
-        themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa, boot);
+        themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot);
       },
     }));
   }
@@ -340,10 +343,17 @@ export async function render({ container, boot, call, ensureNgay }) {
     oTim.addEventListener('input', (e) => { timKiem = e.target.value; veNV(); });
   }
 
-  if (!daChot && !activities.length) {
+  if (!daChot && !danhMuc.length) {
     container.querySelector('#sx-vh-nv').insertAdjacentHTML('beforebegin',
-      '<div class="sx-warn-text">⚠ Chưa có Activity Type nào dùng được — vào Desk tạo '
-      + 'loại công việc khoán (vd "Vào hộp 300") và điền đơn giá.</div>');
+      '<div class="sx-warn-text">⚠ Chưa có mã hàng thành phẩm nào — vào SX Settings '
+      + 'chọn "Nhóm hàng là thành phẩm", hoặc đánh dấu Item có Nhóm SX = TP.</div>');
+  } else if (!daChot && !boot.bang_don_gia) {
+    // Thiếu bảng đơn giá tháng này thì vẫn ghi được sản lượng, nhưng lương ra 0 —
+    // nói ngay đầu ca, đừng để cuối tháng tính lương mới lộ.
+    container.querySelector('#sx-vh-nv').insertAdjacentHTML('beforebegin',
+      '<div class="sx-warn-text">⚠ Tháng này chưa có bảng đơn giá khoán — sản lượng '
+      + 'vẫn ghi được nhưng tiền công đang tính 0. Lập SX Bang Don Gia cho tháng rồi '
+      + 'lưu lại bảng là tự tính lại.</div>');
   }
 
   paint();
@@ -370,116 +380,115 @@ function nutAnCa(nv, anCa, save) {
   ];
 }
 
-function themDong(nv, activities, actGanDay, rows, save, tenNgan, anCa, boot) {
+function themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot) {
   const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
-  openActivityPicker(ten, activities, actGanDay, (act, skuQuet) => {
-    // Loại có nhiều SKU -> hỏi thêm SKU nào (cần cho lệnh SX tầng 3).
-    // 1 SKU tự gán, 0 SKU thì để trống -> chỉ tính lương khoán.
-    // QUÉT vỏ hộp thì đã biết chính xác SKU -> bỏ luôn bước hỏi.
-    const tiep = (sanPham) => nhapSoLuong(nv, ten, act, sanPham, rows, save, anCa);
-    if (skuQuet) tiep(skuQuet);
-    else if (act.sku && act.sku.length > 1) openSkuPicker(ten, act, tiep);
-    else tiep(act.sku && act.sku.length === 1 ? act.sku[0].name : null);
+  openSanPhamPicker(ten, danhMuc, spGanDay, (sp) => {
+    // Mã có nhiều cách làm -> hỏi thêm một bước, vì mỗi cách một đơn giá.
+    // Chỉ một cách (và không có giá chung) -> tự chọn, QC không phải bấm.
+    const cach = sp.cach_lam || [];
+    const tiep = (cachLam) => nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa);
+    if (cach.length > 1 || (cach.length === 1 && sp.gia_chung != null)) {
+      openCachLamPicker(ten, sp, tiep);
+    } else if (cach.length === 1) {
+      tiep(cach[0].ten);
+    } else {
+      tiep(null);
+    }
   }, boot);
 }
 
-function nhapSoLuong(nv, ten, act, sanPham, rows, save, anCa) {
+function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa) {
+  const gia = cachLam
+    ? ((sp.cach_lam || []).find((c) => c.ten === cachLam) || {}).don_gia
+    : sp.gia_chung;
   openNumpad({
-    kicker: act.name,
+    kicker: cachLam ? `${sp.ten} · ${cachLam}` : sp.ten,
     title: ten,
     unitLabel: 'Số lượng',
     titleActions: nutAnCa(nv, anCa, save),
+    // Đơn giá chỉ HIỆN để đối chiếu; server luôn tra lại từ bảng đơn giá tháng đó.
+    hint: (n) => (gia ? `${formatNumber(n * gia)} đ` : '⚠ chưa khai đơn giá'),
     onOk: async (v) => {
       const sl = Math.round(v);
       if (sl <= 0) { toastErr('Số lượng phải > 0.'); return; }
       rows.push({
         nhan_vien: nv.name, ten_nhan_vien: nv.employee_name,
-        activity_type: act.name, san_pham: sanPham, so_hop: sl,
+        san_pham: sp.item, cach_lam: cachLam || null, so_hop: sl,
       });
       await save();
     },
   });
 }
 
-function openActivityPicker(ten, activities, actGanDay, onPick, boot) {
-  const m = openModal({ kicker: 'Chọn loại công việc', title: ten });
+// Chọn MÃ HÀNG: mã hay dùng lên đầu, còn lại tìm theo tên. Mã chưa khai đơn giá vẫn
+// chọn được (đánh dấu) — chặn QC giữa xưởng vì một dòng thiếu giá là bắt chuyền dừng.
+function openSanPhamPicker(ten, danhMuc, spGanDay, onPick, boot) {
+  const m = openModal({ kicker: 'Chọn mã hàng', title: ten });
   m.body.innerHTML = `
     <div class="sx-vh-hang2">
-      <input class="sx-textarea" id="sx-act-search" aria-label="Tìm loại công việc"
-        placeholder="Tìm loại công việc…" autocomplete="off">
-      <button type="button" class="sx-btn sx-quet-nut" id="sx-act-quet">⌗ QUÉT HỘP</button>
+      <input class="sx-textarea" id="sx-sp-tim" type="search" autocomplete="off"
+        placeholder="Tìm trong ${danhMuc.length} mã hàng…">
+      <button type="button" class="sx-btn sx-quet-nut" id="sx-sp-quet">⌗ QUÉT HỘP</button>
     </div>
-    <div id="sx-act-list"></div>
+    <div id="sx-sp-ds"></div>
   `;
-  // Quét vỏ hộp -> ra SKU -> lọc còn đúng những loại công việc CÓ sản phẩm đó.
-  // Mã vạch nói "hộp gì", KHÔNG nói "vừa làm công đoạn nào" — cùng một hộp đi qua
-  // cán rồi vào hộp, hai đơn giá khoán khác nhau. Nên quét xong vẫn phải chọn
-  // công đoạn; chỉ khi lọc còn đúng một thì mới tự chọn hộ.
-  m.body.querySelector('#sx-act-quet').addEventListener('click', () => moQuet({
-    ma_quet: boot && boot.ma_quet, loai: 'sp',
-    kicker: ten, title: 'Quét mã vạch trên hộp',
-    onTim: (item) => {
-      const hop = activities.filter(
-        (a) => (a.sku || []).some((x) => x.name === item));
-      if (!hop.length) {
-        toastErr('Sản phẩm này chưa gắn với loại công việc khoán nào.');
-        return;
-      }
-      if (hop.length === 1) { m.close(); onPick(hop[0], item); return; }
-      veLoc(hop, item);
-    },
-  }));
-  const list = m.body.querySelector('#sx-act-list');
-  const search = m.body.querySelector('#sx-act-search');
-  const byName = {};
-  activities.forEach((a) => { byName[a.name] = a; });
+  const box = m.body.querySelector('#sx-sp-ds');
+  const oTim = m.body.querySelector('#sx-sp-tim');
+  const byItem = {};
+  danhMuc.forEach((d) => { byItem[d.item] = d; });
 
-  const chip = (a) => `<button type="button" class="sx-sp-chip sx-act-pick" data-act="${esc(a.name)}">`
-    + `${esc(a.name)}${a.sku && a.sku.length > 1
-      ? `<div class="sx-muted">${a.sku.length} loại sản phẩm</div>` : ''}`
-    + '</button>';
+  const chip = (d) => `<button type="button" class="sx-sp-chip sx-sp-pick"
+      data-item="${esc(d.item)}">${esc(d.ten)}${
+    d.chua_gia ? '<div class="sx-muted">chưa khai giá</div>'
+      : (d.cach_lam.length > 1 ? `<div class="sx-muted">${d.cach_lam.length} cách làm</div>` : '')}
+    </button>`;
 
-  function draw(q) {
-    q = (q || '').toLowerCase().trim();
-    const khop = activities.filter((a) => !q || a.name.toLowerCase().includes(q));
+  function ve() {
+    const q = oTim.value.toLowerCase().trim();
+    const khop = danhMuc.filter((d) => !q || d.ten.toLowerCase().includes(q)
+      || d.item.toLowerCase().includes(q));
+    const ganDay = spGanDay.map((c) => byItem[c]).filter(Boolean);
     let html = '';
-    const ganDay = actGanDay.map((n) => byName[n]).filter(Boolean);
     if (!q && ganDay.length) {
-      html += '<div class="sx-field-label">Dùng gần đây</div><div class="sx-sp-grid">'
+      html += '<div class="sx-field-label">Hay ghi</div><div class="sx-sp-grid">'
         + ganDay.map(chip).join('') + '</div>';
     }
-    if (khop.length) {
-      html += `<div class="sx-field-label">${q ? 'Kết quả' : 'Tất cả loại công việc'}</div>`
-        + '<div class="sx-sp-grid">' + khop.map(chip).join('') + '</div>';
-    } else if (!ganDay.length || q) {
-      html += '<div class="sx-muted">Không tìm thấy loại công việc nào.</div>';
-    }
-    list.innerHTML = html;
-    list.querySelectorAll('.sx-act-pick').forEach((b) => {
-      b.addEventListener('click', () => { m.close(); onPick(byName[b.dataset.act]); });
+    html += khop.length
+      ? `<div class="sx-field-label">${q ? 'Kết quả' : 'Tất cả mã hàng'}</div>`
+        + '<div class="sx-sp-grid">' + khop.map(chip).join('') + '</div>'
+      : '<div class="sx-muted">Không tìm thấy mã hàng nào.</div>';
+    box.innerHTML = html;
+    box.querySelectorAll('.sx-sp-pick').forEach((b) => {
+      b.addEventListener('click', () => { m.close(); onPick(byItem[b.dataset.item]); });
     });
   }
-  // Sau khi quét: chỉ còn các loại công việc dùng SKU đó, và giữ SKU đã quét để
-  // khỏi hỏi lại ở bước sau.
-  function veLoc(hop, item) {
-    list.innerHTML = `<div class="sx-field-label">Đã quét — chọn công đoạn</div>`
-      + '<div class="sx-sp-grid">' + hop.map(chip).join('') + '</div>';
-    list.querySelectorAll('.sx-act-pick').forEach((b) => {
-      b.addEventListener('click', () => { m.close(); onPick(byName[b.dataset.act], item); });
-    });
-  }
-
-  search.addEventListener('input', () => draw(search.value));
-  draw('');
+  oTim.addEventListener('input', ve);
+  m.body.querySelector('#sx-sp-quet').addEventListener('click', () => moQuet({
+    ma_quet: boot && boot.ma_quet, loai: 'sp', kicker: ten, title: 'Quét hộp',
+    onTim: (item) => {
+      const d = byItem[item];
+      if (!d) { toastErr('Mã này không nằm trong danh mục thành phẩm.'); return; }
+      m.close();
+      onPick(d);
+    },
+  }));
+  ve();
 }
 
-function openSkuPicker(ten, act, onPick) {
-  const m = openModal({ title: `${ten} — ${act.name}: sản phẩm nào?` });
-  m.body.innerHTML = '<div class="sx-sp-grid">'
-    + act.sku.map((it) => `<button type="button" class="sx-sp-chip sx-sku-pick" data-sku="${esc(it.name)}">${esc(it.item_name)}</button>`).join('')
-    + '</div>';
-  m.body.querySelectorAll('.sx-sku-pick').forEach((b) => {
-    b.addEventListener('click', () => { m.close(); onPick(b.dataset.sku); });
+// Chọn CÁCH LÀM — chỉ hiện khi mã đó có nhiều hơn một mức giá
+function openCachLamPicker(ten, sp, onPick) {
+  const m = openModal({ kicker: sp.ten, title: `${ten} — làm bằng cách nào?` });
+  const chon = [
+    ...(sp.cach_lam || []).map((c) => ({ ten: c.ten, gia: c.don_gia, val: c.ten })),
+    ...(sp.gia_chung != null ? [{ ten: 'Chung', gia: sp.gia_chung, val: null }] : []),
+  ];
+  m.body.innerHTML = '<div class="sx-sl-hang">' + chon.map((c, i) => `
+    <button type="button" class="sx-sl-o" data-i="${i}">
+      <span class="sx-sl-ten">${esc(c.ten)}</span>
+      <span class="sx-sl-so">${formatNumber(c.gia)} đ</span>
+    </button>`).join('') + '</div>';
+  m.body.querySelectorAll('[data-i]').forEach((b) => {
+    b.addEventListener('click', () => { m.close(); onPick(chon[Number(b.dataset.i)].val); });
   });
 }
 
@@ -490,7 +499,7 @@ function copySanLuong(nhom, ngay) {
   const d = (ngay || '').split('-');
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
   const dong = nhom.map((g) => {
-    const ct = g.dong.map((r) => `${r.activity_type || '?'}: ${formatNumber(r.so_hop)}`).join(', ');
+    const ct = g.dong.map((r) => `${tenSP(r.san_pham) || '?'}: ${formatNumber(r.so_hop)}`).join(', ');
     return `${g.ten} (${ct})`;
   });
   const tong = nhom.reduce((a, g) => a + g.dong.reduce((x, r) => x + (Number(r.so_hop) || 0), 0), 0);

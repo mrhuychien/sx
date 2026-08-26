@@ -16,10 +16,12 @@ from sx.config.roles import (
     view_cards,
 )
 from sx.utils import (
+    bang_don_gia,
+    cach_lam_cua,
     dat_ten_hien_thi,
+    don_gia_theo_thang,
     get_bom_active,
     get_dau_items,
-    get_don_gia_activity,
     get_settings,
     items_tp,
 )
@@ -152,12 +154,13 @@ def get_boot(ngay=None):
         boot["items_tp"] = items_tp(["name", "item_name", "item_group"])
         boot["tien_an_ca"] = flt(settings.get("tien_an_ca"))
         boot["tien_an_dem"] = flt(settings.get("tien_an_dem"))
-        boot["activity_types"] = _activity_vao_hop()
-        boot["activity_gan_day"] = _activity_gan_day()
+        boot["danh_muc_khoan"] = _danh_muc_khoan(boot.get("ngay_xem") or hom_nay)
+        boot["sp_gan_day"] = _sp_gan_day()
+        boot["bang_don_gia"] = bang_don_gia(boot.get("ngay_xem") or hom_nay)
         boot["nhan_vien"], canh_bao_nv = _nhan_vien_vao_hop()
         if canh_bao_nv:
             boot["canh_bao_nhan_vien"] = canh_bao_nv
-        boot["ma_quet"] = _ma_quet(boot["nhan_vien"], boot["activity_types"])
+        boot["ma_quet"] = _ma_quet(boot["nhan_vien"])
 
     return boot
 
@@ -206,8 +209,7 @@ def _bang_summary(ngay_sx):
         "tong_tien": doc.tong_tien,
         "dong": [
             {"nhan_vien": r.nhan_vien, "ten_nhan_vien": r.ten_nhan_vien,
-             "san_pham": r.san_pham, "so_hop": r.so_hop,
-             "activity_type": r.activity_type,
+             "san_pham": r.san_pham, "cach_lam": r.cach_lam, "so_hop": r.so_hop,
              "don_gia": r.don_gia, "thanh_tien": r.thanh_tien}
             for r in doc.dong
         ],
@@ -218,8 +220,8 @@ def _bang_summary(ngay_sx):
     }
 
 
-def _activity_gan_day():
-    """Loại công việc dùng gần đây (14 ngày) — chip "dùng gần đây" đầu picker."""
+def _sp_gan_day():
+    """Mã hàng ghi gần đây (14 ngày) — hiện đầu danh sách chọn, đỡ phải tìm."""
     bang = frappe.get_all(
         "SX Bang Vao Hop",
         filters={"creation": (">=", add_days(nowdate(), -14))},
@@ -230,43 +232,44 @@ def _activity_gan_day():
     rows = frappe.get_all(
         "SX Bang Vao Hop Item",
         filters={"parent": ("in", bang), "parenttype": "SX Bang Vao Hop"},
-        fields=["activity_type"],
+        fields=["san_pham"],
         order_by="creation desc",
     )
     seen = []
     for r in rows:
-        if r.activity_type and r.activity_type not in seen:
-            seen.append(r.activity_type)
+        if r.san_pham and r.san_pham not in seen:
+            seen.append(r.san_pham)
     return seen[:12]
 
 
-def _activity_vao_hop():
-    """Danh sách LOẠI CÔNG VIỆC KHOÁN + đơn giá + SKU thuộc loại đó.
+def _danh_muc_khoan(ngay):
+    """Danh mục QC chọn khi ghi bảng vào hộp (D68): MÃ HÀNG, kèm các CÁCH LÀM có giá.
 
-    Đây là thứ QC chọn khi ghi bảng vào hộp (D23). SKU chỉ là chi tiết bên trong:
-    - loại có 0 SKU  -> ghi thẳng sản lượng khoán (chưa tạo Item TP thì vẫn chạy được)
-    - loại có 1 SKU  -> tự gán, QC không phải chọn
-    - loại có ≥2 SKU -> hỏi thêm 1 bước để biết SKU nào (cần cho lệnh SX tầng 3)
+    Nguồn giá là bảng đơn giá của THÁNG chứa `ngay`. Trả về mọi Item thành phẩm chứ
+    không chỉ mã đã khai giá — mã chưa khai giá vẫn ghi được (đánh dấu `chua_gia`),
+    vì chặn QC lại giữa xưởng vì một dòng chưa khai giá là bắt cả chuyền dừng.
+
+    `cach_lam` rỗng và `gia_chung` có giá  -> màn nhập khỏi hỏi thêm bước nào.
+    `cach_lam` một phần tử, không giá chung -> tự chọn luôn.
+    Còn lại -> hỏi cách làm, vì hai cách làm hai đơn giá khác nhau.
     """
-    sku_theo_act = {}
-    for it in items_tp(["name", "item_name", "custom_activity_type"]):
-        if it.custom_activity_type:
-            sku_theo_act.setdefault(it.custom_activity_type, []).append(
-                {"name": it.name, "item_name": it.item_name or it.name}
-            )
-
-    # Activity Type có field `disabled` hay không tuỳ phiên bản/custom -> hỏi meta
-    loc = {"disabled": 0} if frappe.get_meta("Activity Type").has_field("disabled") else {}
+    bang = don_gia_theo_thang(ngay) if ngay else {}
     ds = []
-    for act in frappe.get_all("Activity Type", filters=loc, pluck="name", order_by="name"):
-        gia = get_don_gia_activity(act, bat_buoc=False)
-        if gia is None:
-            continue  # không đọc được đơn giá -> không dùng để ghi khoán
-        ds.append({"name": act, "don_gia": gia, "sku": sku_theo_act.get(act, [])})
+    for it in items_tp(["name", "item_name", "stock_uom"]):
+        cach = cach_lam_cua(bang, it.name)
+        chung = bang.get((it.name, ""))
+        ds.append({
+            "item": it.name,
+            "ten": it.item_name or it.name,
+            "dvt": it.stock_uom or "",
+            "cach_lam": [{"ten": c, "don_gia": flt(bang[(it.name, c)])} for c in cach],
+            "gia_chung": flt(chung) if chung is not None else None,
+            "chua_gia": not cach and chung is None,
+        })
     return ds
 
 
-def _ma_quet(nhan_vien, activities):
+def _ma_quet(nhan_vien):
     """Bảng tra MÃ QUÉT → đối tượng, gửi kèm boot để tra NGAY TRÊN MÁY.
 
     Tra ở client chứ không gọi server mỗi lần quét vì hai lý do: quét phải phản hồi
@@ -287,8 +290,7 @@ def _ma_quet(nhan_vien, activities):
             if ma:
                 nv[str(ma).strip()] = e["name"]
 
-    ma_sku = {s["name"] for a in activities for s in (a.get("sku") or [])}
-    ma_sku |= {i.name for i in items_tp(["name"])}
+    ma_sku = {i.name for i in items_tp(["name"])}
     sp = {}
     if ma_sku:
         for b in frappe.get_all(
@@ -414,8 +416,8 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None):
         doc.append(
             "dong",
             {"nhan_vien": r.get("nhan_vien"),
-             "activity_type": r.get("activity_type"),
              "san_pham": r.get("san_pham") or None,
+             "cach_lam": r.get("cach_lam") or None,
              "so_hop": cint(r.get("so_hop"))},
         )
     if an_ca is not None:
@@ -467,17 +469,15 @@ def dashboard(tu_ngay=None, den_ngay=None):
             rows = frappe.get_all(
                 "SX Bang Vao Hop Item",
                 filters={"parent": ("in", bang), "parenttype": "SX Bang Vao Hop"},
-                fields=["nhan_vien", "ten_nhan_vien", "san_pham", "activity_type",
+                fields=["nhan_vien", "ten_nhan_vien", "san_pham", "cach_lam",
                         "so_hop", "thanh_tien"],
             )
             gop_sku, gop_nv = {}, {}
             for r in rows:
-                # Chưa gắn SKU thì gom theo loại công việc (D23) — vẫn thấy sản lượng
-                khoa = r.san_pham or r.activity_type
+                khoa = r.san_pham or _("(chưa chọn mã hàng)")
                 s = gop_sku.setdefault(
                     khoa,
-                    {"san_pham": khoa, "activity_type": r.activity_type,
-                     "co_sku": bool(r.san_pham), "so_hop": 0},
+                    {"san_pham": khoa, "co_sku": bool(r.san_pham), "so_hop": 0},
                 )
                 s["so_hop"] += cint(r.so_hop)
                 g = gop_nv.setdefault(

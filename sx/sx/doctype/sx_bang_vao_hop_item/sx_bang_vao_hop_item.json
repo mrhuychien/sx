@@ -6,11 +6,13 @@
  "field_order": [
   "nhan_vien",
   "ten_nhan_vien",
-  "activity_type",
   "san_pham",
+  "ten_san_pham",
+  "cach_lam",
   "so_hop",
   "don_gia",
-  "thanh_tien"
+  "thanh_tien",
+  "activity_type"
  ],
  "fields": [
   {
@@ -31,20 +33,23 @@
   {
    "fieldname": "activity_type",
    "fieldtype": "Link",
-   "label": "Loại công việc khoán",
+   "label": "Activity Type (bỏ dùng)",
    "options": "Activity Type",
    "in_list_view": 1,
-   "reqd": 1
+   "reqd": 0,
+   "hidden": 1,
+   "read_only": 1,
+   "description": "Giữ lại để đọc dữ liệu cũ trước D68. Không ghi mới nữa; lương khoán tính theo mã hàng × cách làm."
   },
   {
    "fieldname": "san_pham",
    "fieldtype": "Link",
-   "label": "Sản phẩm (SKU)",
+   "label": "Mã hàng",
    "options": "Item",
    "link_filters": "[[\"Item\",\"custom_sx_nhom\",\"=\",\"TP\"]]",
    "in_list_view": 1,
-   "reqd": 0,
-   "description": "Bỏ trống nếu loại công việc chưa gắn SKU nào — chỉ tính lương khoán, không sinh lệnh SX tầng 3."
+   "reqd": 1,
+   "description": "Đơn vị tính lương khoán từ D68 là MÃ HÀNG, không phải Activity Type nữa."
   },
   {
    "fieldname": "so_hop",
@@ -66,11 +71,26 @@
    "label": "Thành tiền",
    "read_only": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "cach_lam",
+   "fieldtype": "Link",
+   "options": "SX Cach Lam",
+   "label": "Cách làm",
+   "in_list_view": 1,
+   "description": "Cùng mã hàng làm bằng cách khác nhau thì đơn giá khác nhau. Bỏ trống = mã đó chỉ có một giá chung."
+  },
+  {
+   "fieldname": "ten_san_pham",
+   "fieldtype": "Data",
+   "label": "Tên hàng",
+   "fetch_from": "san_pham.item_name",
+   "read_only": 1
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2026-07-11 10:00:00.000000",
+ "modified": "2026-08-25 11:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Bang Vao Hop Item",
