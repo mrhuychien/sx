@@ -23,7 +23,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, nowdate
+from frappe.utils import add_days, cint, flt, getdate, nowdate
 
 from sx.config.roles import guard_card
 from sx.utils import get_settings, items_tp, nhom_tp
@@ -324,3 +324,106 @@ def phieu_da_duyet_sau(luc):
             fields=["name"], order_by="creation",
         )
     ]
+
+
+def _da_nhan_theo_ma(tu_ngay=None):
+    """{item: đã nhận} — cộng số ĐẾM của mọi phiếu ĐÃ DUYỆT, để tính phần còn lại."""
+    loc = {"docstatus": 1}
+    if tu_ngay:
+        loc["ngay"] = (">=", tu_ngay)
+    ds = frappe.get_all("SX Phieu Nhap TP", filters=loc, pluck="name")
+    ra = {}
+    if not ds:
+        return ra
+    for r in frappe.get_all(
+        "SX Phieu Nhap TP Item",
+        filters={"parent": ("in", ds), "parenttype": "SX Phieu Nhap TP"},
+        fields=["item", "so_dem"],
+    ):
+        ra[r.item] = ra.get(r.item, 0) + flt(r.so_dem)
+    return ra
+
+
+def _da_cham_theo_ma(tu_ngay, den_ngay):
+    """{item: tổng đã chấm vào hộp} trong khoảng ngày — CẢ bảng nháp lẫn đã chốt.
+
+    Lấy cả bảng nháp vì QC vẫn đang chấm khi hàng đã chuyển sang kho; đợi chốt mới
+    cho tải là bắt thủ kho đứng chờ hết ca.
+    """
+    ngay = frappe.get_all(
+        "SX Ngay San Xuat",
+        filters={"ngay": ("between", (tu_ngay, den_ngay)), "docstatus": ("<", 2)},
+        pluck="name",
+    )
+    if not ngay:
+        return {}
+    bang = frappe.get_all(
+        "SX Bang Vao Hop",
+        filters={"ngay_sx": ("in", ngay), "docstatus": ("<", 2)}, pluck="name")
+    if not bang:
+        return {}
+    ra = {}
+    for r in frappe.get_all(
+        "SX Bang Vao Hop Item",
+        filters={"parent": ("in", bang), "parenttype": "SX Bang Vao Hop"},
+        fields=["san_pham", "so_hop"],
+    ):
+        if r.san_pham:
+            ra[r.san_pham] = ra.get(r.san_pham, 0) + cint(r.so_hop)
+    return ra
+
+
+def tran_con_lai(tu_ngay, den_ngay, tru_phieu=None):
+    """{item: còn được nhập} = đã chấm vào hộp − đã nhận.
+
+    Đây là cái TRẦN của "chỉ được nhập trong số lượng đã chấm". `tru_phieu` là phiếu
+    đang sửa: dòng của chính nó không tính vào phần đã nhận, nếu không sửa phiếu
+    nháp lần thứ hai sẽ tự trừ mình.
+    """
+    cham = _da_cham_theo_ma(tu_ngay, den_ngay)
+    nhan = _da_nhan_theo_ma()
+    if tru_phieu and frappe.db.get_value("SX Phieu Nhap TP", tru_phieu, "docstatus") == 1:
+        for r in frappe.get_all(
+            "SX Phieu Nhap TP Item",
+            filters={"parent": tru_phieu, "parenttype": "SX Phieu Nhap TP"},
+            fields=["item", "so_dem"],
+        ):
+            nhan[r.item] = nhan.get(r.item, 0) - flt(r.so_dem)
+    return {item: flt(so) - flt(nhan.get(item, 0)) for item, so in cham.items()}
+
+
+@frappe.whitelist()
+def tai_tu_vao_hop(name, so_ngay=7):
+    """Tải tổng theo mã hàng từ bảng vào hộp vào phiếu nháp (D70).
+
+    Điền phần CÒN LẠI = đã chấm − đã nhận, trong `so_ngay` ngày gần đây. Thủ kho vẫn
+    sửa được số, chỉ không vượt quá phần còn lại đó — "chỉ được nhập trong số lượng
+    đã nhận". Chấm thêm thì lập phiếu tiếp cho phần mới.
+    """
+    guard_card("nhapkhotp")
+    doc = frappe.get_doc("SX Phieu Nhap TP", name)
+    if doc.docstatus != 0:
+        frappe.throw(_("Phiếu {0} đã duyệt — không tải lại được.").format(name))
+    den = getdate(doc.ngay)
+    tu = add_days(den, -abs(cint(so_ngay) or 7) + 1)
+    con = {k: v for k, v in tran_con_lai(tu, den, name).items() if v > 1e-6}
+    if not con:
+        frappe.throw(
+            _("Không còn mã hàng nào chưa nhập kho trong {0} ngày gần đây "
+              "(từ {1}). Hoặc chưa chấm vào hộp, hoặc đã nhận hết.").format(
+                cint(so_ngay) or 7, frappe.utils.formatdate(tu))
+        )
+    co_uom = _co_chi_tiet_uom()
+    cu = {r.item: flt(r.so_dem) for r in doc.dong}
+    doc.set("dong", [])
+    for item, so in sorted(con.items(), key=lambda x: -x[1]):
+        dong = {"item": item, "so_lap": flt(so, 0),
+                # Giữ số thủ kho đã đếm nếu có, nhưng không vượt trần mới.
+                "so_dem": min(cu.get(item, so), so)}
+        if co_uom:
+            dong["lap_uom"] = None
+            dong["dem_uom"] = None
+        doc.append("dong", dong)
+    doc.flags.ignore_permissions = True
+    doc.save()
+    return chi_tiet_phieu(doc.name)

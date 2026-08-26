@@ -20,7 +20,7 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, now_datetime
+from frappe.utils import flt, getdate, now_datetime
 
 
 def _tong_tu_uom(chi_tiet, mac_dinh):
@@ -59,10 +59,43 @@ class SXPhieuNhapTP(Document):
     def before_submit(self):
         if not any(flt(r.so_dem) > 0 for r in self.dong):
             frappe.throw(_("Chưa có dòng nào đếm được số > 0 — không duyệt phiếu rỗng."))
+        self.kiem_tran_da_cham()
         self.kiem_ton_nguyen_lieu()
         self.nguoi_duyet = frappe.session.user
         self.duyet_luc = now_datetime()
         self.trang_thai = "Đã duyệt"
+
+    def kiem_tran_da_cham(self):
+        """Không nhập quá số đã CHẤM VÀO HỘP (D70).
+
+        Kiểm lại lúc DUYỆT chứ không chỉ lúc tải: giữa lúc tải và lúc duyệt có thể
+        đã có phiếu khác nhận bớt, hoặc QC sửa bảng xuống. Chỉ chặn khi VƯỢT — nhận
+        thiếu là chuyện bình thường (chưa chuyển hết).
+
+        Dòng nào mã hàng không xuất hiện trong bảng vào hộp thì BỎ QUA kiểm: phiếu
+        nhập kho là chứng từ độc lập, vẫn cho nhập hàng không qua chấm công (vd hàng
+        làm bù, hàng trả về) — chỉ là không có trần để đối chiếu.
+        """
+        from frappe.utils import add_days
+
+        from sx.api.khotp import tran_con_lai
+
+        den = getdate(self.ngay)
+        con = tran_con_lai(add_days(den, -30), den, self.name)
+        vuot = []
+        for r in self.dong:
+            if r.item not in con:
+                continue
+            if flt(r.so_dem) > flt(con[r.item]) + 1e-6:
+                vuot.append(_("• {0}: nhận {1}, còn được nhập {2}").format(
+                    r.ten or r.item, flt(r.so_dem, 0), flt(con[r.item], 0)))
+        if vuot:
+            frappe.throw(
+                _("Nhận quá số đã chấm vào hộp:") + "<br>" + "<br>".join(vuot)
+                + "<br><br>" + _("Chấm thiếu thì sửa bảng vào hộp rồi bấm TẢI LẠI; "
+                                 "hàng không qua chấm công thì bỏ dòng này ra và lập "
+                                 "phiếu riêng.")
+            )
 
     def kiem_ton_nguyen_lieu(self):
         """Kiểm đủ bột + bao bì TRƯỚC khi sinh chứng từ (D59).

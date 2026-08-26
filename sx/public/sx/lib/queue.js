@@ -44,6 +44,8 @@ const LY_DO_CHAN = {
     'Huỷ chốt phải thu hồi chứng từ kho và lương nên phải có mạng.',
   'sx.api.khotp.tao_phieu_nhap':
     'Lập phiếu nhận phải ghi lên server để thủ kho thấy nên phải có mạng.',
+  'sx.api.khotp.tai_tu_vao_hop':
+    'Tải từ bảng vào hộp phải đọc số trên server nên phải có mạng.',
   'sx.api.khotp.sua_phieu':
     'Sửa phiếu nhận cần ghi lên phiếu trên server nên phải có mạng.',
   'sx.api.khotp.duyet_phieu':
