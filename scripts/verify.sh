@@ -86,4 +86,10 @@ python3 scripts/test-seed.py > /tmp/sx-seed.log 2>&1 \
   && tail -1 /tmp/sx-seed.log \
   || { cat /tmp/sx-seed.log; loi=1; }
 
+# Cắt lệch vùng ô ngắm trông y hệt "camera mờ": soi mãi không ăn, không lỗi nào hiện
+# ra. Sai lặng lẽ thì phải chặn bằng test.
+node scripts/test-quet.mjs > /tmp/sx-quet.log 2>&1 \
+  && tail -1 /tmp/sx-quet.log \
+  || { cat /tmp/sx-quet.log; loi=1; }
+
 exit $loi

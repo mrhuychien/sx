@@ -1696,7 +1696,7 @@ main > .container {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
-  max-height: 52vh;
+  max-height: 60vh;
   border-radius: var(--sx-radius);
   overflow: hidden;
   background: #0f172a;
@@ -1716,7 +1716,19 @@ main > .container {
   border-radius: var(--sx-radius);
   box-shadow: 0 0 0 100vmax rgba(15, 23, 42, .35);
   pointer-events: none;
+  transition: border-color var(--sx-t-fast);
 }
+/* Quét HỘP: mã vạch rộng mà thấp. Ô ngắm vuông dạy người ta lùi xa cho vừa khung,
+   mà lùi xa là vạch càng nhỏ — đúng thứ làm mã vạch khó đọc. Ô rộng cho phép đưa
+   sát vào, mã kín ngang khung, vạch dày ra. */
+.sx-quet-o-ngang { width: 88%; aspect-ratio: 5 / 2; }
+/* Máy có lấy nét theo điểm: nói cho người ta biết bấm được vào khung */
+.sx-quet-net-duoc { cursor: crosshair; }
+.sx-quet-dang-net { border-color: var(--sx-season-1); }
+.sx-quet-hang { display: flex; gap: var(--sx-s2); }
+.sx-quet-hang:empty { display: none; }
+.sx-quet-den { flex: 1; }
+.sx-quet-den-sang { background: var(--sx-warning-soft); color: var(--sx-warning-text); }
 
 /* Nhập số theo nhiều đơn vị: mỗi đơn vị một hàng, bấm hàng nào nhập số hàng đó */
 .sx-sl-hang { display: flex; flex-direction: column; gap: var(--sx-s2); }
