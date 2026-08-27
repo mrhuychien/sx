@@ -45,4 +45,33 @@ PYEOF
 # `bench export-fixtures` sau lặng lẽ xoá bản ghi khỏi file (đã dính thật ở D56).
 python3 scripts/soat-fixtures.py || loi=1
 
+# openSoLuong dựng ô nhập TỪ `chi_tiet` và BỎ QUA `tong` khi chi_tiet không rỗng.
+# Đưa chi_tiet của cột này kèm tổng của cột kia là ghi đè mất số thủ kho vừa đếm mà
+# không báo gì (đã dính thật ở D72). Bắt buộc hai tham số lấy từ CÙNG một cặp helper.
+python3 - <<'PYEOF'
+import re, sys
+f = "sx/public/sx/cards/nhapkhotp.js"
+src = open(f, encoding="utf-8").read()
+loi = []
+for m in re.finditer(r"openSoLuong\(\{(.*?)\n\s*\}\)", src, re.S):
+    than = m.group(1)
+    dong = src[:m.start()].count("\n") + 1
+    ct = re.search(r"chi_tiet:\s*([^,\n]+)", than)
+    tg = re.search(r"tong:\s*([^,\n]+)", than)
+    if not ct or not tg:
+        loi.append(f"CAP-COT-FAIL {f}:{dong}: thiếu chi_tiet hoặc tong")
+        continue
+    a, b = ct.group(1), tg.group(1)
+    # Cùng dùng helper vai trò, hoặc chi_tiet là null (dòng mới) -> hợp lệ.
+    if "ctCua" in a and "soCua" in b:
+        continue
+    if a.strip() in ("null", "null,"):
+        continue
+    loi.append(f"CAP-COT-FAIL {f}:{dong}: chi_tiet={a.strip()} / tong={b.strip()} "
+               "— phải cùng cặp ctCua/soCua")
+print("\n".join(loi) if loi else "CAP-COT-OK")
+sys.exit(1 if loi else 0)
+PYEOF
+[ $? -ne 0 ] && loi=1
+
 exit $loi

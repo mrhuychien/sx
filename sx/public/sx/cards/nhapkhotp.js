@@ -125,7 +125,8 @@ function veChoNhan(cho, rows, coTaiHet) {
     const co = (rows || []).find((x) => x.item === d.item);
     // Kèm cách chia: người bấm là người đang đứng trước chồng thùng, "21 thùng 3 hộp"
     // đọc được ngay còn "255" thì phải chia nhẩm mới biết đủ hay thiếu.
-    const chia = moTaUom(tachUom(co ? co.so_dem : d.con, d.uoms));
+    const chia = moTaUom(tachUom(co ? (co.so_hien != null ? co.so_hien : co.so_dem) : d.con,
+      d.uoms));
     return `<button type="button" class="sx-nv-row${co ? ' sx-nv-row-xong' : ''}"
         data-cn="${esc(d.item)}" style="flex-direction:row;align-items:center;
         justify-content:space-between;min-height:var(--sx-tap-lg)">
@@ -133,7 +134,8 @@ function veChoNhan(cho, rows, coTaiHet) {
           <span class="sx-nv-ten">${esc(d.ten)}</span>
           ${chia ? `<span class="sx-vh-meta">${esc(chia)}</span>` : ''}
         </span>
-        <span class="sx-nv-qty">${co ? `ghi ${formatNumber(co.so_dem)}`
+        <span class="sx-nv-qty">${co
+      ? `ghi ${formatNumber(co.so_hien != null ? co.so_hien : co.so_dem)}`
       : formatNumber(d.con)}</span>
       </button>`;
   }).join('')}</div>`;
@@ -193,6 +195,17 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     return moTaUom(ct && ct.length ? ct : tachUom(tong, uomCua(item)));
   }
 
+  // MỘT cặp cột cho cả màn: thủ kho làm việc với cột ĐẾM, người lập với cột LẬP.
+  // Trộn hai cột (chi tiết của cột này, tổng của cột kia) là cách chắc chắn nhất để
+  // ghi đè mất số thủ kho vừa đếm — cửa sổ nhập dựng ô TỪ chi tiết và bỏ qua tổng.
+  const ctCua = (x) => (laThuKho ? x.dem_uom : x.lap_uom);
+  const soCua = (x) => (laThuKho ? x.so_dem : x.so_lap);
+
+  // Có chi tiết ĐVT thì server TÍNH LẠI tổng từ chi tiết, nên client phải giữ đúng
+  // Σ đó — làm tròn ở đây là màn hình một số, sổ kho một số.
+  const chotSo = (tong, ct) => (ct && ct.length
+    ? Math.max(0, tong) : Math.max(0, Math.round(tong)));
+
   function ve() {
     box.innerHTML = rows.length
       ? rows.map((x, i) => {
@@ -200,15 +213,14 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         return `<div class="sx-vh-row">
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(x.ten || tenSP(x.item))}</div>
-            <div class="sx-vh-meta">${esc(veUom(laThuKho ? x.dem_uom : x.lap_uom,
-              laThuKho ? x.so_dem : x.so_lap, x.item))
+            <div class="sx-vh-meta">${esc(veUom(ctCua(x), soCua(x), x.item))
               || esc(x.dvt || '')}${laThuKho
               ? ` · phiếu ghi ${formatNumber(x.so_lap)}${
                 lech ? ` · lệch ${lech > 0 ? '+' : ''}${formatNumber(lech)}` : ''}`
               : ''}</div>
           </div>
           <button type="button" class="sx-vh-sl${lech ? ' sx-cell-lech' : ''}"
-            data-i="${i}">${formatNumber(x.so_dem)}</button>
+            data-i="${i}">${formatNumber(soCua(x))}</button>
           <button type="button" class="sx-vh-del" data-del="${i}"
             aria-label="Bỏ dòng ${esc(x.ten || x.item)}">✕</button>
         </div>`;
@@ -222,10 +234,10 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         kicker: laThuKho ? 'Số thủ kho đếm' : 'Số chuyển sang kho',
         ten: x.ten || tenSP(x.item),
         uoms: uomCua(x.item),
-        chi_tiet: laThuKho ? x.dem_uom : x.lap_uom,
-        tong: x.so_dem,
+        chi_tiet: ctCua(x),
+        tong: soCua(x),
         onOk: (tong, ct) => {
-          x.so_dem = Math.max(0, Math.round(tong));
+          x.so_dem = chotSo(tong, ct);
           x.dem_uom = ct;
           // Người LẬP sửa số thì sửa cả hai; THỦ KHO sửa thì chỉ đụng số đếm —
           // giữ nguyên số người lập ghi, vì chỗ lệch mới là thứ đáng xem.
@@ -241,7 +253,8 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     // Vẽ lại cả khung "vừa vào hộp" mỗi lần đổi dòng: mã nào đã ghi vào phiếu phải
     // thấy ngay là đã ghi, không thì thủ kho bấm lại lần hai tưởng là chưa ghi.
     const hopBox = container.querySelector('#sx-nk-cn');
-    hopBox.innerHTML = cho.length ? veChoNhan(cho, rows, true) : '';
+    hopBox.innerHTML = cho.length
+      ? veChoNhan(cho, rows.map((x) => ({ ...x, so_hien: soCua(x) })), true) : '';
     hopBox.querySelectorAll('[data-cn]').forEach((b) => {
       const d = cho.find((x) => x.item === b.dataset.cn);
       b.addEventListener('click', () => themItem(d.item, d));
@@ -282,10 +295,10 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         : (co ? 'Sửa số' : 'Thêm sản phẩm'),
       ten: d.ten || item,
       uoms: d.uoms || [],
-      chi_tiet: co ? (laThuKho ? co.dem_uom : co.lap_uom) : null,
-      tong: co ? co.so_dem : (goiY ? goiY.con : 0),
+      chi_tiet: co ? ctCua(co) : null,
+      tong: co ? soCua(co) : (goiY ? goiY.con : 0),
       onOk: (tong, ct) => {
-        const n = Math.max(0, Math.round(tong));
+        const n = chotSo(tong, ct);
         if (!n) { if (co) rows.splice(rows.indexOf(co), 1); ve(); return; }
         if (co) {
           co.so_dem = n; co.dem_uom = ct;

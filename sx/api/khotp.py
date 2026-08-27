@@ -246,8 +246,12 @@ def sua_phieu(name, rows, ghi_chu=None):
         dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem,
                 "ghi_chu": r.get("ghi_chu")}
         if co_uom:
-            dong["lap_uom"] = (_ghi_json(r.get("lap_uom"))
-                               if r.get("lap_uom") is not None else lap_uom_cu)
+            # lap_uom cũ CHỈ giữ khi client không gửi so_lap. Gửi so_lap mới mà vẫn
+            # giữ chi tiết cũ thì controller tính lại so_lap TỪ chi tiết cũ và nuốt
+            # đúng con số người dùng vừa gõ.
+            dong["lap_uom"] = (
+                _ghi_json(r.get("lap_uom")) if r.get("lap_uom") is not None
+                else (None if r.get("so_lap") is not None else lap_uom_cu))
             dong["dem_uom"] = _ghi_json(r.get("dem_uom"))
         doc.append("dong", dong)
     if ghi_chu is not None:
@@ -484,11 +488,17 @@ def tai_tu_vao_hop(name, so_ngay=None):
         )
     co_uom = _co_chi_tiet_uom()
     cu = {r.item: flt(r.so_dem) for r in doc.dong}
+    # Dòng KHÔNG có trong bảng chấm (hàng trả về, hàng làm bù thủ kho tự thêm) phải
+    # sống sót qua lần tải: xoá sạch rồi chỉ dựng lại mã đã chấm là nuốt mất công
+    # nhập tay của thủ kho, mà nuốt im lặng — bấm xong mới thấy dòng biến đâu mất.
+    giu = [r for r in doc.dong if r.item not in con]
     dvt = {i.name: i.stock_uom for i in frappe.get_all(
         "Item", filters={"name": ("in", list(con))}, fields=["name", "stock_uom"])}
     doc.set("dong", [])
     for item, so in sorted(con.items(), key=lambda x: -x[1]):
-        so_lap = flt(so, 0)
+        # LÀM TRÒN XUỐNG, không round: trần là trần. flt(254.6, 0) ra 255 rồi
+        # kiem_tran_da_cham chặn đúng cái phiếu vừa tự điền.
+        so_lap = float(int(flt(so) + 1e-9))
         # Giữ số thủ kho đã đếm nếu có, nhưng không vượt trần mới.
         so_dem = min(cu.get(item, so_lap), so_lap)
         dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem}
@@ -499,6 +509,13 @@ def tai_tu_vao_hop(name, so_ngay=None):
             dong["lap_uom"] = _ghi_json(tach_uom(so_lap, uoms))
             dong["dem_uom"] = _ghi_json(tach_uom(so_dem, uoms))
         doc.append("dong", dong)
+    for r in giu:
+        them = {"item": r.item, "so_lap": flt(r.so_lap), "so_dem": flt(r.so_dem),
+                "ghi_chu": r.get("ghi_chu")}
+        if co_uom:
+            them["lap_uom"] = r.get("lap_uom")
+            them["dem_uom"] = r.get("dem_uom")
+        doc.append("dong", them)
     doc.flags.ignore_permissions = True
     doc.save()
     return chi_tiet_phieu(doc.name)
