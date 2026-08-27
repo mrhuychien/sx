@@ -1439,6 +1439,8 @@ main > .container {
   border-color: var(--sx-season-1);
 }
 .sx-nv-row-xong .sx-nv-qty { color: var(--sx-season-text); }
+/* Nền mùa đậm hơn surface-2 nên text-3 tụt tương phản — kéo lên một bậc. */
+.sx-nv-row-xong .sx-vh-meta { color: var(--sx-text-2); }
 
 /* Lưới công nhân đã nhập: lùi hẳn xuống, chỉ còn tên + số */
 .sx-nv-grid-xong { grid-template-columns: repeat(3, 1fr); }

@@ -14,7 +14,7 @@
 import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
-import { openSoLuong, moTaUom } from '/assets/sx/sx/components/soluong.js';
+import { openSoLuong, moTaUom, tachUom } from '/assets/sx/sx/components/soluong.js';
 import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
 
@@ -123,10 +123,16 @@ function veChoNhan(cho, rows, coTaiHet) {
       ⇩ TẢI TẤT CẢ VÀO PHIẾU</button>` : ''}
     <div class="sx-vh-list">${cho.map((d) => {
     const co = (rows || []).find((x) => x.item === d.item);
+    // Kèm cách chia: người bấm là người đang đứng trước chồng thùng, "21 thùng 3 hộp"
+    // đọc được ngay còn "255" thì phải chia nhẩm mới biết đủ hay thiếu.
+    const chia = moTaUom(tachUom(co ? co.so_dem : d.con, d.uoms));
     return `<button type="button" class="sx-nv-row${co ? ' sx-nv-row-xong' : ''}"
         data-cn="${esc(d.item)}" style="flex-direction:row;align-items:center;
         justify-content:space-between;min-height:var(--sx-tap-lg)">
-        <span class="sx-nv-ten">${esc(d.ten)}</span>
+        <span class="sx-nv-who">
+          <span class="sx-nv-ten">${esc(d.ten)}</span>
+          ${chia ? `<span class="sx-vh-meta">${esc(chia)}</span>` : ''}
+        </span>
         <span class="sx-nv-qty">${co ? `ghi ${formatNumber(co.so_dem)}`
       : formatNumber(d.con)}</span>
       </button>`;
@@ -176,6 +182,17 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   const box = container.querySelector('#sx-nk-rows');
   const laThuKho = p.duoc_duyet;
 
+  function uomCua(item) {
+    return (danhMuc.find((x) => x.item === item) || {}).uoms
+      || (cho.find((x) => x.item === item) || {}).uoms || [];
+  }
+
+  // Dòng nào chưa có cách chia (phiếu cũ, hoặc lưu lúc site chưa migrate) thì đổi
+  // TẠM ra thùng + hộp để đọc. Chỉ để hiển thị — số vào kho vẫn là tổng.
+  function veUom(ct, tong, item) {
+    return moTaUom(ct && ct.length ? ct : tachUom(tong, uomCua(item)));
+  }
+
   function ve() {
     box.innerHTML = rows.length
       ? rows.map((x, i) => {
@@ -183,7 +200,8 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         return `<div class="sx-vh-row">
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(x.ten || tenSP(x.item))}</div>
-            <div class="sx-vh-meta">${esc(moTaUom(laThuKho ? x.dem_uom : x.lap_uom))
+            <div class="sx-vh-meta">${esc(veUom(laThuKho ? x.dem_uom : x.lap_uom,
+              laThuKho ? x.so_dem : x.so_lap, x.item))
               || esc(x.dvt || '')}${laThuKho
               ? ` · phiếu ghi ${formatNumber(x.so_lap)}${
                 lech ? ` · lệch ${lech > 0 ? '+' : ''}${formatNumber(lech)}` : ''}`
@@ -253,8 +271,6 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   if (btnTim) btnTim.addEventListener('click', () => moChonSP(danhMuc, rows, cho, themItem));
   ve();
 
-  const uomCua = (item) => (danhMuc.find((x) => x.item === item) || {}).uoms
-    || (cho.find((x) => x.item === item) || {}).uoms || [];
 
   // `goiY` là dòng bên bảng vào hộp (nếu bấm từ mục "vừa vào hộp"): điền sẵn phần
   // CÒN LẠI để thủ kho chỉ phải sửa khi đếm thật lệch, chứ không phải gõ lại từ 0.

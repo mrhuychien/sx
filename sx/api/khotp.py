@@ -101,6 +101,32 @@ def _uom_cua(item, stock_uom):
             for u, h in sorted(ra.items(), key=lambda x: -x[1])]
 
 
+def tach_uom(tong, uoms):
+    """Đổi một TỔNG theo đơn vị kho ra bậc lớn trước: 255 hộp -> 21 thùng 3 hộp.
+
+    Trả None khi không chia khớp tuyệt đối. Thà không chia còn hơn chia ra một tổng
+    khác tổng ban đầu — số này đi thẳng vào tồn kho. Bản sao đúng logic của tachUom()
+    trong soluong.js: hai đầu phải ra cùng một cách chia, không thì thủ kho thấy số
+    nhảy sau khi lưu.
+    """
+    ds = [u for u in (uoms or []) if u.get("uom") and flt(u.get("he_so")) > 0]
+    tong = flt(tong)
+    if len(ds) <= 1 or tong <= 0:
+        return None
+    bac = sorted(ds, key=lambda u: -flt(u["he_so"]))
+    ra = []
+    con = tong
+    for i, u in enumerate(bac):
+        h = flt(u["he_so"])
+        # Bậc nhỏ nhất ôm phần dư; các bậc trên chỉ lấy phần chia chẵn.
+        sl = int(round(con / h)) if i == len(bac) - 1 else int(con / h + 1e-9)
+        if sl > 0:
+            ra.append({"uom": u["uom"], "sl": sl, "he_so": h})
+        con -= sl * h
+    lai = sum(r["sl"] * r["he_so"] for r in ra)
+    return ra if abs(lai - tong) < 1e-6 else None
+
+
 @frappe.whitelist()
 def phieu_dang_mo():
     """Phiếu nháp đang chờ duyệt (nếu có) + danh mục TP để lập phiếu mới."""
@@ -458,14 +484,20 @@ def tai_tu_vao_hop(name, so_ngay=None):
         )
     co_uom = _co_chi_tiet_uom()
     cu = {r.item: flt(r.so_dem) for r in doc.dong}
+    dvt = {i.name: i.stock_uom for i in frappe.get_all(
+        "Item", filters={"name": ("in", list(con))}, fields=["name", "stock_uom"])}
     doc.set("dong", [])
     for item, so in sorted(con.items(), key=lambda x: -x[1]):
-        dong = {"item": item, "so_lap": flt(so, 0),
-                # Giữ số thủ kho đã đếm nếu có, nhưng không vượt trần mới.
-                "so_dem": min(cu.get(item, so), so)}
+        so_lap = flt(so, 0)
+        # Giữ số thủ kho đã đếm nếu có, nhưng không vượt trần mới.
+        so_dem = min(cu.get(item, so_lap), so_lap)
+        dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem}
         if co_uom:
-            dong["lap_uom"] = None
-            dong["dem_uom"] = None
+            # Chia sẵn ra thùng + hộp: thủ kho đang đứng đếm thùng, đưa 255 hộp là
+            # bắt họ chia nhẩm rồi gõ lại.
+            uoms = _uom_cua(item, dvt.get(item))
+            dong["lap_uom"] = _ghi_json(tach_uom(so_lap, uoms))
+            dong["dem_uom"] = _ghi_json(tach_uom(so_dem, uoms))
         doc.append("dong", dong)
     doc.flags.ignore_permissions = True
     doc.save()
