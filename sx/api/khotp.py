@@ -28,6 +28,11 @@ from frappe.utils import add_days, cint, flt, getdate, nowdate
 from sx.config.roles import guard_card
 from sx.utils import get_settings, items_tp, nhom_tp
 
+# Khoảng ngày dùng CHUNG cho "còn được nhập": danh sách chờ nhận, nút tải, và
+# lần kiểm lúc duyệt. Ba chỗ lấy ba khoảng khác nhau thì màn hình mời nhập một
+# số mà lúc duyệt lại bảo vượt trần.
+SO_NGAY_TRAN = 30
+
 
 @frappe.whitelist()
 def danh_muc_tp():
@@ -111,6 +116,9 @@ def phieu_dang_mo():
         "danh_muc": dm["rows"],
         "goi_y": dm["goi_y"],
         "duoc_duyet": _duoc_duyet(),
+        # Gửi luôn để màn hình mở ra là thấy hàng vừa đóng — thêm một lượt gọi nữa
+        # chỉ để lấy danh sách này là bắt thủ kho chờ hai lần.
+        "cho_nhan": cho_nhan()["rows"],
     }
 
 
@@ -381,7 +389,10 @@ def tran_con_lai(tu_ngay, den_ngay, tru_phieu=None):
     nháp lần thứ hai sẽ tự trừ mình.
     """
     cham = _da_cham_theo_ma(tu_ngay, den_ngay)
-    nhan = _da_nhan_theo_ma()
+    # CÙNG khoảng ngày với số đã chấm. Lấy đã nhận từ đầu thời gian mà đã chấm chỉ
+    # trong 7 ngày thì phiếu tháng trước trừ vào bảng chấm tuần này -> ra âm, mã hàng
+    # biến mất khỏi danh sách "chờ nhận" dù xưởng vừa đóng xong.
+    nhan = _da_nhan_theo_ma(tu_ngay)
     if tru_phieu and frappe.db.get_value("SX Phieu Nhap TP", tru_phieu, "docstatus") == 1:
         for r in frappe.get_all(
             "SX Phieu Nhap TP Item",
@@ -393,7 +404,39 @@ def tran_con_lai(tu_ngay, den_ngay, tru_phieu=None):
 
 
 @frappe.whitelist()
-def tai_tu_vao_hop(name, so_ngay=7):
+def cho_nhan(so_ngay=None, den=None):
+    """Mã hàng ĐÃ CHẤM VÀO HỘP mà CHƯA NHẬP KHO — danh sách để thủ kho bấm vào ghi số.
+
+    Đây là câu trả lời cho "ghi hộp rồi mà nhập kho không thấy đâu": bảng vào hộp và
+    phiếu nhập kho vẫn là hai chứng từ độc lập, nhưng màn nhập kho phải BÀY RA thứ
+    xưởng vừa làm xong, chứ không bắt thủ kho tự nhớ hôm nay đóng những mã nào.
+
+    Lấy cả bảng NHÁP (xem _da_cham_theo_ma) vì QC còn đang chấm khi hàng đã ra kho.
+    """
+    guard_card("nhapkhotp")
+    den_ngay = getdate(den or nowdate())
+    tu_ngay = add_days(den_ngay, -abs(cint(so_ngay) or SO_NGAY_TRAN) + 1)
+    con = tran_con_lai(tu_ngay, den_ngay)
+    ma = [k for k, v in con.items() if flt(v) > 1e-6]
+    if not ma:
+        return {"rows": [], "tu_ngay": str(tu_ngay), "den_ngay": str(den_ngay)}
+
+    ten = {
+        i.name: (i.item_name or i.name, i.stock_uom or "")
+        for i in frappe.get_all(
+            "Item", filters={"name": ("in", ma)}, fields=["name", "item_name", "stock_uom"])
+    }
+    rows = []
+    for item in ma:
+        t, dvt = ten.get(item, (item, ""))
+        rows.append({"item": item, "ten": t, "dvt": dvt,
+                     "uoms": _uom_cua(item, dvt), "con": flt(con[item], 0)})
+    rows.sort(key=lambda x: -x["con"])
+    return {"rows": rows, "tu_ngay": str(tu_ngay), "den_ngay": str(den_ngay)}
+
+
+@frappe.whitelist()
+def tai_tu_vao_hop(name, so_ngay=None):
     """Tải tổng theo mã hàng từ bảng vào hộp vào phiếu nháp (D70).
 
     Điền phần CÒN LẠI = đã chấm − đã nhận, trong `so_ngay` ngày gần đây. Thủ kho vẫn
@@ -405,13 +448,13 @@ def tai_tu_vao_hop(name, so_ngay=7):
     if doc.docstatus != 0:
         frappe.throw(_("Phiếu {0} đã duyệt — không tải lại được.").format(name))
     den = getdate(doc.ngay)
-    tu = add_days(den, -abs(cint(so_ngay) or 7) + 1)
+    tu = add_days(den, -abs(cint(so_ngay) or SO_NGAY_TRAN) + 1)
     con = {k: v for k, v in tran_con_lai(tu, den, name).items() if v > 1e-6}
     if not con:
         frappe.throw(
             _("Không còn mã hàng nào chưa nhập kho trong {0} ngày gần đây "
               "(từ {1}). Hoặc chưa chấm vào hộp, hoặc đã nhận hết.").format(
-                cint(so_ngay) or 7, frappe.utils.formatdate(tu))
+                cint(so_ngay) or SO_NGAY_TRAN, frappe.utils.formatdate(tu))
         )
     co_uom = _co_chi_tiet_uom()
     cu = {r.item: flt(r.so_dem) for r in doc.dong}

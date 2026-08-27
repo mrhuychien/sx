@@ -5,6 +5,11 @@
 //
 // Số ĐẾM là số vào kho. Số người lập ghi chỉ để đối chiếu — chỗ lệch giữa hai số là
 // thứ đáng xem, không phải thứ để chặn.
+//
+// Hai chứng từ vẫn độc lập, nhưng màn này BÀY RA thứ xưởng vừa đóng xong (mục "Vừa
+// vào hộp"): bắt thủ kho tự nhớ hôm nay đóng những mã nào rồi đi tìm trong vài chục
+// SKU là chỗ sinh sót hàng. Bày ra để bấm, không phải để ràng buộc — vẫn ghi được mã
+// không có trong bảng chấm, và sửa số xuống thoải mái.
 
 import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
@@ -58,17 +63,43 @@ Cách nhanh nhất: mở <b>SX Settings → Nhóm hàng là thành phẩm</b> r�
 
 function veChuaCo(container, r, ganDay, call, refresh) {
   const trong = !(r.danh_muc || []).length;
+  const cho = r.cho_nhan || [];
   container.innerHTML = `
     <div class="sx-field-label">Nhập kho thành phẩm</div>
     ${trong
       ? veTrongDanhMuc(r.goi_y)
       : `<div class="sx-muted">Ghi hàng chuyển sang kho, thủ kho đếm lại rồi duyệt —
            duyệt xong hàng mới vào <b>${esc(r.kho_tp)}</b>.</div>
+         <div id="sx-nk-cn">${veChoNhan(cho, [])}</div>
          <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-tao">
-           + LẬP PHIẾU NHẬP KHO</button>`}
+           + LẬP PHIẾU ${cho.length ? 'TRỐNG' : 'NHẬP KHO'}</button>`}
     ${veGanDay(ganDay)}
   `;
   if (trong) return;
+
+  // Bấm thẳng một mã trong "vừa vào hộp" là lập phiếu kèm luôn dòng đó — bắt bấm
+  // "lập phiếu trống" rồi mới tìm lại mã vừa thấy là thừa một bước.
+  container.querySelectorAll('[data-cn]').forEach((b) => {
+    const d = cho.find((x) => x.item === b.dataset.cn);
+    b.addEventListener('click', () => openSoLuong({
+      kicker: `Đã vào hộp ${formatNumber(d.con)} — chưa nhập kho`,
+      ten: d.ten,
+      uoms: d.uoms || [],
+      chi_tiet: null,
+      tong: d.con,
+      onOk: async (tong, ct) => {
+        const n = Math.max(0, Math.round(tong));
+        if (!n) return;
+        try {
+          await call('sx.api.khotp.tao_phieu_nhap', {
+            rows: JSON.stringify([{ item: d.item, so_luong: n, chi_tiet: ct }]),
+          });
+          refresh();
+        } catch (err) { toastErr(err.message); }
+      },
+    }));
+  });
+
   container.querySelector('#sx-nk-tao').addEventListener('click', async (e) => {
     e.currentTarget.disabled = true;
     try {
@@ -78,10 +109,35 @@ function veChuaCo(container, r, ganDay, call, refresh) {
   });
 }
 
+// Mã đã chấm vào hộp mà chưa nhập kho. Số bên phải là PHẦN CÒN LẠI, không phải tổng
+// đã chấm — nhận một phần rồi thì phần đã nhận biến khỏi danh sách này.
+function veChoNhan(cho, rows, coTaiHet) {
+  if (!cho || !cho.length) {
+    return `<div class="sx-muted">Chưa có mã hàng nào vừa vào hộp mà chưa nhập kho
+      (7 ngày gần đây). Vẫn lập phiếu và ghi tay được.</div>`;
+  }
+  return `
+    <div class="sx-field-label">Vừa vào hộp — chưa nhập kho (${cho.length})</div>
+    <div class="sx-muted">Bấm mã hàng để ghi số nhận. Số bên phải là phần còn lại.</div>
+    ${coTaiHet ? `<button type="button" class="sx-btn" id="sx-nk-tai">
+      ⇩ TẢI TẤT CẢ VÀO PHIẾU</button>` : ''}
+    <div class="sx-vh-list">${cho.map((d) => {
+    const co = (rows || []).find((x) => x.item === d.item);
+    return `<button type="button" class="sx-nv-row${co ? ' sx-nv-row-xong' : ''}"
+        data-cn="${esc(d.item)}" style="flex-direction:row;align-items:center;
+        justify-content:space-between;min-height:var(--sx-tap-lg)">
+        <span class="sx-nv-ten">${esc(d.ten)}</span>
+        <span class="sx-nv-qty">${co ? `ghi ${formatNumber(co.so_dem)}`
+      : formatNumber(d.con)}</span>
+      </button>`;
+  }).join('')}</div>`;
+}
+
 // ──────────────────────── có phiếu nháp: ghi hàng + duyệt ─────────────────
 function vePhieu(container, r, ganDay, call, refresh, boot) {
   const p = r.nhap;
   const danhMuc = r.danh_muc || [];
+  const cho = r.cho_nhan || [];
   const rows = p.dong.map((x) => ({ ...x }));
   const tenSP = (item) => (danhMuc.find((d) => d.item === item) || {}).ten || item;
 
@@ -98,6 +154,7 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       </div>
     </div>
     <div class="sx-vh-list" id="sx-nk-rows"></div>
+    <div id="sx-nk-cn"></div>
     ${danhMuc.length
       ? `<div class="sx-vh-hang2">
            <button type="button" class="sx-btn" id="sx-nk-tim">⌕ TÌM SẢN PHẨM</button>
@@ -163,6 +220,26 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       b.addEventListener('click', () => { rows.splice(Number(b.dataset.del), 1); ve(); });
     });
 
+    // Vẽ lại cả khung "vừa vào hộp" mỗi lần đổi dòng: mã nào đã ghi vào phiếu phải
+    // thấy ngay là đã ghi, không thì thủ kho bấm lại lần hai tưởng là chưa ghi.
+    const hopBox = container.querySelector('#sx-nk-cn');
+    hopBox.innerHTML = cho.length ? veChoNhan(cho, rows, true) : '';
+    hopBox.querySelectorAll('[data-cn]').forEach((b) => {
+      const d = cho.find((x) => x.item === b.dataset.cn);
+      b.addEventListener('click', () => themItem(d.item, d));
+    });
+    const btnTai = hopBox.querySelector('#sx-nk-tai');
+    if (btnTai) {
+      btnTai.addEventListener('click', async (e) => {
+        e.currentTarget.disabled = true;
+        try {
+          await call('sx.api.khotp.tai_tu_vao_hop', { name: p.name });
+          toast('Đã tải phần còn lại vào phiếu — đếm lại rồi sửa cho khớp.');
+          refresh();
+        } catch (err) { e.target.disabled = false; toastErr(err.message); }
+      });
+    }
+
     const tong = rows.reduce((a, x) => a + x.so_dem, 0);
     const lech = tong - rows.reduce((a, x) => a + x.so_lap, 0);
     container.querySelector('#sx-nk-tong').textContent = formatNumber(tong);
@@ -173,20 +250,24 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   // Danh mục KHÔNG bày sẵn: vài chục SKU trải hết ra thì phiếu đang ghi bị đẩy khỏi
   // màn hình. Bấm TÌM SẢN PHẨM mới xổ danh sách, có ô lọc.
   const btnTim = container.querySelector('#sx-nk-tim');
-  if (btnTim) btnTim.addEventListener('click', () => moChonSP(danhMuc, rows, themItem));
+  if (btnTim) btnTim.addEventListener('click', () => moChonSP(danhMuc, rows, cho, themItem));
   ve();
 
-  const uomCua = (item) => (danhMuc.find((x) => x.item === item) || {}).uoms || [];
+  const uomCua = (item) => (danhMuc.find((x) => x.item === item) || {}).uoms
+    || (cho.find((x) => x.item === item) || {}).uoms || [];
 
-  function themItem(item) {
+  // `goiY` là dòng bên bảng vào hộp (nếu bấm từ mục "vừa vào hộp"): điền sẵn phần
+  // CÒN LẠI để thủ kho chỉ phải sửa khi đếm thật lệch, chứ không phải gõ lại từ 0.
+  function themItem(item, goiY) {
     const co = rows.find((x) => x.item === item);
-    const d = danhMuc.find((x) => x.item === item) || {};
+    const d = danhMuc.find((x) => x.item === item) || goiY || {};
     openSoLuong({
-      kicker: co ? 'Sửa số' : 'Thêm sản phẩm',
+      kicker: goiY && !co ? `Đã vào hộp ${formatNumber(goiY.con)} — chưa nhập kho`
+        : (co ? 'Sửa số' : 'Thêm sản phẩm'),
       ten: d.ten || item,
       uoms: d.uoms || [],
       chi_tiet: co ? (laThuKho ? co.dem_uom : co.lap_uom) : null,
-      tong: co ? co.so_dem : 0,
+      tong: co ? co.so_dem : (goiY ? goiY.con : 0),
       onOk: (tong, ct) => {
         const n = Math.max(0, Math.round(tong));
         if (!n) { if (co) rows.splice(rows.indexOf(co), 1); ve(); return; }
@@ -271,7 +352,7 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
 }
 
 // Cửa sổ chọn sản phẩm: lọc theo tên/mã, sản phẩm đã ghi tô màu kèm số
-function moChonSP(danhMuc, rows, onPick) {
+function moChonSP(danhMuc, rows, cho, onPick) {
   const m = openModal({ kicker: 'Nhập kho', title: 'Chọn sản phẩm' });
   m.body.innerHTML = `
     <input class="sx-textarea" id="sx-cs-tim" type="search" autocomplete="off"
@@ -280,24 +361,34 @@ function moChonSP(danhMuc, rows, onPick) {
   `;
   const box = m.body.querySelector('#sx-cs-ds');
   const oTim = m.body.querySelector('#sx-cs-tim');
+  // Mã vừa vào hộp đẩy lên đầu: giữa vài chục SKU, thứ xưởng vừa đóng xong mới là
+  // thứ thủ kho đang cầm trên tay.
+  const conCua = (item) => (cho || []).find((x) => x.item === item);
   function ve() {
     const q = oTim.value.toLowerCase().trim();
     const khop = danhMuc.filter((d) => !q || d.ten.toLowerCase().includes(q)
-      || d.item.toLowerCase().includes(q));
+      || d.item.toLowerCase().includes(q))
+      .slice()
+      .sort((a, b) => (conCua(b.item) ? 1 : 0) - (conCua(a.item) ? 1 : 0));
     box.innerHTML = khop.length
       ? `<div class="sx-vh-list">${khop.map((d) => {
         const co = rows.find((x) => x.item === d.item);
+        const cn = conCua(d.item);
         return `<button type="button" class="sx-nv-row${co ? ' sx-nv-row-xong' : ''}"
             data-item="${esc(d.item)}" style="flex-direction:row;align-items:center;
             justify-content:space-between;min-height:var(--sx-tap-lg)">
-            <span class="sx-nv-ten">${esc(d.ten)}</span>
+            <span class="sx-nv-ten">${esc(d.ten)}${cn
+          ? ` <b>· vào hộp còn ${formatNumber(cn.con)}</b>` : ''}</span>
             <span class="sx-nv-qty">${co ? formatNumber(co.so_dem) : (d.uoms && d.uoms.length > 1
           ? `${d.uoms.length} đơn vị` : esc(d.dvt || ''))}</span>
           </button>`;
       }).join('')}</div>`
       : '<div class="sx-muted">Không tìm thấy sản phẩm nào.</div>';
     box.querySelectorAll('[data-item]').forEach((b) => {
-      b.addEventListener('click', () => { m.close(); onPick(b.dataset.item); });
+      b.addEventListener('click', () => {
+        m.close();
+        onPick(b.dataset.item, conCua(b.dataset.item));
+      });
     });
   }
   oTim.addEventListener('input', ve);

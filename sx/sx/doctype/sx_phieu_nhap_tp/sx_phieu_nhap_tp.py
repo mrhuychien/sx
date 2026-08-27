@@ -78,10 +78,10 @@ class SXPhieuNhapTP(Document):
         """
         from frappe.utils import add_days
 
-        from sx.api.khotp import tran_con_lai
+        from sx.api.khotp import SO_NGAY_TRAN, tran_con_lai
 
         den = getdate(self.ngay)
-        con = tran_con_lai(add_days(den, -30), den, self.name)
+        con = tran_con_lai(add_days(den, -SO_NGAY_TRAN + 1), den, self.name)
         vuot = []
         for r in self.dong:
             if r.item not in con:
