@@ -92,4 +92,10 @@ node scripts/test-quet.mjs > /tmp/sx-quet.log 2>&1 \
   && tail -1 /tmp/sx-quet.log \
   || { cat /tmp/sx-quet.log; loi=1; }
 
+# Toàn bộ việc quét trên iPhone dựa vào bộ đọc đóng gói trong repo. Nó hỏng thì triệu
+# chứng là "soi mãi không ăn", không lỗi nào hiện ra — phải chặn bằng test.
+node scripts/test-mavach.mjs > /tmp/sx-mavach.log 2>&1 \
+  && tail -1 /tmp/sx-mavach.log \
+  || { cat /tmp/sx-mavach.log; loi=1; }
+
 exit $loi

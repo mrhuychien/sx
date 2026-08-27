@@ -14,12 +14,13 @@
 //   4. TỐI. Trong xưởng thiếu sáng thì cảm biến tăng ISO -> nhiễu -> hỏng vạch.
 //      Nay có nút bật đèn flash khi máy hỗ trợ.
 //
-// ═══ HAI BỘ GIẢI MÃ, CHỌN THEO MÁY ═══
-//   1. BarcodeDetector — có sẵn trong Chrome/Android. Đọc CẢ mã vạch kẻ sọc lẫn QR.
-//   2. jsQR (đóng gói trong repo) — cho Safari/iPhone, nơi KHÔNG có BarcodeDetector.
-//      jsQR CHỈ ĐỌC ĐƯỢC QR. Máy đó không đọc nổi mã vạch kẻ sọc, và phải NÓI RA
-//      chứ không để người ta soi mãi rồi tưởng tay mình run.
-// Nạp jsQR trễ (dynamic import) để máy Android không phải tải 250KB nó không dùng.
+// ═══ HAI BỘ GIẢI MÃ, CHỌN THEO MÁY — CẢ HAI ĐỀU ĐỌC ĐƯỢC MÃ VẠCH KẺ SỌC ═══
+//   1. BarcodeDetector — có sẵn trong Chrome/Android. Nhanh nhất, chạy bằng máy.
+//   2. zxing1d (đóng gói trong repo) — cho Safari/iPhone, nơi KHÔNG có
+//      BarcodeDetector. Đọc EAN-13/8, UPC-A/E, Code128/39/93, ITF, Codabar và QR.
+// Trước D78 bộ dự phòng là jsQR, mà jsQR CHỈ đọc QR — iPhone không quét nổi mã vạch
+// trên hộp. Xưởng dùng iPhone, nên đó không phải hạn chế chấp nhận được.
+// Nạp trễ (dynamic import) để máy Android không phải tải 184KB nó không dùng.
 //
 // ═══ VẪN GIỮ MÁY QUÉT CẦM TAY ═══
 // Máy quét USB/Bluetooth kiểu keyboard wedge gõ mã vào như bàn phím rồi Enter.
@@ -76,7 +77,7 @@ export function moQuet({ ma_quet, loai, title = 'Quét mã', kicker = '', onTim 
   function nhan(ma) {
     const key = String(ma || '').trim();
     if (!key || xong) return false;
-    const gt = bang[key];
+    const gt = traBang(bang, key);
     if (!gt) {
       // Mã lạ phải NÓI RÕ: im lặng thì người ta quét đi quét lại một thẻ hỏng mà
       // không hiểu vì sao không ăn.
@@ -254,14 +255,14 @@ async function batCamera({ khung, hang, tt, bao, nhan, ngang }) {
   }
 
   // ── bộ giải mã ──
-  const chiQR = await dungBoGiaiMa(video, oNgam, bao, ngang);
-  if (chiQR.loi) {
-    bao.innerHTML = esc(chiQR.loi);
+  const boDoc = await dungBoGiaiMa(video, oNgam, bao);
+  if (boDoc.loi) {
+    bao.innerHTML = esc(boDoc.loi);
     bao.className = 'sx-quet-tt sx-quet-loi';
   } else {
     bao.textContent = meoQuet(coNetGi, !!kn.torch);
   }
-  const doc = chiQR.doc;
+  const doc = boDoc.doc;
 
   // Soi mãi không ăn thì nhắc cách xoay xở, chứ đừng để người ta đứng đoán.
   const nhac = setTimeout(() => {
@@ -299,10 +300,9 @@ function meoQuet(coNetGi, coDen) {
 /**
  * Chọn bộ giải mã. Trả { doc, loi }.
  *
- * BarcodeDetector đọc cả mã vạch kẻ sọc lẫn QR. jsQR CHỈ ĐỌC QR — máy đó mà đi quét
- * hộp thì phải nói thẳng, không thì người ta soi mãi rồi tưởng tay mình run.
+ * Cả hai đường đều đọc được mã vạch kẻ sọc — không còn máy nào chỉ quét được QR.
  */
-async function dungBoGiaiMa(video, oNgam, bao, ngang) {
+async function dungBoGiaiMa(video, oNgam, bao) {
   if (typeof window.BarcodeDetector === 'function') {
     try {
       const det = new window.BarcodeDetector();
@@ -312,14 +312,14 @@ async function dungBoGiaiMa(video, oNgam, bao, ngang) {
           return ds && ds.length ? ds[0].rawValue : null;
         },
       };
-    } catch (e) { /* máy khai có mà dựng không được -> rơi xuống jsQR */ }
+    } catch (e) { /* máy khai có mà dựng không được -> rơi xuống zxing1d */ }
   }
 
   bao.textContent = 'Đang tải bộ đọc mã…';
-  const { default: jsQR } = await import('/assets/sx/sx/vendor/jsqr.js');
+  const { taoBoDoc } = await import('/assets/sx/sx/vendor/zxing1d.js');
+  const docAnh = taoBoDoc();
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  let daoMau = false;
   const doc = async () => {
     const W = video.videoWidth;
     const H = video.videoHeight;
@@ -334,20 +334,29 @@ async function dungBoGiaiMa(video, oNgam, bao, ngang) {
     canvas.height = Math.max(1, Math.round(sh * ti2));
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     const anh = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    // Mã in âm bản (chữ trắng nền đen) có thật; thử xen kẽ để không tốn gấp đôi mỗi khung.
-    daoMau = !daoMau;
-    const kq = jsQR(anh.data, anh.width, anh.height,
-      { inversionAttempts: daoMau ? 'onlyInvert' : 'dontInvert' });
-    return kq ? kq.data : null;
+    return docAnh(anh.data, anh.width, anh.height);
   };
 
-  return {
-    doc,
-    loi: ngang
-      ? 'Máy này (Safari/iPhone) chỉ đọc được mã QR, KHÔNG đọc được mã vạch kẻ sọc '
-        + 'trên hộp. Dùng máy Android, máy quét cầm tay, hoặc bấm "Gõ mã bằng tay".'
-      : '',
-  };
+  return { doc, loi: '' };
+}
+
+/**
+ * Tra mã trong bảng, có xử lý chuyện EAN-13 ↔ UPC-A.
+ *
+ * EAN-13 bắt đầu bằng 0 CHÍNH LÀ UPC-A: cùng một mã in trên hộp, hai cách viết.
+ * Bộ đọc trả về dạng UPC-A 12 số ("036000291452") trong khi ERPNext thường lưu dạng
+ * EAN-13 13 số ("0036000291452") — so chuỗi thẳng là không khớp, và người dùng chỉ
+ * thấy "không nhận ra mã" trên một cái mã hoàn toàn hợp lệ.
+ *
+ * Chỉ nới đúng một chữ số 0 ở đầu, không nới lỏng gì thêm: quét sai người hay sai mã
+ * hàng còn tệ hơn quét không ra.
+ */
+export function traBang(bang, key) {
+  if (!bang || !key) return undefined;
+  if (bang[key] !== undefined) return bang[key];
+  if (/^\d{12}$/.test(key) && bang[`0${key}`] !== undefined) return bang[`0${key}`];
+  if (/^0\d{12}$/.test(key) && bang[key.slice(1)] !== undefined) return bang[key.slice(1)];
+  return undefined;
 }
 
 /**
