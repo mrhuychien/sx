@@ -44,6 +44,20 @@ export function openSoLuong({ ten, kicker = '', uoms, chi_tiet, tong = 0, onOk }
     else so[goc.uom] = tong;
   }
 
+  // Chi tiết ĐVT lưu trong phiếu có thể KHÔNG còn khớp bảng quy đổi hiện tại: ai đó
+  // đổi tên đơn vị, xoá một bậc, hay sửa hệ số. Dựng ô nhập từ chi tiết cũ rồi im
+  // lặng là tổng TỤT mà không ai biết — dòng 36 bỏ qua bậc lạ, nên "21 thùng 3 hộp"
+  // thành "3 hộp" và 252 hộp bốc hơi thẳng vào sổ kho.
+  // TỔNG là chuẩn: phần chênh dồn về đơn vị kho, VÀ nói ra để người ta soát.
+  let lech = 0;
+  if (tong > 0 && goc) {
+    const dung = ds.reduce((a, u) => a + (so[u.uom] || 0) * (Number(u.he_so) || 1), 0);
+    lech = tong - dung;
+    if (Math.abs(lech) > 1e-6) {
+      so[goc.uom] = (so[goc.uom] || 0) + lech / (Number(goc.he_so) || 1);
+    }
+  }
+
   const m = openModal({ kicker, title: ten });
   const hang = el('div', 'sx-sl-hang');
   const tongBox = el('div', 'sx-sl-tong');
@@ -86,6 +100,14 @@ export function openSoLuong({ ten, kicker = '', uoms, chi_tiet, tong = 0, onOk }
   });
 
   m.body.appendChild(hang);
+  if (Math.abs(lech) > 1e-6) {
+    const bao = el('div', 'sx-warn-text');
+    bao.textContent = `⚠ Bảng quy đổi của mã hàng đã đổi so với lúc ghi phiếu. `
+      + `Đã dồn ${formatNumber(Math.abs(lech))} ${goc.uom.toLowerCase()} `
+      + `${lech > 0 ? 'thiếu' : 'thừa'} vào ô ${goc.uom} để giữ đúng tổng `
+      + `${formatNumber(tong)}. Đếm lại rồi sửa cho khớp trước khi lưu.`;
+    m.body.appendChild(bao);
+  }
   m.body.appendChild(tongBox);
   m.body.appendChild(ok);
   return m;

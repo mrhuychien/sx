@@ -312,7 +312,12 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     });
   }
 
-  container.querySelector('#sx-nk-quet').addEventListener('click', () => moQuet({
+  // Guard null như mọi nút khác: nút này chỉ render khi danh mục TP không rỗng. Đổi
+  // "Nhóm hàng là thành phẩm" trong SX Settings lúc đang có phiếu nháp là danh mục
+  // rỗng mà phiếu vẫn còn -> bind thẳng là TypeError, cả màn đổ, thủ kho không duyệt
+  // cũng không xoá được phiếu, mà phiếu thứ hai thì bị chặn tạo -> tắc hẳn.
+  const btnQuet = container.querySelector('#sx-nk-quet');
+  if (btnQuet) btnQuet.addEventListener('click', () => moQuet({
     ma_quet: boot && boot.ma_quet, loai: 'sp',
     kicker: 'Nhập kho', title: 'Quét hộp',
     onTim: (item) => {

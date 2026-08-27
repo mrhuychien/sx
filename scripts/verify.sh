@@ -74,4 +74,10 @@ sys.exit(1 if loi else 0)
 PYEOF
 [ $? -ne 0 ] && loi=1
 
+# openSoLuong phải giữ đúng TỔNG kể cả khi bảng quy đổi ĐVT đổi sau lúc ghi phiếu
+# (đổi tên đơn vị / sửa hệ số / xoá một bậc). Nạp hàm THẬT ra chạy, không chép logic.
+node scripts/test-soluong.mjs > /tmp/sx-soluong.log 2>&1 \
+  && tail -1 /tmp/sx-soluong.log \
+  || { cat /tmp/sx-soluong.log; loi=1; }
+
 exit $loi
