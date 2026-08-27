@@ -1475,6 +1475,17 @@ main > .container {
   pointer-events: none;
 }
 .sx-vh-search { padding-left: calc(var(--sx-s5) + var(--sx-s3)); margin-top: var(--sx-s2); }
+
+/* Ô tìm + nút QUÉT THẺ chung một hàng, đặt TRÊN lưới tên (D73). Quét thẻ là đường
+   vào nhanh nhất tới đúng người; để nó dưới lưới là bắt QC cuộn qua 45 cái tên mới
+   thấy cái nút đáng ra bấm đầu tiên. */
+.sx-vh-timhang { display: flex; gap: var(--sx-s2); align-items: stretch; }
+.sx-vh-timhang > .sx-vh-tim-wrap { flex: 1; min-width: 0; }
+/* margin-top của ô tìm là để tách khỏi thứ nằm trên nó khi nó đứng một mình; trong
+   hàng này nó lệch so với nút bên cạnh. */
+.sx-vh-timhang .sx-vh-search { margin-top: 0; height: 100%; }
+/* Bớt padding ngang: trên máy 360px, nút rộng bao nhiêu là ô tìm hẹp đi bấy nhiêu. */
+.sx-vh-timhang .sx-quet-nut { padding-left: var(--sx-s3); padding-right: var(--sx-s3); }
 .sx-vh-xemhet {
   width: 100%;
   min-height: var(--sx-tap-lg);

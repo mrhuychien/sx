@@ -35,8 +35,9 @@ export async function render({ container, boot, call, ensureNgay }) {
   //   [tổng sản lượng hôm nay]              [đã nhập N/43]
   //   [dải SKU: mỗi loại một ô, cuộn ngang]
   //   HAY NHẬP — BẤM TÊN ĐỂ CHẤM
+  //   [ô tìm 43 công nhân | ⌗ QUÉT THẺ]   ← D73: quét đứng TRƯỚC lưới tên
   //   [hàng công nhân: tên + ăn ca bên trái · số hộp bên phải]
-  //   [ô tìm 43 công nhân] → hiện nốt người còn lại
+  //   [Xem hết 43 công nhân] → hiện nốt người còn lại
   //   BẢN GHI HÔM NAY  [tên · loại | SL | ✎ | ✕] … [Tổng]
   //   [Copy sản lượng gửi nhóm]
   container.innerHTML = `
@@ -56,18 +57,18 @@ export async function render({ container, boot, call, ensureNgay }) {
     <div class="sx-vh-strip" id="sx-vh-strip"></div>
     ${daChot ? '' : `
       <div class="sx-field-label">Hay nhập — bấm tên để chấm</div>
-      <div id="sx-vh-nv"></div>
-      <div class="sx-vh-tim-wrap">
-        <span class="sx-vh-tim-icon" aria-hidden="true">⌕</span>
-        <input class="sx-textarea sx-vh-search" id="sx-vh-tim" type="search"
-               aria-label="Tìm công nhân" placeholder="Tìm trong ${nhanVien.length} công nhân">
-      </div>
-      <div class="sx-vh-hang2">
+      <div class="sx-vh-timhang">
+        <div class="sx-vh-tim-wrap">
+          <span class="sx-vh-tim-icon" aria-hidden="true">⌕</span>
+          <input class="sx-textarea sx-vh-search" id="sx-vh-tim" type="search"
+                 aria-label="Tìm công nhân" placeholder="Tìm ${nhanVien.length} công nhân">
+        </div>
         <button type="button" class="sx-btn sx-quet-nut" id="sx-vh-quet"
           >⌗ QUÉT THẺ</button>
-        <button type="button" class="sx-vh-xemhet" id="sx-vh-xemhet"
-          >Xem hết ${nhanVien.length} công nhân</button>
       </div>
+      <div id="sx-vh-nv"></div>
+      <button type="button" class="sx-vh-xemhet" id="sx-vh-xemhet"
+        >Xem hết ${nhanVien.length} công nhân</button>
     `}
     <div class="sx-field-label">Bản ghi hôm nay</div>
     <div class="sx-vh-list" id="sx-vh-rows"></div>
