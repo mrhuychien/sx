@@ -80,4 +80,10 @@ node scripts/test-soluong.mjs > /tmp/sx-soluong.log 2>&1 \
   && tail -1 /tmp/sx-soluong.log \
   || { cat /tmp/sx-soluong.log; loi=1; }
 
+# seed_ton_dau submit chứng từ kho THẬT và không có nút hoàn tác: số học lô, giá vốn
+# và cờ dry_run phải đúng trước khi ai đó gõ lệnh đó trên site nhà máy.
+python3 scripts/test-seed.py > /tmp/sx-seed.log 2>&1 \
+  && tail -1 /tmp/sx-seed.log \
+  || { cat /tmp/sx-seed.log; loi=1; }
+
 exit $loi

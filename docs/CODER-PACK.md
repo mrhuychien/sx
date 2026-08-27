@@ -395,8 +395,8 @@ chốt**, nguồn lưu tại `docs/RVHG_dinh_muc_BOM_v6.xlsx`). Sau khi có Comp
 `SX Settings`:
 
 ```bash
-bench --site a.rongvanghoanggia.com execute sx.seed.seed_all --kwargs "{'dry_run': 1}"  # xem trước
-bench --site a.rongvanghoanggia.com execute sx.seed.seed_all                            # ghi thật
+bench --site $SITE execute sx.seed.seed_all                            # xem trước (mặc định)
+bench --site $SITE execute sx.seed.seed_all --kwargs "{'dry_run': 0}"  # ghi thật
 ```
 
 Seed tạo **49 Item** (28 NVL gồm Nước `is_stock_item=0` + 2 bột nền + 3 đường hoán + 8 bột

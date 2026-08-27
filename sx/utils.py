@@ -326,8 +326,9 @@ def item_cua_chang(loai_dau, chang):
     if not frappe.db.exists("Item", ten):
         frappe.throw(
             _("Chưa có Item bán thành phẩm '{0}'. Chạy trên site: "
-              "<b>bench --site &lt;site&gt; execute sx.seed.seed_btp_dau</b> "
-              "(tạo Đỗ ủ / Đỗ vỡ cho mọi loại đỗ).").format(ten)
+              "<b>bench --site &lt;site&gt; execute sx.seed.seed_btp_dau "
+              "--kwargs \"{{'dry_run': 0}}\"</b> (tạo Đỗ ủ / Đỗ vỡ cho mọi loại đỗ). "
+              "Gọi trần chỉ XEM TRƯỚC, không tạo gì.").format(ten)
         )
     return ten
 

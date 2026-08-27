@@ -64,8 +64,8 @@ bench restart                                 # nạp lại Python
 3 Warehouse + `SX Settings`:
 
 ```bash
-bench --site a.rongvanghoanggia.com execute sx.seed.seed_all --kwargs "{'dry_run': 1}"  # xem trước
-bench --site a.rongvanghoanggia.com execute sx.seed.seed_all                            # ghi thật
+bench --site $SITE execute sx.seed.seed_all                            # xem trước (mặc định)
+bench --site $SITE execute sx.seed.seed_all --kwargs "{'dry_run': 0}"  # ghi thật
 ```
 
 Tạo **49 Item** (14 đã có trên site → chỉ bù custom field; 35 tạo mới) + **21 BOM tầng 1/2**
@@ -95,8 +95,16 @@ bench --site $SITE execute sx.seed.seed_ton_dau --kwargs "{'dry_run': 0}"    # g
 bench --site $SITE execute sx.seed.seed_ton_dau --kwargs "{'so_me': 50, 'dry_run': 0}"
 ```
 
-- **`dry_run=1` là mặc định** — gọi trần chỉ in bảng dự kiến, không ghi gì. Đây là
-  thao tác đè số tồn nên không để lỡ tay.
+- **Gọi trần = xem trước** — in bảng dự kiến, không ghi gì. Cả module dùng chung một
+  quy ước này; gõ giá trị không hiểu được (`'true'`, `'yes'`) thì lệnh DỪNG chứ không
+  đoán, vì đoán sai ở đây là chứng từ kho đã submit.
+- **Không bịa giá vốn.** Giá lấy theo thứ tự: giá vốn đang chạy của kho (Bin) →
+  `Item.valuation_rate` → giá mua gần nhất. Không có gì cả thì lệnh dừng và liệt kê
+  item để đi khai giá. Đang dựng site thử mà chấp nhận giá bịa thì thêm
+  `'gia_mac_dinh': 1000`.
+- **Item có lô: ghi đúng phần thiếu.** Phiếu kiểm kê đặt số lượng cho RIÊNG lô ghi
+  trong dòng, nên lô `TD-` chỉ nhận `mục tiêu − tồn các lô khác`; tổng kho ra đúng
+  mục tiêu chứ không cộng dồn.
 - **Item đã đủ tồn thì bỏ qua**, chỉ nâng item đang thiếu lên mức mục tiêu — chạy trên
   site có số thật cũng không thổi bay tồn đang đúng.
 - Sinh **1 Stock Reconciliation** (purpose *Stock Reconciliation*, chênh lệch vào Stock
