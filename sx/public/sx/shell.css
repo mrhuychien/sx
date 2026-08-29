@@ -178,6 +178,9 @@ main > .container {
 
 .sx-app,
 .sx-app * { box-sizing: border-box; margin: 0; padding: 0; }
+/* `display` của class LUÔN thắng `[hidden]` của trình duyệt, nên .sx-vh-hang2[hidden]
+   vẫn hiện. Đặt lại một lần cho cả app, không thì mỗi chỗ ẩn phần tử lại phải nhớ. */
+.sx-app [hidden] { display: none !important; }
 
 .sx-app {
   position: relative;
@@ -1725,6 +1728,9 @@ main > .container {
 /* Máy có lấy nét theo điểm: nói cho người ta biết bấm được vào khung */
 .sx-quet-net-duoc { cursor: crosshair; }
 .sx-quet-dang-net { border-color: var(--sx-season-1); }
+/* Hai lối ra của bàn số: chia đôi bề ngang, nút chính bên phải (ngón cái) */
+.sx-numpad-hang { display: flex; gap: var(--sx-s2); }
+.sx-numpad-hang > * { flex: 1; min-width: 0; }
 .sx-quet-hang { display: flex; gap: var(--sx-s2); }
 .sx-quet-hang:empty { display: none; }
 .sx-quet-den { flex: 1; }

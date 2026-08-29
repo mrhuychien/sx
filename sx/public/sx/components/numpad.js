@@ -31,6 +31,7 @@ export function openNumpad({
   hint = null,         // (soNhap) => string — dòng phụ bên phải ô mực (vd tiền)
   okLabel = 'LƯU',
   onOk,
+  okPhu = null,        // { label, onOk } — nút phụ đứng CẠNH nút chính, cùng số đang nhập
 }) {
   const m = openModal({ title, kicker });
   // Nút cạnh tên = Ô ĐẾM hai phần, KHÔNG phải bật/tắt:
@@ -135,18 +136,32 @@ export function openNumpad({
     grid.appendChild(btn);
   });
 
-  const ok = el('button', 'sx-btn sx-btn-primary sx-btn-big', '');
-  ok.type = 'button';
-  ok.textContent = okLabel;
-  ok.addEventListener('click', () => {
-    const num = parseFloat(value || '0') || 0;
-    m.close();
-    if (onOk) onOk(num);
-  });
+  const soDangNhap = () => parseFloat(value || '0') || 0;
+  const nutXong = (lop, nhan, fn) => {
+    const b = el('button', `sx-btn ${lop} sx-btn-big`, '');
+    b.type = 'button';
+    b.textContent = nhan;
+    b.addEventListener('click', () => {
+      const num = soDangNhap();
+      m.close();
+      if (fn) fn(num);
+    });
+    return b;
+  };
+  const ok = nutXong('sx-btn-primary', okLabel, onOk);
 
   if (chipRow) m.body.appendChild(chipRow);
   m.body.appendChild(display);
   m.body.appendChild(grid);
-  m.body.appendChild(ok);
+  if (okPhu) {
+    // Hai lối ra cùng LƯU con số đang nhập, chỉ khác chuyện sau đó đi đâu. Đặt cạnh
+    // nhau để thấy là hai lựa chọn, không phải một nút và một thứ gì khác.
+    const hang = el('div', 'sx-numpad-hang');
+    hang.appendChild(nutXong('', okPhu.label, okPhu.onOk));
+    hang.appendChild(ok);
+    m.body.appendChild(hang);
+  } else {
+    m.body.appendChild(ok);
+  }
   return m;
 }

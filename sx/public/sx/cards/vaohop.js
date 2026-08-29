@@ -56,7 +56,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     ${daChot ? '<div class="sx-muted">Đã chốt — chỉ xem. Muốn sửa: bấm HUỶ CHỐT NGÀY bên thẻ Chốt ngày.</div>' : ''}
     <div class="sx-vh-strip" id="sx-vh-strip"></div>
     ${daChot ? '' : `
-      <div class="sx-field-label">Hay nhập — bấm tên để chấm</div>
+      <div class="sx-field-label" id="sx-vh-nhan">Chấm hộp cho công nhân</div>
       <div class="sx-vh-timhang">
         <div class="sx-vh-tim-wrap">
           <span class="sx-vh-tim-icon" aria-hidden="true">⌕</span>
@@ -67,8 +67,11 @@ export async function render({ container, boot, call, ensureNgay }) {
           >⌗ QUÉT THẺ</button>
       </div>
       <div id="sx-vh-nv"></div>
-      <button type="button" class="sx-vh-xemhet" id="sx-vh-xemhet"
-        >Xem hết ${nhanVien.length} công nhân</button>
+      <div class="sx-vh-hang2" id="sx-vh-ds-nut" hidden>
+        <button type="button" class="sx-vh-xemhet" id="sx-vh-xemhet"
+          >Xem hết ${nhanVien.length} công nhân</button>
+        <button type="button" class="sx-btn sx-quet-nut" id="sx-vh-dong">✕ ĐÓNG</button>
+      </div>
     `}
     <div class="sx-field-label">Bản ghi hôm nay</div>
     <div class="sx-vh-list" id="sx-vh-rows"></div>
@@ -81,6 +84,10 @@ export async function render({ container, boot, call, ensureNgay }) {
   `;
   let timKiem = '';
   let xemHet = false;
+  // Lưới 45 cái tên KHÔNG bày sẵn: nó đẩy bảng ghi hôm nay xuống dưới màn, mà phần
+  // lớn thời gian QC quét thẻ hoặc gõ tìm chứ không dò mắt qua lưới. Bấm vào ô tìm
+  // mới xổ ra.
+  let moDS = false;
   const tbody = container.querySelector('#sx-vh-rows');
   const footer = container.querySelector('#sx-vh-footer');
   const anBox = container.querySelector('#sx-vh-an');
@@ -239,6 +246,9 @@ export async function render({ container, boot, call, ensureNgay }) {
       ((r && r.an_ca) || []).forEach((x) => {
         anCa[x.nhan_vien] = { an_ca: Number(x.an_ca) || 0, an_dem: Number(x.an_dem) || 0 };
       });
+      // Chấm xong một người là xong việc với lưới tên — thu lại để bảng ghi hôm nay
+      // trở về đúng tầm mắt, khỏi phải cuộn qua 45 cái tên.
+      dongDS();
       paint();
       toast('Đã lưu.');
     } catch (e) {
@@ -257,6 +267,16 @@ export async function render({ container, boot, call, ensureNgay }) {
     if (daChot) return;
     const nvGrid = container.querySelector('#sx-vh-nv');
     if (!nvGrid) return;
+    const nutDS = container.querySelector('#sx-vh-ds-nut');
+    const nhan = container.querySelector('#sx-vh-nhan');
+    if (nutDS) nutDS.hidden = !moDS;
+    if (nhan) {
+      nhan.textContent = moDS ? 'Bấm tên để chấm' : 'Chấm hộp cho công nhân';
+    }
+    if (!moDS) {
+      nvGrid.innerHTML = '';
+      return;
+    }
     if (!nhanVien.length) {
       nvGrid.innerHTML = '<div class="sx-muted">Chưa có công nhân công khoán nào '
         + '(kiểm tra nhóm trong SX Settings).</div>';
@@ -341,7 +361,23 @@ export async function render({ container, boot, call, ensureNgay }) {
 
   const oTim = container.querySelector('#sx-vh-tim');
   if (oTim) {
-    oTim.addEventListener('input', (e) => { timKiem = e.target.value; veNV(); });
+    const mo = () => { if (!moDS) { moDS = true; veNV(); } };
+    // focus lẫn input: máy quét cầm tay đổ chữ vào ô mà không sinh focus.
+    oTim.addEventListener('focus', mo);
+    oTim.addEventListener('input', (e) => { timKiem = e.target.value; mo(); veNV(); });
+  }
+
+  const btnDong = container.querySelector('#sx-vh-dong');
+  if (btnDong) {
+    btnDong.addEventListener('click', () => { dongDS(); veNV(); });
+  }
+
+  function dongDS() {
+    moDS = false;
+    xemHet = false;
+    timKiem = '';
+    if (oTim) { oTim.value = ''; oTim.blur(); }
+    if (btnHet) btnHet.textContent = `Xem hết ${nhanVien.length} công nhân`;
   }
 
   if (!daChot && !danhMuc.length) {
@@ -381,13 +417,19 @@ function nutAnCa(nv, anCa, save) {
   ];
 }
 
+/**
+ * Chấm cho MỘT công nhân. Một người thường nhận nhiều loại hộp trong ca, nên sau khi
+ * nhập số có hai lối ra: GHI TIẾP quay lại chọn mã hàng cho CHÍNH người đó, XONG thì
+ * đóng hẳn. Bắt bấm lại tên người sau mỗi mã là bắt làm lại một bước đã làm.
+ */
 function themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot) {
   const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
-  openSanPhamPicker(ten, danhMuc, spGanDay, (sp) => {
+  const chonMa = () => openSanPhamPicker(ten, danhMuc, spGanDay, (sp) => {
     // Mã có nhiều cách làm -> hỏi thêm một bước, vì mỗi cách một đơn giá.
     // Chỉ một cách (và không có giá chung) -> tự chọn, QC không phải bấm.
     const cach = sp.cach_lam || [];
-    const tiep = (cachLam) => nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa);
+    const tiep = (cachLam) =>
+      nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa, chonMa);
     if (cach.length > 1 || (cach.length === 1 && sp.gia_chung != null)) {
       openCachLamPicker(ten, sp, tiep);
     } else if (cach.length === 1) {
@@ -396,12 +438,26 @@ function themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot) {
       tiep(null);
     }
   }, boot);
+  chonMa();
 }
 
-function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa) {
+function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa, ghiTiep) {
   const gia = cachLam
     ? ((sp.cach_lam || []).find((c) => c.ten === cachLam) || {}).don_gia
     : sp.gia_chung;
+
+  // Cả hai nút đều LƯU con số đang nhập; chỉ khác chuyện sau đó đi đâu.
+  const luu = async (v) => {
+    const sl = Math.round(v);
+    if (sl <= 0) { toastErr('Số lượng phải > 0.'); return false; }
+    rows.push({
+      nhan_vien: nv.name, ten_nhan_vien: nv.employee_name,
+      san_pham: sp.item, cach_lam: cachLam || null, so_hop: sl,
+    });
+    await save();
+    return true;
+  };
+
   openNumpad({
     kicker: cachLam ? `${sp.ten} · ${cachLam}` : sp.ten,
     title: ten,
@@ -409,15 +465,12 @@ function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa) {
     titleActions: nutAnCa(nv, anCa, save),
     // Đơn giá chỉ HIỆN để đối chiếu; server luôn tra lại từ bảng đơn giá tháng đó.
     hint: (n) => (gia ? `${formatNumber(n * gia)} đ` : '⚠ chưa khai đơn giá'),
-    onOk: async (v) => {
-      const sl = Math.round(v);
-      if (sl <= 0) { toastErr('Số lượng phải > 0.'); return; }
-      rows.push({
-        nhan_vien: nv.name, ten_nhan_vien: nv.employee_name,
-        san_pham: sp.item, cach_lam: cachLam || null, so_hop: sl,
-      });
-      await save();
-    },
+    okLabel: 'XONG',
+    onOk: (v) => { luu(v); },
+    okPhu: ghiTiep ? {
+      label: '+ GHI TIẾP',
+      onOk: async (v) => { if (await luu(v)) ghiTiep(); },
+    } : null,
   });
 }
 
