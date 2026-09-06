@@ -1,45 +1,61 @@
 {
  "actions": [],
- "autoname": "format:DG-{nam}-{thang}",
+ "autoname": "format:DG-{hieu_luc_tu}",
  "creation": "2026-08-25 10:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
- "is_submittable": 1,
  "field_order": [
-  "thang", "nam", "column_break_head", "trang_thai", "ap_dung_tu",
+  "hieu_luc_tu", "column_break_head", "ghi_chu",
+  "section_them", "them_ma", "column_break_them", "them_cach_lam", "them_don_gia",
   "section_dong", "dong",
-  "section_khac", "ghi_chu", "amended_from"
+  "section_cu", "thang", "nam", "trang_thai", "ap_dung_tu", "amended_from"
  ],
  "fields": [
-  {"fieldname": "thang", "fieldtype": "Int", "label": "Tháng", "reqd": 1,
-   "in_list_view": 1},
-  {"fieldname": "nam", "fieldtype": "Int", "label": "Năm", "reqd": 1,
-   "in_list_view": 1},
+  {"fieldname": "hieu_luc_tu", "fieldtype": "Date", "label": "Hiệu lực từ ngày",
+   "reqd": 1, "unique": 1, "default": "Today", "in_list_view": 1,
+   "description": "Phần lớn xưởng chỉ cần MỘT bảng: sửa giá ngay trên bảng đó, lưu là áp dụng. Lập bảng thứ hai khi muốn giữ lại giá cũ để đối chiếu — ngày sản xuất nào dùng bảng có hiệu lực gần nhất trước đó."},
   {"fieldname": "column_break_head", "fieldtype": "Column Break"},
-  {"fieldname": "trang_thai", "fieldtype": "Select", "label": "Trạng thái",
-   "options": "Nháp\nĐang áp dụng\nĐã huỷ", "read_only": 1, "in_list_view": 1},
-  {"fieldname": "ap_dung_tu", "fieldtype": "Date", "label": "Áp dụng từ ngày",
-   "read_only": 1,
-   "description": "Luôn là ngày 1 của tháng. Trong cùng một tháng đơn giá không đổi."},
+  {"fieldname": "ghi_chu", "fieldtype": "Small Text", "label": "Ghi chú"},
+
+  {"fieldname": "section_them", "fieldtype": "Section Break",
+   "label": "Thêm nhiều mã cùng lúc",
+   "description": "Nhiều mã chỉ khác vị nhưng gia công y hệt nhau. Chọn hết các mã đó, điền một đơn giá, bấm Lưu — mỗi mã thành một dòng bên dưới. Mã nào đã có thì cập nhật giá, không tạo trùng."},
+  {"fieldname": "them_ma", "fieldtype": "Table MultiSelect",
+   "options": "SX Bang Don Gia Ma", "label": "Mã hàng (chọn nhiều)"},
+  {"fieldname": "column_break_them", "fieldtype": "Column Break"},
+  {"fieldname": "them_cach_lam", "fieldtype": "Link", "options": "SX Cach Lam",
+   "label": "Cách làm", "description": "Bỏ trống = giá chung, không phân biệt cách làm."},
+  {"fieldname": "them_don_gia", "fieldtype": "Currency", "label": "Đơn giá / hộp",
+   "non_negative": 1},
+
   {"fieldname": "section_dong", "fieldtype": "Section Break", "label": "Đơn giá khoán"},
   {"fieldname": "dong", "fieldtype": "Table", "options": "SX Bang Don Gia Item",
    "label": "Dòng"},
-  {"fieldname": "section_khac", "fieldtype": "Section Break"},
-  {"fieldname": "ghi_chu", "fieldtype": "Small Text", "label": "Ghi chú"},
+
+  {"fieldname": "section_cu", "fieldtype": "Section Break", "label": "Dữ liệu cũ",
+   "collapsible": 1,
+   "description": "Trước D80 mỗi tháng một bảng. Giữ lại để đọc bảng cũ, không dùng nữa."},
+  {"fieldname": "thang", "fieldtype": "Int", "label": "Tháng (cũ)", "read_only": 1},
+  {"fieldname": "nam", "fieldtype": "Int", "label": "Năm (cũ)", "read_only": 1},
+  {"fieldname": "trang_thai", "fieldtype": "Select", "label": "Trạng thái (cũ)",
+   "options": "\nNháp\nĐang áp dụng\nĐã huỷ", "read_only": 1},
+  {"fieldname": "ap_dung_tu", "fieldtype": "Date", "label": "Áp dụng từ (cũ)",
+   "read_only": 1},
   {"fieldname": "amended_from", "fieldtype": "Link", "options": "SX Bang Don Gia",
-   "label": "Amended From", "read_only": 1, "no_copy": 1, "print_hide": 1}
+   "label": "Amended From", "read_only": 1, "no_copy": 1, "print_hide": 1, "hidden": 1}
  ],
  "links": [],
- "modified": "2026-08-25 10:00:00.000000",
+ "modified": "2026-09-06 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Bang Don Gia",
  "owner": "Administrator",
  "permissions": [
   {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1,
-   "submit": 1, "cancel": 1, "amend": 1, "report": 1, "export": 1}
+   "report": 1, "export": 1}
  ],
- "sort_field": "modified",
+ "sort_field": "hieu_luc_tu",
  "sort_order": "DESC",
+ "title_field": "hieu_luc_tu",
  "track_changes": 1
 }

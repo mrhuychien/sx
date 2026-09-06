@@ -1,9 +1,9 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint, flt, getdate
+from frappe.utils import cint, flt
 
-from sx.utils import don_gia_theo_thang, tra_don_gia
+from sx.utils import don_gia_ap_dung, tra_don_gia
 
 
 class SXBangVaoHop(Document):
@@ -53,10 +53,10 @@ class SXBangVaoHop(Document):
             )
 
     def tinh_tien(self):
-        """Đơn giá LUÔN tra server-side từ bảng đơn giá của THÁNG đó — client gửi
-        giá lên cũng bị ghi đè. Giá là tiền lương thật của người ta."""
+        """Đơn giá LUÔN tra server-side từ bảng đơn giá áp dụng cho ngày đó — client
+        gửi giá lên cũng bị ghi đè. Giá là tiền lương thật của người ta."""
         ngay = frappe.db.get_value("SX Ngay San Xuat", self.ngay_sx, "ngay")
-        bang = don_gia_theo_thang(ngay) if ngay else {}
+        bang = don_gia_ap_dung(ngay) if ngay else {}
         thieu = []
         tong_hop = 0
         tong_tien = 0.0
@@ -82,7 +82,11 @@ class SXBangVaoHop(Document):
         # vì một dòng chưa khai giá là bắt cả chuyền dừng. Giá bổ sung sau, lưu lại
         # bảng là tính lại đúng. Nhưng im lặng để giá 0 thì tới cuối tháng mới lộ.
         if thieu:
-            ten_bang = _("tháng {0}").format(getdate(ngay).strftime("%m/%Y")) if ngay else ""
+            # Nêu ĐÍCH DANH bảng đang dùng: từ D80 có thể có nhiều bảng theo ngày hiệu
+            # lực, nói "chưa khai giá" mà không nói khai ở bảng nào là bắt đi mò.
+            from sx.utils import bang_don_gia
+            ten_bang = bang_don_gia(ngay) if ngay else None
+            ten_bang = _("(bảng {0})").format(ten_bang) if ten_bang else _("(chưa có bảng nào)")
             frappe.msgprint(
                 _("Chưa khai đơn giá khoán {0} cho:").format(ten_bang)
                 + "<br>" + "<br>".join(sorted(set(thieu)))

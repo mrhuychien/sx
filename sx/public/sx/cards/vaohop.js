@@ -385,12 +385,12 @@ export async function render({ container, boot, call, ensureNgay }) {
       '<div class="sx-warn-text">⚠ Chưa có mã hàng thành phẩm nào — vào SX Settings '
       + 'chọn "Nhóm hàng là thành phẩm", hoặc đánh dấu Item có Nhóm SX = TP.</div>');
   } else if (!daChot && !boot.bang_don_gia) {
-    // Thiếu bảng đơn giá tháng này thì vẫn ghi được sản lượng, nhưng lương ra 0 —
-    // nói ngay đầu ca, đừng để cuối tháng tính lương mới lộ.
+    // Thiếu bảng đơn giá thì vẫn ghi được sản lượng, nhưng lương ra 0 — nói ngay đầu
+    // ca, đừng để cuối tháng tính lương mới lộ.
     container.querySelector('#sx-vh-nv').insertAdjacentHTML('beforebegin',
-      '<div class="sx-warn-text">⚠ Tháng này chưa có bảng đơn giá khoán — sản lượng '
-      + 'vẫn ghi được nhưng tiền công đang tính 0. Lập SX Bang Don Gia cho tháng rồi '
-      + 'lưu lại bảng là tự tính lại.</div>');
+      '<div class="sx-warn-text">⚠ Chưa có bảng đơn giá khoán — sản lượng vẫn ghi '
+      + 'được nhưng tiền công đang tính 0. Lập MỘT bảng SX Bang Don Gia rồi lưu là '
+      + 'tự tính lại; không phải lập lại mỗi tháng.</div>');
   }
 
   paint();
@@ -463,7 +463,7 @@ function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa, ghiTiep) {
     title: ten,
     unitLabel: 'Số lượng',
     titleActions: nutAnCa(nv, anCa, save),
-    // Đơn giá chỉ HIỆN để đối chiếu; server luôn tra lại từ bảng đơn giá tháng đó.
+    // Đơn giá chỉ HIỆN để đối chiếu; server luôn tra lại từ bảng đơn giá áp dụng.
     hint: (n) => (gia ? `${formatNumber(n * gia)} đ` : '⚠ chưa khai đơn giá'),
     okLabel: 'XONG',
     onOk: (v) => { luu(v); },

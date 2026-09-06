@@ -81,6 +81,22 @@ Tên item lấy theo tên **thật trên ERPNext** (cột A workbook), đã áp 
 Sữa dừa = Bột sữa dừa, Đường kính VN = **Đường nghệ an**, Đường TQ = **Đường Gluco China**,
 hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 
+## Bảng đơn giá khoán (`SX Bang Don Gia`)
+
+Đơn giá khoán phụ thuộc **mã hàng × cách làm** (làm tay / máy hỗ trợ…). Dòng để trống
+cách làm là **giá chung** cho mã đó.
+
+- **Một bảng là đủ.** Giá đổi thì sửa ngay trên bảng đó, lưu là áp dụng — không phải
+  lập lại mỗi tháng, và không phải submit.
+- Muốn **giữ giá cũ để đối chiếu** thì lập bảng thứ hai với `Hiệu lực từ ngày` mới.
+  Ngày sản xuất nào dùng bảng có hiệu lực gần nhất **trước** ngày đó. Chấm bù cho một
+  ngày cũ hơn mọi bảng thì dùng bảng sớm nhất, không để rơi về "không có giá".
+- **Thêm nhiều mã cùng lúc:** nhiều mã chỉ khác vị nhưng gia công y hệt nhau. Mục
+  *Thêm nhiều mã cùng lúc* cho chọn cả cụm, điền một đơn giá, bấm Lưu — mỗi mã thành
+  một dòng. Mã đã có thì cập nhật giá, không tạo dòng trùng.
+- Số tiền **đã chấm không bị sửa theo**: bảng vào hộp lưu đơn giá và thành tiền ngay
+  lúc ghi; sửa bảng giá chỉ ảnh hưởng những lần chấm sau đó.
+
 ## Nạp tồn đầu để chạy thử (`seed_ton_dau`)
 
 Site mới chưa có tồn NVL thì chốt ngày sẽ chặn "không đủ tồn kho". Lệnh này nạp

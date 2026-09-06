@@ -6,7 +6,7 @@ cấu hình trùng lặp. FIFO toàn tuyến — không ai chọn lô (D5).
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, getdate
+from frappe.utils import cint, flt, getdate, nowdate
 
 
 def get_settings():
@@ -418,15 +418,31 @@ def items_tp(fields=None, filters=None):
 # ─────────────────────────────────────── ĐƠN GIÁ KHOÁN THEO THÁNG (D67) ──
 
 
-def bang_don_gia(ngay):
-    """Tên bảng đơn giá ĐANG ÁP DỤNG cho một ngày. Không có -> None."""
-    d = getdate(ngay)
+def bang_don_gia(ngay=None):
+    """Tên bảng đơn giá ÁP DỤNG cho một ngày. Không có bảng nào -> None.
+
+    Bảng có hiệu lực gần nhất TRƯỚC (hoặc đúng) ngày đó. Không có bảng nào hiệu lực
+    trước ngày đó thì lấy bảng SỚM NHẤT: xưởng lập bảng đầu tiên hôm nay rồi chấm
+    bù cho hôm qua là chuyện bình thường, mà để rơi về "không có giá" thì tiền công
+    hôm qua ra 0 — im lặng và sai.
+
+    docstatus < 2 chứ không phải = 1: từ D80 bảng không còn submit, bảng mới nằm ở
+    docstatus 0 còn bảng cũ lập trước D80 vẫn đang ở docstatus 1.
+    """
+    d = getdate(ngay or nowdate())
+    ten = frappe.db.get_value(
+        "SX Bang Don Gia",
+        {"hieu_luc_tu": ("<=", d), "docstatus": ("<", 2)},
+        "name", order_by="hieu_luc_tu desc",
+    )
+    if ten:
+        return ten
     return frappe.db.get_value(
-        "SX Bang Don Gia", {"thang": d.month, "nam": d.year, "docstatus": 1}, "name")
+        "SX Bang Don Gia", {"docstatus": ("<", 2)}, "name", order_by="hieu_luc_tu asc")
 
 
-def don_gia_theo_thang(ngay):
-    """{(san_pham, cach_lam): don_gia} của tháng chứa `ngay`.
+def don_gia_ap_dung(ngay=None):
+    """{(san_pham, cach_lam): don_gia} của bảng áp dụng cho `ngay`.
 
     Đọc MỘT LẦN cho cả bảng rồi tra trong bộ nhớ: bảng vào hộp có hàng trăm dòng,
     mỗi dòng một truy vấn là bốn trăm truy vấn cho một lần lưu.

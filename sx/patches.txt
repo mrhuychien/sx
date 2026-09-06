@@ -2,3 +2,4 @@
 
 [post_model_sync]
 sx.patches.d55_danh_dau_ngay_da_chot
+sx.patches.d80_don_gia_bo_theo_thang

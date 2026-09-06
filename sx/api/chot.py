@@ -434,7 +434,7 @@ def _ghi_luong_khoan(doc, bang):
     Từ D69 dùng doctype riêng `SX Phieu Luong` thay cho SalaryProduct của app lương
     (lý do đầy đủ trong docstring của doctype đó). Ba khác biệt đáng kể:
       · KHÔNG còn trần 6 loại/ngày — ghi theo mã hàng thì một người dễ quá 6 mã.
-      · Đơn giá chốt tại thời điểm ghi, lấy từ bảng đơn giá của THÁNG đó.
+      · Đơn giá chốt tại thời điểm ghi, lấy từ bảng đơn giá áp dụng hôm đó.
       · Mọi công thức tính ở server lúc validate, gọi API hay bấm Desk đều một kết quả.
 
     Gộp theo (nhân viên, mã hàng, cách làm): cùng một người vào cùng một mã, cùng

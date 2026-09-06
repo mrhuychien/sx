@@ -98,4 +98,10 @@ node scripts/test-mavach.mjs > /tmp/sx-mavach.log 2>&1 \
   && tail -1 /tmp/sx-mavach.log \
   || { cat /tmp/sx-mavach.log; loi=1; }
 
+# Bảng đơn giá sai là tiền lương sai, mà sai âm thầm: màn hình vẫn ghi được sản lượng
+# bình thường, chỉ có con số tiền là khác.
+python3 scripts/test-dongia.py > /tmp/sx-dongia.log 2>&1 \
+  && tail -1 /tmp/sx-dongia.log \
+  || { cat /tmp/sx-dongia.log; loi=1; }
+
 exit $loi

@@ -19,7 +19,7 @@ from sx.utils import (
     bang_don_gia,
     cach_lam_cua,
     dat_ten_hien_thi,
-    don_gia_theo_thang,
+    don_gia_ap_dung,
     get_bom_active,
     get_dau_items,
     get_settings,
@@ -245,7 +245,7 @@ def _sp_gan_day():
 def _danh_muc_khoan(ngay):
     """Danh mục QC chọn khi ghi bảng vào hộp (D68): MÃ HÀNG, kèm các CÁCH LÀM có giá.
 
-    Nguồn giá là bảng đơn giá của THÁNG chứa `ngay`. Trả về mọi Item thành phẩm chứ
+    Nguồn giá là bảng đơn giá áp dụng cho `ngay`. Trả về mọi Item thành phẩm chứ
     không chỉ mã đã khai giá — mã chưa khai giá vẫn ghi được (đánh dấu `chua_gia`),
     vì chặn QC lại giữa xưởng vì một dòng chưa khai giá là bắt cả chuyền dừng.
 
@@ -253,7 +253,7 @@ def _danh_muc_khoan(ngay):
     `cach_lam` một phần tử, không giá chung -> tự chọn luôn.
     Còn lại -> hỏi cách làm, vì hai cách làm hai đơn giá khác nhau.
     """
-    bang = don_gia_theo_thang(ngay) if ngay else {}
+    bang = don_gia_ap_dung(ngay) if ngay else {}
     ds = []
     for it in items_tp(["name", "item_name", "stock_uom"]):
         cach = cach_lam_cua(bang, it.name)
