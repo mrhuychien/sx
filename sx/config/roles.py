@@ -32,7 +32,8 @@ ROLE_VIEWS = {
 # lắp card, không còn là view standalone.
 VIEW_CARDS = {
     "ghiso": ["luutrinh", "baome", "baocan", "suco"],
-    "vaohop": ["vaohop", "suco"],
+    # D83: màn Ghi hộp của QC chỉ còn đúng việc chấm hộp. Báo sự cố về tổ Ghi sổ.
+    "vaohop": ["vaohop"],
     "nhapkho": ["nhapkhotp"],
     "quanly": ["chotngay", "luutrinhbtp", "nguoidung"],
 }
@@ -44,7 +45,7 @@ CARD_ROLES = {
     "luutrinhbtp": [QUAN_LY],   # lưu đồ tồn BTP tầng 2/3 (D32) — chỉ đọc, màn Quản lý
     "baome": [GHI_SO],
     "baocan": [GHI_SO],
-    "suco": [GHI_SO, VAO_HOP],
+    "suco": [GHI_SO],
     "vaohop": [VAO_HOP],
     # D33: chốt ngày về tay QUẢN LÝ. QC#2 chỉ nhập bảng vào hộp; ai chốt sổ là người
     # khác — vừa gọn màn nhập liệu, vừa tách vai đúng §2.1 (người nhập ≠ người chốt).

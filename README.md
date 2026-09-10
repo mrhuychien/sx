@@ -86,9 +86,12 @@ hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 | | Ghi sổ | Ghi hộp | Nhập kho | Quản lý |
 |---|---|---|---|---|
 | **SX Ghi So** | ✓ xuất đậu, báo mẻ, báo cán, sự cố | | | |
-| **SX Vao Hop** (QC) | | ✓ chấm hộp, ăn ca, sự cố | ✓ **lập + sửa phiếu NHÁP** | |
+| **SX Vao Hop** (QC) | | ✓ chấm hộp, ăn ca | ✓ **lập + sửa phiếu NHÁP** | |
 | **SX Thu Kho** | | | ✓ đếm lại, **DUYỆT**, huỷ phiếu đã duyệt | |
 | **SX Quan Ly** | ✓ | ✓ | ✓ | ✓ chốt ngày, dashboard, truy xuất, tài khoản |
+
+**Báo sự cố là việc của tổ Ghi sổ**, không nằm trên màn của QC — màn Ghi hộp chỉ còn
+đúng việc chấm hộp.
 
 **QC không tự duyệt được phiếu mình lập** — cả giá trị của bước kiểm đếm nằm ở chỗ
 người duyệt khác người lập. QC **xoá được phiếu nháp của chính mình** (chưa có gì vào

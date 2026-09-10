@@ -93,12 +93,13 @@ kiem("gọi được API ghi hộp", goi_duoc("vaohop"))
 kiem("gọi được API phiếu nhập kho", goi_duoc("nhapkhotp"))
 for card, viec in [("chotngay", "chốt ngày"), ("quanly", "dashboard quản lý"),
                    ("nguoidung", "tạo tài khoản"), ("luutrinhbtp", "lưu đồ tồn BTP"),
-                   ("xuatdau", "xuất đậu"), ("baome", "báo mẻ"), ("baocan", "báo cán")]:
+                   ("xuatdau", "xuất đậu"), ("baome", "báo mẻ"), ("baocan", "báo cán"),
+                   ("suco", "báo sự cố")]:
     kiem(f"KHÔNG gọi được {viec}", not goi_duoc(card))
 
 card_qc = R.view_cards().get("vaohop", []) + R.view_cards().get("nhapkho", [])
-kiem("card trên hai màn của QC đúng như khai",
-     sorted(card_qc) == ["nhapkhotp", "suco", "vaohop"], str(sorted(card_qc)))
+kiem("card trên hai màn của QC đúng như khai — chỉ chấm hộp + phiếu nhập kho",
+     sorted(card_qc) == ["nhapkhotp", "vaohop"], str(sorted(card_qc)))
 
 # ── 2. Các role khác không lấn sân ──────────────────────────────────────
 print("\n-- role khác --")
@@ -106,6 +107,9 @@ nhu_la(R.GHI_SO)
 kiem("Ghi sổ: không vào màn Ghi hộp", "vaohop" not in R.allowed_views())
 kiem("Ghi sổ: không lập được phiếu nhập kho", not goi_duoc("nhapkhotp"))
 kiem("Ghi sổ: không chốt ngày được", not goi_duoc("chotngay"))
+kiem("Ghi sổ: VẪN báo được sự cố", goi_duoc("suco"))
+kiem("Ghi sổ: card sự cố vẫn trên màn của mình",
+     "suco" in R.view_cards().get("ghiso", []))
 
 nhu_la(R.THU_KHO)
 kiem("Thủ kho: chỉ thấy màn Nhập kho", R.allowed_views() == ["nhapkho"],
