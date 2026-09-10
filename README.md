@@ -81,6 +81,23 @@ Tên item lấy theo tên **thật trên ERPNext** (cột A workbook), đã áp 
 Sữa dừa = Bột sữa dừa, Đường kính VN = **Đường nghệ an**, Đường TQ = **Đường Gluco China**,
 hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 
+## Ai làm được gì
+
+| | Ghi sổ | Ghi hộp | Nhập kho | Quản lý |
+|---|---|---|---|---|
+| **SX Ghi So** | ✓ xuất đậu, báo mẻ, báo cán, sự cố | | | |
+| **SX Vao Hop** (QC) | | ✓ chấm hộp, ăn ca, sự cố | ✓ **lập + sửa phiếu NHÁP** | |
+| **SX Thu Kho** | | | ✓ đếm lại, **DUYỆT**, huỷ phiếu đã duyệt | |
+| **SX Quan Ly** | ✓ | ✓ | ✓ | ✓ chốt ngày, dashboard, truy xuất, tài khoản |
+
+**QC không tự duyệt được phiếu mình lập** — cả giá trị của bước kiểm đếm nằm ở chỗ
+người duyệt khác người lập. QC **xoá được phiếu nháp của chính mình** (chưa có gì vào
+kho); huỷ phiếu **đã duyệt** là thu hồi chứng từ kho nên chỉ thủ kho/quản lý.
+
+Ma trận này có bài kiểm riêng: `scripts/test-quyen.py`, `verify.sh` gọi sẵn. Nó cũng
+chốt rằng **mọi method whitelist đều có guard** — thêm một method quên `guard_card`
+là mở một cửa hậu im lặng.
+
 ## Tài khoản cho QC (`Quản lý → Tài khoản portal`)
 
 Xưởng không có email, nên tài khoản định danh bằng **số điện thoại** — số đó vừa là

@@ -173,11 +173,13 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       ? `<div class="sx-muted">Thủ kho: đếm thật rồi sửa số cho khớp —
            <b>số đếm là số vào kho</b>.</div>
          <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-duyet">
-           DUYỆT — NHẬN VÀO KHO</button>
-         <button type="button" class="sx-btn" id="sx-nk-huy">Xoá phiếu nháp</button>`
+           DUYỆT — NHẬN VÀO KHO</button>`
       : `<button type="button" class="sx-btn sx-btn-big" id="sx-nk-luu">LƯU PHIẾU NHÁP</button>
          <div class="sx-muted">🔒 Bạn không có quyền duyệt. Thủ kho (role
            <b>SX Thu Kho</b>) sẽ đếm lại và duyệt phiếu này.</div>`}
+    ${p.duoc_xoa
+      ? '<button type="button" class="sx-btn" id="sx-nk-huy">Xoá phiếu nháp</button>'
+      : ''}
     ${veGanDay(ganDay)}
   `;
 
@@ -349,7 +351,8 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   if (btnHuy) {
     btnHuy.addEventListener('click', () => confirm2Step({
       title: 'Xoá phiếu nháp',
-      message: `Xoá phiếu ${p.name}. Chưa có gì vào kho nên không phải thu hồi gì.`,
+      message: `Xoá phiếu ${p.name}. Chưa có gì vào kho nên không phải thu hồi gì — `
+        + 'lập lại phiếu mới ngay được.',
       confirmLabel: 'XOÁ PHIẾU',
       onConfirm: async () => {
         try {

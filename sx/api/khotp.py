@@ -195,6 +195,10 @@ def chi_tiet_phieu(name):
         "ghi_chu": doc.ghi_chu,
         "tong_dem": flt(doc.tong_dem, 0), "tong_lech": flt(doc.tong_lech, 0),
         "duoc_duyet": _duoc_duyet(),
+        # Xoá NHÁP là quyền của người lập, khác với quyền DUYỆT — client cần hai cờ
+        # riêng, không thì nút "Xoá phiếu nháp" đi theo nhầm cái.
+        "duoc_xoa": doc.docstatus == 0 and (
+            _duoc_duyet() or doc.nguoi_lap == frappe.session.user),
         "dong": [
             {"item": r.item, "ten": r.ten or r.item, "dvt": r.dvt or "",
              "so_lap": flt(r.so_lap, 0), "so_dem": flt(r.so_dem, 0),
@@ -291,16 +295,35 @@ def duyet_phieu(name):
 
 @frappe.whitelist()
 def huy_phieu(name, ly_do=None):
-    """Huỷ phiếu: nháp thì xoá, đã duyệt thì cancel (thu hồi chứng từ đã sinh)."""
+    """Huỷ phiếu: NHÁP thì xoá, ĐÃ DUYỆT thì cancel (thu hồi chứng từ đã sinh).
+
+    Hai việc khác hẳn nhau nên chốt quyền cũng khác nhau (D82):
+
+    · Xoá phiếu NHÁP — người LẬP xoá được phiếu của chính mình. Chưa có gì vào kho,
+      không có gì để thu hồi. Mà mỗi lúc chỉ tồn tại MỘT phiếu nháp, nên một phiếu
+      lập nhầm mà người lập không xoá được là TẮC cả luồng nhập kho cho tới khi tìm
+      được thủ kho — quyền "được lập phiếu nháp" mà không kèm quyền bỏ đi cái mình
+      vừa lập thì chưa phải một quyền dùng được.
+
+    · Huỷ phiếu ĐÃ DUYỆT — hàng đã vào kho, cancel là thu hồi chứng từ kho thật.
+      Chỉ thủ kho / quản lý.
+    """
     guard_card("nhapkhotp")
-    if not _duoc_duyet():
-        frappe.throw(_("Chỉ THỦ KHO mới huỷ được phiếu nhập kho."),
-                     frappe.PermissionError)
     doc = frappe.get_doc("SX Phieu Nhap TP", name)
     if doc.docstatus == 0:
+        if not (_duoc_duyet() or doc.nguoi_lap == frappe.session.user):
+            frappe.throw(
+                _("Phiếu nháp này do {0} lập. Chỉ người lập hoặc thủ kho mới xoá được.")
+                .format(doc.nguoi_lap or "?"), frappe.PermissionError
+            )
         doc.flags.ignore_permissions = True
         doc.delete()
         return {"da_xoa": name}
+    if not _duoc_duyet():
+        frappe.throw(
+            _("Phiếu đã duyệt rồi — chỉ THỦ KHO mới huỷ được, vì huỷ là thu hồi "
+              "chứng từ kho đã ghi."), frappe.PermissionError
+        )
     if doc.docstatus == 2:
         frappe.throw(_("Phiếu {0} đã huỷ rồi.").format(name))
     if ly_do:

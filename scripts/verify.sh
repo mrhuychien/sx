@@ -110,4 +110,10 @@ python3 scripts/test-nguoidung.py > /tmp/sx-nd.log 2>&1 \
   && tail -1 /tmp/sx-nd.log \
   || { cat /tmp/sx-nd.log; loi=1; }
 
+# Phân quyền hỏng không hiện ra như một lỗi: nới nhầm thì mọi thứ vẫn chạy, chỉ là
+# QC bấm được nút đáng lẽ không được bấm.
+python3 scripts/test-quyen.py > /tmp/sx-quyen.log 2>&1 \
+  && tail -1 /tmp/sx-quyen.log \
+  || { cat /tmp/sx-quyen.log; loi=1; }
+
 exit $loi
