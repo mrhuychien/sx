@@ -1731,6 +1731,18 @@ main > .container {
 /* Hai lối ra của bàn số: chia đôi bề ngang, nút chính bên phải (ngón cái) */
 .sx-numpad-hang { display: flex; gap: var(--sx-s2); }
 .sx-numpad-hang > * { flex: 1; min-width: 0; }
+/* Tài khoản portal (D81): mật khẩu/số điện thoại phải ĐỌC ĐƯỢC để chép tay ra thẻ
+   — mono, to, giãn chữ, cho phép xuống dòng vì mật khẩu không có dấu cách. */
+.sx-nd-gt {
+  font-family: var(--sx-mono);
+  font-size: var(--sx-f-lg);
+  letter-spacing: .06em;
+  word-break: break-all;
+  user-select: all;
+}
+/* Tài khoản đã khoá: mờ đi nhưng vẫn đọc được — vẫn phải bấm mở lại được. */
+.sx-nd-khoa { opacity: .55; }
+
 .sx-quet-hang { display: flex; gap: var(--sx-s2); }
 .sx-quet-hang:empty { display: none; }
 .sx-quet-den { flex: 1; }

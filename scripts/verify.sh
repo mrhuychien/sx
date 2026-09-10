@@ -104,4 +104,10 @@ python3 scripts/test-dongia.py > /tmp/sx-dongia.log 2>&1 \
   && tail -1 /tmp/sx-dongia.log \
   || { cat /tmp/sx-dongia.log; loi=1; }
 
+# Màn tạo tài khoản là chỗ DUY NHẤT app cấp quyền cho người khác, và mã QR trên thẻ
+# là thứ ai cầm cũng vào được. Hỏng ở đây không hiện ra như một lỗi.
+python3 scripts/test-nguoidung.py > /tmp/sx-nd.log 2>&1 \
+  && tail -1 /tmp/sx-nd.log \
+  || { cat /tmp/sx-nd.log; loi=1; }
+
 exit $loi

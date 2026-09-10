@@ -1,0 +1,36 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-09-10 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "nguoi_dung", "ma_bam", "column_break_1", "het_han", "da_dung_luc", "nguoi_tao"
+ ],
+ "fields": [
+  {"fieldname": "nguoi_dung", "fieldtype": "Link", "options": "User", "label": "Người dùng",
+   "reqd": 1, "read_only": 1, "in_list_view": 1},
+  {"fieldname": "ma_bam", "fieldtype": "Data", "label": "Mã (đã băm)", "reqd": 1,
+   "read_only": 1, "unique": 1, "length": 64,
+   "description": "SHA-256 của mã trong QR. KHÔNG lưu mã gốc: lộ bảng này thì cũng không ai đăng nhập được bằng nó."},
+  {"fieldname": "column_break_1", "fieldtype": "Column Break"},
+  {"fieldname": "het_han", "fieldtype": "Datetime", "label": "Hết hạn", "reqd": 1,
+   "read_only": 1, "in_list_view": 1},
+  {"fieldname": "da_dung_luc", "fieldtype": "Datetime", "label": "Đã dùng lúc",
+   "read_only": 1, "in_list_view": 1},
+  {"fieldname": "nguoi_tao", "fieldtype": "Link", "options": "User", "label": "Người cấp",
+   "read_only": 1}
+ ],
+ "links": [],
+ "modified": "2026-09-10 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Ma Dang Nhap",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "delete": 1, "report": 1, "export": 1}
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "track_changes": 0
+}

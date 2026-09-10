@@ -81,6 +81,25 @@ Tên item lấy theo tên **thật trên ERPNext** (cột A workbook), đã áp 
 Sữa dừa = Bột sữa dừa, Đường kính VN = **Đường nghệ an**, Đường TQ = **Đường Gluco China**,
 hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 
+## Tài khoản cho QC (`Quản lý → Tài khoản portal`)
+
+Xưởng không có email, nên tài khoản định danh bằng **số điện thoại** — số đó vừa là
+tên đăng nhập, vừa là thứ họ vốn đã nhớ.
+
+Nhập số → app tự đặt mật khẩu và cấp một **mã QR đăng nhập** → bấm **IN THẺ** → đưa
+tận tay. QC quét QR là vào thẳng portal, không gõ gì.
+
+- **Mã QR dùng được MỘT lần** và hết hạn sau 14 ngày. Tờ giấy có QR đăng nhập là giấy
+  tờ tuỳ thân: rơi ra ngoài thì ai nhặt được cũng vào được. Một lần + có hạn giới hạn
+  thiệt hại, và còn để lại dấu — QC bảo "quét không vào" nghĩa là có người quét trước.
+- **Mật khẩu là đường vào lâu dài**, in cùng trên thẻ, dùng mãi.
+- Mật khẩu và QR **chỉ hiện đúng một lần** ngay sau khi tạo (Frappe lưu băm, không ai
+  đọc lại được). Lỡ đóng thì bấm **Cấp lại** — mật khẩu mới, thẻ mới.
+- Chỉ gán được **role của app này** (QC vào hộp / Ghi sổ / Thủ kho / Quản lý). Không
+  tạo được System Manager, và không sửa được tài khoản không thuộc app.
+- Tên miền ghép vào email giả khai ở `SX Settings → Tên miền cho email tài khoản`
+  (bỏ trống = `sx.local`). **Đừng dùng tên miền thật đang nhận thư.**
+
 ## Bảng đơn giá khoán (`SX Bang Don Gia`)
 
 Đơn giá khoán phụ thuộc **mã hàng × cách làm** (làm tay / máy hỗ trợ…). Dòng để trống

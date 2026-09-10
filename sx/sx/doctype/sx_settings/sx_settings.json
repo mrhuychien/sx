@@ -30,7 +30,9 @@
   "chuyen_can_du",
   "chuyen_can_du_cao_diem",
   "thang_cao_diem",
-  "ty_le_tham_nien"
+  "ty_le_tham_nien",
+  "section_taikhoan",
+  "ten_mien_user"
  ],
  "fields": [
   {
@@ -193,6 +195,18 @@
    "label": "Tỉ lệ thưởng thâm niên",
    "default": "0.05",
    "description": "5% của lương sản phẩm tháng này + 2 tháng liền trước. Chỉ tính khi phiếu tick."
+  },
+  {
+   "fieldname": "section_taikhoan",
+   "fieldtype": "Section Break",
+   "label": "Tài khoản portal",
+   "description": "Tài khoản QC định danh bằng SỐ ĐIỆN THOẠI. Frappe bắt User phải có email nên email được ghép từ số đó — không ai gửi thư tới đấy, chỉ để cho đủ chỗ."
+  },
+  {
+   "fieldname": "ten_mien_user",
+   "fieldtype": "Data",
+   "label": "Tên miền cho email tài khoản",
+   "description": "Bỏ trống = sx.local. Ví dụ điền rongvanghoanggia.com thì tài khoản 0912345678 có email 0912345678@rongvanghoanggia.com. ĐỪNG dùng tên miền thật đang nhận thư, tránh việc mail dội về hộp thư có người đọc."
   }
  ],
  "issingle": 1,

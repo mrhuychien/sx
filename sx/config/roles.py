@@ -34,7 +34,7 @@ VIEW_CARDS = {
     "ghiso": ["luutrinh", "baome", "baocan", "suco"],
     "vaohop": ["vaohop", "suco"],
     "nhapkho": ["nhapkhotp"],
-    "quanly": ["chotngay", "luutrinhbtp"],
+    "quanly": ["chotngay", "luutrinhbtp", "nguoidung"],
 }
 
 # card nào role nào được GỌI API (chốt bảo mật thật — không phải ẩn tab)
@@ -52,6 +52,9 @@ CARD_ROLES = {
     # khotp._duoc_duyet(), không phải ở đây (card này cả hai bên đều mở được).
     "nhapkhotp": [VAO_HOP, THU_KHO, QUAN_LY],
     "chotngay": [QUAN_LY],
+    # Tạo tài khoản là cấp quyền cho người khác — chỉ quản lý, và danh sách role gán
+    # được bị đóng cứng trong sx/api/nguoidung.py.
+    "nguoidung": [QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
 
