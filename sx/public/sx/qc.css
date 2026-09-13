@@ -1,0 +1,269 @@
+/* Module QC (BM.08.01/08.02) — prefix `sx-qc-`, nạp rời khỏi shell.css.
+ *
+ * BỐ CỤC theo bản thiết kế QC; MÀU và CHỮ lấy token của `sx` (chốt với chủ đầu
+ * tư): một app không nên có hai bảng màu. Cụ thể là bản thiết kế dùng #1E8E4E /
+ * #C62828 / #C8961E, ở đây đổi thành --sx-success / --sx-danger / mùa hiện tại.
+ *
+ * Ba thứ của bản thiết kế giữ NGUYÊN vì chúng là quyết định về thao tác, không
+ * phải về thẩm mỹ:
+ *   · hàng mục cao 64px, nút Đạt/Không 48px — QC đeo găng, đứng cạnh máy rang
+ *   · một trang dài cuộn thẳng theo trình tự công đoạn, KHÔNG chia bước/tab:
+ *     người ta đi một vòng xưởng theo đúng thứ tự đó, tab là bắt nhảy qua nhảy lại
+ *   · thanh đáy cố định luôn hiện tiến độ + giờ lưu gần nhất — mất mạng giữa
+ *     xưởng là chuyện thường, phải thấy ngay số của mình đã lên server chưa
+ *
+ * File này KHÔNG định nghĩa token mới. Thêm một --sxqc-* là bắt đầu tách hệ.
+ */
+
+/* ── khung màn ─────────────────────────────────────────────────────────── */
+.sx-qc { display: flex; flex-direction: column; gap: var(--sx-s3); }
+
+.sx-qc-top {
+  display: flex; align-items: center; gap: var(--sx-s3);
+  flex-wrap: wrap;
+}
+.sx-qc-ngay { font-size: var(--sx-f-lg); font-weight: 700; flex: 1; min-width: 0; }
+.sx-qc-ai { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+
+/* Segmented: ca Sáng/Chiều, tab Mở/Đóng, B7 ba trạng thái */
+.sx-qc-seg {
+  display: flex; gap: 3px; padding: 3px;
+  background: var(--sx-surface-2);
+  border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius-sm);
+}
+.sx-qc-seg > button {
+  flex: 1; min-height: var(--sx-tap); border: 0; cursor: pointer;
+  border-radius: var(--sx-radius-sm);
+  background: transparent; color: var(--sx-text);
+  font: 600 var(--sx-f-sm)/1.2 var(--sx-font);
+  padding: 0 var(--sx-s2);
+}
+.sx-qc-seg > button.sx-qc-seg-on {
+  background: var(--sx-season-btn); color: #fff;
+}
+
+/* ── thẻ lượt (màn Hôm nay) ────────────────────────────────────────────── */
+.sx-qc-luot {
+  background: var(--sx-surface); border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius); padding: var(--sx-s4);
+  display: flex; flex-direction: column; gap: var(--sx-s3);
+  box-shadow: var(--sx-shadow-sm);
+}
+.sx-qc-luot-dau { display: flex; align-items: baseline; gap: var(--sx-s2); }
+.sx-qc-luot-ten { font-size: var(--sx-f-lg); font-weight: 700; flex: 1; }
+.sx-qc-luot-gio { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-qc-luot-phu { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-qc-luot-xong { border-color: var(--sx-success); }
+
+/* ── hàng mục Đạt / Không đạt ──────────────────────────────────────────── */
+.sx-qc-hang {
+  display: flex; align-items: center; gap: var(--sx-s3);
+  min-height: var(--sx-tap-xl);
+  padding: var(--sx-s2) var(--sx-s3);
+  background: var(--sx-surface);
+  border-bottom: 1px solid var(--sx-line);
+}
+.sx-qc-hang:first-child { border-top: 1px solid var(--sx-line); }
+.sx-qc-nhan { flex: 1; min-width: 0; display: flex; gap: var(--sx-s2); }
+.sx-qc-so {
+  color: var(--sx-text-3); font-family: var(--sx-mono);
+  font-size: var(--sx-f-xs); min-width: 28px; padding-top: 2px;
+}
+.sx-qc-ten { font-weight: 500; font-size: var(--sx-f-sm); }
+.sx-qc-goiy { font-size: var(--sx-f-xs); color: var(--sx-text-3); margin-top: 2px; }
+
+/* Chấm trống: dấu — xám, đứng giữa nhãn và hai nút. Bản thiết kế để nó ở đây
+   để liếc dọc một cái là thấy còn mục nào chưa chấm, không phải đọc từng dòng. */
+.sx-qc-trong {
+  width: 14px; text-align: center; font-weight: 700; color: var(--sx-line-2);
+}
+.sx-qc-nut2 { display: flex; gap: var(--sx-s2); }
+.sx-qc-nut2 > button {
+  min-height: var(--sx-tap); padding: 0 var(--sx-s3);
+  border-radius: var(--sx-radius-pill);
+  border: 2px solid var(--sx-line);
+  background: var(--sx-surface); color: var(--sx-text-3);
+  font: 600 var(--sx-f-sm)/1 var(--sx-font); cursor: pointer;
+  white-space: nowrap;
+}
+.sx-qc-nut2 > button.sx-qc-dat-on {
+  background: var(--sx-success); border-color: var(--sx-success); color: #fff;
+}
+.sx-qc-nut2 > button.sx-qc-khong-on {
+  background: var(--sx-danger); border-color: var(--sx-danger); color: #fff;
+}
+.sx-qc-hang[data-tt="Không đạt"] { background: var(--sx-danger-soft); }
+
+/* ── ô số ──────────────────────────────────────────────────────────────── */
+.sx-qc-oso {
+  background: var(--sx-surface); padding: var(--sx-s3);
+  border-bottom: 1px solid var(--sx-line);
+  display: flex; flex-direction: column; gap: var(--sx-s2);
+}
+.sx-qc-oso-khung {
+  display: flex; align-items: center; gap: var(--sx-s2);
+  height: var(--sx-tap-xl); padding: 0 var(--sx-s4);
+  border: 2px solid var(--sx-line); border-radius: var(--sx-radius-sm);
+  background: var(--sx-surface);
+}
+.sx-qc-oso-khung input {
+  flex: 1; width: 0; border: 0; background: transparent; outline: none;
+  font: 700 var(--sx-f-xl)/1 var(--sx-font); color: var(--sx-text);
+}
+.sx-qc-oso-dv { font-size: var(--sx-f-md); color: var(--sx-text-2); }
+.sx-qc-oso-loi .sx-qc-oso-khung {
+  border-color: var(--sx-danger); background: var(--sx-danger-soft);
+}
+.sx-qc-oso-loi .sx-qc-goiy { color: var(--sx-danger-text); font-weight: 600; }
+.sx-qc-oso-canh .sx-qc-oso-khung { border-color: var(--sx-warning); }
+.sx-qc-oso-canh .sx-qc-goiy { color: var(--sx-warning-text); font-weight: 600; }
+
+/* Ô ĐẾM có nút − / +: đếm thùng quá hạn giữa kho thì bấm nhanh hơn gõ. */
+.sx-qc-dem { display: flex; gap: var(--sx-s2); }
+.sx-qc-dem > button {
+  width: var(--sx-tap-lg); height: var(--sx-tap-lg); flex: none;
+  border: 2px solid var(--sx-line); border-radius: var(--sx-radius-sm);
+  background: var(--sx-surface); font-size: var(--sx-f-xl); cursor: pointer;
+  color: var(--sx-text);
+}
+.sx-qc-dem .sx-qc-oso-khung { flex: 1; height: var(--sx-tap-lg); }
+
+/* ── tiêu đề bước ──────────────────────────────────────────────────────── */
+.sx-qc-buoc {
+  display: flex; align-items: center; gap: var(--sx-s2);
+  padding: var(--sx-s5) var(--sx-s3) var(--sx-s2); flex-wrap: wrap;
+}
+.sx-qc-buoc-ma {
+  font-size: var(--sx-f-lg); font-weight: 700; color: var(--sx-season-text);
+  font-family: var(--sx-mono);
+}
+.sx-qc-buoc-ten { font-size: var(--sx-f-lg); font-weight: 700; flex: 1; }
+.sx-qc-buoc-dem { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-qc-tag {
+  font-size: var(--sx-f-xs); font-weight: 600; padding: 2px 8px;
+  border-radius: var(--sx-radius-pill);
+  background: var(--sx-surface-2); color: var(--sx-text-2);
+}
+.sx-qc-tag-oprp { background: var(--sx-warning); color: #fff; }
+.sx-qc-tag-cao { background: var(--sx-danger); color: #fff; }
+.sx-qc-tag-mo { background: var(--sx-danger-soft); color: var(--sx-danger-text); }
+.sx-qc-tag-dong { background: var(--sx-success-soft); color: var(--sx-success-text); }
+.sx-qc-tag-han { background: var(--sx-danger); color: #fff; }
+
+/* ── thanh đáy cố định ─────────────────────────────────────────────────── */
+.sx-qc-day {
+  position: sticky; bottom: 0; z-index: 5;
+  display: flex; align-items: center; gap: var(--sx-s3);
+  padding: var(--sx-s2) var(--sx-s3) var(--sx-s3);
+  background: var(--sx-surface); border-top: 1px solid var(--sx-line);
+  margin: 0 calc(-1 * var(--sx-s3));
+}
+.sx-qc-day-trai { width: 120px; flex: none; }
+.sx-qc-day-so { font-size: var(--sx-f-sm); font-weight: 700; }
+.sx-qc-day-so span { font-weight: 500; color: var(--sx-text-2); }
+.sx-qc-thanh {
+  height: 4px; background: var(--sx-line); border-radius: 2px;
+  margin: var(--sx-s1) 0; overflow: hidden;
+}
+.sx-qc-thanh > i { display: block; height: 4px; background: var(--sx-success); }
+.sx-qc-luu {
+  font-size: var(--sx-f-xs); color: var(--sx-text-2);
+  display: flex; align-items: center; gap: 5px;
+}
+.sx-qc-luu::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--sx-success); flex: none;
+}
+.sx-qc-luu-cho::before { background: var(--sx-warning); }
+.sx-qc-luu-loi::before { background: var(--sx-danger); }
+
+/* ── danh sách sự cố ───────────────────────────────────────────────────── */
+.sx-qc-sc {
+  background: var(--sx-surface); border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius); padding: var(--sx-s3) var(--sx-s4);
+  display: flex; flex-direction: column; gap: var(--sx-s2);
+}
+.sx-qc-sc-mo { border-left: 4px solid var(--sx-danger); }
+.sx-qc-sc-dong { border-left: 4px solid var(--sx-success); }
+.sx-qc-sc-ten { font-size: var(--sx-f-md); font-weight: 700; }
+.sx-qc-sc-meta {
+  font-size: var(--sx-f-xs); color: var(--sx-text-2);
+  display: flex; gap: var(--sx-s2); flex-wrap: wrap; align-items: center;
+}
+.sx-qc-chips { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
+
+/* ── lịch sử: dải tuần ─────────────────────────────────────────────────── */
+.sx-qc-tuan { display: flex; flex-direction: column; gap: var(--sx-s2); }
+.sx-qc-ngayhang {
+  display: flex; align-items: center; gap: var(--sx-s2);
+  background: var(--sx-surface); border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius-sm); padding: var(--sx-s2) var(--sx-s3);
+  min-height: var(--sx-tap);
+}
+.sx-qc-ngayhang-ten { width: 96px; flex: none; font-weight: 600; font-size: var(--sx-f-sm); }
+.sx-qc-pill {
+  min-width: 34px; height: 30px; border-radius: var(--sx-radius-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: var(--sx-f-xs); font-weight: 700;
+  background: var(--sx-surface-2); color: var(--sx-text-3);
+}
+.sx-qc-pill-xong { background: var(--sx-success-soft); color: var(--sx-success-text); }
+.sx-qc-pill-muon { background: var(--sx-warning-soft); color: var(--sx-warning-text); }
+.sx-qc-pill-nhap { background: var(--sx-primary-soft); color: var(--sx-primary-text); }
+
+/* ── bảng xem xét (máy tính / tablet) ──────────────────────────────────── */
+.sx-qc-luoi { overflow-x: auto; }
+.sx-qc-luoi table { border-collapse: collapse; width: 100%; font-size: var(--sx-f-xs); }
+.sx-qc-luoi th, .sx-qc-luoi td {
+  border: 1px solid var(--sx-line); padding: 4px 6px; text-align: center;
+  white-space: nowrap;
+}
+.sx-qc-luoi th { background: var(--sx-surface-2); }
+.sx-qc-o-xong { background: var(--sx-success-soft); }
+.sx-qc-o-muon { background: var(--sx-warning-soft); }
+.sx-qc-o-thieu { background: var(--sx-surface-2); color: var(--sx-text-3); }
+
+.sx-qc-kpi {
+  display: grid; gap: var(--sx-s3);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.sx-qc-kpi-o {
+  background: var(--sx-surface); border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius); padding: var(--sx-s3) var(--sx-s4);
+}
+.sx-qc-kpi-nhan {
+  font-size: var(--sx-f-xs); text-transform: uppercase; letter-spacing: .04em;
+  color: var(--sx-text-3); font-weight: 600;
+}
+.sx-qc-kpi-so { font-size: var(--sx-f-xl); font-weight: 800; }
+
+.sx-qc-trong-box {
+  padding: var(--sx-s6) var(--sx-s4); text-align: center;
+  color: var(--sx-text-2); font-size: var(--sx-f-sm);
+}
+
+/* Tab của màn QC là thẻ <a> (giữ được bấm-giữ để mở tab mới) nên phải tự dựng
+   lại dáng nút bên trong .sx-qc-seg. */
+.sx-qc-tab {
+  flex: 1; min-height: var(--sx-tap);
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--sx-radius-sm); text-decoration: none;
+  color: var(--sx-text); font: 600 var(--sx-f-sm)/1.2 var(--sx-font);
+  padding: 0 var(--sx-s2); text-align: center;
+}
+.sx-qc-tab.sx-qc-seg-on { background: var(--sx-season-btn); color: #fff; }
+.sx-qc-than { display: flex; flex-direction: column; gap: var(--sx-s3); }
+
+/* Chip LỌC là <button>: phải tự dựng viền (trình duyệt cho viền mặc định xấu)
+   và có trạng thái CHỌN riêng. Không mượn .sx-qc-tag-oprp làm trạng thái chọn:
+   trên cùng một hàng đang có huy hiệu oPRP màu cam, mượn đúng màu đó thì không
+   ai phân biệt được "đang lọc theo oPRP" với "phiếu này là oPRP". */
+button.sx-qc-tag {
+  border: 1px solid var(--sx-line); cursor: pointer;
+  min-height: 36px; padding: 0 var(--sx-s3);
+  font-family: var(--sx-font);
+}
+button.sx-qc-tag-chon {
+  background: var(--sx-season-btn); color: #fff; border-color: transparent;
+}

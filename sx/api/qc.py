@@ -164,6 +164,11 @@ def get_today(ngay=None):
         "muc": M.MUC,
         "buoc": [{"ma": a, "ten": b, "oprp": c, "ghi": e} for a, b, c, e in M.BUOC],
         "nguong": {k: v for k, v in nguong().items() if k != "khung"},
+        # Khung giờ hiện ngay trên thẻ lượt: QC biết mình còn bao lâu trước khi
+        # lượt bị gắn cờ ghi muộn, thay vì biết sau khi đã bị gắn.
+        "khung": {ca: {l: [str(x or "") for x in v]
+                       for l, v in cua.items()}
+                  for ca, cua in nguong()["khung"].items()},
         "user": frappe.session.user,
         "la_qc_goi": QC_GOI in _roles() and QC not in _roles(),
         "duoc_ghi": bool(_sieu() or _roles() & GHI_DUOC),

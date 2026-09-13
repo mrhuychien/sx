@@ -7,7 +7,7 @@ import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 
-const BUILD = 'sx-65';
+const BUILD = 'sx-66';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -20,6 +20,7 @@ const VIEW_PATHS = {
   vaohop: '/assets/sx/sx/views/vaohop.js',
   nhapkho: '/assets/sx/sx/views/nhapkho.js',
   quanly: '/assets/sx/sx/views/quanly.js',
+  qc: '/assets/sx/sx/views/qc.js',
 };
 const CARD_PATHS = {
   xuatdau: '/assets/sx/sx/cards/xuatdau.js',
@@ -38,7 +39,12 @@ const VIEW_META = {
   vaohop: { label: 'Ghi hộp', icon: '📦' },
   nhapkho: { label: 'Nhập kho', icon: '🏭' },
   quanly: { label: 'Quản lý', icon: '📊' },
+  qc: { label: 'QC', icon: '🧪' },
 };
+
+// Màn hình tự dựng nhiều màn con (#/qc/round/:name…) và tự lo thanh ngày của
+// mình. Shell giấu thanh ngày chung để không có HAI ô ngày trên một màn.
+const VIEW_TU_LO_NGAY = new Set(['qc']);
 
 const views = (CTX.views && CTX.views.length) ? CTX.views : ['ghiso'];
 const landing = CTX.landing || views[0];
@@ -301,6 +307,9 @@ function markActive(route) {
 Object.keys(VIEW_PATHS).forEach((v) => {
   router.register(`#/${v}`, async (container) => renderView(v, container));
 });
+// Màn con của QC: '#/qc/incidents', '#/qc/round/QC-…'. Cùng một view lo hết,
+// nó tự đọc hash — xem sx/public/sx/views/qc.js.
+router.registerPrefix('#/qc/', async (container) => renderView('qc', container));
 router.register('#/', async (container) => renderView(landing, container));
 
 async function renderView(viewName, container) {
@@ -312,6 +321,7 @@ async function renderView(viewName, container) {
   // Màn Quản lý là màn ĐỌC trên máy tính (không phải nhập liệu trên tablet) nên
   // được nới rộng và chia 2 cột; hai màn kia giữ dải hẹp cho dễ đọc khi cầm tay.
   container.classList.toggle('sx-main-rong', viewName === 'quanly');
+  daybar.style.display = VIEW_TU_LO_NGAY.has(viewName) ? 'none' : '';
   const mod = await import(withV(VIEW_PATHS[viewName]));
   const cards = (store.boot.viewCards && store.boot.viewCards[viewName]) || [];
   await mod.render({
@@ -327,8 +337,14 @@ async function renderView(viewName, container) {
   });
 }
 
+// '#/qc/round/QC-2026-…' thuộc về view 'qc' — lấy đoạn đầu, nếu không thì tab
+// dưới không sáng và tiêu đề header đọc thành tên route.
+function viewCuaRoute(route) {
+  return route === '#/' ? landing : route.replace('#/', '').split('/')[0];
+}
+
 router.onRender(async (route, loader) => {
-  const viewName = route === '#/' ? landing : route.replace('#/', '');
+  const viewName = viewCuaRoute(route);
   if (!views.includes(viewName)) { markActive(`#/${landing}`); }
   else { markActive(`#/${viewName}`); }
   main.innerHTML = '<div class="sx-boot-loading">Đang tải…</div>';

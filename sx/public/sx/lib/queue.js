@@ -30,6 +30,23 @@ const XEP_HANG_DUOC = {
   'sx.api.portal.bao_can': (a) => a.ngay_sx || '',
   'sx.api.portal.luu_bang_vao_hop': (a) => a.ngay_sx || '',
   'sx.api.portal.ghi_su_co': () => null,   // mỗi sự cố là một bản ghi riêng, KHÔNG gộp
+  // Vòng kiểm QC: gộp theo LƯỢT. Khác ba cái trên ở chỗ mỗi lần gọi chỉ gửi
+  // những mục VỪA ĐỔI (xem GOP ngay dưới) — vì hai QC ghi chung một lượt.
+  'sx.api.qc.save_round': (a) => a.name || '',
+};
+
+// Gộp hai lời gọi cùng khoá. Không khai ở đây thì bản sau ĐÈ bản trước.
+//
+// save_round phải GỘP chứ không đè: QC gõ mục 3, mất mạng, gõ tiếp mục 7 — đè
+// thì mục 3 biến mất khỏi hàng và không bao giờ lên server, mà màn hình vẫn
+// hiện số đó (nó nằm trong DOM). Người ta chỉ phát hiện lúc in tờ ngày ra thấy
+// ô trống. Gộp thì cả hai cùng đi, và giờ client_ts lấy của lần gõ SAU vì đó là
+// lần cuối người ta xác nhận con số đó.
+const GOP = {
+  'sx.api.qc.save_round': (cu, moi) => ({
+    ...moi,
+    values: { ...(cu.values || {}), ...(moi.values || {}) },
+  }),
 };
 
 const LY_DO_CHAN = {
@@ -108,7 +125,13 @@ export function xepHang(method, args) {
     // Bản sau đè bản trước cho cùng (method, ngày): mỗi lần gọi vốn gửi trọn dữ liệu
     // của ngày, giữ 5 bản nháp liên tiếp chỉ để gửi rồi ghi đè nhau là vô nghĩa.
     const i = ds.findIndex((x) => x.method === method && x.khoa === khoa);
-    if (i >= 0) ds.splice(i, 1);
+    if (i >= 0) {
+      const [cu] = ds.splice(i, 1);
+      // Bản đã bị server TỪ CHỐI thì không gộp vào bản mới: lỗi nghiệp vụ cũ sẽ
+      // theo sang bản mới và cả hai cùng chết. Giữ nó lại để người dùng thấy.
+      if (GOP[method] && !cu.loi) args = GOP[method](cu.args || {}, args || {});
+      else if (cu.loi) ds.splice(i, 0, cu);
+    }
   }
   ds.push({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,

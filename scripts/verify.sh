@@ -120,6 +120,19 @@ python3 scripts/test-nguoidung.py > /tmp/sx-nd.log 2>&1 \
   && tail -1 /tmp/sx-nd.log \
   || { cat /tmp/sx-nd.log; loi=1; }
 
+# Import map hỏng KHÔNG báo lỗi ở chỗ nó hỏng: thừa dấu phẩy là trình duyệt vứt cả
+# khối, mọi module nạp bản CŨ trong cache, và triệu chứng là "sửa rồi mà máy nó
+# vẫn thế".
+python3 scripts/test-importmap.py > /tmp/sx-im.log 2>&1 \
+  && tail -1 /tmp/sx-im.log \
+  || { cat /tmp/sx-im.log; loi=1; }
+
+# Module QC: sót một luật sinh sự cố thì lượt vẫn hoàn tất, màn hình vẫn xanh,
+# chỉ là chỗ không đạt kia không thành phiếu và không ai đi xử lý.
+python3 scripts/test-qc.py > /tmp/sx-qc.log 2>&1 \
+  && tail -1 /tmp/sx-qc.log \
+  || { cat /tmp/sx-qc.log; loi=1; }
+
 # Phân quyền hỏng không hiện ra như một lỗi: nới nhầm thì mọi thứ vẫn chạy, chỉ là
 # QC bấm được nút đáng lẽ không được bấm.
 python3 scripts/test-quyen.py > /tmp/sx-quyen.log 2>&1 \

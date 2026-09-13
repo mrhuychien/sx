@@ -89,17 +89,21 @@ BUOC = [
 
 
 def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
-       dv="", goi_y="", batbuoc=False, phu=False):
+       dv="", goi_y="", batbuoc=False, phu=False, ngan=""):
     """Một mục kiểm.
 
     ap   = tuple lượt áp dụng, None = mọi lượt
+    ngan = nhãn rút gọn cho MÀN HÌNH. Tờ in A4 luôn dùng `nhan` đầy đủ vì
+           auditor cầm nó so với BM.08.01 bản giấy; còn trên điện thoại một
+           nhãn 6 chữ xuống dòng bốn lần làm hàng cao gấp đôi, cả lượt phải
+           cuộn thêm một màn. Bỏ trống thì dùng luôn `nhan`.
     phu  = ô đi kèm một mục khác (vật bắt được, giờ thử…). Vẫn ghi, vẫn in ra,
            nhưng KHÔNG tính vào "đã chấm x/y" và để trống không phải giải trình —
            đếm chúng là bắt QC giải thích vì sao không có mạt kim loại.
     bot  = chỉ áp dụng khi hôm đó CÓ sản xuất bột
     goi  = do QC đóng gói ghi (QC chế biến vẫn thấy, chỉ là không phải việc mình)
     """
-    return {"f": f, "so": so, "nhan": nhan, "buoc": buoc, "cd": cd, "kieu": kieu,
+    return {"f": f, "so": so, "nhan": nhan, "ngan": ngan or nhan, "buoc": buoc, "cd": cd, "kieu": kieu,
             "ap": tuple(ap) if ap else None, "goi": goi, "bot": bot,
             "dv": dv, "goi_y": goi_y, "batbuoc": batbuoc, "phu": phu}
 
@@ -108,13 +112,17 @@ MUC = [
     # ── A: PRP đầu ca ────────────────────────────────────────────────────
     _m("a1_ve_sinh", "1a", "Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô",
        "A", "PRP", ap=DAU_CA_HOAC_TUAN,
-       goi_y="đã vệ sinh chuyển đổi sau lạc / dừa / sữa"),
+       goi_y="sạch khô; đã vệ sinh chuyển đổi sau lạc / dừa / sữa",
+       ngan="Vệ sinh xưởng, bề mặt, thiết bị"),
     _m("a2_cong_nhan", "1b", "Công nhân: bảo hộ, tay, trang sức, không ốm",
-       "A", "PRP", ap=DAU_CA_HOAC_TUAN),
+       "A", "PRP", ap=DAU_CA_HOAC_TUAN,
+       ngan="Công nhân: BHLĐ, tay, sức khoẻ", goi_y="không trang sức, không ốm"),
     _m("a3_dong_vat", "1c", "Không dấu hiệu động vật gây hại",
-       "A", "PRP", ap=DAU_CA_HOAC_TUAN),
+       "A", "PRP", ap=DAU_CA_HOAC_TUAN,
+       ngan="Không dấu hiệu động vật gây hại"),
     _m("a4_hoa_chat", "1d", "Không hoá chất/dầu trong khu SX; không rò dầu",
-       "A", "PRP", ap=DAU_CA_HOAC_TUAN),
+       "A", "PRP", ap=DAU_CA_HOAC_TUAN,
+       ngan="Hoá chất cất đúng nơi", goi_y="không hoá chất/dầu trong khu SX; không rò dầu"),
 
     # ── B: dây chuyền bánh ───────────────────────────────────────────────
     _m("luoc_soi_du", "2", "Sôi liên tục, đỗ chín nổi", "2", "2 Luộc"),
@@ -124,7 +132,8 @@ MUC = [
        dv="v/ph", goi_y="6,2 – 7,0"),
     _m("rang_mau_dat", "3c", "Hạt vàng hoa cau", "3", "3 Rang"),
     _m("luoi_sang_nguyen_ven", "4", "Lưới sàng cát / sàng lại nguyên vẹn",
-       "4", "4 Sàng cát"),
+       "4", "4 Sàng cát",
+       ngan="Lưới sàng nguyên vẹn", goi_y="sàng cát và sàng lại"),
     _m("nam_cham_da_kiem", "6", "Nam châm đã kiểm, vệ sinh",
        "6", "6 Vỡ đỗ, nam châm", ap=DAU_CA_HOAC_TUAN),
     _m("nam_cham_vat", "6b", "Vật bắt được", "6", "6 Vỡ đỗ, nam châm",
@@ -161,23 +170,27 @@ MUC = [
     _m("san_pham_bot", "B0", "Vị đang sản xuất", "B", "Bột: trộn",
        kieu="chu", bot=True, goi_y="để truy xuất lô", phu=True),
     _m("b1_lac_sach", "B1", "Lạc trước rang: đã sàng, không mốc/hỏng/sạn",
-       "B", "Bột: nhặt lạc", bot=True),
+       "B", "Bột: nhặt lạc", bot=True,
+       ngan="Lạc sạch, không mốc/sạn", goi_y="đã sàng trước rang"),
     _m("b2_rang_lac_nhiet", "B2a", "Rang lạc: nhiệt độ", "B", "Bột: rang lạc",
        kieu="nguyen", bot=True, dv="°C", goi_y="ngưỡng lấy từ SX QC Setting"),
     _m("b2_rang_lac_phut", "B2b", "Rang lạc: thời gian mẻ", "B", "Bột: rang lạc",
        kieu="nguyen", bot=True, dv="phút", goi_y="ngưỡng lấy từ SX QC Setting"),
     _m("b2_lac_chin", "B2c", "Lạc chín vàng đều", "B", "Bột: rang lạc", bot=True),
     _m("b3_cong_thuc", "B3", "Đường xay, rây; cân đúng công thức",
-       "B", "Bột: xay đường", bot=True),
+       "B", "Bột: xay đường", bot=True,
+       ngan="Đúng công thức trộn", goi_y="đường xay, rây; cân đúng"),
     _m("b4_moi_han_tui", "B4", "Mối hàn túi 40 g kín, 5 túi", "B", "Bột: đóng túi",
        bot=True, goi=True, ap=(GIUA_CA, CUOI_CA)),
     _m("b5_nhan_di_ung", "B5", "Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",
-       "B", "Bột: đóng túi", bot=True),
+       "B", "Bột: đóng túi", bot=True,
+       ngan="Nhãn, HSD, cảnh báo lạc/sữa", goi_y="đúng sản phẩm"),
     _m("b6_kl_tui", "B6", "KL tịnh túi 40 g", "B", "Bột: đóng túi",
        bot=True, goi=True),
     _m("b7_chuyen_doi", "B7", "Chuyển đổi sau chè đậu đen cốt dừa — thử nhanh lạc",
        "B", "Bột: trộn", kieu="chon3", bot=True,
-       goi_y="Dương tính → sự cố Dị ứng, mức Cao"),
+       goi_y="Dương tính → sự cố Dị ứng, mức Cao",
+       ngan="Chuyển đổi sau chè — thử nhanh lạc"),
     _m("b7_gio", "B7b", "Giờ thử", "B", "Bột: trộn", kieu="gio", bot=True, phu=True),
 ]
 

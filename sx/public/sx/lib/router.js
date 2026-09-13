@@ -1,10 +1,20 @@
 // Hash router tối giản + self-heal (LUẬT VÀNG #2): route lạ -> reload đúng 1 lần.
 
 const routes = {};
+const prefixes = [];
 let renderFn = null;
 
 export function register(path, loader) {
   routes[path] = loader;
+}
+
+/** Route có tham số: '#/qc/round/' khớp mọi '#/qc/round/QC-2026-09-0001'.
+ *
+ * Màn hình nhận cả route nên tự đọc phần đuôi. Không viết bộ khớp ':param' kiểu
+ * framework: app này có đúng MỘT route có tham số, thêm một cỗ máy so khớp chỉ
+ * để phục vụ nó là thêm chỗ để hỏng. */
+export function registerPrefix(prefix, loader) {
+  prefixes.push([prefix, loader]);
 }
 
 export function onRender(fn) {
@@ -27,6 +37,13 @@ export function go(path) {
 async function dispatch() {
   const route = currentRoute();
   let loader = routes[route];
+  if (!loader) {
+    // Khớp tiền tố DÀI NHẤT trước: '#/qc/round/' phải thắng '#/qc/' nếu sau này
+    // có cả hai, chứ không phụ thuộc thứ tự đăng ký.
+    const hop = prefixes.filter(([p]) => route.startsWith(p))
+      .sort((a, b) => b[0].length - a[0].length);
+    if (hop.length) loader = hop[0][1];
+  }
   if (!loader) {
     // Self-heal: shell cũ không biết route mới -> reload 1 lần (cờ chống loop)
     const key = `sx-heal-${route}`;
