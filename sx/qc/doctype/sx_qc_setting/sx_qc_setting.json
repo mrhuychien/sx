@@ -26,7 +26,11 @@
   "chieu_dau_den",
   "chieu_giua_tu",
   "chieu_giua_den",
-  "chieu_cuoi_den"
+  "chieu_cuoi_den",
+  "section_tiep_nhan",
+  "do_am_toi_da",
+  "column_break_tn",
+  "nhom_can_coa"
  ],
  "fields": [
   {
@@ -162,6 +166,30 @@
    "fieldtype": "Time",
    "label": "Ca Chiều — cuối ca ghi trước",
    "default": "19:00:00"
+  },
+  {
+   "fieldname": "section_tiep_nhan",
+   "fieldtype": "Section Break",
+   "label": "Tiếp nhận nguyên liệu (BM.07.03)"
+  },
+  {
+   "fieldname": "do_am_toi_da",
+   "fieldtype": "Float",
+   "label": "Độ ẩm tối đa (%)",
+   "default": "13",
+   "precision": "1",
+   "description": "Áp cho MỌI dòng có ghi độ ẩm, không chỉ đỗ xanh: đo được độ ẩm vượt ngưỡng trên thứ gì cũng là chuyện đáng ghi."
+  },
+  {
+   "fieldname": "column_break_tn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nhom_can_coa",
+   "fieldtype": "Table MultiSelect",
+   "label": "Nhóm hàng bắt buộc có COA vi sinh",
+   "options": "SX QC Nhom COA",
+   "description": "Dừa sấy / sữa bột / phụ liệu bột… Khai bằng NHÓM HÀNG thật trên site, không viết cứng trong code. Nhóm con của nhóm đã khai cũng tính."
   }
  ],
  "links": [],

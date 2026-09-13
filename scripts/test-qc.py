@@ -441,6 +441,46 @@ for ten, can in [("nhãn ĐẦY ĐỦ của mục (không phải nhãn ngắn c�
 kiem("ô của mục KHÔNG áp dụng được tô xám, không để trắng như chưa ghi",
      'class="o na"' in html)
 
+# ═══ 12. Print Format BM.08.02 ═══════════════════════════════════════════
+# Lỗi cú pháp Jinja trong print format chỉ lộ ra lúc có người bấm In — tức là
+# lúc Ban ISO cần tờ giấy, không phải lúc deploy.
+print("\n-- print format phiếu sự cố BM.08.02 --")
+pf = [x for x in json.load(open("sx/fixtures/print_format.json", encoding="utf-8"))
+      if x.get("module") == "QC"]
+kiem("có print format cho phiếu sự cố", len(pf) == 1, str([x["name"] for x in pf]))
+
+
+class _D(dict):
+    def __getattr__(self, k):
+        return self.get(k)
+
+
+mau = _D({"name": "SC-2026-0007", "ngay": "2026-09-14", "ca": "Sáng",
+          "nguon": "Vòng kiểm QC", "qc_round": "QC-0003", "cong_doan": "3 Rang",
+          "loai": "oPRP", "muc": "3a Nhiệt độ rang", "muc_do": "Cao",
+          "qua_han": 1, "lo_anh_huong": "DX-140926", "so_luong": "420 hộp",
+          "mo_ta": "Rang: nhiệt độ 248 °C < 255 °C",
+          "xu_ly_ngay": "Dừng máy, chỉnh lại nhiệt", "trang_thai": "Mở",
+          "owner": "hoa@rvhg.vn"})
+gia_frappe = types.SimpleNamespace(utils=types.SimpleNamespace(
+    formatdate=lambda x, f=None: "14/09/2026",
+    format_datetime=lambda x, f=None: ""))
+for x in pf:
+    try:
+        ra = jinja2.Environment(autoescape=True).from_string(
+            x["html"]).render(doc=mau, frappe=gia_frappe)
+        loi_pf = None
+    except Exception as e:            # noqa: BLE001 — bắt mọi lỗi template
+        ra, loi_pf = "", f"{type(e).__name__}: {e}"
+    kiem(f'{x["name"]}: dựng được', not loi_pf, loi_pf or "")
+    # Phiếu sự cố mà thiếu ba ô này thì không dùng làm hồ sơ được: lô nào, đã
+    # làm gì ngay lúc đó, và ai ký.
+    for ten, can in [("số phiếu", "SC-2026-0007"), ("lô ảnh hưởng", "DX-140926"),
+                     ("xử lý ngay", "chỉnh lại nhiệt"),
+                     ("ô ký của Ban ISO", "Trưởng Ban ISO"),
+                     ("dấu quá hạn", "QUÁ HẠN")]:
+        kiem(f"  có {ten}", can in ra)
+
 # Cửa sổ in mở bằng about:blank KHÔNG thừa kế bảng mã của trang cha; trình duyệt
 # tự đoán và nó đoán sai, tờ giấy in ra đầy "Nhiá»‡t Ä'á»™". Không lỗi nào hiện
 # ra — chỉ có tờ giấy vứt đi, mà lại là tờ đưa cho auditor.

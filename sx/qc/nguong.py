@@ -19,6 +19,7 @@ MAC_DINH = {
     "thung_bot_max": 0,
     "ghi_muon_phut": 45,
     "su_co_qua_han_ngay": 7,
+    "do_am_toi_da": 13.0,
 }
 
 # Ngưỡng chờ thẩm định: không có mặc định, chưa đặt thì không sinh sự cố.
@@ -57,6 +58,10 @@ def nguong():
     for k in CHO_THAM_DINH:
         v = s.get(k) if s else None
         ra[k] = int(v) if v else None
+    # Danh sách nhóm hàng bắt buộc có COA: RỖNG nghĩa là chưa khai, và chưa khai
+    # thì luật COA KHÔNG chạy. Không đoán bừa vài tên nhóm: đoán sai thì hoặc
+    # chặn nhầm hàng tốt, hoặc cho qua đúng thứ cần chặn.
+    ra["nhom_can_coa"] = [r.item_group for r in (s.get("nhom_can_coa") or [])] if s else []
     ra["cho_phep_bo_qua_luot_khi_khong_san_xuat"] = int(
         (s.get("cho_phep_bo_qua_luot_khi_khong_san_xuat") if s else 1) or 0)
 

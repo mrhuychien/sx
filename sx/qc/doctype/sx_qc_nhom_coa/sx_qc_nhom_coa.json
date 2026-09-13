@@ -1,0 +1,29 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 08:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item_group"
+ ],
+ "fields": [
+  {
+   "fieldname": "item_group",
+   "fieldtype": "Link",
+   "label": "Nhóm hàng",
+   "options": "Item Group",
+   "in_list_view": 1,
+   "reqd": 1
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-13 08:00:00",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Nhom COA",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

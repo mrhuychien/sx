@@ -13,6 +13,12 @@ doc_events = {
         "on_submit": "sx.api.tang1.on_submit_nhap_bot",
         "on_cancel": "sx.api.tang1.on_cancel_nhap_bot",
     },
+    # BM.07.03 — kiểm nguyên liệu đầu vào. Gắn vào Purchase Invoice chứ không
+    # Purchase Receipt: kho nguyên liệu nhập thẳng bằng hoá đơn mua.
+    "Purchase Invoice": {
+        "validate": "sx.qc.tiep_nhan.validate",
+        "on_submit": "sx.qc.tiep_nhan.on_submit",
+    },
 }
 
 # ═══ Fixtures ═══
@@ -28,8 +34,10 @@ fixtures = [
                             "Production Manager", "Warehouse"]]
         ],
     },
-    {"doctype": "Custom Field", "filters": [["module", "=", "SX"]]},
-    {"doctype": "Print Format", "filters": [["module", "=", "SX"]]},
+    # Hai module: SX (cũ) và QC (D85+). Để "=" "SX" thì lần export-fixtures sau
+    # lặng lẽ xoá sạch custom field của QC khỏi file.
+    {"doctype": "Custom Field", "filters": [["module", "in", ["SX", "QC"]]]},
+    {"doctype": "Print Format", "filters": [["module", "in", ["SX", "QC"]]]},
 ]
 
 # www/sx.html tu serve /sx

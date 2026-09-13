@@ -37,17 +37,28 @@ def main():
         for ten in sorted(trong_hooks - trong_file):
             loi.append(f'hooks.py liệt kê "{ten}" nhưng role.json không có')
 
-    # Custom Field / Print Format lọc theo module=SX -> mọi bản ghi phải có module SX
+    # Custom Field / Print Format lọc theo module -> mọi bản ghi phải nằm trong
+    # danh sách module mà hooks.py liệt kê. ĐỌC TỪ hooks, không viết cứng "SX":
+    # viết cứng thì thêm module mới (QC, D85) là bài soát này tự nói dối.
     for ten_file, nhan in (("custom_field.json", "Custom Field"),
                            ("print_format.json", "Print Format")):
+        dt = nhan
+        m2 = re.search(r'"doctype":\s*"%s",\s*"filters":\s*\[\[\s*"module",\s*'
+                       r'"(=|in)",\s*(".*?"|\[[^\]]*\])\s*\]\]' % dt, hooks, re.S)
+        if not m2:
+            loi.append(f"hooks.py: không đọc được bộ lọc fixtures cho {nhan}")
+            continue
+        tho = m2.group(2)
+        cho_phep = ({json.loads(tho)} if tho.startswith('"')
+                    else set(json.loads(tho.replace("'", '"'))))
         duong = os.path.join(GOC, "sx/fixtures", ten_file)
         if not os.path.exists(duong):
             continue
         for r in json.load(open(duong, encoding="utf-8")):
-            if r.get("module") != "SX":
+            if r.get("module") not in cho_phep:
                 loi.append(f'{ten_file}: {nhan} "{r.get("fieldname") or r.get("name")}" '
-                           f'có module={r.get("module")!r}, bộ lọc hooks chỉ bắt "SX" '
-                           f'-> export-fixtures sẽ xoá mất')
+                           f'có module={r.get("module")!r}, bộ lọc hooks chỉ bắt '
+                           f'{sorted(cho_phep)} -> export-fixtures sẽ xoá mất')
 
     print("\n".join(f"FIXTURE-FAIL {x}" for x in loi) if loi else "FIXTURE-OK")
     return 1 if loi else 0

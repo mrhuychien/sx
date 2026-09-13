@@ -133,6 +133,13 @@ python3 scripts/test-qc.py > /tmp/sx-qc.log 2>&1 \
   && tail -1 /tmp/sx-qc.log \
   || { cat /tmp/sx-qc.log; loi=1; }
 
+# BM.07.03 là một CỔNG. Nới nhầm thì lô dừa sấy không COA đi thẳng vào bánh và
+# hồ sơ vẫn ghi "Đạt"; siết nhầm thì thủ kho bỏ trống ô QC cho xong việc, tức là
+# cổng tự mở.
+python3 scripts/test-tiepnhan.py > /tmp/sx-tn.log 2>&1 \
+  && tail -1 /tmp/sx-tn.log \
+  || { cat /tmp/sx-tn.log; loi=1; }
+
 # D87 đụng vào luồng ĐANG CHẠY THẬT (tổ Ghi sổ bấm "+ Ghi sự cố" mỗi ca). Hỏng thì
 # hoặc sự cố không được ghi trong im lặng, hoặc migrate chạy lại nhân đôi cả sổ.
 python3 scripts/test-sucogop.py > /tmp/sx-scg.log 2>&1 \
