@@ -96,8 +96,10 @@
   {
    "fieldname": "su_co",
    "fieldtype": "Table",
-   "label": "Sự cố",
-   "options": "SX Su Co Item"
+   "label": "Sự cố (bảng cũ — chỉ đọc)",
+   "options": "SX Su Co Item",
+   "read_only": 1,
+   "description": "D87: sự cố chuyển sang DocType SX Su Co, một sổ chung cho cả nhà máy. Bảng này giữ dữ liệu lịch sử để đối chiếu, không ghi thêm. Xem sx/patches/d87_gop_su_co.py."
   },
   {
    "collapsible": 1,

@@ -17,6 +17,10 @@
   "loai",
   "column_break_pl",
   "muc_do",
+  "loai_chuyen",
+  "phut_dung",
+  "ngay_san_xuat",
+  "khoa_cu",
   "qua_han",
   "section_mo_ta",
   "mo_ta",
@@ -74,9 +78,10 @@
    "fieldname": "nguon",
    "fieldtype": "Select",
    "label": "Nguồn",
-   "options": "Vòng kiểm QC\nTiếp nhận NL\nKhiếu nại\nPhát hiện khác",
+   "options": "Vòng kiểm QC\nTiếp nhận NL\nKhiếu nại\nPhát hiện khác\nNhật ký chuyền",
    "default": "Vòng kiểm QC",
-   "reqd": 1
+   "reqd": 1,
+   "description": "Nhật ký chuyền = sự cố tổ Ghi sổ báo trong ca (hỏng máy, mất điện…), gộp vào đây từ D87."
   },
   {
    "fieldname": "qc_round",
@@ -122,6 +127,36 @@
    "options": "Thường\nCao",
    "default": "Thường",
    "in_list_view": 1
+  },
+  {
+   "fieldname": "loai_chuyen",
+   "fieldtype": "Select",
+   "label": "Loại sự cố chuyền",
+   "options": "\nHỏng máy\nThiếu NVL\nMất điện\nChất lượng\nKhác",
+   "description": "Chỉ dùng cho nguồn Nhật ký chuyền. Đây là BẢNG PHÂN LOẠI KHÁC với ô Loại ở trên (oPRP/PRP/Dị ứng) — hai tổ nhìn sự cố theo hai cách, gộp chung một danh sách là mất nghĩa cả hai."
+  },
+  {
+   "fieldname": "phut_dung",
+   "fieldtype": "Int",
+   "label": "Dừng chuyền (phút)",
+   "default": "0"
+  },
+  {
+   "fieldname": "ngay_san_xuat",
+   "fieldtype": "Link",
+   "label": "Phiếu ngày sản xuất",
+   "options": "SX Ngay San Xuat",
+   "read_only": 1,
+   "description": "Có khi sự cố đến từ Nhật ký chuyền. Chỉ để nối hồ sơ."
+  },
+  {
+   "fieldname": "khoa_cu",
+   "fieldtype": "Data",
+   "label": "Khoá bản ghi cũ",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1,
+   "description": "<phiếu ngày>#<idx> của dòng SX Su Co Item đã chuyển sang. Có nó thì patch D87 chạy lại bao nhiêu lần cũng không nhân đôi."
   },
   {
    "fieldname": "qua_han",
@@ -232,6 +267,14 @@
    "submit": 1,
    "cancel": 1,
    "amend": 1
+  },
+  {
+   "role": "SX Ghi So",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1
   },
   {
    "role": "SX QC",

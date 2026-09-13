@@ -23,6 +23,25 @@ scripts/test-qc.py      chốt mọi thứ trên khớp nhau
 | Bảng màu riêng `--sxqc-*`, font Be Vietnam Pro | bố cục theo bản thiết kế, **màu và font theo `sx`** | Một app không nên có hai phong cách. Kích thước chạm, thứ tự mục, thanh đáy cố định giữ nguyên như thiết kế. |
 | Role `Warehouse` | có tạo | Trùng vai với `SX Thu Kho` nhưng vẫn tạo theo yêu cầu; một người gán cả hai được. |
 
+## D87 — một sổ sự cố cho cả nhà máy
+
+Trước đó có HAI chỗ ghi sự cố: bảng con `SX Su Co Item` trên phiếu ngày (tổ Ghi
+sổ bấm "+ Ghi sự cố") và `SX Su Co` (QC). Hai sổ nghĩa là hai chỗ phải nhớ đi
+xem, và cái không ai nhớ thì không ai đóng. Đã gộp về `SX Su Co`:
+
+- `portal.ghi_su_co` ghi thẳng vào `SX Su Co`, nguồn **Nhật ký chuyền**.
+  Chữ ký method và khoá hàng chờ ngoại tuyến giữ nguyên — điện thoại còn sự cố
+  nằm trong hàng chờ từ hôm qua vẫn gửi lên được sau khi deploy.
+- Hai bảng phân loại sống song song và **không** trộn vào nhau: `loai`
+  (oPRP / PRP / Dị ứng…) cho QC, `loai_chuyen` (Hỏng máy / Mất điện…) cho tổ Ghi
+  sổ. Hai tổ nhìn sự cố theo hai cách; nhập một danh sách là mất nghĩa cả hai.
+- `phut_dung` chuyển sang theo — dashboard quản lý vẫn cộng được phút dừng chuyền.
+- `sx/patches/d87_gop_su_co.py` chép dữ liệu cũ sang, **không xoá** bảng con.
+  Mỗi dòng mang khoá `<phiếu>#<idx>` nên `bench migrate` chạy lại bao nhiêu lần
+  cũng không nhân đôi. Bản ghi cũ đóng sẵn — để Mở hết thì sổ mới mở ra đã có
+  hàng trăm phiếu quá hạn và không ai đọc nó nữa.
+- Bảng con cũ đổi thành read-only trên Desk, có ghi chú chỉ sang đây.
+
 ## Chỗ còn phải hỏi Ban ISO
 
 - **Tên 6 công đoạn** trong `muc.py: CONG_DOAN` có ghi `# cần xác nhận tên`

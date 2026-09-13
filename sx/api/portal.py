@@ -193,11 +193,7 @@ def _ngay_summary(ten):
             {"item_bot_banh": r.item_bot_banh, "so_me": r.so_me, "ghi_chu": r.ghi_chu}
             for r in doc.bao_can
         ],
-        "su_co": [
-            {"thoi_diem": str(r.thoi_diem), "loai": r.loai, "mo_ta": r.mo_ta,
-             "phut_dung": r.phut_dung}
-            for r in doc.su_co
-        ],
+        "su_co": su_co_cua_ngay(doc.name),
     }
 
 
@@ -386,21 +382,53 @@ def bao_can(ngay_sx, rows):
 
 @frappe.whitelist()
 def ghi_su_co(ngay_sx, loai, mo_ta=None, phut_dung=0):
-    """Append 1 dòng sự cố (QC nào cũng ghi được)."""
+    """Ghi một sự cố của tổ Ghi sổ.
+
+    D87: ghi vào DocType `SX Su Co` — MỘT sổ sự cố cho cả nhà máy, không phải
+    một bảng con riêng của phiếu ngày nữa. Lý do: hai chỗ ghi sự cố nghĩa là hai
+    chỗ phải nhớ đi xem, và cái không ai nhớ thì không ai đóng. Bảng con cũ
+    (`SX Su Co Item`) giữ nguyên dữ liệu lịch sử, patch d87 chuyển sang, không
+    ai ghi vào đó nữa.
+
+    Chữ ký method và khoá hàng chờ ngoại tuyến GIỮ NGUYÊN: điện thoại đang có
+    sự cố nằm trong hàng chờ từ hôm qua vẫn phải gửi lên được sau khi deploy.
+    """
     guard_card("suco")
     # Sự cố thuộc nửa Ghi sổ (nó là nhật ký chuyền), nhưng ghi thêm sự cố KHÔNG
     # sinh chứng từ kho nào — chỉ chặn khi cả ngày đã khoá hẳn.
-    d = frappe.db.get_value("SX Ngay San Xuat", ngay_sx, "docstatus")
-    if d != 0:
+    d = frappe.db.get_value("SX Ngay San Xuat", ngay_sx, ["docstatus", "ngay"],
+                            as_dict=True)
+    if not d:
+        frappe.throw(_("Không tìm thấy phiếu ngày {0}").format(ngay_sx))
+    if d.docstatus != 0:
         frappe.throw(_("Phiếu ngày đã chốt — không ghi thêm sự cố được"))
-    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    doc.append(
-        "su_co",
-        {"thoi_diem": frappe.utils.now(), "loai": loai, "mo_ta": mo_ta,
-         "phut_dung": cint(phut_dung)},
-    )
-    doc.save()
-    return {"so_su_co": len(doc.su_co)}
+    sc = frappe.get_doc({
+        "doctype": "SX Su Co",
+        "ngay": d.ngay,
+        "nguon": "Nhật ký chuyền",
+        "loai_chuyen": loai,
+        "loai": "Khác",
+        "phut_dung": cint(phut_dung),
+        "mo_ta": mo_ta or loai,
+        "ngay_san_xuat": ngay_sx,
+        "trang_thai": "Mở",
+    })
+    sc.insert()
+    return {"so_su_co": len(su_co_cua_ngay(ngay_sx)), "name": sc.name}
+
+
+def su_co_cua_ngay(ngay_sx):
+    """Sự cố Nhật ký chuyền của một phiếu ngày, dạng cũ để màn hình khỏi phải đổi."""
+    return [
+        {"thoi_diem": str(r.creation), "loai": r.loai_chuyen or r.loai,
+         "mo_ta": r.mo_ta, "phut_dung": cint(r.phut_dung), "name": r.name,
+         "trang_thai": r.trang_thai}
+        for r in frappe.get_all(
+            "SX Su Co", filters={"ngay_san_xuat": ngay_sx},
+            fields=["name", "creation", "loai", "loai_chuyen", "mo_ta",
+                    "phut_dung", "trang_thai"],
+            order_by="creation")
+    ]
 
 
 @frappe.whitelist()
@@ -495,10 +523,12 @@ def dashboard(tu_ngay=None, den_ngay=None):
             san_luong_sku = sorted(gop_sku.values(), key=lambda x: -x["so_hop"])
             nang_suat = sorted(gop_nv.values(), key=lambda x: -x["so_hop"])
 
+        # D87: đọc từ sổ sự cố chung. Phiếu ngày cũ (trước D87) đã được patch
+        # chuyển sang nên không phải đọc hai nguồn rồi gộp.
         su_co = frappe.get_all(
-            "SX Su Co Item",
-            filters={"parent": ("in", ds_phieu), "parenttype": "SX Ngay San Xuat"},
-            fields=["loai", "phut_dung", "mo_ta", "thoi_diem"],
+            "SX Su Co", filters={"ngay_san_xuat": ("in", ds_phieu)},
+            fields=["name", "loai", "loai_chuyen", "phut_dung", "mo_ta",
+                    "creation", "trang_thai"],
         )
         phut_dung = sum(cint(r.phut_dung) for r in su_co)
 
@@ -531,8 +561,9 @@ def dashboard(tu_ngay=None, den_ngay=None):
             for l in lo_dong
         ],
         "su_co": [
-            {"loai": r.loai, "phut_dung": cint(r.phut_dung), "mo_ta": r.mo_ta,
-             "thoi_diem": str(r.thoi_diem)}
+            {"loai": r.loai_chuyen or r.loai, "phut_dung": cint(r.phut_dung),
+             "mo_ta": r.mo_ta, "thoi_diem": str(r.creation),
+             "trang_thai": r.trang_thai, "name": r.name}
             for r in su_co
         ],
         "phut_dung": phut_dung,
