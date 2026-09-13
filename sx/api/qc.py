@@ -30,6 +30,7 @@ from frappe.utils import (
 )
 
 from sx.qc import muc as M
+from sx.qc import xuat
 from sx.qc.nguong import nguong
 from sx.qc.su_co import canh_bao, phat_hien
 
@@ -554,6 +555,30 @@ def day_sheet(ngay, ca=None):
     tập hồ sơ cũ mà không phải học đọc format mới.
     """
     _guard_qc()
+    return _to_ngay(ngay, ca)
+
+
+@frappe.whitelist()
+def month_sheets(tu, den, ca=None):
+    """Gộp tờ ngày của cả khoảng thành MỘT tài liệu, mỗi ngày một trang.
+
+    Ban ISO in cả tháng một lần để kẹp vào hồ sơ, không ai ngồi bấm in 30 lần.
+    Ngày không có lượt nào thì BỎ QUA chứ không in tờ trống: tập hồ sơ dày thêm
+    30 tờ giấy trắng chỉ làm người đọc khó tìm tờ có nội dung.
+    """
+    _guard_qc()
+    tu, den = _khoang(tu, den)
+    co = sorted({str(x) for x in frappe.get_all(
+        "SX QC Round", filters={"ngay": ("between", [tu, den]), "docstatus": 1},
+        pluck="ngay")})
+    if not co:
+        return ""
+    ra = [_to_ngay(co[0], ca, kem_style=True)]
+    ra += [_to_ngay(d, ca, kem_style=False) for d in co[1:]]
+    return '<div style="page-break-after:always"></div>'.join(ra)
+
+
+def _to_ngay(ngay, ca=None, kem_style=True):
     d = getdate(ngay)
     dk = {"ngay": d, "docstatus": 1}
     if ca:
@@ -583,11 +608,36 @@ def day_sheet(ngay, ca=None):
             })
     return frappe.render_template("sx/qc/day_sheet.html", {
         "ngay": d, "rounds": rounds, "hang": hang, "co_bot": co_bot,
+        "kem_style": kem_style,
         "su_co": frappe.get_all(
             "SX Su Co", filters={"ngay": d}, order_by="creation",
             fields=["name", "muc", "mo_ta", "muc_do", "trang_thai",
                     "xu_ly_ngay", "quyet_dinh_sp"]),
     })
+
+
+@frappe.whitelist()
+def export_csv(tu=None, den=None, loai="luot"):
+    """CSV tháng cho Ban ISO: `loai` = 'luot' (ma trận ngày × mục) hoặc 'su_co'.
+
+    Việc dựng CSV nằm ở sx/qc/xuat.py (hàm thuần, có test riêng) — đây chỉ đi
+    lấy dữ liệu. Chỗ dễ sai của một file xuất không phải truy vấn mà là ý nghĩa
+    của ô trống; xem chú thích đầu file đó.
+    """
+    _guard_qc()
+    tu, den = _khoang(tu, den)
+    if loai == "su_co":
+        return xuat.thanh_csv(
+            xuat.COT_SU_CO,
+            [xuat.dong_su_co(s)
+             for s in list_incidents(tu=tu, den=den)["danh_sach"]])
+    ds = frappe.get_all("SX QC Round",
+                        filters={"ngay": ("between", [tu, den]), "docstatus": 1},
+                        pluck="name", order_by="ngay, ca, creation")
+    return xuat.thanh_csv(
+        xuat.tieu_de_luot(),
+        [xuat.dong_luot(frappe.get_doc("SX QC Round", n), _in_gia_tri, cint)
+         for n in ds])
 
 
 def _in_gia_tri(m, v):

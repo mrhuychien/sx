@@ -78,6 +78,26 @@ Việc này làm trên **Desk**, nên role `Warehouse` có `desk_access = 1`. QC
 biến vẫn ở điện thoại (desk_access = 0) — nếu muốn QC tự kiểm ở cửa nhận hàng
 bằng điện thoại thì cần một màn riêng, chưa làm.
 
+## Hồ sơ giấy cho Ban ISO
+
+| Ở đâu | Làm gì |
+|---|---|
+| `#/qc/history`, nút 🖨 mỗi ngày | tờ A4 BM.08.01 của ngày đó |
+| `#/qc/review`, **IN CẢ THÁNG** | gộp tờ ngày cả tháng, mỗi ngày một trang; ngày không có lượt nào thì bỏ qua chứ không in tờ trống |
+| `#/qc/review`, **CSV vòng kiểm / CSV sự cố** | file cho Ban ISO phân tích |
+| Desk, phiếu `SX Su Co` | Print Format BM.08.02 |
+
+Trong CSV vòng kiểm có **ba thứ khác nhau** mà gộp lại là đếm sai — cả
+`sx/qc/xuat.py` tồn tại để giữ chúng tách nhau:
+
+| ô | nghĩa |
+|---|---|
+| `n/a` | mục không áp dụng ở lượt đó |
+| rỗng | áp dụng mà **chưa kiểm** ← thứ Ban ISO cần đếm |
+| `—` | số chưa đo |
+
+Gộp `n/a` với ô rỗng là tỷ lệ bỏ sót trông đẹp hơn sự thật.
+
 ## Chỗ còn phải hỏi Ban ISO
 
 - **Tên 6 công đoạn** trong `muc.py: CONG_DOAN` có ghi `# cần xác nhận tên`

@@ -1,3 +1,7 @@
+{#- kem_style = False khi in GỘP NHIỀU NGÀY: nhét 30 bản sao khối <style> vào
+    một tài liệu thì trình duyệt vẫn chạy, nhưng file PDF phình ra và ai mở ra
+    đọc cũng tưởng có gì đó hỏng. -#}
+{%- if kem_style is not defined or kem_style -%}
 {#- Tờ ngày BM.08.01 — một trang A4, ba cột lượt. In ra để đưa auditor.
     Bố cục bám bản giấy: người đã quen tập hồ sơ cũ cầm tờ này lên là đọc được
     ngay, không phải học format mới. Chữ ký = tài khoản + giờ server ghi. -#}
@@ -24,6 +28,7 @@
   .qcs .sc tr { break-inside: avoid; }
   .qcs .trong { text-align: center; padding: 12px; font-style: italic; }
 </style>
+{%- endif %}
 <div class="qcs">
   <h1>PHIẾU KIỂM TRA QC HÀNG NGÀY</h1>
   <div class="ma">BM.08.01 &nbsp;·&nbsp; Ngày {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }}

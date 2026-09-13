@@ -14,6 +14,7 @@ Chạy: python3 scripts/test-qc.py   (verify.sh gọi sẵn)
 """
 
 import importlib.util
+import io
 import json
 import os
 import sys
@@ -133,6 +134,7 @@ for goi in ("sx", "sx.qc", "sx.qc.doctype"):
 M = nap("sx.qc.muc", "sx/qc/muc.py")
 NG = nap("sx.qc.nguong", "sx/qc/nguong.py")
 SC = nap("sx.qc.su_co", "sx/qc/su_co.py")
+X = nap("sx.qc.xuat", "sx/qc/xuat.py")
 R = nap("sx.qc.doctype.sx_qc_round.sx_qc_round",
         "sx/qc/doctype/sx_qc_round/sx_qc_round.py")
 
@@ -441,7 +443,65 @@ for ten, can in [("nhãn ĐẦY ĐỦ của mục (không phải nhãn ngắn c�
 kiem("ô của mục KHÔNG áp dụng được tô xám, không để trắng như chưa ghi",
      'class="o na"' in html)
 
-# ═══ 12. Print Format BM.08.02 ═══════════════════════════════════════════
+# ═══ 12. CSV tháng cho Ban ISO ═══════════════════════════════════════════
+print("\n-- CSV tháng: ô trống phải giữ đúng nghĩa --")
+
+
+def _in(m, v):
+    return R.__dict__.get("x") or ("" if v in (None, "") else str(v))
+
+
+td = X.tieu_de_luot()
+kiem("một cột cho mỗi mục kiểm", len(td) == len(X.COT_LUOT) + len(M.MUC),
+     f"{len(td)} cột")
+kiem("tiêu đề cột dùng nhãn ĐẦY ĐỦ (file này để phân tích, không phải để cầm tay)",
+     "3a Nhiệt độ rang" in td)
+
+r_giua = luot(luot=M.GIUA_CA, name="QC-0002", rang_nhiet_do=260,
+              luoc_soi_du="Đạt", a1_ve_sinh="Đạt")
+h = X.dong_luot(r_giua, _in, frappe.utils.cint)
+cot = dict(zip(td, h))
+# Ba thứ khác nhau mà trông giống hệt nhau nếu gộp: không áp dụng / chưa kiểm /
+# chưa đo. Gộp là Ban ISO đếm nhầm tỷ lệ bỏ sót, theo hướng đẹp hơn sự thật.
+kiem("mục KHÔNG áp dụng ở lượt này ghi 'n/a', không để trống",
+     cot["1a Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô"] == "n/a",
+     repr(cot["1a Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô"]))
+kiem("mục áp dụng mà CHƯA kiểm để trống — đây mới là thứ cần đếm",
+     cot["10 Thùng ủ sau trộn đậy kín"] == "",
+     repr(cot["10 Thùng ủ sau trộn đậy kín"]))
+kiem("mục đã chấm ghi đúng giá trị", cot["2 Sôi liên tục, đỗ chín nổi"] == "Đạt")
+kiem("số đo ghi đúng", cot["3a Nhiệt độ rang"] == "260")
+
+r_tuan = luot(luot=M.TUAN, name="QC-0003", co_san_xuat_bot=1)
+h2 = dict(zip(td, X.dong_luot(r_tuan, _in, frappe.utils.cint)))
+kiem("lượt Tuần thì phần C áp dụng (không còn n/a)",
+     h2["T1 Bể nước sạch, có nắp"] == "")
+kiem("ngày có bột thì phần B áp dụng", h2["B1 Lạc trước rang: đã sàng, không mốc/hỏng/sạn"] == "")
+kiem("ngày KHÔNG có bột thì phần B là n/a",
+     dict(zip(td, X.dong_luot(luot(luot=M.TUAN), _in, frappe.utils.cint)))[
+         "B1 Lạc trước rang: đã sàng, không mốc/hỏng/sạn"] == "n/a")
+
+csv_ra = X.thanh_csv(td, [h])
+kiem("CSV mở bằng Excel không vỡ chữ (có BOM UTF-8)", csv_ra.startswith("\ufeff"))
+kiem("đúng 2 dòng: tiêu đề + một lượt",
+     len([x for x in csv_ra.rstrip("\n").split("\n") if x]) == 2)
+
+sc = X.dong_su_co({"name": "SC-1", "ngay": "2026-09-14", "mo_ta": "x",
+                   "trang_thai": "Mở"})
+kiem("dòng sự cố đủ cột như tiêu đề", len(sc) == len(X.COT_SU_CO))
+# `"" in chuoi` luôn đúng — đừng viết khẳng định kiểu đó. Đọc NGƯỢC file CSV ra
+# rồi đếm cột: ô None bị bỏ thay vì thành rỗng là mọi cột phía sau lệch một ô,
+# và bảng vẫn mở được bình thường trong Excel, chỉ là đọc sai cột.
+import csv as _csv  # noqa: E402
+
+doc_lai = list(_csv.reader(io.StringIO(
+    X.thanh_csv(X.COT_SU_CO, [sc]).lstrip("\ufeff"))))
+kiem("ô thiếu dữ liệu thành RỖNG, không bị bỏ (bỏ là lệch hết cột sau)",
+     [len(r) for r in doc_lai] == [len(X.COT_SU_CO)] * 2,
+     str([len(r) for r in doc_lai]))
+kiem("đọc ngược ra vẫn đúng số phiếu ở cột đầu", doc_lai[1][0] == "SC-1")
+
+# ═══ 13. Print Format BM.08.02 ═══════════════════════════════════════════
 # Lỗi cú pháp Jinja trong print format chỉ lộ ra lúc có người bấm In — tức là
 # lúc Ban ISO cần tờ giấy, không phải lúc deploy.
 print("\n-- print format phiếu sự cố BM.08.02 --")

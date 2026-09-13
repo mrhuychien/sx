@@ -131,4 +131,58 @@ export async function render(api) {
     },
   }));
   container.appendChild(nut);
+
+  // ── hồ sơ giấy cho Ban ISO ──────────────────────────────────────────
+  const ho_so = el('div', 'sx-qc-chips');
+  ho_so.style.marginTop = 'var(--sx-s3)';
+  const nutIn = el('button', 'sx-btn sx-btn-ghost', '🖨 IN CẢ THÁNG');
+  nutIn.type = 'button';
+  nutIn.addEventListener('click', async () => {
+    nutIn.disabled = true;
+    try {
+      const html = await call('sx.api.qc.month_sheets', { tu, den });
+      if (!html) { toastErr('Tháng này chưa có lượt nào hoàn tất.'); return; }
+      const w = window.open('', '_blank');
+      if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+      // Cùng lý do như tờ ngày: cửa sổ about:blank không thừa kế bảng mã.
+      w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+        + `<title>BM.08.01 — ${tu} đến ${den}</title></head><body>${html}</body></html>`);
+      w.document.close();
+      w.focus();
+      setTimeout(() => w.print(), 400);
+    } catch (e) { toastErr(e.message); } finally { nutIn.disabled = false; }
+  });
+  ho_so.appendChild(nutIn);
+
+  [['luot', 'vòng kiểm'], ['su_co', 'sự cố']].forEach(([loai, ten]) => {
+    const b = el('button', 'sx-btn sx-btn-ghost', `⬇ CSV ${ten}`);
+    b.type = 'button';
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      try {
+        const csv = await call('sx.api.qc.export_csv', { tu, den, loai });
+        taiVe(`qc-${loai}-${st.thang}.csv`, csv);
+      } catch (e) { toastErr(e.message); } finally { b.disabled = false; }
+    });
+    ho_so.appendChild(b);
+  });
+  container.appendChild(ho_so);
+}
+
+/** Lưu chuỗi thành file trên máy người dùng.
+ *
+ * type để 'text/csv;charset=utf-8' và server đã chèn sẵn BOM: thiếu một trong
+ * hai thì Excel trên Windows mở ra là "Nhiá»‡t Ä'á»™" — file vẫn đúng, chỉ
+ * là người nhận tưởng phần mềm hỏng rồi gõ tay lại cả tháng. */
+function taiVe(ten, noi_dung) {
+  const blob = new Blob([noi_dung], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = ten;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Thu hồi muộn một nhịp: thu ngay thì Safari huỷ luôn cú tải đang bắt đầu.
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
