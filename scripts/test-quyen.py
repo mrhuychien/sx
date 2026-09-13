@@ -247,6 +247,14 @@ for vai, ten, vao, ghi, duyet in [
     kiem(f"{ten}: ghi vòng kiểm = {ghi}", qua(Q._guard_ghi) is ghi)
     kiem(f"{ten}: đóng sự cố / xem xét = {duyet}", qua(Q._guard_manager) is duyet)
 
+# Ghi được KHÁC chốt được. Nới chỗ này thì QC đóng gói tự chốt lượt của người
+# khác — không lỗi nào hiện ra, chỉ là lượt đóng lại khi chưa ai đi hết nó.
+for vai, ten, chot in [(R.QC, "QC chế biến", True), (R.QC_GOI, "QC đóng gói", False),
+                       (R.QUAN_LY, "Quản lý", True), (R.ISO, "Ban ISO", False)]:
+    nhu_la(vai)
+    duoc = Q._sieu() or Q.QC in Q._roles()
+    kiem(f"{ten}: chốt được lượt = {chot}", bool(duoc) is chot)
+
 kiem("tên role khai ở roles.py và api/qc.py khớp nhau",
      (Q.QC, Q.QC_GOI, Q.ISO, Q.QLSX) == (R.QC, R.QC_GOI, R.ISO, R.QLSX),
      f"{(Q.QC, Q.QC_GOI, Q.ISO, Q.QLSX)} vs {(R.QC, R.QC_GOI, R.ISO, R.QLSX)}")

@@ -252,6 +252,9 @@ def chi_tiet_round(name):
         "truoc_do": _truoc_do(doc),
         "duoc_ghi": doc.docstatus == 0 and bool(_sieu() or _roles() & GHI_DUOC)
                     and _cua_minh(doc),
+        # Ghi được KHÁC chốt được: QC đóng gói ghi mục của mình trên bản nháp của
+        # người khác, nhưng người chốt lượt phải là người đã đi hết lượt đó.
+        "duoc_chot": doc.docstatus == 0 and bool(_sieu() or QC in _roles()),
     }
 
 
@@ -315,8 +318,18 @@ def save_round(name, values, client_ts=None):
 
 @frappe.whitelist()
 def submit_round(name):
-    """Hoàn tất lượt: validate → submit → sinh sự cố."""
+    """Hoàn tất lượt: validate → submit → sinh sự cố.
+
+    Chặn QC đóng gói NGAY TỪ ĐÂY thay vì để Frappe văng "Insufficient Permission
+    for SX QC Round": người đứng giữa xưởng đọc câu đó xong không biết phải làm
+    gì, còn câu dưới thì nói thẳng ra là đi gọi ai.
+    """
     doc = _lay_round(name, de_ghi=True)
+    if not (_sieu() or QC in _roles()):
+        frappe.throw(
+            _("Bạn ghi được các mục đóng gói, nhưng chốt lượt là việc của QC chế "
+              "biến — người đã đi hết lượt này ({0}). Báo họ bấm Hoàn tất.")
+            .format(doc.qc_user), frappe.PermissionError)
     doc.submit()
     doc.reload()
     return {

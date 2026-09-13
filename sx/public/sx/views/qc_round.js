@@ -197,9 +197,16 @@ export async function render({ container, call, tham_so }) {
   }
   veTienDo();
 
-  if (dl.docstatus === 1 || khoa) {
+  if (dl.docstatus === 1 || khoa || !dl.duoc_chot) {
     nutXong.disabled = true;
-    nutXong.textContent = dl.docstatus === 1 ? 'ĐÃ HOÀN TẤT' : 'CHỈ XEM';
+    if (dl.docstatus === 1) nutXong.textContent = 'ĐÃ HOÀN TẤT';
+    else if (khoa) nutXong.textContent = 'CHỈ XEM';
+    else {
+      // QC đóng gói: ghi được, chốt thì không. Nói ra ngay trên nút, đừng để
+      // bấm rồi mới biết.
+      nutXong.textContent = 'QC CHẾ BIẾN CHỐT';
+      nutXong.title = `Bạn ghi được mục đóng gói. Chốt lượt là việc của ${dl.qc_user}.`;
+    }
     if (dl.su_co.length) veKetQua(container, dl.su_co, call);
   } else {
     nutXong.addEventListener('click', async () => {
