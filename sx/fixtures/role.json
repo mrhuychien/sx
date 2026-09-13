@@ -42,5 +42,60 @@
   "restrict_to_domain": null,
   "home_page": null,
   "two_factor_auth": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "SX QC",
+  "role_name": "SX QC",
+  "desk_access": 0,
+  "disabled": 0,
+  "is_custom": 1,
+  "restrict_to_domain": null,
+  "home_page": null,
+  "two_factor_auth": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "SX QC Packing",
+  "role_name": "SX QC Packing",
+  "desk_access": 0,
+  "disabled": 0,
+  "is_custom": 1,
+  "restrict_to_domain": null,
+  "home_page": null,
+  "two_factor_auth": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "ISO Manager",
+  "role_name": "ISO Manager",
+  "desk_access": 1,
+  "disabled": 0,
+  "is_custom": 1,
+  "restrict_to_domain": null,
+  "home_page": null,
+  "two_factor_auth": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "Production Manager",
+  "role_name": "Production Manager",
+  "desk_access": 1,
+  "disabled": 0,
+  "is_custom": 1,
+  "restrict_to_domain": null,
+  "home_page": null,
+  "two_factor_auth": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "Warehouse",
+  "role_name": "Warehouse",
+  "desk_access": 0,
+  "disabled": 0,
+  "is_custom": 1,
+  "restrict_to_domain": null,
+  "home_page": null,
+  "two_factor_auth": 0
  }
 ]

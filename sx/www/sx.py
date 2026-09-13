@@ -4,13 +4,20 @@ import json
 
 import frappe
 
-from sx.config.roles import allowed_views, is_super, landing_view, view_cards
+from sx.config.roles import (
+    ROLE_VIEWS,
+    allowed_views,
+    is_super,
+    landing_view,
+    view_cards,
+)
 
 # Build marker chống "shell cũ" (LUẬT VÀNG #2 — frappe-portal-spa)
-SHELL_BUILD = "sx-65"
+SHELL_BUILD = "sx-66"
 
-ALLOWED_ROLES = {"SX Ghi So", "SX Vao Hop", "SX Thu Kho", "SX Quan Ly",
-                 "System Manager", "Administrator"}
+# Lấy từ ROLE_VIEWS: thêm role mới ở một chỗ, trang /sx cho vào ngay. Chép tay
+# danh sách này là cách tạo ra người dùng có role, có tab, mà mở /sx thì bị đá ra.
+ALLOWED_ROLES = set(ROLE_VIEWS) | {"System Manager", "Administrator"}
 
 
 def get_context(context):

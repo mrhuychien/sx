@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 08:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "fieldname",
+  "gia_tri",
+  "client_ts",
+  "server_ts",
+  "boi"
+ ],
+ "fields": [
+  {
+   "fieldname": "fieldname",
+   "fieldtype": "Data",
+   "label": "Mục",
+   "in_list_view": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "gia_tri",
+   "fieldtype": "Data",
+   "label": "Giá trị",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "client_ts",
+   "fieldtype": "Datetime",
+   "label": "Giờ trên máy QC",
+   "in_list_view": 1,
+   "description": "Giờ máy QC gõ. Có thể lệch giờ server khi ghi ngoại tuyến — chính chỗ lệch đó là thứ auditor cần thấy, không được làm tròn."
+  },
+  {
+   "fieldname": "server_ts",
+   "fieldtype": "Datetime",
+   "label": "Giờ server nhận",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "boi",
+   "fieldtype": "Link",
+   "label": "Người ghi",
+   "options": "User"
+  }
+ ],
+ "links": [],
+ "modified": "2026-09-13 08:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Round Log",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "istable": 1
+}

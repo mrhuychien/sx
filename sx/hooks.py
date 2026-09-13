@@ -23,7 +23,9 @@ fixtures = [
         # export-fixtures`, nên thiếu một tên thì lần export sau lặng lẽ XOÁ role đó
         # khỏi file, và site cài mới sau đó thiếu role mà không ai biết.
         "filters": [
-            ["name", "in", ["SX Ghi So", "SX Vao Hop", "SX Thu Kho", "SX Quan Ly"]]
+            ["name", "in", ["SX Ghi So", "SX Vao Hop", "SX Thu Kho", "SX Quan Ly",
+                            "SX QC", "SX QC Packing", "ISO Manager",
+                            "Production Manager", "Warehouse"]]
         ],
     },
     {"doctype": "Custom Field", "filters": [["module", "=", "SX"]]},

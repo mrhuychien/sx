@@ -27,15 +27,25 @@ done
 # (không có file để compile) mà `bench migrate` chết ngay ở bước sync với
 # "ModuleNotFoundError" — đã dính thật ở D56.
 python3 - <<'PYEOF'
-import os, sys
-loi, base = [], "sx/sx/doctype"
-for d in sorted(os.listdir(base)):
-    p = os.path.join(base, d)
-    if not os.path.isdir(p) or d == "__pycache__":
-        continue
-    for f in ("__init__.py", f"{d}.json", f"{d}.py"):
-        if not os.path.exists(os.path.join(p, f)):
-            loi.append(f"DOCTYPE-FAIL {d}: thiếu {f}")
+import glob, os, sys
+loi = []
+# Quét MỌI module (sx/<module>/doctype), không chỉ module SX — thêm module mới
+# mà quên là migrate chết trên site nhà máy chứ không chết ở đây.
+for base in sorted(glob.glob("sx/*/doctype")):
+    if not os.path.exists(os.path.join(os.path.dirname(base), "__init__.py")):
+        loi.append(f"DOCTYPE-FAIL {base}: module thiếu __init__.py")
+    for d in sorted(os.listdir(base)):
+        p = os.path.join(base, d)
+        if not os.path.isdir(p) or d == "__pycache__":
+            continue
+        for f in ("__init__.py", f"{d}.json", f"{d}.py"):
+            if not os.path.exists(os.path.join(p, f)):
+                loi.append(f"DOCTYPE-FAIL {base}/{d}: thiếu {f}")
+# Module khai trong thư mục phải có trong modules.txt, và ngược lại.
+khai = {x.strip() for x in open("sx/modules.txt", encoding="utf-8") if x.strip()}
+tren_dia = {os.path.basename(os.path.dirname(b)).upper() for b in glob.glob("sx/*/doctype")}
+if not {k.upper() for k in khai} >= tren_dia:
+    loi.append(f"DOCTYPE-FAIL modules.txt thiếu: {tren_dia - {k.upper() for k in khai}}")
 print("\n".join(loi) if loi else "DOCTYPE-OK")
 sys.exit(1 if loi else 0)
 PYEOF

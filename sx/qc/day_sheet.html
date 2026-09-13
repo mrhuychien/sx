@@ -1,0 +1,105 @@
+{#- Tờ ngày BM.08.01 — một trang A4, ba cột lượt. In ra để đưa auditor.
+    Bố cục bám bản giấy: người đã quen tập hồ sơ cũ cầm tờ này lên là đọc được
+    ngay, không phải học format mới. Chữ ký = tài khoản + giờ server ghi. -#}
+<style>
+  @page { size: A4 portrait; margin: 10mm 8mm; }
+  .qcs { font: 11px/1.35 "Times New Roman", serif; color: #000; }
+  .qcs h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
+  .qcs .ma { text-align: center; font-size: 10px; margin-bottom: 6px; }
+  .qcs table { width: 100%; border-collapse: collapse; }
+  .qcs td, .qcs th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
+  .qcs th { background: #eee; font-weight: bold; text-align: center; }
+  .qcs .buoc td { background: #f3f3f3; font-weight: bold; }
+  .qcs .o { text-align: center; width: 34px; font-weight: bold; }
+  .qcs .na { background: #ddd; }
+  .qcs .so { width: 30px; text-align: center; }
+  .qcs .muon { color: #000; font-weight: bold; }
+  .qcs .ky { margin-top: 8px; font-size: 10px; }
+  .qcs .sc { margin-top: 10px; }
+  .qcs .trong { text-align: center; padding: 20px; font-style: italic; }
+</style>
+<div class="qcs">
+  <h1>PHIẾU KIỂM TRA QC HÀNG NGÀY</h1>
+  <div class="ma">BM.08.01 &nbsp;·&nbsp; Ngày {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }}
+    {%- if co_bot %} &nbsp;·&nbsp; có sản xuất bột{% endif %}</div>
+
+  {% if not rounds %}
+    <div class="trong">Ngày này chưa có lượt kiểm nào được hoàn tất.</div>
+  {% else %}
+  <table>
+    <tr>
+      <th class="so">#</th><th>Nội dung kiểm</th>
+      {% for r in rounds %}<th class="o">{{ r.ca }}<br>{{ r.luot }}</th>{% endfor %}
+    </tr>
+    {% for h in hang %}
+      {% if h.buoc %}
+        <tr class="buoc"><td colspan="{{ rounds|length + 2 }}">{{ h.ten }}</td></tr>
+      {% else %}
+        <tr>
+          <td class="so">{{ h.so }}</td>
+          <td>{{ h.nhan }}</td>
+          {% for v in h.o %}
+            <td class="o{% if h.khong_ap[loop.index0] %} na{% endif %}">{{ v }}</td>
+          {% endfor %}
+        </tr>
+      {% endif %}
+    {% endfor %}
+    <tr>
+      <td colspan="2"><b>Giờ hoàn tất</b></td>
+      {% for r in rounds %}
+        <td class="o">{{ r.finished_at.strftime("%H:%M") if r.finished_at else "—" }}</td>
+      {% endfor %}
+    </tr>
+    <tr>
+      <td colspan="2"><b>Ghi muộn</b> <span style="font-weight:normal">(quá khung giờ hoặc quá lâu)</span></td>
+      {% for r in rounds %}
+        <td class="o">{% if r.ghi_muon %}<span class="muon">✻</span>{% else %}—{% endif %}</td>
+      {% endfor %}
+    </tr>
+    <tr>
+      <td colspan="2"><b>Người kiểm</b></td>
+      {% for r in rounds %}<td class="o" style="font-size:9px">{{ r.qc_user }}</td>{% endfor %}
+    </tr>
+  </table>
+
+  <div class="ky">
+    Ghi chú của QC:
+    {% for r in rounds %}
+      {%- if r.ghi_chu %}<br>· {{ r.ca }} {{ r.luot }}: {{ r.ghi_chu }}{% endif %}
+    {%- endfor %}
+    {% if not rounds|selectattr("ghi_chu")|list %} (không có){% endif %}
+    <br><br>
+    ✻ = ghi muộn. Cờ này do hệ thống đặt theo giờ ghi thật, không sửa được bằng tay.
+    <br>
+    Ban ISO xem xét:
+    {% for r in rounds %}
+      {%- if r.reviewed_on %} {{ r.ca }}/{{ r.luot }}: {{ r.reviewed_by }}
+        ({{ frappe.utils.format_datetime(r.reviewed_on, "dd/MM/yyyy HH:mm") }});
+      {%- endif %}
+    {%- endfor %}
+    {% if not rounds|selectattr("reviewed_on")|list %} chưa xem xét{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="sc">
+    <b>Sự cố trong ngày (BM.08.02)</b>
+    {% if su_co %}
+    <table>
+      <tr><th class="so">Số</th><th>Mục</th><th>Nội dung</th><th class="o">Mức</th>
+          <th>Xử lý ngay</th><th>Quyết định SP</th><th class="o">TT</th></tr>
+      {% for s in su_co %}
+      <tr>
+        <td class="so" style="font-size:9px">{{ s.name }}</td>
+        <td>{{ s.muc or "—" }}</td><td>{{ s.mo_ta }}</td>
+        <td class="o">{{ s.muc_do }}</td>
+        <td>{{ s.xu_ly_ngay or "—" }}</td>
+        <td>{{ s.quyet_dinh_sp or "—" }}</td>
+        <td class="o">{{ s.trang_thai }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+      <div class="trong">Không có sự cố nào trong ngày.</div>
+    {% endif %}
+  </div>
+</div>

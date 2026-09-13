@@ -1,0 +1,645 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-09-13 08:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "ngay",
+  "ca",
+  "luot",
+  "column_break_head",
+  "co_san_xuat_bot",
+  "qc_user",
+  "qc_goi_user",
+  "ngay_san_xuat",
+  "section_thoi_gian",
+  "started_at",
+  "finished_at",
+  "duration_min",
+  "column_break_tg",
+  "ghi_muon",
+  "nhap_lai_tu_giay",
+  "so_muc_ap_dung",
+  "so_muc_da_cham",
+  "section_buoc_a",
+  "a1_ve_sinh",
+  "a2_cong_nhan",
+  "a3_dong_vat",
+  "a4_hoa_chat",
+  "section_buoc_2",
+  "luoc_soi_du",
+  "section_buoc_3",
+  "rang_nhiet_do",
+  "rang_vong_quay",
+  "rang_mau_dat",
+  "section_buoc_4",
+  "luoi_sang_nguyen_ven",
+  "section_buoc_6",
+  "nam_cham_da_kiem",
+  "nam_cham_vat",
+  "nam_cham_mat_kim_loai",
+  "section_buoc_7",
+  "do_min_dat",
+  "section_buoc_8",
+  "thung_bot_qua_han",
+  "section_buoc_10",
+  "thung_u_day_kin",
+  "section_buoc_12",
+  "kl_tinh_dat",
+  "moi_han_kin",
+  "nhan_hsd_dung",
+  "section_buoc_c",
+  "t1_be_nuoc",
+  "t2_so_bay_dau_hieu",
+  "t3_luoi_chan",
+  "t4_den_kinh",
+  "t5_tu_hoa_chat",
+  "t6_kho",
+  "t7_rac_cong",
+  "t8_bon_rua_tay",
+  "t9_thiet_bi",
+  "t10_khoa",
+  "t11_can_qua_chuan",
+  "section_buoc_b",
+  "san_pham_bot",
+  "b1_lac_sach",
+  "b2_rang_lac_nhiet",
+  "b2_rang_lac_phut",
+  "b2_lac_chin",
+  "b3_cong_thuc",
+  "b4_moi_han_tui",
+  "b5_nhan_di_ung",
+  "b6_kl_tui",
+  "b7_chuyen_doi",
+  "b7_gio",
+  "section_ghi_chu",
+  "ghi_chu",
+  "section_xem_xet",
+  "reviewed_by",
+  "reviewed_on",
+  "section_su_co",
+  "su_co",
+  "section_log",
+  "log",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số phiếu",
+   "options": "QC-.YYYY.-.MM.-.####",
+   "default": "QC-.YYYY.-.MM.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ca",
+   "fieldtype": "Select",
+   "label": "Ca",
+   "options": "Sáng\nChiều",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Chưa có DocType ca sản xuất trong app — xem sx/qc/README.md."
+  },
+  {
+   "fieldname": "luot",
+   "fieldtype": "Select",
+   "label": "Lượt",
+   "options": "Đầu ca\nGiữa ca\nCuối ca\nTuần",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Tuần = lượt đầu ca thứ Hai (gồm cả phần A và phần C), không phải một lượt thứ tư."
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "co_san_xuat_bot",
+   "fieldtype": "Check",
+   "label": "Hôm nay có sản xuất bột",
+   "default": "0"
+  },
+  {
+   "fieldname": "qc_user",
+   "fieldtype": "Link",
+   "label": "QC chế biến",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fieldname": "qc_goi_user",
+   "fieldtype": "Link",
+   "label": "QC đóng gói",
+   "options": "User"
+  },
+  {
+   "fieldname": "ngay_san_xuat",
+   "fieldtype": "Link",
+   "label": "Phiếu ngày sản xuất",
+   "options": "SX Ngay San Xuat",
+   "description": "Tuỳ chọn, chỉ để nối hồ sơ. Module qc không đọc gì từ phiếu này."
+  },
+  {
+   "fieldname": "section_thoi_gian",
+   "fieldtype": "Section Break",
+   "label": "Thời gian"
+  },
+  {
+   "fieldname": "started_at",
+   "fieldtype": "Datetime",
+   "label": "Bắt đầu",
+   "read_only": 1
+  },
+  {
+   "fieldname": "finished_at",
+   "fieldtype": "Datetime",
+   "label": "Hoàn tất",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duration_min",
+   "fieldtype": "Int",
+   "label": "Số phút",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tg",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ghi_muon",
+   "fieldtype": "Check",
+   "label": "Ghi muộn",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "Chỉ hiển thị, không chặn. Ghi muộn vẫn là hồ sơ thật."
+  },
+  {
+   "fieldname": "nhap_lai_tu_giay",
+   "fieldtype": "Check",
+   "label": "Nhập lại từ bản giấy",
+   "default": "0"
+  },
+  {
+   "fieldname": "so_muc_ap_dung",
+   "fieldtype": "Int",
+   "label": "Số mục phải chấm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "so_muc_da_cham",
+   "fieldtype": "Int",
+   "label": "Đã chấm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_buoc_a",
+   "fieldtype": "Section Break",
+   "label": "A — Đầu ca",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "a1_ve_sinh",
+   "fieldtype": "Select",
+   "label": "1a Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô",
+   "description": "đã vệ sinh chuyển đổi sau lạc / dừa / sữa",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "a2_cong_nhan",
+   "fieldtype": "Select",
+   "label": "1b Công nhân: bảo hộ, tay, trang sức, không ốm",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "a3_dong_vat",
+   "fieldtype": "Select",
+   "label": "1c Không dấu hiệu động vật gây hại",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "a4_hoa_chat",
+   "fieldtype": "Select",
+   "label": "1d Không hoá chất/dầu trong khu SX; không rò dầu",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_2",
+   "fieldtype": "Section Break",
+   "label": "2. Luộc  (oPRP-1)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "luoc_soi_du",
+   "fieldtype": "Select",
+   "label": "2 Sôi liên tục, đỗ chín nổi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_3",
+   "fieldtype": "Section Break",
+   "label": "3. Rang  (oPRP-1)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "rang_nhiet_do",
+   "fieldtype": "Int",
+   "label": "3a Nhiệt độ rang",
+   "description": "≥ 255 · ngoài 255–270 cảnh báo vận hành"
+  },
+  {
+   "fieldname": "rang_vong_quay",
+   "fieldtype": "Float",
+   "label": "3b Vòng quay lồng rang",
+   "description": "6,2 – 7,0",
+   "precision": "1"
+  },
+  {
+   "fieldname": "rang_mau_dat",
+   "fieldtype": "Select",
+   "label": "3c Hạt vàng hoa cau",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_4",
+   "fieldtype": "Section Break",
+   "label": "4. Sàng cát  (oPRP-2)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "luoi_sang_nguyen_ven",
+   "fieldtype": "Select",
+   "label": "4 Lưới sàng cát / sàng lại nguyên vẹn",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_6",
+   "fieldtype": "Section Break",
+   "label": "6. Vỡ đỗ · Nam châm",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "nam_cham_da_kiem",
+   "fieldtype": "Select",
+   "label": "6 Nam châm đã kiểm, vệ sinh",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "nam_cham_vat",
+   "fieldtype": "Data",
+   "label": "6b Vật bắt được",
+   "description": "để trống nếu không có"
+  },
+  {
+   "fieldname": "nam_cham_mat_kim_loai",
+   "fieldtype": "Check",
+   "label": "6c Có mạt kim loại",
+   "description": "tích = tạo sự cố",
+   "default": "0"
+  },
+  {
+   "fieldname": "section_buoc_7",
+   "fieldtype": "Section Break",
+   "label": "7. Nghiền  (oPRP-2)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "do_min_dat",
+   "fieldtype": "Select",
+   "label": "7 Độ mịn đạt, rây 0,2 mm",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_8",
+   "fieldtype": "Section Break",
+   "label": "8. Kho bột  (oPRP-3)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "thung_bot_qua_han",
+   "fieldtype": "Int",
+   "label": "8 Thùng bột quá 2 ngày / hở nắp",
+   "description": "0 thùng = đạt · > 0 tạo sự cố",
+   "default": "0"
+  },
+  {
+   "fieldname": "section_buoc_10",
+   "fieldtype": "Section Break",
+   "label": "10. Ủ sau trộn",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "thung_u_day_kin",
+   "fieldtype": "Select",
+   "label": "10 Thùng ủ sau trộn đậy kín",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_12",
+   "fieldtype": "Section Break",
+   "label": "12. Đóng gói  (oPRP-4)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "kl_tinh_dat",
+   "fieldtype": "Select",
+   "label": "11 Khối lượng tịnh đạt",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "moi_han_kin",
+   "fieldtype": "Select",
+   "label": "12 Mối hàn túi kín",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "nhan_hsd_dung",
+   "fieldtype": "Select",
+   "label": "13 Nhãn, HSD đúng lô",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_c",
+   "fieldtype": "Section Break",
+   "label": "C — Lượt tuần",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "t1_be_nuoc",
+   "fieldtype": "Select",
+   "label": "T1 Bể nước sạch, có nắp",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t2_so_bay_dau_hieu",
+   "fieldtype": "Int",
+   "label": "T2 Trạm bẫy có dấu hiệu",
+   "description": "> 0 chỉ cảnh báo, không tự sự cố",
+   "default": "0"
+  },
+  {
+   "fieldname": "t3_luoi_chan",
+   "fieldtype": "Select",
+   "label": "T3 Lưới chắn côn trùng",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t4_den_kinh",
+   "fieldtype": "Select",
+   "label": "T4 Đèn, kính có bảo vệ",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t5_tu_hoa_chat",
+   "fieldtype": "Select",
+   "label": "T5 Tủ hoá chất khoá, có nhãn",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t6_kho",
+   "fieldtype": "Select",
+   "label": "T6 Kho: kê cao, cách tường",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t7_rac_cong",
+   "fieldtype": "Select",
+   "label": "T7 Rác, cống thoát",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t8_bon_rua_tay",
+   "fieldtype": "Select",
+   "label": "T8 Bồn rửa tay: xà phòng, khăn",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t9_thiet_bi",
+   "fieldtype": "Select",
+   "label": "T9 Thiết bị: không rỉ, không rò dầu",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t10_khoa",
+   "fieldtype": "Select",
+   "label": "T10 Khoá cửa, kho",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "t11_can_qua_chuan",
+   "fieldtype": "Select",
+   "label": "T11 Cân: quả chuẩn đạt",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_b",
+   "fieldtype": "Section Break",
+   "label": "B — Bột đậu",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "san_pham_bot",
+   "fieldtype": "Data",
+   "label": "B0 Vị đang sản xuất",
+   "description": "để truy xuất lô"
+  },
+  {
+   "fieldname": "b1_lac_sach",
+   "fieldtype": "Select",
+   "label": "B1 Lạc trước rang: đã sàng, không mốc/hỏng/sạn",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b2_rang_lac_nhiet",
+   "fieldtype": "Int",
+   "label": "B2a Rang lạc: nhiệt độ",
+   "description": "ngưỡng lấy từ SX QC Setting"
+  },
+  {
+   "fieldname": "b2_rang_lac_phut",
+   "fieldtype": "Int",
+   "label": "B2b Rang lạc: thời gian mẻ",
+   "description": "ngưỡng lấy từ SX QC Setting"
+  },
+  {
+   "fieldname": "b2_lac_chin",
+   "fieldtype": "Select",
+   "label": "B2c Lạc chín vàng đều",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b3_cong_thuc",
+   "fieldtype": "Select",
+   "label": "B3 Đường xay, rây; cân đúng công thức",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b4_moi_han_tui",
+   "fieldtype": "Select",
+   "label": "B4 Mối hàn túi 40 g kín, 5 túi",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b5_nhan_di_ung",
+   "fieldtype": "Select",
+   "label": "B5 Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b6_kl_tui",
+   "fieldtype": "Select",
+   "label": "B6 KL tịnh túi 40 g",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b7_chuyen_doi",
+   "fieldtype": "Select",
+   "label": "B7 Chuyển đổi sau chè đậu đen cốt dừa — thử nhanh lạc",
+   "description": "Dương tính → sự cố Dị ứng, mức Cao",
+   "options": "\nKhông có chuyển đổi\nÂm tính\nDương tính"
+  },
+  {
+   "fieldname": "b7_gio",
+   "fieldtype": "Time",
+   "label": "B7b Giờ thử"
+  },
+  {
+   "fieldname": "section_ghi_chu",
+   "fieldtype": "Section Break",
+   "label": "Ghi chú"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú",
+   "description": "Lý do mục để trống, rework, chuyển đổi. Bắt buộc khi có mục áp dụng bỏ trống, hoặc khi nhập lại từ bản giấy."
+  },
+  {
+   "fieldname": "section_xem_xet",
+   "fieldtype": "Section Break",
+   "label": "Ban ISO xem xét"
+  },
+  {
+   "fieldname": "reviewed_by",
+   "fieldtype": "Link",
+   "label": "Người xem xét",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reviewed_on",
+   "fieldtype": "Datetime",
+   "label": "Xem xét lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_su_co",
+   "fieldtype": "Section Break",
+   "label": "Sự cố phát sinh"
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Table",
+   "label": "Sự cố",
+   "options": "SX QC Round Incident",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_log",
+   "fieldtype": "Section Break",
+   "label": "Nhật ký ghi tại chỗ",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "log",
+   "fieldtype": "Table",
+   "label": "Nhật ký",
+   "options": "SX QC Round Log",
+   "read_only": 1,
+   "description": "Mỗi lần gõ một giá trị là một dòng, kèm giờ trên máy QC. Đây là bằng chứng 'ghi tại chỗ' cho auditor."
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Sửa từ",
+   "options": "SX QC Round",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-13 08:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Round",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "Production Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "cancel": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

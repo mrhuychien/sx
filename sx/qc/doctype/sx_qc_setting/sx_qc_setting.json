@@ -1,0 +1,198 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 08:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_nguong",
+  "rang_nhiet_min",
+  "rang_nhiet_max_van_hanh",
+  "vong_quay_min",
+  "vong_quay_max",
+  "column_break_nguong",
+  "thung_bot_max",
+  "rang_lac_nhiet_min",
+  "rang_lac_phut_min",
+  "section_gio",
+  "ghi_muon_phut",
+  "su_co_qua_han_ngay",
+  "cho_phep_bo_qua_luot_khi_khong_san_xuat",
+  "column_break_gio",
+  "sang_dau_den",
+  "sang_giua_tu",
+  "sang_giua_den",
+  "sang_cuoi_den",
+  "column_break_gio2",
+  "chieu_dau_den",
+  "chieu_giua_tu",
+  "chieu_giua_den",
+  "chieu_cuoi_den"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_nguong",
+   "fieldtype": "Section Break",
+   "label": "Ngưỡng dây chuyền bánh"
+  },
+  {
+   "fieldname": "rang_nhiet_min",
+   "fieldtype": "Int",
+   "label": "Rang: nhiệt độ tối thiểu (°C)",
+   "default": "255",
+   "description": "Dưới ngưỡng này là sự cố oPRP, mức Cao."
+  },
+  {
+   "fieldname": "rang_nhiet_max_van_hanh",
+   "fieldtype": "Int",
+   "label": "Rang: nhiệt độ trần vận hành (°C)",
+   "default": "270",
+   "description": "Vượt thì cảnh báo vận hành, KHÔNG tạo sự cố."
+  },
+  {
+   "fieldname": "vong_quay_min",
+   "fieldtype": "Float",
+   "label": "Vòng quay tối thiểu",
+   "default": "6.2",
+   "precision": "1"
+  },
+  {
+   "fieldname": "vong_quay_max",
+   "fieldtype": "Float",
+   "label": "Vòng quay tối đa",
+   "default": "7.0",
+   "precision": "1"
+  },
+  {
+   "fieldname": "column_break_nguong",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "thung_bot_max",
+   "fieldtype": "Int",
+   "label": "Thùng bột quá hạn tối đa",
+   "default": "0"
+  },
+  {
+   "fieldname": "rang_lac_nhiet_min",
+   "fieldtype": "Int",
+   "label": "Rang lạc: nhiệt độ tối thiểu (°C)",
+   "description": "Để trống cho tới khi thẩm định xong — trống thì chỉ ghi số, không tự sinh sự cố."
+  },
+  {
+   "fieldname": "rang_lac_phut_min",
+   "fieldtype": "Int",
+   "label": "Rang lạc: thời gian tối thiểu (phút)",
+   "description": "Để trống cho tới khi thẩm định xong."
+  },
+  {
+   "fieldname": "section_gio",
+   "fieldtype": "Section Break",
+   "label": "Khung giờ và ghi muộn"
+  },
+  {
+   "fieldname": "ghi_muon_phut",
+   "fieldtype": "Int",
+   "label": "Quá bao nhiêu phút thì coi là ghi muộn",
+   "default": "45"
+  },
+  {
+   "fieldname": "su_co_qua_han_ngay",
+   "fieldtype": "Int",
+   "label": "Sự cố mở quá bao nhiêu ngày là quá hạn",
+   "default": "7"
+  },
+  {
+   "fieldname": "cho_phep_bo_qua_luot_khi_khong_san_xuat",
+   "fieldtype": "Check",
+   "label": "Cho phép bỏ lượt khi không sản xuất",
+   "default": "1"
+  },
+  {
+   "fieldname": "column_break_gio",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sang_dau_den",
+   "fieldtype": "Time",
+   "label": "Ca Sáng — đầu ca ghi trước",
+   "default": "09:30:00"
+  },
+  {
+   "fieldname": "sang_giua_tu",
+   "fieldtype": "Time",
+   "label": "Ca Sáng — giữa ca từ",
+   "default": "09:30:00"
+  },
+  {
+   "fieldname": "sang_giua_den",
+   "fieldtype": "Time",
+   "label": "Ca Sáng — giữa ca đến",
+   "default": "12:00:00"
+  },
+  {
+   "fieldname": "sang_cuoi_den",
+   "fieldtype": "Time",
+   "label": "Ca Sáng — cuối ca ghi trước",
+   "default": "13:00:00"
+  },
+  {
+   "fieldname": "column_break_gio2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "chieu_dau_den",
+   "fieldtype": "Time",
+   "label": "Ca Chiều — đầu ca ghi trước",
+   "default": "15:30:00"
+  },
+  {
+   "fieldname": "chieu_giua_tu",
+   "fieldtype": "Time",
+   "label": "Ca Chiều — giữa ca từ",
+   "default": "15:30:00"
+  },
+  {
+   "fieldname": "chieu_giua_den",
+   "fieldtype": "Time",
+   "label": "Ca Chiều — giữa ca đến",
+   "default": "18:00:00"
+  },
+  {
+   "fieldname": "chieu_cuoi_den",
+   "fieldtype": "Time",
+   "label": "Ca Chiều — cuối ca ghi trước",
+   "default": "19:00:00"
+  }
+ ],
+ "links": [],
+ "modified": "2026-09-13 08:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Setting",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1
+  },
+  {
+   "role": "Production Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "issingle": 1
+}

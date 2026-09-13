@@ -8,6 +8,7 @@ from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
 from sx.config.roles import (
+    ROLE_VIEWS,
     allowed_views,
     guard_card,
     is_super,
@@ -83,9 +84,14 @@ def _nhan_vien_vao_hop():
 
 
 def _any_sx_guard():
-    """Cho phép mọi role SX (boot / phiếu ngày dùng chung)."""
+    """Cho phép mọi role SX (boot / phiếu ngày dùng chung).
+
+    Lấy thẳng từ ROLE_VIEWS chứ không chép tay danh sách role: thêm role mới mà
+    quên sửa chỗ này thì người ta đăng nhập được, thấy tab của mình, bấm vào là
+    "không có quyền vào portal" — lỗi trông như hỏng app chứ không như thiếu cấu hình.
+    """
     roles = user_roles()
-    if is_super(roles) or roles & {"SX Ghi So", "SX Vao Hop", "SX Thu Kho"}:
+    if is_super(roles) or roles & set(ROLE_VIEWS):
         return
     frappe.throw(_("Bạn không có quyền vào portal sản xuất."), frappe.PermissionError)
 

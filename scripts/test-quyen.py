@@ -38,6 +38,9 @@ frappe.get_meta = lambda dt: types.SimpleNamespace(get_field=lambda f: True,
 frappe.session = types.SimpleNamespace(user="ai@do.com")
 frappe.utils = types.ModuleType("frappe.utils")
 for ten, ham in [("cint", lambda v: int(v or 0)), ("flt", lambda v, p=None: float(v or 0)),
+                 ("get_datetime", lambda x=None: x), ("now_datetime", lambda: None),
+                 ("format_datetime", lambda *a: ""), ("get_time", lambda x=None: x),
+                 ("time_diff_in_seconds", lambda a, b: 0),
                  ("getdate", lambda x=None: x), ("nowdate", lambda: "2026-09-10"),
                  ("add_days", lambda d, n: d), ("now_datetime", lambda: None),
                  ("get_url", lambda: "https://x"), ("formatdate", lambda d: str(d))]:
@@ -118,8 +121,20 @@ kiem("Thủ kho: không ghi hộp được", not goi_duoc("vaohop"))
 kiem("Thủ kho: không tạo tài khoản được", not goi_duoc("nguoidung"))
 
 nhu_la(R.QUAN_LY)
-kiem("Quản lý: thấy cả bốn màn", len(R.allowed_views()) == 4, str(R.allowed_views()))
+kiem("Quản lý: thấy mọi màn", R.allowed_views() == R.MOI_VIEW, str(R.allowed_views()))
 kiem("Quản lý: tạo tài khoản được", goi_duoc("nguoidung"))
+
+# ── QC chế biến (module qc) — KHÔNG lấn sang mấy màn nhập liệu cũ ──────
+print("\n-- module QC: 4 vai, và chỗ khác nhau giữa chúng --")
+for vai, ten in [(R.QC, "QC chế biến"), (R.QC_GOI, "QC đóng gói"),
+                 (R.ISO, "Ban ISO"), (R.QLSX, "QLSX")]:
+    nhu_la(vai)
+    kiem(f"{ten}: thấy đúng màn QC", R.allowed_views() == ["qc"],
+         str(R.allowed_views()))
+    kiem(f"{ten}: không vào được màn nhập liệu cũ",
+         not any(goi_duoc(c) for c in ["vaohop", "nhapkhotp", "chotngay",
+                                       "nguoidung", "baome"]))
+    kiem(f"{ten}: không phải super role", not R.is_super())
 
 nhu_la()
 kiem("không role nào: không vào được màn nào", R.allowed_views() == [])
@@ -152,19 +167,32 @@ kiem("Ghi sổ KHÔNG được duyệt", not K._duoc_duyet())
 
 # ── 4. Mọi method whitelist đều có chốt ─────────────────────────────────
 print("\n-- không có cửa hậu: mọi method whitelist đều chốt quyền --")
-CHOT = {"guard_card", "_kiem_quyen", "_any_sx_guard"}
+# Module qc không import sx/config/roles.py (để tách thành app riêng được) nên
+# nó có bộ chốt riêng. Vẫn phải có chốt — chỉ là tên khác.
+CHOT = {"guard_card", "_kiem_quyen", "_any_sx_guard",
+        "_guard_qc", "_guard_ghi", "_guard_manager"}
 ho = []
 tong = 0
+
+
+def _goi_trong(fn):
+    return {getattr(c.func, "id", "") or getattr(c.func, "attr", "")
+            for c in ast.walk(fn) if isinstance(c, ast.Call)}
+
+
 for p in sorted(pathlib.Path("sx/api").glob("*.py")):
     cay = ast.parse(p.read_text(encoding="utf-8"))
-    for fn in [n for n in cay.body if isinstance(n, ast.FunctionDef)]:
+    ham = [n for n in cay.body if isinstance(n, ast.FunctionDef)]
+    # Chốt gián tiếp cũng là chốt: `_lay_round()` gọi `_guard_ghi()` bên trong
+    # nên method nào đi qua nó là đã chốt. Chỉ nhận ĐÚNG MỘT tầng — sâu hơn thì
+    # đọc code không còn thấy ngay cửa khoá ở đâu, mà đó mới là thứ cần thấy.
+    chot_giap = {f.name for f in ham if _goi_trong(f) & CHOT}
+    for fn in ham:
         if not any(isinstance(d, ast.Call) and getattr(d.func, "attr", "") == "whitelist"
                    for d in fn.decorator_list):
             continue
         tong += 1
-        ten_goi = {getattr(c.func, "id", "") or getattr(c.func, "attr", "")
-                   for c in ast.walk(fn) if isinstance(c, ast.Call)}
-        if not (ten_goi & CHOT):
+        if not (_goi_trong(fn) & (CHOT | chot_giap)):
             ho.append(f"{p.name}:{fn.name}")
 kiem(f"cả {tong} method đều có chốt quyền", not ho, ", ".join(ho) or "không có cửa hậu")
 
@@ -180,6 +208,48 @@ for p in sorted(pathlib.Path("sx/www").glob("*.py")):
         ho_hang.append(p.name)
 kiem("chỉ /vao là trang không chặn khách",
      not ho_hang, ", ".join(ho_hang) or f"công khai đúng {sorted(CONG_KHAI)}")
+
+# ── module qc: người ghi KHÔNG tự duyệt ───────────────────────────────
+print("\n-- module QC: ba vai, ba quyền, và chỗ khác nhau là chỗ có giá trị --")
+spq = importlib.util.spec_from_file_location("sx.api.qc", "sx/api/qc.py")
+Q = importlib.util.module_from_spec(spq)
+sys.modules["sx.api.qc"] = Q
+sys.modules["sx.qc"] = types.ModuleType("sx.qc")
+sys.modules["sx.qc"].__path__ = []
+for ten_mod, ten_file in [("sx.qc.muc", "sx/qc/muc.py"),
+                          ("sx.qc.nguong", "sx/qc/nguong.py"),
+                          ("sx.qc.su_co", "sx/qc/su_co.py")]:
+    sp2 = importlib.util.spec_from_file_location(ten_mod, ten_file)
+    mod2 = importlib.util.module_from_spec(sp2)
+    sys.modules[ten_mod] = mod2
+    sp2.loader.exec_module(mod2)
+spq.loader.exec_module(Q)
+
+
+def qua(ham):
+    try:
+        ham()
+        return True
+    except PermissionError:
+        return False
+
+
+for vai, ten, vao, ghi, duyet in [
+    (R.QC, "QC chế biến", True, True, False),
+    (R.QC_GOI, "QC đóng gói", True, True, False),
+    (R.QLSX, "QLSX", True, False, False),
+    (R.ISO, "Ban ISO", True, False, True),
+    (R.GHI_SO, "Ghi sổ (ngoài QC)", False, False, False),
+    (R.VAO_HOP, "QC vào hộp (ngoài QC)", False, False, False),
+]:
+    nhu_la(vai)
+    kiem(f"{ten}: vào phần QC = {vao}", qua(Q._guard_qc) is vao)
+    kiem(f"{ten}: ghi vòng kiểm = {ghi}", qua(Q._guard_ghi) is ghi)
+    kiem(f"{ten}: đóng sự cố / xem xét = {duyet}", qua(Q._guard_manager) is duyet)
+
+kiem("tên role khai ở roles.py và api/qc.py khớp nhau",
+     (Q.QC, Q.QC_GOI, Q.ISO, Q.QLSX) == (R.QC, R.QC_GOI, R.ISO, R.QLSX),
+     f"{(Q.QC, Q.QC_GOI, Q.ISO, Q.QLSX)} vs {(R.QC, R.QC_GOI, R.ISO, R.QLSX)}")
 
 print("QUYEN-FAIL ({} ca)".format(hong) if hong else "QUYEN-OK")
 sys.exit(1 if hong else 0)

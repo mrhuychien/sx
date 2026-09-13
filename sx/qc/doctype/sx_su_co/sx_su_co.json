@@ -1,0 +1,281 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 08:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "ngay",
+  "ca",
+  "trang_thai",
+  "column_break_head",
+  "nguon",
+  "qc_round",
+  "muc",
+  "section_phan_loai",
+  "cong_doan",
+  "loai",
+  "column_break_pl",
+  "muc_do",
+  "qua_han",
+  "section_mo_ta",
+  "mo_ta",
+  "lo_anh_huong",
+  "so_luong",
+  "section_xu_ly",
+  "xu_ly_ngay",
+  "nguoi_xu_ly",
+  "nguyen_nhan",
+  "hanh_dong_khac_phuc",
+  "column_break_xl",
+  "quyet_dinh_sp",
+  "car_so",
+  "section_dong",
+  "dong_boi",
+  "dong_ngay"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số phiếu",
+   "options": "SC-.YYYY.-.####",
+   "default": "SC-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ca",
+   "fieldtype": "Select",
+   "label": "Ca",
+   "options": "\nSáng\nChiều"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Mở\nĐóng",
+   "default": "Mở",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Chỉ ISO Manager chuyển sang Đóng — chốt ở server, không phải ở nút trên màn hình."
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguon",
+   "fieldtype": "Select",
+   "label": "Nguồn",
+   "options": "Vòng kiểm QC\nTiếp nhận NL\nKhiếu nại\nPhát hiện khác",
+   "default": "Vòng kiểm QC",
+   "reqd": 1
+  },
+  {
+   "fieldname": "qc_round",
+   "fieldtype": "Link",
+   "label": "Vòng kiểm",
+   "options": "SX QC Round",
+   "read_only": 1
+  },
+  {
+   "fieldname": "muc",
+   "fieldtype": "Data",
+   "label": "Mục không đạt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_phan_loai",
+   "fieldtype": "Section Break",
+   "label": "Phân loại"
+  },
+  {
+   "fieldname": "cong_doan",
+   "fieldtype": "Select",
+   "label": "Công đoạn",
+   "options": "\n1 Tiếp nhận, ngâm đỗ\n2 Luộc\n3 Rang\n4 Sàng cát\n5 Ủ\n6 Vỡ đỗ, nam châm\n7 Nghiền\n8 Kho bột\n9 Trộn\n10 Ủ sau trộn\n11 Ép khuôn\n12 Cân, khối lượng tịnh\n13 Hàn túi\n14 Nhãn, HSD\n15 Đóng thùng\n16 Lưu kho thành phẩm\nPRP\nBột: tiếp nhận\nBột: nhặt lạc\nBột: rang lạc\nBột: xay đường\nBột: trộn\nBột: đóng túi\nBột: đóng thùng",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "loai",
+   "fieldtype": "Select",
+   "label": "Loại",
+   "options": "oPRP\nPRP\nDị ứng\nHiệu chỉnh hồ sơ\nKhác",
+   "default": "Khác",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_pl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "muc_do",
+   "fieldtype": "Select",
+   "label": "Mức độ",
+   "options": "Thường\nCao",
+   "default": "Thường",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "qua_han",
+   "fieldtype": "Check",
+   "label": "Quá hạn",
+   "read_only": 1,
+   "description": "Mở quá số ngày trong SX QC Setting. Tính lại mỗi lần đọc."
+  },
+  {
+   "fieldname": "section_mo_ta",
+   "fieldtype": "Section Break",
+   "label": "Nội dung"
+  },
+  {
+   "fieldname": "mo_ta",
+   "fieldtype": "Small Text",
+   "label": "Mô tả",
+   "reqd": 1
+  },
+  {
+   "fieldname": "lo_anh_huong",
+   "fieldtype": "Data",
+   "label": "Lô ảnh hưởng",
+   "description": "HSD / ngày nghiền / vị"
+  },
+  {
+   "fieldname": "so_luong",
+   "fieldtype": "Data",
+   "label": "Số lượng"
+  },
+  {
+   "fieldname": "section_xu_ly",
+   "fieldtype": "Section Break",
+   "label": "Xử lý"
+  },
+  {
+   "fieldname": "xu_ly_ngay",
+   "fieldtype": "Small Text",
+   "label": "Xử lý ngay",
+   "description": "Bắt buộc điền trước khi đóng phiếu."
+  },
+  {
+   "fieldname": "nguoi_xu_ly",
+   "fieldtype": "Link",
+   "label": "Người xử lý",
+   "options": "User"
+  },
+  {
+   "fieldname": "nguyen_nhan",
+   "fieldtype": "Small Text",
+   "label": "Nguyên nhân"
+  },
+  {
+   "fieldname": "hanh_dong_khac_phuc",
+   "fieldtype": "Small Text",
+   "label": "Hành động khắc phục"
+  },
+  {
+   "fieldname": "column_break_xl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "quyet_dinh_sp",
+   "fieldtype": "Select",
+   "label": "Quyết định với sản phẩm",
+   "options": "\nDùng lại sau xử lý\nRework (BM.15.01)\nChuyển mục đích khác\nLoại bỏ\nKhông ảnh hưởng sản phẩm",
+   "description": "Bắt buộc chọn trước khi đóng phiếu."
+  },
+  {
+   "fieldname": "car_so",
+   "fieldtype": "Data",
+   "label": "Số CAR (BM.01.07)"
+  },
+  {
+   "fieldname": "section_dong",
+   "fieldtype": "Section Break",
+   "label": "Đóng phiếu"
+  },
+  {
+   "fieldname": "dong_boi",
+   "fieldtype": "Link",
+   "label": "Đóng bởi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dong_ngay",
+   "fieldtype": "Datetime",
+   "label": "Đóng lúc",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-09-13 08:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX Su Co",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Production Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "autoname": "naming_series:",
+ "title_field": "mo_ta",
+ "track_changes": 1
+}

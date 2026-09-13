@@ -15,6 +15,18 @@ VAO_HOP = "SX Vao Hop"
 # cả giá trị của bước này nằm ở chỗ người duyệt KHÁC người lập.
 THU_KHO = "SX Thu Kho"
 
+# ── Module QC (BM.08.01/02) ────────────────────────────────────────────────
+# Bốn vai mới, tách khỏi "SX Vao Hop" (đang gọi là QC vào hộp): người đi kiểm
+# chế biến không phải người chấm hộp. Frappe cộng dồn role nên ai kiêm cả hai
+# thì gán cả hai — không chỗ nào trong code giả định "mỗi người đúng một role".
+# Tên role khai LẦN NỮA trong sx/api/qc.py (module qc không import file này, để
+# tách ra app riêng được). scripts/test-qc.py chốt hai bên khớp nhau.
+QC = "SX QC"                      # QC chế biến — đi 3 lượt/ca
+QC_GOI = "SX QC Packing"          # QC đóng gói — ghi mục 11–13, B4–B6
+ISO = "ISO Manager"               # Trưởng Ban ISO — đóng sự cố, xem xét
+QLSX = "Production Manager"       # QLSX — đọc, ghi xử lý sự cố
+KHO_NL = "Warehouse"              # thủ kho nguyên liệu — BM.07.03 (P1)
+
 # Role "siêu quyền" — thấy mọi view/card
 SUPER_ROLES = {QUAN_LY, "System Manager", "Administrator"}
 
@@ -23,8 +35,14 @@ ROLE_VIEWS = {
     GHI_SO: ["ghiso"],
     VAO_HOP: ["vaohop", "nhapkho"],
     THU_KHO: ["nhapkho"],
-    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "quanly"],
+    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "qc", "quanly"],
+    QC: ["qc"],
+    QC_GOI: ["qc"],
+    ISO: ["qc"],
+    QLSX: ["qc"],
 }
+
+MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "qc", "quanly"]
 
 # view lắp từ những card nào (thứ tự hiển thị).
 # D33: hai màn NHẬP LIỆU chỉ giữ việc phải gõ. Chốt ngày (hành động chốt sổ) và lưu đồ
@@ -35,6 +53,9 @@ VIEW_CARDS = {
     # D83: màn Ghi hộp của QC chỉ còn đúng việc chấm hộp. Báo sự cố về tổ Ghi sổ.
     "vaohop": ["vaohop"],
     "nhapkho": ["nhapkhotp"],
+    # Màn QC là view standalone: nó tự dựng cả 5 màn con (#/qc, /round/:name,
+    # /incidents, /history, /review) và tự chốt quyền trong sx/api/qc.py.
+    "qc": [],
     "quanly": ["chotngay", "luutrinhbtp", "nguoidung"],
 }
 
@@ -72,7 +93,7 @@ def allowed_views(roles=None):
     """Danh sách view user được vào (super = tất cả), giữ thứ tự ổn định."""
     roles = roles or user_roles()
     if is_super(roles):
-        return ["ghiso", "vaohop", "nhapkho", "quanly"]
+        return list(MOI_VIEW)
     out = []
     for r in roles:
         for v in ROLE_VIEWS.get(r, []):

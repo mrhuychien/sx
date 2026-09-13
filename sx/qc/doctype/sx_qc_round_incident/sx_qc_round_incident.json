@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "creation": "2026-09-13 08:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "incident",
+  "muc",
+  "mo_ta"
+ ],
+ "fields": [
+  {
+   "fieldname": "incident",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố",
+   "options": "SX Su Co",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "muc",
+   "fieldtype": "Data",
+   "label": "Mục",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "mo_ta",
+   "fieldtype": "Data",
+   "label": "Nội dung",
+   "in_list_view": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-09-13 08:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Round Incident",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "istable": 1
+}
