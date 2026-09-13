@@ -3,20 +3,26 @@
     ngay, không phải học format mới. Chữ ký = tài khoản + giờ server ghi. -#}
 <style>
   @page { size: A4 portrait; margin: 10mm 8mm; }
-  .qcs { font: 11px/1.35 "Times New Roman", serif; color: #000; }
-  .qcs h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
-  .qcs .ma { text-align: center; font-size: 10px; margin-bottom: 6px; }
+  /* Ép vừa MỘT trang A4: bảng kiểm 40 dòng + bảng sự cố. Chữ nhỏ hơn
+     11px thì bản photocopy đen trắng bắt đầu khó đọc, nên hết cỡ ở đây
+     là 10px và phần tiết kiệm còn lại lấy từ padding ô. */
+  .qcs { font: 10px/1.2 "Times New Roman", serif; color: #000; }
+  .qcs h1 { font-size: 14px; text-align: center; margin: 0 0 2px; }
+  .qcs .ma { text-align: center; font-size: 9px; margin-bottom: 4px; }
   .qcs table { width: 100%; border-collapse: collapse; }
-  .qcs td, .qcs th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
+  .qcs td, .qcs th { border: 1px solid #000; padding: 1px 4px; vertical-align: top; }
   .qcs th { background: #eee; font-weight: bold; text-align: center; }
   .qcs .buoc td { background: #f3f3f3; font-weight: bold; }
   .qcs .o { text-align: center; width: 34px; font-weight: bold; }
   .qcs .na { background: #ddd; }
   .qcs .so { width: 30px; text-align: center; }
   .qcs .muon { color: #000; font-weight: bold; }
-  .qcs .ky { margin-top: 8px; font-size: 10px; }
-  .qcs .sc { margin-top: 10px; }
-  .qcs .trong { text-align: center; padding: 20px; font-style: italic; }
+  .qcs .ky { margin-top: 6px; font-size: 9px; }
+  .qcs .sc { margin-top: 8px; }
+  /* Bảng sự cố dài thì cho sang trang 2 — nhưng KHÔNG cắt đôi một
+     phiếu giữa hai trang, người đọc sẽ tưởng thiếu. */
+  .qcs .sc tr { break-inside: avoid; }
+  .qcs .trong { text-align: center; padding: 12px; font-style: italic; }
 </style>
 <div class="qcs">
   <h1>PHIẾU KIỂM TRA QC HÀNG NGÀY</h1>

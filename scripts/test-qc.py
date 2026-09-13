@@ -379,5 +379,75 @@ d = luot(**day_du)
 SC.tao_tu_vong_kiem(d)
 kiem("lượt sạch → không phiếu sự cố nào", not DA_TAO and not d["su_co"])
 
+# ═══ 10. Khoá sau khi Ban ISO xem xét ════════════════════════════════════
+print("\n-- lượt đã xem xét thì KHOÁ, kể cả với Ban ISO --")
+frappe.get_roles = lambda u=None: ["ISO Manager"]
+d = luot(reviewed_on="2026-09-20 10:00:00", reviewed_by="iso@rvhg.vn")
+loi = thu(d, R.SXQCRound.on_cancel)
+kiem("Ban ISO KHÔNG huỷ được lượt đã ký xem xét", loi is not None)
+kiem("và chỉ đường sang cách làm đúng",
+     loi and "Hiệu chỉnh hồ sơ" in loi, loi or "")
+frappe.get_roles = lambda u=None: ["System Manager"]
+kiem("System Manager vẫn gỡ được (và việc đó có vết trong log)",
+     thu(d, R.SXQCRound.on_cancel) is None)
+frappe.get_roles = lambda u=None: ["ISO Manager"]
+kiem("lượt CHƯA xem xét thì Ban ISO huỷ được",
+     thu(luot(), R.SXQCRound.on_cancel) is None)
+frappe.get_roles = lambda u=None: ["SX QC"]
+
+# ═══ 11. Tờ in A4 ════════════════════════════════════════════════════════
+print("\n-- tờ ngày BM.08.01: dựng được và có đủ thứ auditor hỏi --")
+import jinja2  # noqa: E402
+
+tt = jinja2.Environment(
+    loader=jinja2.FileSystemLoader("sx/qc"), autoescape=True).get_template("day_sheet.html")
+r1 = luot(**{**day_du, "luot": M.TUAN, "finished_at": datetime(2026, 9, 14, 7, 30),
+             "ghi_muon": 1, "qc_user": "hoa@rvhg.vn", "rang_nhiet_do": 250,
+             "ghi_chu": "không luộc mẻ nào buổi sáng"})
+cot = [{"doc": r1, "ap": {m["f"] for m in M.muc_ap_dung(M.TUAN, 0)}}]
+hang = []
+for ma, ten, oprp, _g in M.BUOC:
+    mb = [m for m in M.MUC if m["buoc"] == ma and not m["bot"]]
+    if not mb:
+        continue
+    hang.append({"buoc": True, "ten": f"{ma}. {ten}"})
+    for m in mb:
+        hang.append({"buoc": False, "so": m["so"], "nhan": m["nhan"],
+                     "o": ["Đ" if m["f"] in cot[0]["ap"] else ""],
+                     "khong_ap": [m["f"] not in cot[0]["ap"]]})
+html = tt.render(
+    ngay="2026-09-14", rounds=[r1], hang=hang, co_bot=0,
+    su_co=[{"name": "SC-0001", "muc": "3a Nhiệt độ rang", "mo_ta": "250 < 255",
+            "muc_do": "Cao", "trang_thai": "Mở", "xu_ly_ngay": "chỉnh lại nhiệt",
+            "quyet_dinh_sp": "Không ảnh hưởng sản phẩm"}],
+    frappe=types.SimpleNamespace(utils=types.SimpleNamespace(
+        formatdate=lambda d, f=None: "14/09/2026",
+        format_datetime=lambda d, f=None: "20/09/2026 10:00")))
+kiem("dựng được tờ in", "BM.08.01" in html)
+# Auditor cầm tờ này lên và hỏi: ai ghi, ghi lúc mấy giờ, mục nào không đạt, và
+# đã làm gì. Thiếu bất kỳ cái nào thì tờ giấy không dùng được để chứng minh.
+for ten, can in [("nhãn ĐẦY ĐỦ của mục (không phải nhãn ngắn của điện thoại)",
+                  "Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô"),
+                 ("giờ hoàn tất", "07:30"),
+                 ("tên người kiểm", "hoa@rvhg.vn"),
+                 # Tìm đúng Ô TRONG BẢNG, không tìm ký tự ✻ trơn: dòng chú
+                 # thích cuối trang lúc nào cũng có ✻, nên bài kiểm cũ vẫn "đạt"
+                 # cả khi bỏ hẳn cờ khỏi bảng. Đã dính thật lúc thử phá code.
+                 ("cờ ghi muộn ở đúng ô trong bảng", '<span class="muon">✻</span>'),
+                 ("ghi chú lý do để trống", "không luộc mẻ nào"),
+                 ("bảng sự cố kèm xử lý", "chỉnh lại nhiệt"),
+                 ("mức độ sự cố", "Cao")]:
+    kiem(f"tờ in có {ten}", can in html, "" if can in html else f"thiếu {can!r}")
+kiem("ô của mục KHÔNG áp dụng được tô xám, không để trắng như chưa ghi",
+     'class="o na"' in html)
+
+# Cửa sổ in mở bằng about:blank KHÔNG thừa kế bảng mã của trang cha; trình duyệt
+# tự đoán và nó đoán sai, tờ giấy in ra đầy "Nhiá»‡t Ä'á»™". Không lỗi nào hiện
+# ra — chỉ có tờ giấy vứt đi, mà lại là tờ đưa cho auditor.
+js = open("sx/public/sx/views/qc_history.js", encoding="utf-8").read()
+kiem("cửa sổ in tự khai charset utf-8",
+     "charset=\"utf-8\"" in js and "document.write" in js)
+
 print("QC-FAIL ({} ca)".format(hong) if hong else "QC-OK")
 sys.exit(1 if hong else 0)
+

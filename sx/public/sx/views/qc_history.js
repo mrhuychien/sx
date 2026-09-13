@@ -102,7 +102,11 @@ async function inToNgay(ngay, call) {
     const html = await call('sx.api.qc.day_sheet', { ngay });
     const w = window.open('', '_blank');
     if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
-    w.document.write(html);
+    // BẮT BUỘC có <meta charset>: cửa sổ mở bằng about:blank không thừa kế bảng
+    // mã của trang cha, trình duyệt tự đoán, và nó đoán sai — tờ giấy in ra đầy
+    // "Nhiá»‡t Ä'á»™". Với auditor thì đó là tờ giấy vứt đi.
+    w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+      + `<title>BM.08.01 — ${ngay}</title></head><body>${html}</body></html>`);
     w.document.close();
     w.focus();
     setTimeout(() => w.print(), 250);
