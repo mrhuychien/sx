@@ -18,6 +18,19 @@
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { openModal } from '/assets/sx/sx/components/modal.js';
 
+/** Một lần bấm phím trên bàn số. Hàm THUẦN để test được không cần trình duyệt.
+ *
+ * `chuaGo` = chưa gõ phím số nào kể từ lúc mở bàn số. Khi đó phím số đầu tiên
+ * ghi đè giá trị điền sẵn thay vì nối vào đuôi (xem chú thích trong openNumpad).
+ */
+export function bamPhim(value, k, chuaGo) {
+  if (k === '⌫') return value.slice(0, -1);
+  if (k === 'C') return '';
+  const goc = chuaGo ? '' : value;
+  if (k === ',') return goc.includes('.') ? goc : `${goc || '0'}.`;
+  return goc.replace('.', '').length < 9 ? goc + k : goc;
+}
+
 export function openNumpad({
   title = 'Nhập số',
   kicker = '',
@@ -79,6 +92,13 @@ export function openNumpad({
   });
 
   let value = String(initial === 0 || initial == null ? '' : initial);
+  // Phím SỐ đầu tiên GHI ĐÈ số điền sẵn, không gõ nối vào đuôi.
+  //
+  // Vì sao: mọi chỗ gọi bàn số đều điền sẵn giá trị hiện tại (tồn kg, số mẻ,
+  // số hộp, nhiệt độ rang). Người ta mở ra là để nhập số MỚI. Gõ nối thì tồn
+  // 120 gõ 50 ra 12050 — không báo lỗi gì, chỉ là một con số vô lý đi thẳng vào
+  // sổ kho. Muốn sửa đuôi thì bấm ⌫ trước, sau đó gõ nối như thường.
+  let chuaGo = value !== '';
   let nhanDonVi = unitLabel || unit || 'SỐ';
 
   // ── hàng chip chọn loại ──
@@ -127,10 +147,9 @@ export function openNumpad({
     if (k === 'C' || k === '⌫') btn.classList.add('sx-np-key-phu');
     if (k === 'C') btn.classList.add('sx-np-key-xoa');
     btn.addEventListener('click', () => {
-      if (k === '⌫') value = value.slice(0, -1);
-      else if (k === 'C') value = '';
-      else if (k === ',') { if (!value.includes('.')) value = (value || '0') + '.'; }
-      else if (value.replace('.', '').length < 9) value += k;
+      value = bamPhim(value, k, chuaGo);
+      // ⌫ và C là ý định SỬA số đang có, nên sau chúng thì gõ nối như thường.
+      chuaGo = false;
       paint();
     });
     grid.appendChild(btn);

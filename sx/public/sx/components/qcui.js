@@ -9,6 +9,7 @@
 // lại máy, chứ không phải hoàn tất xong mới biết.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
+import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 
 export const DAT = 'Đạt';
 export const KHONG_DAT = 'Không đạt';
@@ -102,37 +103,89 @@ export function hangChon(m, giaTri, onSet, khoa) {
   return row;
 }
 
-function khungSo(m, giaTri, onSet, ng, khoa, thap) {
-  const box = el('div', 'sx-qc-oso-khung');
-  const inp = el('input');
-  inp.type = 'text';
-  inp.inputMode = thap ? 'decimal' : 'numeric';
-  inp.value = (giaTri === 0 || giaTri === '0') && !m.dem ? '' : (giaTri ?? '');
-  inp.placeholder = '—';
-  inp.disabled = !!khoa;
-  box.appendChild(inp);
-  if (m.dv) box.appendChild(el('span', 'sx-qc-oso-dv', esc(m.dv)));
-  return { box, inp, ng };
+/** Dòng phụ NGẮN cho ô mực của bàn số. Phải ngắn: nó nằm cạnh con số trong một
+ *  ô hẹp, câu dài thì vỡ layout hoặc bị cắt giữa chừng. Câu đầy đủ vẫn ở dưới ô
+ *  nhập trên màn chính. */
+function goiYNgan(f, v, ng) {
+  const g = ng || {};
+  const tt = trangThaiSo(f, v, ng);
+  if (f === 'rang_nhiet_do') {
+    if (tt === 'loi') return `✕ < ${g.rang_nhiet_min ?? 255}`;
+    if (tt === 'canh') return `⚠ > ${g.rang_nhiet_max_van_hanh ?? 270}`;
+    return `≥ ${g.rang_nhiet_min ?? 255} °C`;
+  }
+  if (f === 'rang_vong_quay') {
+    const kh = `${g.vong_quay_min ?? 6.2}–${g.vong_quay_max ?? 7}`;
+    return tt === 'loi' ? `✕ ngoài ${kh}` : kh;
+  }
+  if (f === 'thung_bot_qua_han') return tt === 'loi' ? '✕ > 0' : '0 = đạt';
+  if (f === 't2_so_bay_dau_hieu') return tt === 'canh' ? '⚠ có dấu hiệu' : '/ 12 trạm';
+  if (f === 'b2_rang_lac_nhiet') {
+    return g.rang_lac_nhiet_min ? `≥ ${g.rang_lac_nhiet_min} °C` : 'chưa có ngưỡng';
+  }
+  if (f === 'b2_rang_lac_phut') {
+    return g.rang_lac_phut_min ? `≥ ${g.rang_lac_phut_min} phút` : 'chưa có ngưỡng';
+  }
+  return '';
 }
 
-/** Ô số. Ô ĐẾM có nút − / + (đếm thùng giữa kho thì bấm nhanh hơn gõ);
- *  ô ĐO chỉ có bàn phím số. */
+/** Ô số.
+ *
+ * Bấm vào con số là mở BÀN SỐ TO của app, không dùng bàn phím hệ thống. Lý do
+ * giống mọi chỗ nhập số khác trong app: QC đeo găng, đứng cạnh máy rang, và bàn
+ * phím hệ thống trên điện thoại che mất hai phần ba màn hình đúng lúc cần nhìn
+ * lại con số vừa gõ. Bàn số của app hiện con số trên nền mực kèm ngưỡng ngay
+ * bên cạnh, nên sai một chữ số là thấy ngay trước khi bấm LƯU.
+ *
+ * Ô ĐẾM (thùng quá hạn, trạm bẫy) giữ thêm nút − / +: đếm mấy thùng giữa kho
+ * thì bấm nhanh hơn mở bàn số.
+ */
 export function oSo(m, giaTri, onSet, ng, khoa) {
   const dem = m.f === 'thung_bot_qua_han' || m.f === 't2_so_bay_dau_hieu';
+  const thap = m.kieu === 'so';
   const wrap = el('div', 'sx-qc-oso');
   wrap.dataset.f = m.f;
   wrap.appendChild(el('div', 'sx-qc-nhan', nhan(m, false)));
-  const { box, inp } = khungSo({ ...m, dem }, giaTri, onSet, ng, khoa,
-    m.kieu === 'so');
+
+  // 0 ở ô ĐO nghĩa là "chưa đo" nên hiện dấu —, còn 0 ở ô ĐẾM là số thật.
+  let v = (giaTri === null || giaTri === undefined || giaTri === '') ? ''
+    : String(giaTri);
+  if (!dem && Number(v) === 0) v = '';
+
+  const box = el('button', 'sx-qc-oso-khung');
+  box.type = 'button';
+  box.disabled = !!khoa;
   const goiy = el('div', 'sx-qc-goiy', esc(m.goi_y || ''));
 
-  const capNhat = () => {
-    const tt = trangThaiSo(m.f, inp.value, ng);
+  const ve = () => {
+    box.innerHTML = `<span class="sx-qc-oso-val${v === '' ? ' sx-qc-trong-so' : ''}">`
+      + `${esc(v === '' ? '—' : v)}</span>`
+      + (m.dv ? `<span class="sx-qc-oso-dv">${esc(m.dv)}</span>` : '');
+    box.setAttribute('aria-label',
+      `${m.so} ${m.ngan || m.nhan}: ${v === '' ? 'chưa ghi' : v} ${m.dv || ''}`.trim());
+    const tt = trangThaiSo(m.f, v, ng);
     wrap.classList.toggle('sx-qc-oso-loi', tt === 'loi');
     wrap.classList.toggle('sx-qc-oso-canh', tt === 'canh');
-    goiy.textContent = tt ? loiSo(m.f, inp.value, ng) : (m.goi_y || '');
+    goiy.textContent = tt ? loiSo(m.f, v, ng) : (m.goi_y || '');
   };
-  inp.addEventListener('input', () => { capNhat(); onSet(m.f, inp.value); });
+
+  const dat = (moi) => {
+    v = moi;
+    ve();
+    onSet(m.f, v);
+  };
+
+  box.addEventListener('click', () => openNumpad({
+    kicker: m.so,
+    title: m.ngan || m.nhan,
+    initial: v,
+    allowDecimal: thap,
+    unitLabel: m.dv || 'SỐ',
+    // Ngưỡng hiện NGAY CẠNH con số đang gõ: thấy 248 đỏ lúc còn đứng ở máy thì
+    // còn kịp đi xem lại, chứ không phải biết sau khi đã bấm Hoàn tất lượt.
+    hint: (n) => goiYNgan(m.f, n, ng),
+    onOk: (n) => dat(thap ? String(n) : String(Math.round(n))),
+  }));
 
   if (dem) {
     const hang = el('div', 'sx-qc-dem');
@@ -140,11 +193,7 @@ export function oSo(m, giaTri, onSet, ng, khoa) {
       const b = el('button', null, ky);
       b.type = 'button';
       b.disabled = !!khoa;
-      b.addEventListener('click', () => {
-        inp.value = String(Math.max(0, (Number(inp.value) || 0) + buoc));
-        capNhat();
-        onSet(m.f, inp.value);
-      });
+      b.addEventListener('click', () => dat(String(Math.max(0, (Number(v) || 0) + buoc))));
       return b;
     };
     hang.appendChild(nut('−', -1));
@@ -155,7 +204,7 @@ export function oSo(m, giaTri, onSet, ng, khoa) {
     wrap.appendChild(box);
   }
   wrap.appendChild(goiy);
-  capNhat();
+  ve();
   return wrap;
 }
 

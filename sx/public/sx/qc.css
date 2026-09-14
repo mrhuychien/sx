@@ -101,12 +101,24 @@
   border-bottom: 1px solid var(--sx-line);
   display: flex; flex-direction: column; gap: var(--sx-s2);
 }
+/* Ô số là <button> (bấm mở bàn số của app), ô chữ/giờ vẫn là <input>. Cùng một
+   dáng để hai loại không trông như hai thứ khác nhau. */
 .sx-qc-oso-khung {
   display: flex; align-items: center; gap: var(--sx-s2);
-  height: var(--sx-tap-xl); padding: 0 var(--sx-s4);
+  width: 100%; height: var(--sx-tap-xl); padding: 0 var(--sx-s4);
   border: 2px solid var(--sx-line); border-radius: var(--sx-radius-sm);
-  background: var(--sx-surface);
+  background: var(--sx-surface); text-align: left;
+  font-family: var(--sx-font); color: var(--sx-text);
 }
+button.sx-qc-oso-khung { cursor: pointer; }
+button.sx-qc-oso-khung:disabled { cursor: default; opacity: .7; }
+.sx-qc-oso-val {
+  flex: 1; min-width: 0; font: 700 var(--sx-f-xl)/1 var(--sx-font);
+}
+/* Chưa ghi thì dấu — phải MỜ, để liếc dọc màn hình là thấy ngay còn ô nào trống.
+   Cùng cỡ chữ với số thật thì ô trống trông như đã điền. */
+.sx-qc-oso-khung .sx-qc-oso-val:only-child,
+.sx-qc-oso-khung .sx-qc-oso-val.sx-qc-trong-so { color: var(--sx-line-2); }
 .sx-qc-oso-khung input {
   flex: 1; width: 0; border: 0; background: transparent; outline: none;
   font: 700 var(--sx-f-xl)/1 var(--sx-font); color: var(--sx-text);

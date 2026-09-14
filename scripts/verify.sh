@@ -133,6 +133,12 @@ python3 scripts/test-qc.py > /tmp/sx-qc.log 2>&1 \
   && tail -1 /tmp/sx-qc.log \
   || { cat /tmp/sx-qc.log; loi=1; }
 
+# Bàn số điền sẵn số hiện tại ở MỌI chỗ gọi. Phím đầu gõ nối vào đuôi thì tồn 120
+# gõ 50 ra 12050 — không lỗi nào hiện ra, chỉ là số vô lý đi thẳng vào sổ kho.
+node scripts/test-numpad.mjs > /tmp/sx-np.log 2>&1 \
+  && tail -1 /tmp/sx-np.log \
+  || { cat /tmp/sx-np.log; loi=1; }
+
 # Hộp nhắc hỏng theo hai hướng và cả hai đều kết thúc ở chỗ không ai đọc nó nữa:
 # nhắc thừa thì mắt tự bỏ qua vùng đó, nhắc thiếu thì mất đúng thứ nó sinh ra để bắt.
 python3 scripts/test-nhac.py > /tmp/sx-nhac.log 2>&1 \
