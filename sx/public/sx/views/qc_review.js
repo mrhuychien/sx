@@ -8,7 +8,7 @@
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step } from '/assets/sx/sx/components/modal.js';
-import { khungTrong } from '/assets/sx/sx/components/qcui.js';
+import { khungTrong, veNhac } from '/assets/sx/sx/components/qcui.js';
 
 const st = { thang: null };
 
@@ -28,10 +28,12 @@ export async function render(api) {
 
   let kpi = null;
   let ds = [];
+  let nh = null;
   try {
-    [kpi, ds] = await Promise.all([
+    [kpi, ds, nh] = await Promise.all([
       call('sx.api.qc.dashboard', { tu, den }),
       call('sx.api.qc.list_rounds', { tu, den }),
+      call('sx.api.qc.nhac').catch(() => null),
     ]);
   } catch (e) {
     container.innerHTML = '';
@@ -51,6 +53,9 @@ export async function render(api) {
   dieu.appendChild(el('div', 'sx-qc-ngay', 'Tháng'));
   dieu.appendChild(inp);
   container.appendChild(dieu);
+
+  const hopNhac = veNhac((nh && nh.ds) || []);
+  if (hopNhac) container.appendChild(hopNhac);
 
   const o = (nhan, so, ghi) => {
     const b = el('div', 'sx-qc-kpi-o');

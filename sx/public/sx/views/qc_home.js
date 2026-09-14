@@ -7,7 +7,7 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
-import { chip, segment } from '/assets/sx/sx/components/qcui.js';
+import { chip, segment, veNhac } from '/assets/sx/sx/components/qcui.js';
 import { formatTime } from '/assets/sx/sx/lib/format.js';
 
 const THU = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
@@ -20,7 +20,10 @@ function tenNgay(iso) {
 
 export async function render({ container, call, st }) {
   container.innerHTML = '<div class="sx-boot-loading">Đang tải…</div>';
-  const dl = await call('sx.api.qc.get_today', st.ngay ? { ngay: st.ngay } : {});
+  const [dl, nh] = await Promise.all([
+    call('sx.api.qc.get_today', st.ngay ? { ngay: st.ngay } : {}),
+    call('sx.api.qc.nhac', st.ngay ? { ngay: st.ngay } : {}).catch(() => null),
+  ]);
   st.ngay = dl.ngay;
   if (!st.ca) st.ca = dl.ca[0];
   container.innerHTML = '';
@@ -52,6 +55,10 @@ export async function render({ container, call, st }) {
   top.appendChild(inpNgay);
   top.appendChild(doiNgay);
   container.appendChild(top);
+  // Hộp nhắc đứng NGAY DƯỚI ngày, trên cả ba thẻ lượt: việc đang treo phải
+  // đập vào mắt trước khi người ta bấm "Bắt đầu lượt" rồi quên mất nó.
+  const hopNhac = veNhac((nh && nh.ds) || []);
+  if (hopNhac) container.appendChild(hopNhac);
   container.appendChild(segment(dl.ca, st.ca, (v) => {
     st.ca = v;
     render({ container, call, st });
@@ -87,15 +94,10 @@ export async function render({ container, call, st }) {
     'Bật thì lượt mở sau có thêm phần B (dây chuyền bột).'));
   container.appendChild(bot);
 
-  // ── sự cố ───────────────────────────────────────────────────────────
-  const chips = el('div', 'sx-qc-chips');
-  const a = el('a', 'sx-qc-tag' + (dl.su_co_mo ? ' sx-qc-tag-mo' : ''),
-    `Sự cố mở: ${dl.su_co_mo}`);
-  a.href = '#/qc/incidents';
-  a.style.textDecoration = 'none';
-  chips.appendChild(a);
-  if (dl.su_co_qua_han) chips.appendChild(chip(`Quá hạn: ${dl.su_co_qua_han}`, 'han'));
-  container.appendChild(chips);
+  // KHÔNG có chip "Sự cố mở / Quá hạn" ở đây nữa: hộp nhắc đầu màn đã nói
+  // cùng một chuyện, nói kỹ hơn, và bấm vào cũng sang đúng màn đó. Hai khối
+  // cùng một nội dung trên một màn thì người đọc phải dừng lại kiểm xem chúng
+  // có khác nhau không — mà chúng thì không.
 
   // Nhập lại từ bản giấy = mở một ngày cũ. Viết hẳn ra thành câu, vì cái nút 📅
   // trên đầu màn không tự nói được nó dùng để làm việc đó.

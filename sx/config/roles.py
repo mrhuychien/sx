@@ -56,7 +56,8 @@ VIEW_CARDS = {
     # Màn QC là view standalone: nó tự dựng cả 5 màn con (#/qc, /round/:name,
     # /incidents, /history, /review) và tự chốt quyền trong sx/api/qc.py.
     "qc": [],
-    "quanly": ["chotngay", "luutrinhbtp", "nguoidung"],
+    # qcnhac đứng ĐẦU: việc QC đang treo phải đập vào mắt trước cả nút chốt ngày.
+    "quanly": ["qcnhac", "chotngay", "luutrinhbtp", "nguoidung"],
 }
 
 # card nào role nào được GỌI API (chốt bảo mật thật — không phải ẩn tab)
@@ -77,6 +78,9 @@ CARD_ROLES = {
     # Tạo tài khoản là cấp quyền cho người khác — chỉ quản lý, và danh sách role gán
     # được bị đóng cứng trong sx/api/nguoidung.py.
     "nguoidung": [QUAN_LY],
+    # Hộp nhắc việc QC trên dashboard quản lý. Không chứa gì bí mật — nó chỉ
+    # đếm lại những thứ chính người đó có quyền xem.
+    "qcnhac": [QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
 

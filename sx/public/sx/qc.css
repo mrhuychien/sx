@@ -267,3 +267,19 @@ button.sx-qc-tag {
 button.sx-qc-tag-chon {
   background: var(--sx-season-btn); color: #fff; border-color: transparent;
 }
+
+/* ── hộp nhắc việc ─────────────────────────────────────────────────────── */
+.sx-qc-nhac { display: flex; flex-direction: column; gap: var(--sx-s2); }
+.sx-qc-nhac-o {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--sx-surface); border: 1px solid var(--sx-line);
+  border-left-width: 4px; border-radius: var(--sx-radius-sm);
+  padding: var(--sx-s3) var(--sx-s4); min-height: var(--sx-tap);
+}
+.sx-qc-nhac-cao { border-left-color: var(--sx-danger); }
+.sx-qc-nhac-thuong { border-left-color: var(--sx-warning); }
+.sx-qc-nhac-ten { font-weight: 700; font-size: var(--sx-f-sm); }
+.sx-qc-nhac-cao .sx-qc-nhac-ten { color: var(--sx-danger-text); }
+.sx-qc-nhac-ct {
+  font-size: var(--sx-f-xs); color: var(--sx-text-2); margin-top: 2px;
+}

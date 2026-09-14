@@ -260,3 +260,22 @@ export function chip(text, kieu) {
 export function khungTrong(text) {
   return el('div', 'sx-qc-trong-box', esc(text));
 }
+
+/** Hộp nhắc việc — dùng chung cho màn QC, màn Xem xét và card trên Quản lý.
+ *
+ * Mức "cao" viền đỏ, mức thường viền vàng. Không có mục nào thì KHÔNG vẽ gì
+ * cả: một hộp "không có việc gì" chiếm chỗ mỗi ngày sẽ dạy mắt bỏ qua đúng
+ * vùng màn hình đó, và hôm có việc thật thì nó cũng bị bỏ qua nốt. */
+export function veNhac(ds, opts = {}) {
+  if (!ds || !ds.length) return null;
+  const box = el('div', 'sx-qc-nhac');
+  if (opts.tieu_de) box.appendChild(el('div', 'sx-qc-sc-ten', esc(opts.tieu_de)));
+  ds.forEach((x) => {
+    const a = el('a', `sx-qc-nhac-o sx-qc-nhac-${x.muc_do === 'cao' ? 'cao' : 'thuong'}`);
+    a.href = x.route || '#/qc';
+    a.innerHTML = `<div class="sx-qc-nhac-ten">${esc(x.tieu_de)}</div>
+      <div class="sx-qc-nhac-ct">${esc(x.chi_tiet)}</div>`;
+    box.appendChild(a);
+  });
+  return box;
+}

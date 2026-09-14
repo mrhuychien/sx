@@ -30,6 +30,7 @@ from frappe.utils import (
 )
 
 from sx.qc import muc as M
+from sx.qc import nhac as _nhac
 from sx.qc import xuat
 from sx.qc.nguong import nguong
 from sx.qc.su_co import canh_bao, phat_hien
@@ -340,6 +341,29 @@ def submit_round(name):
         "su_co": [{"name": r.incident, "muc": r.muc, "mo_ta": r.mo_ta}
                   for r in doc.su_co],
     }
+
+
+@frappe.whitelist()
+def nhac(ngay=None):
+    """Việc QC đang treo — để HIỆN trên dashboard, không gửi đi đâu.
+
+    Ai mở cũng gọi được (QC, QLSX, Ban ISO, quản lý): danh sách này không chứa
+    gì bí mật, và giấu nó khỏi chính người phải làm thì nó vô nghĩa.
+    """
+    _guard_qc()
+    d = getdate(ngay) if ngay else getdate(nowdate())
+    tu = add_days(d, -max(_nhac.SO_NGAY_SOI, _nhac.NGAY_CHUA_XEM_XET) - 7)
+    luot = frappe.get_all(
+        "SX QC Round",
+        filters={"ngay": ("between", [tu, d]), "docstatus": ("<", 2)},
+        fields=["name", "ngay", "ca", "luot", "docstatus", "reviewed_on",
+                "t2_so_bay_dau_hieu", "b2_rang_lac_nhiet"])
+    # Sự cố KHÔNG giới hạn cửa sổ ngày: cái quá hạn ba tháng mới đúng là cái
+    # phải hiện lên, mà nó thì nằm ngoài mọi cửa sổ hợp lý.
+    su_co = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở"},
+                           fields=["name", "ngay", "trang_thai", "xu_ly_ngay",
+                                   "muc_do"])
+    return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong())}
 
 
 @frappe.whitelist()

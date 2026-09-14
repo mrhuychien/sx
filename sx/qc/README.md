@@ -98,6 +98,30 @@ Trong CSV vòng kiểm có **ba thứ khác nhau** mà gộp lại là đếm sa
 
 Gộp `n/a` với ô rỗng là tỷ lệ bỏ sót trông đẹp hơn sự thật.
 
+## Nhắc lịch — hiện trên dashboard, KHÔNG gửi đi đâu
+
+`sx/qc/nhac.py` tính danh sách việc đang treo; hiện ở **ba chỗ, một bản duy nhất**:
+đầu màn `#/qc` (QC), đầu màn `#/qc/review` (Ban ISO), và card `qcnhac` đứng đầu
+`#/quanly` (quản lý). Một bản cho cả ba, cố ý — hai bản khác nhau là cách sinh ra
+cuộc cãi "tôi có thấy gì đâu", và người thua luôn là tờ hồ sơ.
+
+Không gửi email / Zalo: thứ gửi đi thì người ta tắt thông báo sau tuần thứ hai,
+còn thứ nằm sẵn trên màn hình người ta mở mỗi sáng thì không tắt được. Cái giá
+là nó chỉ nhắc khi có người mở màn — nên mỗi mục **phải nói đang treo bao lâu**,
+không chỉ "có việc".
+
+Mức **cao** chỉ có bốn thứ: sự cố quá hạn, sự cố mở mà chưa ghi xử lý, lượt tuần
+bị bỏ, bẫy chuột có dấu hiệu hai tuần liền. Để cao hết thì không còn cao nữa.
+
+Không có việc treo thì **không vẽ gì cả**: một hộp "mọi thứ ổn" nằm trên đầu
+dashboard mỗi ngày sẽ dạy mắt bỏ qua đúng vùng đó, rồi hôm có việc thật cũng bỏ
+qua nốt. Cùng lý do, hai chip "Sự cố mở / Quá hạn" ở cuối màn `#/qc` đã bỏ — hộp
+nhắc nói cùng chuyện, nói kỹ hơn, và bấm vào cũng sang đúng màn đó.
+
+Ca **không có lượt nào** thì không bị nhắc thiếu lượt: ca đó có thể đơn giản là
+không sản xuất, mà đoán bừa rồi nhắc mỗi ngày là cách nhanh nhất để người ta bỏ
+qua cả hộp.
+
 ## Chỗ còn phải hỏi Ban ISO
 
 - **Tên 6 công đoạn** trong `muc.py: CONG_DOAN` có ghi `# cần xác nhận tên`

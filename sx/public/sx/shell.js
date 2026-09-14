@@ -7,7 +7,7 @@ import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 
-const BUILD = 'sx-66';
+const BUILD = 'sx-67';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -33,6 +33,7 @@ const CARD_PATHS = {
   vaohop: '/assets/sx/sx/cards/vaohop.js',
   chotngay: '/assets/sx/sx/cards/chotngay.js',
   nguoidung: '/assets/sx/sx/cards/nguoidung.js',
+  qcnhac: '/assets/sx/sx/cards/qcnhac.js',
 };
 const VIEW_META = {
   ghiso: { label: 'Ghi số', icon: '📋' },

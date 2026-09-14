@@ -133,6 +133,12 @@ python3 scripts/test-qc.py > /tmp/sx-qc.log 2>&1 \
   && tail -1 /tmp/sx-qc.log \
   || { cat /tmp/sx-qc.log; loi=1; }
 
+# Hộp nhắc hỏng theo hai hướng và cả hai đều kết thúc ở chỗ không ai đọc nó nữa:
+# nhắc thừa thì mắt tự bỏ qua vùng đó, nhắc thiếu thì mất đúng thứ nó sinh ra để bắt.
+python3 scripts/test-nhac.py > /tmp/sx-nhac.log 2>&1 \
+  && tail -1 /tmp/sx-nhac.log \
+  || { cat /tmp/sx-nhac.log; loi=1; }
+
 # BM.07.03 là một CỔNG. Nới nhầm thì lô dừa sấy không COA đi thẳng vào bánh và
 # hồ sơ vẫn ghi "Đạt"; siết nhầm thì thủ kho bỏ trống ô QC cho xong việc, tức là
 # cổng tự mở.
