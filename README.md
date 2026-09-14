@@ -27,8 +27,8 @@ Chốt ngày        : chot_ngay → T1 TỰ NHẬP BỘT lô R rang hôm trướ
 Truy xuất            : TP → bột bánh/bột đậu → lô R → lô đậu NCC (+ đường hoán → lô đường NCC)
 ```
 
-3 role: `SX Ghi So` (QC#1) / `SX Vao Hop` (QC#2) / `SX Quan Ly`. Portal `/sx` card-based,
-3 view (ghiso / vaohop / quanly) — mỗi view lắp từ CARD theo `sx/config/roles.py`. Numpad phím
+9 role, 5 view (`ghiso` / `vaohop` / `nhapkho` / `qc` / `quanly`) — mỗi view lắp từ CARD theo
+`sx/config/roles.py`. Portal `/sx` card-based. Numpad phím
 to, mã lô hiển thị **cực to** để ghi thẻ tay (D13), chốt ngày modal 2 bước.
 
 ## ⚠️ Tính độc lập (spec §2.1 — rủi ro đã cân nhắc, chủ đầu tư chấp nhận)
@@ -41,13 +41,62 @@ Người nhập số liệu sản xuất là **QC** — vai trò kép. Hai đi�
 Lộ trình dài hạn: chuyển dần từng card về đúng tổ sản xuất — chỉ cần sửa `sx/config/roles.py`
 (ROLE_VIEWS / VIEW_CARDS / CARD_ROLES), KHÔNG sửa UI, KHÔNG sửa từng method API.
 
-## Cài đặt
+## Cài vào SITE MỚI — thứ tự đầy đủ
+
+Bỏ sót một bước ở đây thì triệu chứng hiện ra ở tận bước sau và trông không liên quan
+gì tới nguyên nhân, nên làm đúng thứ tự.
 
 ```bash
+# 0. ERPNext phải có trước (required_apps = frappe + erpnext)
 cd ~/frappe-bench
 bench get-app https://github.com/mrhuychien/sx
-bench --site a.rongvanghoanggia.com install-app sx
+bench --site $SITE install-app sx
+bench build --app sx
 ```
+
+**1. Dữ liệu nền — dựng TRƯỚC khi seed** (trên Desk):
+
+| Cần có | Ghi chú |
+|---|---|
+| Company | |
+| 4 Warehouse | NVL · BTP · TP · Xưởng |
+| `SX Settings` | Công ty + 4 kho + `Tên miền cho email tài khoản` (bỏ trống = `sx.local`, **đừng dùng tên miền thật đang nhận thư**) |
+
+Thiếu `SX Settings` thì seed dừng và nói thiếu ô nào — nó không đoán.
+
+**2. Seed định mức** (Item + BOM tầng 1/2) — xem mục dưới.
+
+**3. Module QC (BM.08.01 / BM.08.02)** — mở `SX QC Setting` trên Desk:
+
+- **`Nhóm hàng bắt buộc có COA vi sinh`** — khai bằng Item Group thật trên site (dừa sấy /
+  sữa bột / phụ liệu bột). **Bỏ trống thì luật COA KHÔNG chạy**, cố ý: đoán vài tên nhóm
+  thì hoặc chặn nhầm hàng tốt, hoặc cho qua đúng thứ cần chặn.
+- Ngưỡng có sẵn mặc định an toàn (rang ≥ 255 °C, trần vận hành 270, vòng quay 6,2–7,0,
+  thùng bột quá hạn 0, ghi muộn 45 phút, sự cố quá hạn 7 ngày, khung giờ 3 lượt × 2 ca).
+  Kiểm lại cho khớp nhà máy.
+- **Ngưỡng rang lạc để TRỐNG** cho tới khi thẩm định xong. Trống thì hệ thống chỉ ghi số,
+  không tự sinh sự cố — bịa ngưỡng ra để "có cho đủ" là sinh báo động giả mỗi ngày rồi
+  không ai đọc sổ sự cố nữa.
+
+**4. Gán role.** 9 role ship sẵn qua fixtures; gán cho đúng người:
+
+`SX Ghi So` · `SX Vao Hop` · `SX Thu Kho` · `SX Quan Ly` ·
+`SX QC` · `SX QC Packing` · `ISO Manager` · `Production Manager` · `Warehouse`
+
+Frappe cộng dồn role nên ai kiêm nhiều vai thì gán nhiều role — không chỗ nào trong code
+giả định "mỗi người đúng một role". Tài khoản cho người ở xưởng tạo bằng **số điện thoại**
+qua `Quản lý → Tài khoản portal` (xem mục dưới), không tạo tay trên Desk.
+
+**5. Còn phải làm tay** — không có thì màn tương ứng trống hoặc chốt ngày bị chặn:
+
+- **BOM tầng 3 + Item TP + bao bì** → chặn chốt ngày nhánh thành phẩm
+- **Activity Type + `SX Bang Don Gia`** → không có thì bảng vào hộp trống
+- Manufacturing Settings: Backflush = BOM, Overproduction 5%, **giữ tắt** *Validate
+  Components Quantities Per BOM*
+- Purchase Receipt NVL phải có batch = lô NCC (điều kiện FIFO truy xuất)
+- Tồn đầu — chạy thử thì dùng `seed_ton_dau` ở mục dưới
+
+**6. Kiểm lại:** mở `/sx` bằng một tài khoản đã gán role, thấy đúng số tab của vai đó.
 
 ## Deploy (sau mỗi lần pull code mới)
 
@@ -83,12 +132,25 @@ hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 
 ## Ai làm được gì
 
-| | Ghi sổ | Ghi hộp | Nhập kho | Quản lý |
-|---|---|---|---|---|
-| **SX Ghi So** | ✓ xuất đậu, báo mẻ, báo cán, sự cố | | | |
-| **SX Vao Hop** (QC) | | ✓ chấm hộp, ăn ca | ✓ **lập + sửa phiếu NHÁP** | |
-| **SX Thu Kho** | | | ✓ đếm lại, **DUYỆT**, huỷ phiếu đã duyệt | |
-| **SX Quan Ly** | ✓ | ✓ | ✓ | ✓ chốt ngày, dashboard, truy xuất, tài khoản |
+| | Ghi sổ | Ghi hộp | Nhập kho | QC | Quản lý |
+|---|---|---|---|---|---|
+| **SX Ghi So** | ✓ xuất đậu, báo mẻ, báo cán, sự cố | | | | |
+| **SX Vao Hop** (QC vào hộp) | | ✓ chấm hộp, ăn ca | ✓ **lập + sửa phiếu NHÁP** | | |
+| **SX Thu Kho** | | | ✓ đếm lại, **DUYỆT**, huỷ phiếu đã duyệt | | |
+| **SX QC** (QC chế biến) | | | | ✓ đi lượt, **chốt lượt**, ghi xử lý sự cố | |
+| **SX QC Packing** (QC đóng gói) | | | | ✓ ghi mục đóng gói — **không chốt lượt** | |
+| **Production Manager** | | | | ✓ đọc, ghi xử lý sự cố | |
+| **ISO Manager** | | | | ✓ **đóng sự cố**, ký đã xem xét, dashboard | |
+| **Warehouse** | | | | ✓ kiểm nguyên liệu đầu vào trên Purchase Invoice | |
+| **SX Quan Ly** | ✓ | ✓ | ✓ | ✓ | ✓ chốt ngày, dashboard, truy xuất, tài khoản |
+
+**QC chế biến ≠ QC vào hộp** — hai người, hai việc, hai role. Ai làm cả hai thì gán cả hai.
+
+**Ghi được ≠ chốt được**: QC đóng gói ghi mục 11–13 trên bản nháp của người khác, nhưng
+người chốt lượt phải là người đã đi hết lượt đó.
+
+**Người ghi không tự duyệt**: QC không duyệt phiếu nhập kho mình lập; QC không đóng được
+phiếu sự cố. Cả giá trị của mấy bước đó nằm ở chỗ người duyệt khác người lập.
 
 **Báo sự cố là việc của tổ Ghi sổ**, không nằm trên màn của QC — màn Ghi hộp chỉ còn
 đúng việc chấm hộp.
@@ -119,6 +181,39 @@ tận tay. QC quét QR là vào thẳng portal, không gõ gì.
   tạo được System Manager, và không sửa được tài khoản không thuộc app.
 - Tên miền ghép vào email giả khai ở `SX Settings → Tên miền cho email tài khoản`
   (bỏ trống = `sx.local`). **Đừng dùng tên miền thật đang nhận thư.**
+
+## Module QC — kiểm tra chất lượng (BM.08.01 / BM.08.02)
+
+Nằm gọn trong module `qc` để sau muốn tách thành app riêng chỉ là chuyển thư mục.
+Chi tiết ở [`sx/qc/README.md`](sx/qc/README.md); ở đây chỉ nói cái cần biết khi cài.
+
+| Màn | Việc |
+|---|---|
+| `#/qc` | ba thẻ lượt (đầu / giữa / cuối ca), khung giờ, hộp nhắc việc đang treo |
+| `#/qc/round/:id` | làm một lượt — một trang dài theo trình tự công đoạn, tự lưu, thanh đáy cố định |
+| `#/qc/incidents` | sổ sự cố, ghi xử lý tại chỗ; nút **Đóng** chỉ hiện với Ban ISO |
+| `#/qc/history` | dải tuần — chỗ thiếu tự lộ ra, kèm nút in tờ ngày A4 |
+| `#/qc/review` | lưới tháng × lượt + KPI + ký *đã xem xét* + in cả tháng + xuất CSV |
+
+Ba luật nằm trong code chứ không nằm trong lời dặn:
+
+1. **Ghi tại chỗ** — server đặt giờ bắt đầu / hoàn tất, mỗi giá trị kèm giờ trên máy QC.
+   Ghi muộn **không bị chặn**, chỉ gắn cờ: chặn thì người ta ghi bừa cho kịp giờ, mà đó
+   mới là thứ phá hồ sơ.
+2. **Để trống, không điền bù** — mục áp dụng mà bỏ trống thì phải có lý do trong ghi chú.
+   Ép đủ ô là dạy người ta bấm *Đạt* cho xong.
+3. **Lệch → sự cố** — Không đạt hoặc vượt ngưỡng thì lúc hoàn tất tự lập phiếu sự cố,
+   gắn hai chiều với lượt. Không có nút bỏ qua.
+
+Sự cố của tổ Ghi sổ (hỏng máy, mất điện…) **cũng vào cùng sổ** `SX Su Co` từ D87 — một sổ
+cho cả nhà máy, vì hai sổ nghĩa là hai chỗ phải nhớ đi xem, và cái không ai nhớ thì không
+ai đóng. Patch `d87_gop_su_co` chuyển dữ liệu cũ sang lúc `migrate`, chạy lại không nhân
+đôi; bảng con cũ giữ nguyên để đối chiếu.
+
+**Kiểm nguyên liệu đầu vào (BM.07.03)** gắn vào **Purchase Invoice** (không phải Purchase
+Receipt — kho nguyên liệu ở đây nhập thẳng bằng hoá đơn mua). Kết luận nằm ở **từng dòng
+hàng** vì một hoá đơn có thể ba mặt hàng ba lô. Lô *Không đạt* / *Cách ly* tự thành phiếu
+sự cố khi duyệt hoá đơn.
 
 ## Bảng đơn giá khoán (`SX Bang Don Gia`)
 
