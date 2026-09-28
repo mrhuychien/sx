@@ -72,8 +72,10 @@ Thiếu `SX Settings` thì seed dừng và nói thiếu ô nào — nó không �
   sữa bột / phụ liệu bột). **Bỏ trống thì luật COA KHÔNG chạy**, cố ý: đoán vài tên nhóm
   thì hoặc chặn nhầm hàng tốt, hoặc cho qua đúng thứ cần chặn.
 - Ngưỡng có sẵn mặc định an toàn (rang ≥ 255 °C, trần vận hành 270, vòng quay 6,2–7,0,
-  thùng bột quá hạn 0, ghi muộn 45 phút, sự cố quá hạn 7 ngày, khung giờ 3 lượt × 2 ca).
-  Kiểm lại cho khớp nhà máy.
+  thùng bột quá hạn 0, ghi muộn 45 phút, sự cố quá hạn 7 ngày). Kiểm lại cho khớp nhà máy.
+- **Một ngày ba lượt** (D95, không chia ca): hạn chót *Đầu sáng* 08:30 · *Trưa* 14:00 ·
+  *Cuối chiều* 20:00. Khung của mỗi lượt bắt đầu từ hạn chót lượt trước, nên làm Trưa lúc
+  07:00 cũng bị gắn cờ — đó là ghi sớm cho xong, không phải kiểm trưa.
 - **Ngưỡng rang lạc để TRỐNG** cho tới khi thẩm định xong. Trống thì hệ thống chỉ ghi số,
   không tự sinh sự cố — bịa ngưỡng ra để "có cho đủ" là sinh báo động giả mỗi ngày rồi
   không ai đọc sổ sự cố nữa.
@@ -163,6 +165,20 @@ Ma trận này có bài kiểm riêng: `scripts/test-quyen.py`, `verify.sh` gọ
 chốt rằng **mọi method whitelist đều có guard** — thêm một method quên `guard_card`
 là mở một cửa hậu im lặng.
 
+## Menu tài khoản (nút chữ viết tắt trên header)
+
+Cạnh nút chọn mùa có nút tài khoản — chữ viết tắt tên người đang đăng nhập. Điện thoại
+xưởng hay chuyền tay giữa hai QC, nên **ai đang cầm máy phải nhìn thấy được ở mọi màn**.
+Bấm vào: tên, số điện thoại, vai trò; *Đổi mật khẩu*; *Mở Desk* (chỉ người có quyền
+Desk); *Đăng xuất*.
+
+**Đăng xuất khi còn thao tác chưa gửi** (mất mạng lúc ghi) thì không đăng xuất trơn:
+chọn *gửi ngay rồi đăng xuất*, hoặc *bỏ các thao tác đó* qua hai bước xác nhận. Lý do:
+hàng chờ ngoại tuyến nằm trong trình duyệt chứ không nằm trong tài khoản. Từ D96 mỗi thao
+tác xếp hàng ghi tên người xếp, và app **không bao giờ gửi thao tác của người này dưới tên
+người khác** — người sau đăng nhập vào cùng máy sẽ thấy nó bị giữ lại, chờ đúng chủ đăng
+nhập lại để gửi. Đăng xuất cũng xoá bản số liệu lưu trên máy của người vừa ra.
+
 ## Tài khoản cho QC (`Quản lý → Tài khoản portal`)
 
 Xưởng không có email, nên tài khoản định danh bằng **số điện thoại** — số đó vừa là
@@ -189,7 +205,7 @@ Chi tiết ở [`sx/qc/README.md`](sx/qc/README.md); ở đây chỉ nói cái c
 
 | Màn | Việc |
 |---|---|
-| `#/qc` | ba thẻ lượt (đầu / giữa / cuối ca), khung giờ, hộp nhắc việc đang treo |
+| `#/qc` | ba thẻ lượt trong ngày (Đầu sáng / Trưa / Cuối chiều) kèm khung giờ, hộp nhắc việc đang treo |
 | `#/qc/round/:id` | làm một lượt — một trang dài theo trình tự công đoạn, tự lưu, thanh đáy cố định |
 | `#/qc/incidents` | sổ sự cố, ghi xử lý tại chỗ; nút **Đóng** chỉ hiện với Ban ISO |
 | `#/qc/history` | dải tuần — chỗ thiếu tự lộ ra, kèm nút in tờ ngày A4 |

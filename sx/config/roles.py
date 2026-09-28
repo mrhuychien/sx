@@ -30,6 +30,33 @@ KHO_NL = "Warehouse"              # thủ kho nguyên liệu — BM.07.03 (P1)
 # Role "siêu quyền" — thấy mọi view/card
 SUPER_ROLES = {QUAN_LY, "System Manager", "Administrator"}
 
+# Tên vai trò hiện cho NGƯỜI ĐỌC (menu tài khoản trên header). Tên role của
+# Frappe là tiếng Anh / viết tắt không dấu — QC đứng giữa xưởng không cần biết
+# "SX Vao Hop" là gì, họ cần đọc thấy "QC vào hộp".
+NHAN_ROLE = {
+    QUAN_LY: "Quản lý",
+    GHI_SO: "Ghi sổ",
+    VAO_HOP: "QC vào hộp",
+    THU_KHO: "Thủ kho",
+    QC: "QC chế biến",
+    QC_GOI: "QC đóng gói",
+    ISO: "Trưởng Ban ISO",
+    QLSX: "Quản lý sản xuất",
+    KHO_NL: "Thủ kho nguyên liệu",
+    "System Manager": "Quản trị hệ thống",
+}
+
+
+def vai_tro_hien(roles=None):
+    """Danh sách tên vai trò (tiếng Việt) của user — chỉ role của app này.
+
+    Không liệt kê mọi role Frappe (Guest, All, Employee…): đọc một danh sách mười
+    dòng thì không ai tìm được dòng nói mình làm gì.
+    """
+    roles = roles or user_roles()
+    return [ten for r, ten in NHAN_ROLE.items() if r in roles]
+
+
 # view nào role nào được vào
 ROLE_VIEWS = {
     GHI_SO: ["ghiso"],

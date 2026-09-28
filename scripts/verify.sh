@@ -139,6 +139,13 @@ node scripts/test-numpad.mjs > /tmp/sx-np.log 2>&1 \
   && tail -1 /tmp/sx-np.log \
   || { cat /tmp/sx-np.log; loi=1; }
 
+# Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
+# trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
+# ghi sai người mà không lỗi nào hiện ra.
+node scripts/test-hangcho.mjs > /tmp/sx-hc.log 2>&1 \
+  && tail -1 /tmp/sx-hc.log \
+  || { cat /tmp/sx-hc.log; loi=1; }
+
 # Hộp nhắc hỏng theo hai hướng và cả hai đều kết thúc ở chỗ không ai đọc nó nữa:
 # nhắc thừa thì mắt tự bỏ qua vùng đó, nhắc thiếu thì mất đúng thứ nó sinh ra để bắt.
 python3 scripts/test-nhac.py > /tmp/sx-nhac.log 2>&1 \

@@ -9,11 +9,12 @@ from sx.config.roles import (
     allowed_views,
     is_super,
     landing_view,
+    vai_tro_hien,
     view_cards,
 )
 
 # Build marker chống "shell cũ" (LUẬT VÀNG #2 — frappe-portal-spa)
-SHELL_BUILD = "sx-67"
+SHELL_BUILD = "sx-68"
 
 # Lấy từ ROLE_VIEWS: thêm role mới ở một chỗ, trang /sx cho vào ngay. Chép tay
 # danh sách này là cách tạo ra người dùng có role, có tab, mà mở /sx thì bị đá ra.
@@ -42,6 +43,13 @@ def get_context(context):
     context.sx_context = json.dumps(
         {
             "user": frappe.session.user,
+            # Cho menu tài khoản trên header (D96): ai đang cầm máy, vai trò gì.
+            # Một điện thoại hay bị chuyền tay giữa hai QC — phải nhìn là biết
+            # đang đăng nhập bằng tài khoản ai trước khi ghi số.
+            "fullName": frappe.utils.get_fullname(frappe.session.user),
+            "vaiTro": vai_tro_hien(roles),
+            "deskAccess": frappe.db.get_value(
+                "User", frappe.session.user, "user_type") == "System User",
             "isQuanLy": is_super(roles),
             "views": allowed_views(roles),
             "viewCards": view_cards(roles),

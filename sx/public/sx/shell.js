@@ -6,8 +6,9 @@ import { el } from '/assets/sx/sx/lib/dom.js';
 import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
+import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-67';
+const BUILD = 'sx-68';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -157,6 +158,11 @@ function buildShell() {
   const nutMua = header.querySelector('#sx-head-mua');
   nutMua.addEventListener('click', () => moChonMua(app, (ma) => {
     nutMua.textContent = iconMua(ma);
+  }));
+  // Nút tài khoản ĐỨNG CUỐI, cạnh nút mùa (D96): ai đang cầm máy phải nhìn thấy
+  // được ở mọi màn — điện thoại xưởng hay chuyền tay giữa hai QC.
+  header.querySelector('.sx-header-actions').appendChild(nutTaiKhoan(CTX, {
+    xoaBoNho: () => { try { localStorage.removeItem(BOOT_KEY); } catch (e) { /* bỏ qua */ } },
   }));
 
   const banner = el('div', 'sx-offline-banner');

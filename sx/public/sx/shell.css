@@ -1779,3 +1779,43 @@ main > .container {
   background: var(--sx-surface-2);
   font-size: var(--sx-f-lg);
 }
+
+
+/* ══════════════════ TÀI KHOẢN (D96) ══════════════════
+ * Nút chữ viết tắt cạnh nút mùa + menu bottom-sheet. Nút phải ĐỌC ĐƯỢC chữ ở mọi
+ * mùa, nên nền là gradient ĐẬM của mùa (--sx-season-btn), không phải bản tươi. */
+.sx-tk-nut {
+  background: var(--sx-season-btn); color: #fff;
+  font: 700 var(--sx-f-xs)/1 var(--sx-font); letter-spacing: .02em;
+  border-radius: 50%;
+}
+/* Menu mở trong modal gắn vào <body>, NGOÀI .sx-app — không khai font là ăn font
+   của trang chủ (serif trên trình duyệt trần). */
+.sx-tk-dau { display: flex; gap: var(--sx-s3); align-items: center; margin-bottom: var(--sx-s4);
+  font-family: var(--sx-font); }
+.sx-tk-avatar {
+  width: var(--sx-tap-lg); height: var(--sx-tap-lg); flex: none; border-radius: 50%;
+  background: var(--sx-season-btn); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font: 800 var(--sx-f-lg)/1 var(--sx-font);
+}
+.sx-tk-info { min-width: 0; display: flex; flex-direction: column; gap: var(--sx-s1); }
+.sx-tk-user { font-family: var(--sx-mono); font-size: var(--sx-f-md); color: var(--sx-text-2); }
+.sx-tk-vai { display: flex; flex-wrap: wrap; gap: var(--sx-s1); }
+.sx-tk-chip {
+  font-size: var(--sx-f-xs); font-weight: 600; padding: 2px 8px;
+  border-radius: var(--sx-radius-pill); background: var(--sx-surface-2); color: var(--sx-text-2);
+}
+.sx-tk-ds { display: flex; flex-direction: column; gap: var(--sx-s2); }
+.sx-tk-muc {
+  display: flex; align-items: center; gap: var(--sx-s3); width: 100%;
+  min-height: var(--sx-tap-lg); padding: var(--sx-s2) var(--sx-s4);
+  border: 1px solid var(--sx-line); border-radius: var(--sx-radius-sm);
+  background: var(--sx-surface); color: var(--sx-text); text-align: left;
+  font: 600 var(--sx-f-md)/1.2 var(--sx-font); cursor: pointer;
+}
+.sx-tk-icon { width: 24px; text-align: center; flex: none; }
+.sx-tk-muc-ten { display: flex; flex-direction: column; gap: 2px; }
+.sx-tk-muc-ten small { font-weight: 500; font-size: var(--sx-f-xs); color: var(--sx-text-2); }
+.sx-tk-thoat { color: var(--sx-danger-text); }
+.sx-tk-thoat small { color: var(--sx-warning-text); font-weight: 700; }

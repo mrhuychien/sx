@@ -3,7 +3,10 @@
 
 import { guiLai, lyDoChan, onQueue, trangThai, xepHang, xepHangDuoc } from './queue.js';
 
-export { danhSach as hangCho, onQueue, trangThai as trangThaiHang } from './queue.js';
+export {
+  cuaToi as hangChoCuaToi, danhSach as hangCho, onQueue, trangThai as trangThaiHang,
+  xoaCuaToi as boHangChoCuaToi,
+} from './queue.js';
 
 const listeners = { offline: [] };
 

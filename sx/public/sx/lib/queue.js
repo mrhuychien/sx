@@ -86,6 +86,18 @@ const LY_DO_CHAN = {
 
 const listeners = [];
 
+// Ai đang đăng nhập. Mỗi thao tác xếp hàng GHI TÊN NGƯỜI XẾP (D96).
+//
+// Vì sao: một điện thoại hay chuyền tay giữa hai QC. Hàng chờ nằm trong trình
+// duyệt, không nằm trong tài khoản — nên QC A mất mạng, đăng xuất (hoặc hết phiên),
+// QC B đăng nhập vào đúng máy đó, và app mở lên là gửi luôn số của A DƯỚI TÊN B.
+// Không lỗi nào hiện ra; chỉ là nhật ký ghi sai người, mà trong hồ sơ QC thì "ai
+// ghi" là thứ auditor hỏi đầu tiên.
+function nguoiDung() {
+  return (typeof window !== 'undefined' && window.SX_CONTEXT && window.SX_CONTEXT.user)
+    || null;
+}
+
 function doc() {
   try {
     const raw = localStorage.getItem(KEY);
@@ -139,6 +151,7 @@ export function xepHang(method, args) {
     args: args || {},
     khoa: khoa === undefined ? null : khoa,
     luc: new Date().toISOString(),
+    user: nguoiDung(),
     loi: null,
   });
   ghi(ds);
@@ -146,6 +159,19 @@ export function xepHang(method, args) {
 }
 
 export function xoaHang() { ghi([]); }
+
+/** Bỏ thao tác chờ gửi CỦA NGƯỜI ĐANG ĐĂNG NHẬP — chỉ gọi khi họ chủ động chọn bỏ
+ *  lúc đăng xuất. Không đụng tới thao tác người khác xếp trên cùng máy. */
+export function xoaCuaToi() {
+  const toi = nguoiDung();
+  ghi(doc().filter((x) => x.user && toi && x.user !== toi));
+}
+
+/** Thao tác CỦA NGƯỜI ĐANG ĐĂNG NHẬP còn chờ gửi — dùng trước khi đăng xuất. */
+export function cuaToi() {
+  const toi = nguoiDung();
+  return doc().filter((x) => !x.user || !toi || x.user === toi);
+}
 
 export function danhSach() { return doc(); }
 
@@ -155,12 +181,25 @@ export function danhSach() { return doc(); }
  * Lỗi nghiệp vụ (server từ chối) -> đánh dấu `loi` và GIỮ LẠI để người dùng thấy,
  * không xoá âm thầm: dữ liệu người ta gõ tay giữa xưởng không được phép biến mất.
  */
+/** Gửi lần lượt từ đầu hàng — chỉ những thao tác CỦA NGƯỜI ĐANG ĐĂNG NHẬP. */
 export async function guiLai(postFn) {
   let ds = doc();
   const ok = [];
   const loi = [];
+  const toi = nguoiDung();
   for (const item of ds) {
+    if (item.loi && item.user && item.user === toi
+        && String(item.loi).startsWith('Của tài khoản ')) {
+      item.loi = null;                    // đúng chủ đã quay lại -> gửi tiếp
+    }
     if (item.loi) continue;               // đã lỗi nghiệp vụ -> chờ người xử lý
+    if (item.user && toi && item.user !== toi) {
+      // Của NGƯỜI KHÁC xếp trên máy này. Không gửi dưới tên mình, không xoá âm
+      // thầm — đánh dấu để hiện ra, người đó đăng nhập lại thì tự gửi được.
+      item.loi = `Của tài khoản ${item.user} — đăng nhập bằng tài khoản đó để gửi`;
+      loi.push(item);
+      continue;
+    }
     if (!navigator.onLine) break;
     try {
       await postFn(item.method, item.args);
