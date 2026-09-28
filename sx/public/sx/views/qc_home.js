@@ -7,7 +7,7 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
-import { chip, veNhac } from '/assets/sx/sx/components/qcui.js';
+import { batTatBot, chip, veNhac } from '/assets/sx/sx/components/qcui.js';
 import { formatTime } from '/assets/sx/sx/lib/format.js';
 
 const THU = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
@@ -73,19 +73,24 @@ export async function render({ container, call, st }) {
   nutBot.type = 'button';
   nutBot.className = `sx-btn ${dl.co_san_xuat_bot ? 'sx-btn-primary' : 'sx-btn-ghost'}`;
   nutBot.disabled = !dl.duoc_ghi;
-  // Bật ở đây chỉ đổi MẶC ĐỊNH cho lượt mở sau. Lượt đang dở thì bật trong
-  // chính màn lượt đó — đổi ma trận của một lượt đang ghi từ ngoài vào là làm
-  // biến mất mấy ô người ta vừa gõ.
+  // D98: LƯU LÊN SERVER cho cả ngày. Trước đây nút này chỉ đổi một biến trong
+  // trình duyệt — mở lượt khác hay tải lại trang là nó tự về KHÔNG, và lượt
+  // đang làm dở không bao giờ nhận được phần bột.
   nutBot.addEventListener('click', () => {
-    st.co_bot = dl.co_san_xuat_bot ? 0 : 1;
-    dl.co_san_xuat_bot = st.co_bot;
-    nutBot.textContent = st.co_bot ? 'CÓ' : 'KHÔNG';
-    nutBot.className = `sx-btn ${st.co_bot ? 'sx-btn-primary' : 'sx-btn-ghost'}`;
+    nutBot.disabled = true;
+    batTatBot({
+      call,
+      method: 'sx.api.qc.dat_co_bot',
+      args: { ngay: dl.ngay, co_bot: dl.co_san_xuat_bot ? 0 : 1 },
+      onXong: () => render({ container, call, st }),
+    }).finally(() => { nutBot.disabled = !dl.duoc_ghi; });
   });
   hang.appendChild(nutBot);
   bot.appendChild(hang);
-  bot.appendChild(el('div', 'sx-qc-luot-phu',
-    'Bật thì lượt mở sau có thêm phần B (dây chuyền bột).'));
+  bot.appendChild(el('div', 'sx-qc-luot-phu', dl.co_san_xuat_bot
+    ? 'Mọi lượt đang làm dở và mọi lượt mở sau trong ngày có thêm phần B (dây '
+      + 'chuyền bột). Lượt đã hoàn tất giữ nguyên.'
+    : 'Bật khi dây chuyền bột chạy: lượt đang làm dở và lượt mở sau có thêm phần B.'));
   container.appendChild(bot);
 
   // KHÔNG có chip "Sự cố mở / Quá hạn" ở đây nữa: hộp nhắc đầu màn đã nói
@@ -153,8 +158,8 @@ function veThe(x, la_ke_tiep, dl, st, call, container) {
       nut.disabled = true;
       try {
         const kq = await call('sx.api.qc.start_round', {
+          // Không gửi cờ bột: server lấy theo cờ của NGÀY (D98) — một nguồn.
           ngay: dl.ngay, luot: x.luot,
-          co_san_xuat_bot: st.co_bot ?? dl.co_san_xuat_bot,
           // Ngày quá khứ = nhập lại từ bản giấy. Không bắt QC tự tick: họ mở
           // ngày cũ ra là đã nói rõ mình đang làm gì rồi.
           nhap_lai_tu_giay: dl.ngay === dl.hom_nay ? 0 : 1,

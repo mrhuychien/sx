@@ -10,6 +10,8 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
+import { confirm2Step } from '/assets/sx/sx/components/modal.js';
+import { toastErr } from '/assets/sx/sx/components/toast.js';
 
 export const DAT = 'Đạt';
 export const KHONG_DAT = 'Không đạt';
@@ -346,4 +348,35 @@ export function timLuot(dsNgay, luot) {
   const khop = dsNgay.filter((x) => x.luot === luot
     || (luot === 'Đầu sáng' && x.luot === 'Tuần'));
   return khop.find((x) => Number(x.docstatus) === 1) || khop[0] || null;
+}
+
+
+/** Bật / tắt "có sản xuất bột" (D98) — dùng chung cho màn Hôm nay và màn lượt.
+ *
+ * Tắt mà có lượt dở đã ghi mục bột thì server KHÔNG đổi gì, trả về danh sách
+ * mục sẽ bị giấu; ở đây hỏi lại bằng hai bước rồi mới gửi `ep=1`. Tắt lặng lẽ
+ * thì mấy ô người ta vừa ghi biến khỏi màn hình, khỏi tờ in, và không còn sinh
+ * sự cố — mà không ai hay. */
+export async function batTatBot({ call, method, args, onXong }) {
+  try {
+    const kq = await call(method, args);
+    if (kq && kq.can_xac_nhan) {
+      const ds = kq.luot.map((l) => `• ${l.luot}: ${l.muc.join(', ')}`).join('\n');
+      confirm2Step({
+        title: 'Tắt sản xuất bột',
+        message: `Các mục bột ĐÃ GHI dưới đây sẽ biến khỏi lượt (không vào tờ in, `
+          + `không sinh sự cố):\n\n${ds}\n\nGiá trị vẫn lưu lại, bật lại là thấy.`,
+        confirmLabel: 'VẪN TẮT',
+        onConfirm: async () => {
+          try { onXong(await call(method, { ...args, ep: 1 })); } catch (e) {
+            toastErr(e.message); throw e;
+          }
+        },
+      });
+      return;
+    }
+    onXong(kq);
+  } catch (e) {
+    toastErr(e.message);
+  }
 }

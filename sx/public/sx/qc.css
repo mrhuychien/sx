@@ -295,3 +295,10 @@ button.sx-qc-tag-chon {
 .sx-qc-nhac-ct {
   font-size: var(--sx-f-xs); color: var(--sx-text-2); margin-top: 2px;
 }
+
+/* Nút bật/tắt bột trong một lượt (D98) — ngay dưới đầu lượt, trước mục đầu tiên. */
+.sx-qc-bot-luot {
+  background: var(--sx-surface); border: 1px dashed var(--sx-line-2);
+  border-radius: var(--sx-radius-sm); padding: var(--sx-s2) var(--sx-s3);
+  align-items: center; justify-content: space-between;
+}

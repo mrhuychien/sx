@@ -80,6 +80,12 @@ const LY_DO_CHAN = {
     + 'ghi sai là đứt chuỗi truy xuất. Chờ có mạng rồi bấm lại.',
   'sx.api.tang1.hoan_tat_cong_doan':
     'Hoàn tất công đoạn cần đọc tồn thật của lô để không làm quá số đang có. Chờ có mạng.',
+  'sx.api.qc.dat_co_bot':
+    'Bật/tắt sản xuất bột đổi luôn danh sách mục phải kiểm — cần có mạng để lấy '
+    + 'danh sách mới. Cứ ghi tiếp các mục đang có, có mạng rồi bật.',
+  'sx.api.qc.doi_co_bot_luot':
+    'Bật/tắt phần bột đổi danh sách mục của lượt — cần có mạng để lấy danh sách '
+    + 'mới. Cứ ghi tiếp các mục đang có, có mạng rồi bật.',
   'sx.api.tang1.huy_xuat_dau':
     'Huỷ phiếu xuất đỗ phải thu hồi phiếu kho nên phải có mạng.',
 };

@@ -267,3 +267,29 @@ def ma_tran(co_bot):
     không kiểm, và ngược lại.
     """
     return {l: [m["f"] for m in muc_ap_dung(l, co_bot)] for l in LUOT}
+
+
+# ═══ Cờ "có sản xuất bột" (D98) ════════════════════════════════════════════
+
+def co_bot_ngay(ban_ghi_ngay, rounds):
+    """Hôm đó có sản xuất bột không.
+
+    `ban_ghi_ngay` = giá trị cờ trên SX QC Ngay, None nếu ngày đó chưa có bản ghi.
+    Có bản ghi thì bản ghi QUYẾT ĐỊNH — kể cả khi nó nói 0 mà có lượt cũ bật bột
+    (người ta tắt đi vì bật nhầm). Chưa có bản ghi (ngày trước D98) thì suy từ các
+    lượt như cũ, để lịch sử không đổi nghĩa.
+    """
+    if ban_ghi_ngay is not None:
+        return 1 if int(ban_ghi_ngay or 0) else 0
+    return 1 if any(int((r or {}).get("co_san_xuat_bot") or 0) for r in rounds) else 0
+
+
+def muc_bot_da_ghi(gia_tri):
+    """Mục phần bột ĐÃ CÓ GIÁ TRỊ trên một lượt — {fieldname: giá trị} → [mục].
+
+    Dùng trước khi TẮT bột: tắt là mấy ô đó biến khỏi màn hình (giá trị vẫn nằm
+    trong DB nhưng không ai thấy, không vào tờ in, không sinh sự cố). Người tắt
+    phải biết mình đang giấu cái gì.
+    """
+    return [m for m in MUC if m["bot"] and m["kieu"] != "co_khong"
+            and co_ghi(m, gia_tri.get(m["f"]))]

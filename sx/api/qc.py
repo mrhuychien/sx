@@ -129,9 +129,10 @@ def get_today(ngay=None):
         order_by="creation",
     )
 
-    # "Hôm nay có bột" mặc định theo chính ngày đó: lượt trước đã bật thì lượt sau
-    # bật sẵn — QC không phải nhớ bật lại ở từng lượt.
-    co_bot = 1 if any(cint(r["co_san_xuat_bot"]) for r in rounds) else 0
+    # "Hôm nay có bột" là chuyện của CẢ NGÀY (D98) — đọc từ SX QC Ngay, xem
+    # muc.co_bot_ngay. Trước D98 suy từ các lượt, nên bật lúc đầu ngày (chưa có
+    # lượt nào) là không lưu vào đâu cả, tải lại trang là mất.
+    co_bot = M.co_bot_ngay(_co_bot_ban_ghi(d), rounds)
 
     # Ba ô trong ngày (D95 — không còn chia ca). Ngày cũ trước D95 có thể có hai
     # phiếu cùng tên lượt (ca Sáng + ca Chiều); ô chỉ hiện phiếu MỞ SAU CÙNG, đủ
@@ -179,7 +180,7 @@ def get_today(ngay=None):
 
 
 @frappe.whitelist()
-def start_round(ngay, luot, co_san_xuat_bot=0, nhap_lai_tu_giay=0, ca=None):
+def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ca=None):
     """Mở lượt. Đã có bản nháp thì trả lại chính nó, không đẻ bản thứ hai.
 
     `ca` BỎ QUA (D95 — không còn chia ca). Vẫn nhận tham số này vì điện thoại
@@ -201,6 +202,11 @@ def start_round(ngay, luot, co_san_xuat_bot=0, nhap_lai_tu_giay=0, ca=None):
             frappe.throw(_("Lượt {0} ngày {1} đã hoàn tất rồi.").format(luot, d))
         return chi_tiet_round(co[0]["name"])
 
+    if co_san_xuat_bot is None or co_san_xuat_bot == "":
+        # Không nói gì thì theo cờ của ngày — đó mới là nguồn sự thật (D98).
+        co_san_xuat_bot = M.co_bot_ngay(_co_bot_ban_ghi(d), frappe.get_all(
+            "SX QC Round", filters={"ngay": d, "docstatus": ("<", 2)},
+            fields=["co_san_xuat_bot"]))
     doc = frappe.get_doc({
         "doctype": "SX QC Round",
         "ngay": d, "luot": luot,
@@ -209,6 +215,87 @@ def start_round(ngay, luot, co_san_xuat_bot=0, nhap_lai_tu_giay=0, ca=None):
         "qc_user": frappe.session.user,
     })
     doc.insert()
+    return chi_tiet_round(doc.name)
+
+
+def _co_bot_ban_ghi(d):
+    """Giá trị cờ bột trên SX QC Ngay của ngày `d`, None nếu chưa có bản ghi."""
+    r = frappe.get_all("SX QC Ngay", filters={"ngay": d},
+                       fields=["co_san_xuat_bot"], limit=1)
+    return cint(r[0]["co_san_xuat_bot"]) if r else None
+
+
+def _ghi_co_bot_ngay(d, co_bot):
+    ten = frappe.db.get_value("SX QC Ngay", {"ngay": d}, "name")
+    vals = {"co_san_xuat_bot": cint(co_bot), "cap_nhat_boi": frappe.session.user,
+            "cap_nhat_luc": now_datetime()}
+    if ten:
+        frappe.db.set_value("SX QC Ngay", ten, vals)
+    else:
+        frappe.get_doc({"doctype": "SX QC Ngay", "ngay": d, **vals}).insert()
+
+
+def _hoi_truoc_khi_tat(docs):
+    """Lượt nào sắp bị TẮT bột mà đã ghi mục bột rồi → [(lượt, [nhãn mục])].
+
+    Tắt không xoá giá trị — nó nằm lại trong DB — nhưng mấy ô đó biến khỏi màn
+    hình, khỏi tờ in, và không còn sinh sự cố. Phải hỏi trước, không làm lặng lẽ.
+    """
+    ra = []
+    for doc in docs:
+        da = M.muc_bot_da_ghi({m["f"]: doc.get(m["f"]) for m in M.MUC})
+        if da:
+            ra.append({"luot": doc.luot, "name": doc.name,
+                       "muc": [f'{m["so"]} {m.get("ngan") or m["nhan"]}' for m in da]})
+    return ra
+
+
+@frappe.whitelist()
+def dat_co_bot(ngay, co_bot, ep=0):
+    """Bật / tắt "hôm nay có sản xuất bột" cho CẢ NGÀY (D98).
+
+    Đổi luôn mọi lượt ĐANG LÀM DỞ trong ngày. KHÔNG đụng lượt đã hoàn tất: lượt
+    Đầu sáng xong lúc 8h mà 10h mới bắt đầu làm bột thì lượt đó đúng là không có
+    phần bột — sửa ngược nó là sửa hồ sơ đã chốt.
+
+    Tắt mà có lượt dở đã ghi mục bột → trả `can_xac_nhan` và KHÔNG đổi gì, trừ khi
+    `ep=1` (người dùng đã xác nhận).
+    """
+    _guard_ghi()
+    d = getdate(ngay)
+    co_bot = cint(co_bot)
+    nhap = [frappe.get_doc("SX QC Round", n) for n in frappe.get_all(
+        "SX QC Round", filters={"ngay": d, "docstatus": 0}, pluck="name")]
+    doi = [x for x in nhap if cint(x.co_san_xuat_bot) != co_bot]
+    if not co_bot and not cint(ep):
+        hoi = _hoi_truoc_khi_tat(doi)
+        if hoi:
+            return {"can_xac_nhan": True, "luot": hoi}
+    _ghi_co_bot_ngay(d, co_bot)
+    for x in doi:
+        x.co_san_xuat_bot = co_bot
+        x.save()          # validate tính lại "đã chấm x / y" theo ma trận mới
+    return {"co_bot": co_bot, "luot_doi": [x.name for x in doi]}
+
+
+@frappe.whitelist()
+def doi_co_bot_luot(name, co_bot, ep=0):
+    """Bật / tắt phần bột cho RIÊNG một lượt đang làm dở (D98).
+
+    Bật ở đây thì cờ của NGÀY cũng bật theo: đang đi lượt mà thấy dây chuyền bột
+    chạy thì các lượt sau trong ngày cũng phải có phần bột. Tắt thì chỉ lượt này —
+    bột có thể dừng giữa ngày mà lượt sau vẫn chạy lại.
+    """
+    doc = _lay_round(name, de_ghi=True)
+    co_bot = cint(co_bot)
+    if not co_bot and cint(doc.co_san_xuat_bot) and not cint(ep):
+        hoi = _hoi_truoc_khi_tat([doc])
+        if hoi:
+            return {"can_xac_nhan": True, "luot": hoi}
+    doc.co_san_xuat_bot = co_bot
+    doc.save()
+    if co_bot:
+        _ghi_co_bot_ngay(doc.ngay, 1)
     return chi_tiet_round(doc.name)
 
 

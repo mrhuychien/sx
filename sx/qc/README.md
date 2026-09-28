@@ -98,6 +98,21 @@ Trong CSV vòng kiểm có **ba thứ khác nhau** mà gộp lại là đếm sa
 
 Gộp `n/a` với ô rỗng là tỷ lệ bỏ sót trông đẹp hơn sự thật.
 
+## "Hôm nay có sản xuất bột" (D98)
+
+Là chuyện của **cả ngày**, lưu ở `SX QC Ngay` — không phải của từng lượt. Hai chỗ bật:
+
+| Ở đâu | Tác dụng |
+|---|---|
+| màn `#/qc` — nút **CÓ / KHÔNG** | cả ngày: mọi lượt **đang làm dở** + mọi lượt mở sau có phần B. Lượt **đã hoàn tất giữ nguyên** (8h chưa làm bột là đúng sự thật) |
+| trong một lượt — **BẬT BỘT / TẮT BỘT** | riêng lượt đó. Bật thì cờ của ngày bật theo; tắt thì chỉ lượt đó (bột có thể dừng giữa ngày rồi chạy lại) |
+
+Tắt mà lượt đã ghi mục bột thì hỏi lại hai bước và liệt kê mục sẽ bị giấu. Giá trị
+không bị xoá — bật lại là thấy.
+
+Trước D98 cả hai đều hỏng mà không báo gì: nút ở màn Hôm nay chỉ đổi một biến trong
+trình duyệt (tải lại trang là về KHÔNG), và lượt đã mở thì không có chỗ nào bật bột.
+
 ## Nhắc lịch — hiện trên dashboard, KHÔNG gửi đi đâu
 
 `sx/qc/nhac.py` tính danh sách việc đang treo; hiện ở **ba chỗ, một bản duy nhất**:

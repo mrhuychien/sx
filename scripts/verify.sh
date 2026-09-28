@@ -158,6 +158,12 @@ python3 scripts/test-nhac.py > /tmp/sx-nhac.log 2>&1 \
   && tail -1 /tmp/sx-nhac.log \
   || { cat /tmp/sx-nhac.log; loi=1; }
 
+# "Có sản xuất bột" từng bật lên không dính (chỉ đổi biến trong trình duyệt) và lượt
+# đang dở không nhận được phần bột. Cả hai đều im lặng — phần B cứ thế không ai ghi.
+python3 scripts/test-qcbot.py > /tmp/sx-qcbot.log 2>&1 \
+  && tail -1 /tmp/sx-qcbot.log \
+  || { cat /tmp/sx-qcbot.log; loi=1; }
+
 # BM.07.03 là một CỔNG. Nới nhầm thì lô dừa sấy không COA đi thẳng vào bánh và
 # hồ sơ vẫn ghi "Đạt"; siết nhầm thì thủ kho bỏ trống ô QC cho xong việc, tức là
 # cổng tự mở.

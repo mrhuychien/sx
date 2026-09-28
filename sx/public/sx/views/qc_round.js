@@ -13,7 +13,7 @@ import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal } from '/assets/sx/sx/components/modal.js';
 import {
-  chip, hangChon, oCheck, oChon3, oChu, oGio, oSo, tieuDeBuoc,
+  batTatBot, chip, hangChon, oCheck, oChon3, oChu, oGio, oSo, tieuDeBuoc,
 } from '/assets/sx/sx/components/qcui.js';
 import { formatTime } from '/assets/sx/sx/lib/format.js';
 
@@ -141,6 +141,37 @@ export async function render({ container, call, tham_so }) {
     veTienDo();
     if (hen) clearTimeout(hen);
     hen = setTimeout(gui, 300);
+  }
+
+  // ── có sản xuất bột — cho RIÊNG lượt này (D98) ──────────────────────
+  // Trước D98 lượt đã mở thì không có cách nào thêm phần bột: dây chuyền bột
+  // chạy từ 10h mà lượt Trưa mở lúc 9h là mất hẳn phần B của lượt đó.
+  if (dl.docstatus === 0 && !khoa) {
+    const hang = el('div', 'sx-qc-luot-dau sx-qc-bot-luot');
+    hang.appendChild(el('span', 'sx-qc-luot-phu', dl.co_san_xuat_bot
+      ? 'Lượt này CÓ phần bột (B)' : 'Lượt này KHÔNG có phần bột'));
+    const nut = el('button', `sx-btn ${dl.co_san_xuat_bot ? 'sx-btn-ghost' : 'sx-btn-primary'}`,
+      dl.co_san_xuat_bot ? 'TẮT BỘT' : 'BẬT BỘT');
+    nut.type = 'button';
+    nut.addEventListener('click', async () => {
+      nut.disabled = true;
+      // Gửi nốt số đang gõ TRƯỚC: đổi bột là tải lại cả lượt từ server, số chưa
+      // gửi mà để trong ô thì mất theo màn hình cũ.
+      if (hen) clearTimeout(hen);
+      await gui();
+      await batTatBot({
+        call,
+        method: 'sx.api.qc.doi_co_bot_luot',
+        args: { name: dl.name, co_bot: dl.co_san_xuat_bot ? 0 : 1 },
+        onXong: () => {
+          toast(dl.co_san_xuat_bot ? 'Đã tắt phần bột' : 'Đã bật phần bột — thêm phần B');
+          render({ container, call, tham_so });
+        },
+      });
+      nut.disabled = false;
+    });
+    hang.appendChild(nut);
+    container.appendChild(hang);
   }
 
   // ── thân: từng bước, từng mục ───────────────────────────────────────
