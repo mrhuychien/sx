@@ -148,6 +148,9 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   const cho = r.cho_nhan || [];
   const rows = p.dong.map((x) => ({ ...x }));
   const tenSP = (item) => (danhMuc.find((d) => d.item === item) || {}).ten || item;
+  // D97: dòng có cờ riêng từ server; dòng vừa thêm trên máy thì tra danh mục.
+  const coBom = (x) => (x.co_bom !== undefined ? x.co_bom
+    : (danhMuc.find((d) => d.item === x.item) || {}).co_bom !== false);
 
   container.innerHTML = `
     <div class="sx-vh-top">
@@ -214,7 +217,9 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
         const lech = x.so_dem - x.so_lap;
         return `<div class="sx-vh-row">
           <div class="sx-vh-who">
-            <div class="sx-vh-name">${esc(x.ten || tenSP(x.item))}</div>
+            <div class="sx-vh-name">${esc(x.ten || tenSP(x.item))}${coBom(x) ? ''
+              : ' <span class="sx-nobom-tag" title="Duyệt vẫn nhập kho được, nhưng '
+                + 'CHƯA trừ nguyên liệu — ghi vào sổ nợ BOM">chưa có BOM</span>'}</div>
             <div class="sx-vh-meta">${esc(veUom(ctCua(x), soCua(x), x.item))
               || esc(x.dvt || '')}${laThuKho
               ? ` · phiếu ghi ${formatNumber(x.so_lap)}${
@@ -371,15 +376,24 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       if (!tong) { toastErr('Chưa có dòng nào có số > 0.'); return; }
       // Số đang sửa trên màn PHẢI lưu trước khi duyệt, không thì duyệt số cũ.
       try { await luu(); } catch (e) { toastErr(e.message); return; }
+      // D97: nói trước dòng nào sẽ nhập tạm — thủ kho phải biết mình đang ghi
+      // nợ nguyên liệu, không phải phát hiện sau qua một dòng lạ trên sổ nợ.
+      const thieuBom = rows.filter((x) => x.so_dem > 0 && !coBom(x));
       confirm2Step({
         title: 'Duyệt phiếu nhận',
         message: `Nhận ${formatNumber(tong)} sản phẩm vào ${p.kho_dich} theo đúng số `
-          + 'đếm. Duyệt xong chứng từ kho được ghi; sửa thì phải huỷ phiếu.',
+          + 'đếm. Duyệt xong chứng từ kho được ghi; sửa thì phải huỷ phiếu.'
+          + (thieuBom.length
+            ? `\n\n⚠ ${thieuBom.length} mã CHƯA CÓ BOM (${thieuBom.map((x) => x.ten
+              || tenSP(x.item)).join(', ')}): vẫn nhập kho, nhưng CHƯA trừ bột và `
+              + 'bao bì — ghi vào sổ nợ BOM để quản lý hạch toán bù khi có định mức.'
+            : ''),
         confirmLabel: 'DUYỆT',
         onConfirm: async () => {
           try {
             await call('sx.api.khotp.duyet_phieu', { name: p.name });
-            toast(`Đã nhận ${formatNumber(tong)} sản phẩm vào kho.`);
+            toast(`Đã nhận ${formatNumber(tong)} sản phẩm vào kho.`
+              + (thieuBom.length ? ` ${thieuBom.length} mã ghi vào sổ nợ BOM.` : ''));
             refresh();
           } catch (e) { toastErr(e.message); throw e; }
         },

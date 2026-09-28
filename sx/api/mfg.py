@@ -186,6 +186,64 @@ def tao_se_chuyen_kho(cong_ty, item, kg, kho_di, kho_den, ngay=None, ghi_chu=Non
     return se
 
 
+def tao_se_nhap_thang(cong_ty, item, qty, kho, batch, gia=0, ngay=None, ghi_chu=None):
+    """Material Receipt thành phẩm KHÔNG qua BOM — nhập kho khi chưa có định mức (D97).
+
+    Hàng vào kho, có lô theo ngày như nhập bình thường (truy xuất ngày × loại vẫn
+    còn), nhưng KHÔNG trừ nguyên liệu nào. Phần nguyên liệu đó được ghi nợ trong
+    SX No BOM và trừ bù sau bằng tao_se_xuat_bu().
+
+    `gia` = 0 thì cho phép giá vốn 0 (allow_zero_valuation_rate): bịa một đơn giá
+    để "có cho đủ" là đưa số giả vào giá vốn hàng bán mà không ai biết.
+    """
+    se = frappe.new_doc("Stock Entry")
+    se.purpose = "Material Receipt"
+    se.stock_entry_type = loai_phieu_kho("Material Receipt")
+    se.company = cong_ty
+    if ngay:
+        se.set_posting_time = 1
+        se.posting_date = str(ngay)
+    se.remarks = ghi_chu
+    row = {"item_code": item, "qty": flt(qty), "t_warehouse": kho,
+           "use_serial_batch_fields": 1, "batch_no": batch}
+    if flt(gia) > 0:
+        row["basic_rate"] = flt(gia)
+    else:
+        row["allow_zero_valuation_rate"] = 1
+    se.append("items", row)
+    se.flags.ignore_permissions = True
+    se.insert()
+    se.submit()
+    return se
+
+
+def tao_se_xuat_bu(cong_ty, nhu_cau, kho_nguon, ghi_chu=None):
+    """Material Issue trừ nguyên liệu BÙ cho thành phẩm đã nhập lúc chưa có BOM.
+
+    `nhu_cau` = {item_code: qty} (explode BOM × số đã nhập), `kho_nguon(item)` ->
+    kho rút. Lô nguyên liệu chọn FIFO TẠI NGÀY BÙ, không phải ngày sản xuất thật —
+    xem chú thích trong SX No BOM: lô thành phẩm nhập tạm không truy ngược được
+    tới đúng lô bột, đó là cái giá của việc nhập khi chưa có định mức.
+    """
+    se = frappe.new_doc("Stock Entry")
+    se.purpose = "Material Issue"
+    se.stock_entry_type = loai_phieu_kho("Material Issue")
+    se.company = cong_ty
+    se.remarks = ghi_chu
+    for item_code, qty in sorted(nhu_cau.items()):
+        if flt(qty) <= 0:
+            continue
+        se.append("items", {"item_code": item_code, "qty": flt(qty),
+                            "s_warehouse": kho_nguon(item_code)})
+    if not se.items:
+        return None
+    _gan_batch_fifo(se)
+    se.flags.ignore_permissions = True
+    se.insert()
+    se.submit()
+    return se
+
+
 def _gan_batch_fifo(se):
     """Gán batch FIFO cho dòng RM có has_batch_no; 1 dòng tách nhiều batch nếu cần.
 

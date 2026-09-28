@@ -36,6 +36,41 @@ def _tong_tu_uom(chi_tiet, mac_dinh):
     return flt(sum(flt(d.get("sl")) * flt(d.get("he_so") or 1) for d in ds))
 
 
+def _gia_von_tam(item, kho):
+    """Đơn giá cho hàng nhập tạm: giá vốn đang chạy ở kho → Item.valuation_rate → 0.
+
+    KHÔNG bịa giá. 0 nghĩa là lô này vào kho giá trị 0 cho tới khi hạch toán bù —
+    ghi rõ trên SX No BOM để kế toán biết lô nào đang lệch giá.
+    """
+    gia = flt(frappe.db.get_value("Bin", {"item_code": item, "warehouse": kho},
+                                  "valuation_rate"))
+    if not gia:
+        gia = flt(frappe.db.get_value("Item", item, "valuation_rate"))
+    return gia
+
+
+def _ghi_no_bom(phieu, r, so_luong, batch, se_nhap, gia):
+    no = frappe.get_doc({
+        "doctype": "SX No BOM",
+        "item": r.item,
+        "ten": r.ten or r.item,
+        "so_luong": so_luong,
+        "dvt": r.dvt or "",
+        "ngay": phieu.ngay,
+        "phieu_nhap": phieu.name,
+        "dong_idx": r.idx,
+        "se_nhap": se_nhap,
+        "batch": batch,
+        "kho": phieu.kho_dich,
+        "gia_tam": gia,
+        "trang_thai": "Chờ BOM",
+    })
+    # Thủ kho duyệt phiếu không có quyền tạo trên sổ nợ — nhưng hệ thống PHẢI ghi
+    # được. Không ghi được thì hàng vào kho mà khoản nợ nguyên liệu biến mất.
+    no.insert(ignore_permissions=True)
+    return no.name
+
+
 class SXPhieuNhapTP(Document):
     def validate(self):
         tong_dem = tong_lech = 0.0
@@ -116,7 +151,9 @@ class SXPhieuNhapTP(Document):
                 continue
             bom = get_bom_active(r.item)
             if not bom:
-                frappe.throw(_("Sản phẩm {0} chưa có BOM active.").format(r.item))
+                # D97: chưa có BOM thì nhập tạm + ghi nợ, KHÔNG trừ nguyên liệu lúc
+                # này — nên cũng không có gì để kiểm tồn. Kiểm lúc hạch toán bù.
+                continue
             for item_code, so in _nhu_cau_bom(bom, flt(r.so_dem)).items():
                 kho = kho_nguon_rm(item_code, settings)
                 can[(item_code, kho)] = can.get((item_code, kho), 0) + flt(so)
@@ -151,9 +188,17 @@ class SXPhieuNhapTP(Document):
         Số đếm là số duy nhất quyết định: hàng đã qua bước kiểm đếm thực tế rồi mới
         kéo vào kho. Cột "Số lập phiếu" chỉ để đối chiếu — chỗ lệch giữa hai số là
         thứ đáng xem, không phải thứ để chặn.
+
+        D97 — dòng CHƯA CÓ BOM không chặn cả phiếu nữa. Trước đây một mã hàng mới
+        chưa kịp làm định mức là thủ kho không duyệt được, hàng đứng ngoài kho, và
+        người ta tìm cách lách (nhập qua Desk, ghi sổ tay). Giờ dòng đó:
+          · vẫn vào kho, có lô theo ngày (Material Receipt),
+          · KHÔNG trừ nguyên liệu,
+          · ghi một dòng vào SX No BOM để hạch toán bù khi có BOM.
+        Dòng có BOM đi đường cũ, không đổi gì.
         """
         from sx.api.chot import _kho_nguon as kho_nguon_rm
-        from sx.api.mfg import tao_batch, tao_se_manufacture, tao_wo
+        from sx.api.mfg import tao_batch, tao_se_manufacture, tao_se_nhap_thang, tao_wo
         from sx.utils import get_bom_active, get_settings, sinh_ma_lo
 
         settings = get_settings()
@@ -163,12 +208,22 @@ class SXPhieuNhapTP(Document):
             if nhan <= 0:
                 continue
             bom = get_bom_active(r.item)
-            if not bom:
-                frappe.throw(_("Sản phẩm {0} chưa có BOM active.").format(r.item))
 
             # Mã lô sinh theo NGÀY NHẬN — truy xuất NGÀY × LOẠI (D3) vẫn nguyên,
             # không cần bám vào phiếu ngày sản xuất nào.
             batch = tao_batch(r.item, sinh_ma_lo(r.item, self.ngay))
+
+            if not bom:
+                gia = _gia_von_tam(r.item, self.kho_dich)
+                se = tao_se_nhap_thang(
+                    settings.cong_ty, r.item, nhan, self.kho_dich, batch, gia=gia,
+                    ngay=self.ngay,
+                    ghi_chu=_("Nhập tạm — {0} chưa có BOM. Nguyên liệu CHƯA trừ, "
+                              "ghi nợ ở SX No BOM (phiếu {1} dòng {2}).").format(
+                                  r.item, self.name, r.idx))
+                chung_tu.append({"dt": "Stock Entry", "name": se.name})
+                _ghi_no_bom(self, r, nhan, batch, se.name, gia)
+                continue
             wo = tao_wo(
                 settings.cong_ty, r.item, nhan, bom,
                 source_wh=settings.kho_nvl, fg_wh=self.kho_dich,
@@ -190,6 +245,19 @@ class SXPhieuNhapTP(Document):
         from sx.api.mfg import cancel_doc
 
         log = []
+        # D97: nợ BOM của phiếu này. Nợ đã HẠCH TOÁN BÙ thì huỷ luôn phiếu trừ
+        # nguyên liệu bù — huỷ thành phẩm mà để nguyên liệu vẫn bị trừ là kho mất
+        # bột oan. Mỗi dòng nợ có phiếu bù RIÊNG nên huỷ ở đây không đụng tới nợ
+        # của phiếu nhập khác.
+        for no in frappe.get_all("SX No BOM", filters={"phieu_nhap": self.name},
+                                 fields=["name", "trang_thai", "se_bu"]):
+            if no.se_bu:
+                cancel_doc("Stock Entry", no.se_bu, log)
+            frappe.db.set_value("SX No BOM", no.name, {
+                "trang_thai": "Đã huỷ",
+                "ly_do": _("Huỷ theo phiếu nhập {0}").format(self.name),
+            }, update_modified=True)
+            log.append(f"Nợ BOM {no.name} → Đã huỷ")
         for ct in reversed(json.loads(self.ds_se or "[]")):
             cancel_doc(ct.get("dt"), ct.get("name"), log)
         self.db_set("trang_thai", "Đã huỷ", update_modified=False)

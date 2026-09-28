@@ -139,6 +139,12 @@ node scripts/test-numpad.mjs > /tmp/sx-np.log 2>&1 \
   && tail -1 /tmp/sx-np.log \
   || { cat /tmp/sx-np.log; loi=1; }
 
+# D97 cố tình NỚI cái chặn "phải có BOM mới nhập kho". Nới sai thì hàng vào kho
+# mà khoản nợ nguyên liệu biến mất, hoặc bù hai lần — cả hai đều im lặng.
+python3 scripts/test-nobom.py > /tmp/sx-nb.log 2>&1 \
+  && tail -1 /tmp/sx-nb.log \
+  || { cat /tmp/sx-nb.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

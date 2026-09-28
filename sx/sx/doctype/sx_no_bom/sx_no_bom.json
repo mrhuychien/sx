@@ -1,0 +1,219 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-09-28 10:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "item",
+  "ten",
+  "so_luong",
+  "dvt",
+  "column_break_1",
+  "trang_thai",
+  "ngay",
+  "section_nguon",
+  "phieu_nhap",
+  "dong_idx",
+  "se_nhap",
+  "column_break_2",
+  "batch",
+  "kho",
+  "gia_tam",
+  "section_xu_ly",
+  "bom",
+  "se_bu",
+  "ly_do",
+  "column_break_3",
+  "xu_ly_boi",
+  "xu_ly_luc"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "NB-.YYYY.-.####",
+   "default": "NB-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Mã hàng",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên hàng",
+   "read_only": 1
+  },
+  {
+   "fieldname": "so_luong",
+   "fieldtype": "Float",
+   "label": "Số lượng đã nhập",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "dvt",
+   "fieldtype": "Data",
+   "label": "ĐVT",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Chờ BOM\nĐã hạch toán bù\nBỏ qua\nĐã huỷ",
+   "default": "Chờ BOM",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày nhập kho",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_nguon",
+   "fieldtype": "Section Break",
+   "label": "Nhập kho lúc chưa có BOM"
+  },
+  {
+   "fieldname": "phieu_nhap",
+   "fieldtype": "Link",
+   "label": "Phiếu nhập kho",
+   "options": "SX Phieu Nhap TP",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dong_idx",
+   "fieldtype": "Int",
+   "label": "Dòng",
+   "read_only": 1
+  },
+  {
+   "fieldname": "se_nhap",
+   "fieldtype": "Link",
+   "label": "Phiếu kho nhập tạm",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "description": "Material Receipt — hàng vào kho, CHƯA trừ nguyên liệu."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "batch",
+   "fieldtype": "Link",
+   "label": "Lô thành phẩm",
+   "options": "Batch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "kho",
+   "fieldtype": "Link",
+   "label": "Kho",
+   "options": "Warehouse",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gia_tam",
+   "fieldtype": "Currency",
+   "label": "Đơn giá tạm",
+   "read_only": 1,
+   "description": "Giá vốn đang có của mã hàng lúc nhập. 0 = chưa có giá nào, hàng vào kho giá trị 0 cho tới khi hạch toán bù."
+  },
+  {
+   "fieldname": "section_xu_ly",
+   "fieldtype": "Section Break",
+   "label": "Xử lý"
+  },
+  {
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "BOM dùng để bù",
+   "options": "BOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "se_bu",
+   "fieldtype": "Link",
+   "label": "Phiếu kho trừ nguyên liệu bù",
+   "options": "Stock Entry",
+   "read_only": 1,
+   "description": "Material Issue: bột + bao bì theo BOM × số lượng đã nhập."
+  },
+  {
+   "fieldname": "ly_do",
+   "fieldtype": "Small Text",
+   "label": "Lý do / ghi chú",
+   "description": "Bắt buộc khi Bỏ qua."
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "xu_ly_boi",
+   "fieldtype": "Link",
+   "label": "Xử lý bởi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xu_ly_luc",
+   "fieldtype": "Datetime",
+   "label": "Xử lý lúc",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-09-28 10:00:00",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX No BOM",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "item",
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "SX Thu Kho",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  }
+ ]
+}

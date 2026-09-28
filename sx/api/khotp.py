@@ -25,8 +25,8 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
-from sx.config.roles import guard_card
-from sx.utils import get_settings, items_tp, nhom_tp
+from sx.config.roles import QUAN_LY, guard_card, is_super, user_roles
+from sx.utils import get_bom_active, get_settings, items_tp, nhom_tp
 
 # Khoảng ngày dùng CHUNG cho "còn được nhập": danh sách chờ nhận, nút tải, và
 # lần kiểm lúc duyệt. Ba chỗ lấy ba khoảng khác nhau thì màn hình mời nhập một
@@ -45,9 +45,16 @@ def danh_muc_tp():
     """
     guard_card("nhapkhotp")
     ds = items_tp()
+    # Một truy vấn cho cả danh mục, không gọi get_bom_active từng mã.
+    co_bom_set = set(frappe.get_all(
+        "BOM", filters={"is_active": 1, "is_default": 1, "docstatus": 1},
+        pluck="item", distinct=True))
     rows = [
         {"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or "",
-         "uoms": _uom_cua(i.name, i.stock_uom)}
+         "uoms": _uom_cua(i.name, i.stock_uom),
+         # D97: chưa có BOM vẫn chọn được — nhập tạm + ghi nợ. Cờ này để màn
+         # hình nói ra NGAY lúc chọn, không đợi tới lúc duyệt.
+         "co_bom": i.name in co_bom_set}
         for i in ds
     ]
     if rows:
@@ -204,7 +211,11 @@ def chi_tiet_phieu(name):
              "so_lap": flt(r.so_lap, 0), "so_dem": flt(r.so_dem, 0),
              "lap_uom": _doc_json(r.get("lap_uom")),
              "dem_uom": _doc_json(r.get("dem_uom")),
-             "lech": flt(r.lech, 0), "ghi_chu": r.ghi_chu}
+             "lech": flt(r.lech, 0), "ghi_chu": r.ghi_chu,
+             # D97: dòng chưa có BOM vẫn duyệt được nhưng nhập tạm + ghi nợ.
+             # Màn hình phải NÓI RA trước khi thủ kho bấm duyệt, không để họ
+             # biết sau qua một dòng lạ trên sổ nợ.
+             "co_bom": bool(get_bom_active(r.item))}
             for r in doc.dong
         ],
     }
@@ -542,3 +553,159 @@ def tai_tu_vao_hop(name, so_ngay=None):
     doc.flags.ignore_permissions = True
     doc.save()
     return chi_tiet_phieu(doc.name)
+
+
+# ═══════════════════════════ SỔ NỢ BOM (D97) ═══════════════════════════
+#
+# Thành phẩm nhập kho khi mã hàng CHƯA có BOM: hàng vào kho, nguyên liệu chưa trừ.
+# Sổ này là danh sách phải xử lý sau — không xử lý thì tồn bột / bao bì trên sổ cao
+# hơn thực tế mãi mãi, và lần kiểm kê nào cũng "thiếu" đúng bằng phần nợ này.
+#
+# Xem: THỦ KHO + QUẢN LÝ (card nobom). Xử lý: CHỈ QUẢN LÝ — hạch toán bù là ghi
+# chứng từ kho, bỏ qua là quyết định "phần nguyên liệu này không bao giờ trừ".
+
+NGAY_NO_LAU = 7     # nợ quá chừng này ngày thì card tô đỏ
+
+
+def _duoc_xu_ly_no():
+    roles = user_roles()
+    return is_super(roles) or QUAN_LY in roles
+
+
+def _chan_neu_khong_duoc_xu_ly():
+    if not _duoc_xu_ly_no():
+        frappe.throw(_("Chỉ QUẢN LÝ mới xử lý được sổ nợ BOM — hạch toán bù là ghi "
+                       "chứng từ kho, bỏ qua là quyết định không bao giờ trừ phần "
+                       "nguyên liệu đó."), frappe.PermissionError)
+
+
+@frappe.whitelist()
+def so_no_bom():
+    """Nợ đang mở, GOM THEO MÃ HÀNG — vì xử lý là theo mã (tạo một BOM là trả được
+    nợ của mọi phiếu đã nhập mã đó), không theo từng phiếu."""
+    guard_card("nobom")
+    ds = frappe.get_all(
+        "SX No BOM", filters={"trang_thai": "Chờ BOM"},
+        fields=["name", "item", "ten", "so_luong", "dvt", "ngay", "phieu_nhap",
+                "dong_idx", "gia_tam", "batch"],
+        order_by="ngay asc, creation asc")
+    hom_nay = getdate(nowdate())
+    nhom = {}
+    for x in ds:
+        g = nhom.setdefault(x.item, {
+            "item": x.item, "ten": x.ten or x.item, "dvt": x.dvt or "",
+            "so_luong": 0.0, "dong": [], "gia_0": False,
+        })
+        g["so_luong"] += flt(x.so_luong)
+        g["gia_0"] = g["gia_0"] or not flt(x.gia_tam)
+        g["dong"].append({
+            "name": x.name, "ngay": str(x.ngay), "so_luong": flt(x.so_luong),
+            "phieu_nhap": x.phieu_nhap, "batch": x.batch,
+        })
+    ra = []
+    for g in nhom.values():
+        cu = getdate(g["dong"][0]["ngay"])
+        g["so_ngay"] = (hom_nay - cu).days
+        g["lau"] = g["so_ngay"] > NGAY_NO_LAU
+        bom = get_bom_active(g["item"])
+        g["bom"] = bom
+        g["co_bom"] = bool(bom)
+        ra.append(g)
+    # Đã có BOM lên đầu (xử lý được ngay), rồi nợ lâu nhất.
+    ra.sort(key=lambda g: (not g["co_bom"], -g["so_ngay"]))
+    return {"nhom": ra, "tong_dong": len(ds), "duoc_xu_ly": _duoc_xu_ly_no(),
+            "ngay_no_lau": NGAY_NO_LAU}
+
+
+def nhu_cau_bu(bom, ds_no):
+    """{(item_nl, kho): qty} cần trừ để bù cho danh sách nợ. Hàm thuần theo BOM."""
+    from sx.api.chot import _kho_nguon, _nhu_cau_bom
+
+    settings = get_settings()
+    can = {}
+    for no in ds_no:
+        for it, q in _nhu_cau_bom(bom, flt(no["so_luong"])).items():
+            k = (it, _kho_nguon(it, settings))
+            can[k] = can.get(k, 0) + flt(q)
+    return can
+
+
+@frappe.whitelist()
+def hach_toan_bu(item):
+    """Trừ nguyên liệu bù cho MỌI dòng nợ đang mở của một mã hàng, theo BOM hiện có.
+
+    Mỗi dòng nợ một phiếu kho riêng (không gộp): huỷ phiếu nhập nào thì huỷ đúng
+    phiếu bù của dòng đó, không kéo theo nợ của phiếu khác.
+
+    Kiểm tồn GỘP một lần trước khi ghi gì — kiểm từng dòng riêng thì năm dòng cùng
+    cần 100 kg bột, tồn 100, lần nào kiểm cũng "đủ", tới dòng thứ hai mới vỡ giữa
+    chừng. Cả lần bù là MỘT transaction: vỡ ở đâu thì không dòng nào được ghi.
+    """
+    from sx.api.chot import _kho_nguon, _nhu_cau_bom
+    from sx.api.mfg import tao_se_xuat_bu
+    from sx.utils import cho_phep_ton_am
+
+    guard_card("nobom")
+    _chan_neu_khong_duoc_xu_ly()
+    bom = get_bom_active(item)
+    if not bom:
+        frappe.throw(_("{0} vẫn chưa có BOM active — tạo và submit BOM (đặt làm "
+                       "mặc định) rồi bấm lại.").format(item))
+    ds = frappe.get_all("SX No BOM", filters={"item": item, "trang_thai": "Chờ BOM"},
+                        fields=["name", "so_luong", "ngay", "phieu_nhap"],
+                        order_by="ngay asc, creation asc")
+    if not ds:
+        frappe.throw(_("{0} không còn khoản nợ nào đang mở.").format(item))
+
+    thieu = []
+    for (it, kho), can in sorted(nhu_cau_bu(bom, ds).items()):
+        ton = flt(frappe.db.get_value("Bin", {"item_code": it, "warehouse": kho},
+                                      "actual_qty"))
+        if ton + 1e-6 < can:
+            thieu.append(_("• {0} tại {1}: cần {2}, tồn {3}").format(
+                it, kho, flt(can, 3), flt(ton, 3)))
+    if thieu and not cho_phep_ton_am():
+        frappe.throw(_("Không đủ nguyên liệu để hạch toán bù:") + "<br>"
+                     + "<br>".join(thieu))
+
+    settings = get_settings()
+    xong = []
+    for no in ds:
+        se = tao_se_xuat_bu(
+            settings.cong_ty, _nhu_cau_bom(bom, flt(no.so_luong)),
+            lambda it: _kho_nguon(it, settings),
+            ghi_chu=_("Hạch toán bù nợ BOM {0}: {1} {2} nhập ngày {3} (phiếu {4}) "
+                      "theo {5}").format(no.name, flt(no.so_luong), item, no.ngay,
+                                         no.phieu_nhap, bom))
+        frappe.db.set_value("SX No BOM", no.name, {
+            "trang_thai": "Đã hạch toán bù", "bom": bom,
+            "se_bu": se.name if se else None,
+            "xu_ly_boi": frappe.session.user, "xu_ly_luc": frappe.utils.now_datetime(),
+        })
+        xong.append(no.name)
+    return {"item": item, "bom": bom, "so_dong": len(xong), "canh_bao": thieu}
+
+
+@frappe.whitelist()
+def bo_qua_no(name, ly_do=None):
+    """Đóng MỘT dòng nợ mà KHÔNG trừ nguyên liệu — bắt buộc lý do.
+
+    Dành cho trường hợp thật sự không có tiêu hao: hàng trả về nhập lại kho, hàng
+    làm bù mà nguyên liệu đã trừ ở chứng từ khác. Theo từng dòng chứ không theo mã:
+    một mã có năm phiếu thì thường chỉ một phiếu là hàng trả về.
+    """
+    guard_card("nobom")
+    _chan_neu_khong_duoc_xu_ly()
+    if not (ly_do or "").strip():
+        frappe.throw(_("Bỏ qua khoản nợ thì phải ghi lý do — sau này đối chiếu kho "
+                       "không ai nhớ vì sao phần nguyên liệu này không bị trừ."))
+    no = frappe.get_doc("SX No BOM", name)
+    if no.trang_thai != "Chờ BOM":
+        frappe.throw(_("Khoản nợ {0} đã ở trạng thái {1}.").format(name, no.trang_thai))
+    no.trang_thai = "Bỏ qua"
+    no.ly_do = ly_do.strip()
+    no.xu_ly_boi = frappe.session.user
+    no.xu_ly_luc = frappe.utils.now_datetime()
+    no.flags.ignore_permissions = True
+    no.save()
+    return {"name": name}

@@ -805,7 +805,9 @@ main > .container {
 }
 .sx-modal-close:active { transform: scale(.94); }
 .sx-modal-body { display: flex; flex-direction: column; gap: var(--sx-s3); }
-.sx-modal-msg { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+/* pre-line: câu xác nhận có khi phải xuống dòng để tách phần CẢNH BÁO ra khỏi
+   phần thông báo thường (vd duyệt phiếu có mã chưa có BOM, D97). */
+.sx-modal-msg { font-size: var(--sx-f-sm); color: var(--sx-text-2); white-space: pre-line; }
 
 /* ══════════════════ 10. BÀN SỐ ══════════════════
  * Numpad tự dựng thay bàn phím hệ thống: đeo găng gõ bàn phím ảo là nguồn sai số
@@ -1819,3 +1821,29 @@ main > .container {
 .sx-tk-muc-ten small { font-weight: 500; font-size: var(--sx-f-xs); color: var(--sx-text-2); }
 .sx-tk-thoat { color: var(--sx-danger-text); }
 .sx-tk-thoat small { color: var(--sx-warning-text); font-weight: 700; }
+
+
+/* ══════════════════ SỔ NỢ BOM (D97) ══════════════════ */
+.sx-nobom-tag {
+  display: inline-block; margin-left: var(--sx-s1); padding: 1px 8px;
+  border-radius: var(--sx-radius-pill); font-size: var(--sx-f-xs); font-weight: 700;
+  background: var(--sx-warning-soft); color: var(--sx-warning-text); vertical-align: middle;
+}
+.sx-nobom-nhom {
+  border: 1px solid var(--sx-line); border-left: 4px solid var(--sx-warning);
+  border-radius: var(--sx-radius-sm); padding: var(--sx-s3); margin-top: var(--sx-s2);
+  display: flex; flex-direction: column; gap: var(--sx-s2); background: var(--sx-surface);
+}
+.sx-nobom-nhom.sx-nobom-co { border-left-color: var(--sx-success); }
+.sx-nobom-nhom.sx-nobom-lau { border-left-color: var(--sx-danger); }
+.sx-nobom-dau { display: flex; justify-content: space-between; gap: var(--sx-s2); align-items: baseline; }
+.sx-nobom-ten { font-weight: 700; font-size: var(--sx-f-md); }
+.sx-nobom-so { font-weight: 800; font-size: var(--sx-f-lg); white-space: nowrap; }
+.sx-nobom-meta { font-size: var(--sx-f-xs); color: var(--sx-text-2); }
+.sx-nobom-dong {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--sx-s2);
+  font-size: var(--sx-f-xs); color: var(--sx-text-2);
+  border-top: 1px dashed var(--sx-line); padding-top: var(--sx-s1);
+}
+.sx-nobom-nut { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
+.sx-nobom-dong .sx-btn { white-space: nowrap; flex: none; }

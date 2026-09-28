@@ -79,12 +79,14 @@ VIEW_CARDS = {
     "ghiso": ["luutrinh", "baome", "baocan", "suco"],
     # D83: màn Ghi hộp của QC chỉ còn đúng việc chấm hộp. Báo sự cố về tổ Ghi sổ.
     "vaohop": ["vaohop"],
-    "nhapkho": ["nhapkhotp"],
+    # nobom: sổ nợ BOM (D97) — thành phẩm nhập lúc chưa có định mức. Đặt ngay
+    # dưới phiếu nhập để thủ kho thấy phần mình vừa nhập tạm đang nằm đâu.
+    "nhapkho": ["nhapkhotp", "nobom"],
     # Màn QC là view standalone: nó tự dựng cả 5 màn con (#/qc, /round/:name,
     # /incidents, /history, /review) và tự chốt quyền trong sx/api/qc.py.
     "qc": [],
     # qcnhac đứng ĐẦU: việc QC đang treo phải đập vào mắt trước cả nút chốt ngày.
-    "quanly": ["qcnhac", "chotngay", "luutrinhbtp", "nguoidung"],
+    "quanly": ["qcnhac", "nobom", "chotngay", "luutrinhbtp", "nguoidung"],
 }
 
 # card nào role nào được GỌI API (chốt bảo mật thật — không phải ẩn tab)
@@ -108,6 +110,9 @@ CARD_ROLES = {
     # Hộp nhắc việc QC trên dashboard quản lý. Không chứa gì bí mật — nó chỉ
     # đếm lại những thứ chính người đó có quyền xem.
     "qcnhac": [QUAN_LY],
+    # Sổ nợ BOM: thủ kho XEM (phần mình nhập tạm), quản lý XỬ LÝ. Quyền xử lý chốt
+    # riêng trong khotp._duoc_xu_ly_no — card mở cho cả hai, nút thì không.
+    "nobom": [THU_KHO, QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
 

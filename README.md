@@ -198,6 +198,39 @@ tận tay. QC quét QR là vào thẳng portal, không gõ gì.
 - Tên miền ghép vào email giả khai ở `SX Settings → Tên miền cho email tài khoản`
   (bỏ trống = `sx.local`). **Đừng dùng tên miền thật đang nhận thư.**
 
+## Nhập kho thành phẩm CHƯA có BOM — sổ nợ BOM (D97)
+
+Trước D97 một mã hàng mới chưa kịp làm định mức là thủ kho **không duyệt được** phiếu
+nhập, hàng đứng ngoài kho, và người ta tìm cách lách. Giờ:
+
+| Dòng trên phiếu | Lúc duyệt |
+|---|---|
+| **có BOM** | như cũ: Work Order + Manufacture, trừ bột + bao bì |
+| **chưa có BOM** | vẫn **nhập kho** (Material Receipt, có lô theo ngày) nhưng **CHƯA trừ nguyên liệu** — ghi một dòng vào **sổ nợ BOM** (`SX No BOM`) |
+
+Màn nhập kho gắn nhãn *chưa có BOM* ngay trên dòng, và câu xác nhận lúc duyệt nói rõ
+mã nào sẽ ghi nợ — thủ kho không phát hiện sau qua một dòng lạ.
+
+**Sổ nợ BOM** (card trên màn Nhập kho và Quản lý, tự ẩn khi không nợ gì) gom theo mã hàng:
+
+- **Hạch toán bù** — khi mã đó đã có BOM. Trừ bột + bao bì theo BOM × số đã nhập, mỗi lần
+  nhập một phiếu kho riêng. Kiểm tồn gộp trước; thiếu thì không ghi gì cả.
+- **Bỏ qua** — từng dòng, **bắt buộc lý do** — khi thật sự không có tiêu hao (hàng trả
+  về nhập lại…).
+- Chỉ **Quản lý** xử lý; thủ kho xem được.
+- Huỷ phiếu nhập thì nợ → *Đã huỷ*; nợ đã bù thì huỷ luôn phiếu trừ bù.
+
+**Hai cái giá phải trả, biết trước để không bất ngờ:**
+
+1. **Tồn bột / bao bì trên sổ cao hơn thực tế** đúng bằng phần đang nợ, cho tới khi bù.
+   Nợ quá 7 ngày card tô đỏ.
+2. **Lô thành phẩm nhập tạm không truy ngược được tới đúng lô bột** đã dùng: lúc bù,
+   nguyên liệu trừ theo FIFO ở ngày bù chứ không phải ngày sản xuất. Và nếu mã hàng chưa
+   có giá vốn nào, lô đó vào kho **giá 0** (không bịa giá) — card ghi rõ để kế toán biết.
+
+BTP (báo mẻ) **vẫn bắt buộc BOM** — không phải vì cứng nhắc: số kg của một mẻ được tính
+từ cỡ mẻ ghi trên BOM, không có BOM thì không có con số nào để ghi.
+
 ## Module QC — kiểm tra chất lượng (BM.08.01 / BM.08.02)
 
 Nằm gọn trong module `qc` để sau muốn tách thành app riêng chỉ là chuyển thư mục.
