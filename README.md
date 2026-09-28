@@ -231,6 +231,27 @@ mã nào sẽ ghi nợ — thủ kho không phát hiện sau qua một dòng l�
 BTP (báo mẻ) **vẫn bắt buộc BOM** — không phải vì cứng nhắc: số kg của một mẻ được tính
 từ cỡ mẻ ghi trên BOM, không có BOM thì không có con số nào để ghi.
 
+## Vào hộp mã CHƯA có đơn giá — sổ nợ đơn giá (D99)
+
+QC ghi được mã chưa khai giá từ trước (chặn giữa xưởng là dừng chuyền), nhưng chốt Vào
+hộp xong thì lương khoán mã đó nằm trong phiếu lương tháng ở **0 đồng** và không ai nhớ
+phải bù. Giờ lúc **chốt Vào hộp**, mỗi (ngày, mã hàng, cách làm) không tra được giá ghi
+một dòng vào **sổ nợ đơn giá** (`SX No Don Gia`), và hộp cảnh báo sau khi chốt nói rõ mã nào.
+
+**Sổ nợ đơn giá** (card màn Quản lý, tự ẩn khi không nợ gì) gom theo mã + cách làm:
+
+- **Khai giá ở `SX Bang Don Gia`** — đúng **bảng áp dụng cho ngày sản xuất** (card ghi tên
+  bảng). Giá ở bảng hiệu lực *sau* ngày đó không được tính: chốt lại ngày đó sẽ tra bảng
+  cũ, hai con số sẽ lệch. Không có ô gõ giá tay ở card — một nguồn giá duy nhất.
+- **Áp giá** — điền giá vào đúng những dòng 0 đồng của ngày đó trong phiếu lương tháng
+  (và bảng vào hộp đã chốt, tổng lương phiếu ngày) — không phải huỷ chốt cả ngày.
+  Dòng đã có giá không bị đè.
+- Phiếu lương **đã duyệt** thì không áp (báo tên phiếu) — huỷ duyệt trước. Ngược lại,
+  **không duyệt được phiếu lương** còn dòng đang nợ giá: duyệt là khoá cứng 0 đồng.
+- **Bỏ qua** — từng ngày, **bắt buộc lý do** (hàng mẫu, làm thử…) — giữ 0 đồng.
+- Huỷ chốt Vào hộp / huỷ chốt ngày: nợ đang mở → *Đã huỷ*; chốt lại tra giá từ đầu.
+- Chỉ **Quản lý** xem và xử lý.
+
 ## Module QC — kiểm tra chất lượng (BM.08.01 / BM.08.02)
 
 Nằm gọn trong module `qc` để sau muốn tách thành app riêng chỉ là chuyển thư mục.

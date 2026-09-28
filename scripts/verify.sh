@@ -145,6 +145,13 @@ python3 scripts/test-nobom.py > /tmp/sx-nb.log 2>&1 \
   && tail -1 /tmp/sx-nb.log \
   || { cat /tmp/sx-nb.log; loi=1; }
 
+# D99: mã chưa có đơn giá vẫn chốt được — nợ lương phải được ghi, áp giá phải đúng
+# ngày / đúng mã / không đụng phiếu lương đã duyệt. Hỏng thì công nhân mất tiền
+# trong im lặng.
+python3 scripts/test-nogia.py > /tmp/sx-ng.log 2>&1 \
+  && tail -1 /tmp/sx-ng.log \
+  || { cat /tmp/sx-ng.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

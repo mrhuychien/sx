@@ -15,6 +15,7 @@ from frappe import _
 from frappe.utils import cint, flt, getdate, now_datetime
 
 from sx.api.mfg import cancel_doc, loai_phieu_kho, tao_batch, tao_se_manufacture, tao_wo
+from sx.api.nogia import canh_bao_no_gia, ghi_no_gia, huy_no_gia
 from sx.config.roles import guard_card
 from sx.utils import (
     cho_phep_ton_am,
@@ -159,6 +160,11 @@ def chot_vaohop(ngay_sx):
 
         buoc = _("ghi phiếu lương khoán")
         ds_salary = _ghi_luong_khoan(doc, bang)
+
+        # D99: mã chưa khai giá vẫn chốt được, nhưng ghi NỢ để bù giá sau — không
+        # để lương khoán nằm im ở 0 đồng tới cuối tháng mới lộ.
+        buoc = _("ghi sổ nợ đơn giá")
+        ghi_no_gia(doc, bang)
 
         buoc = _("ghi trạng thái chốt Vào hộp")
         doc.tong_hop_tp = cint(bang.tong_hop)
@@ -560,6 +566,8 @@ def _canh_bao_mem(doc):
     """Không chặn: tồn bột bánh < lượng cán báo (quên báo mẻ trộn) + lô còn ở xưởng."""
     settings = get_settings()
     canh_bao = list(doc.flags.get("canh_bao_ton") or []) + _lo_con_o_xuong(doc)
+    if cint(doc.get("chot_vaohop")):
+        canh_bao += canh_bao_no_gia(doc.name)
     can_theo_loai = {}
     for row in doc.bao_can:
         can_theo_loai[row.item_bot_banh] = can_theo_loai.get(row.item_bot_banh, 0) + flt(row.so_me)
@@ -762,6 +770,8 @@ def on_cancel_ngay(doc, method=None):
 
     if doc.salary_products_json:
         log.extend(_go_luong_khoan(json.loads(doc.salary_products_json)))
+    if huy_no_gia(doc.name):
+        log.append(_("Huỷ nợ đơn giá của lần chốt này"))
 
     batches = [r.batch for r in doc.bao_me if r.batch]
     if batches:
@@ -863,6 +873,8 @@ def huy_chot_vaohop(ngay_sx, ly_do=None):
     if doc.salary_products_json:
         log.extend(_go_luong_khoan(json.loads(doc.salary_products_json)))
         doc.db_set("salary_products_json", None, update_modified=False)
+    if huy_no_gia(doc.name):
+        log.append(_("Huỷ nợ đơn giá của lần chốt này"))
     doc.db_set("tong_hop_tp", 0, update_modified=False)
     doc.db_set("tong_luong_sp", 0, update_modified=False)
     return {"name": doc.name, "log": log}

@@ -86,7 +86,8 @@ VIEW_CARDS = {
     # /incidents, /history, /review) và tự chốt quyền trong sx/api/qc.py.
     "qc": [],
     # qcnhac đứng ĐẦU: việc QC đang treo phải đập vào mắt trước cả nút chốt ngày.
-    "quanly": ["qcnhac", "nobom", "chotngay", "luutrinhbtp", "nguoidung"],
+    # nogia (D99): sổ nợ đơn giá vào hộp — lương khoán đang 0 đồng chờ khai giá.
+    "quanly": ["qcnhac", "nobom", "nogia", "chotngay", "luutrinhbtp", "nguoidung"],
 }
 
 # card nào role nào được GỌI API (chốt bảo mật thật — không phải ẩn tab)
@@ -113,6 +114,8 @@ CARD_ROLES = {
     # Sổ nợ BOM: thủ kho XEM (phần mình nhập tạm), quản lý XỬ LÝ. Quyền xử lý chốt
     # riêng trong khotp._duoc_xu_ly_no — card mở cho cả hai, nút thì không.
     "nobom": [THU_KHO, QUAN_LY],
+    # Sổ nợ đơn giá (D99): áp giá là SỬA LƯƠNG của người khác — chỉ quản lý.
+    "nogia": [QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
 

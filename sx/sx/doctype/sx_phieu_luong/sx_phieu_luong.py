@@ -218,6 +218,9 @@ class SXPhieuLuong(Document):
                                  + flt(self.tham_nien_thang_truoc_nua))
 
     def before_submit(self):
+        # D99: còn dòng nợ đơn giá mà duyệt là khoá cứng nó ở 0 đồng.
+        from sx.api.nogia import chan_duyet_phieu_luong
+        chan_duyet_phieu_luong(self)
         self.trang_thai = "Đã duyệt"
 
     def on_cancel(self):

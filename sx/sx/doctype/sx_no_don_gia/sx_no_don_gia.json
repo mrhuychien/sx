@@ -1,0 +1,184 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-09-28 12:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "san_pham",
+  "ten_san_pham",
+  "cach_lam",
+  "so_hop",
+  "so_nguoi",
+  "column_break_1",
+  "trang_thai",
+  "ngay",
+  "ngay_sx",
+  "bang_vao_hop",
+  "section_xu_ly",
+  "bang_don_gia",
+  "don_gia",
+  "thanh_tien",
+  "ly_do",
+  "column_break_2",
+  "xu_ly_boi",
+  "xu_ly_luc"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "NG-.YYYY.-.####",
+   "default": "NG-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "san_pham",
+   "fieldtype": "Link",
+   "label": "Mã hàng",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "ten_san_pham",
+   "fieldtype": "Data",
+   "label": "Tên hàng",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cach_lam",
+   "fieldtype": "Link",
+   "label": "Cách làm",
+   "options": "SX Cach Lam",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "so_hop",
+   "fieldtype": "Int",
+   "label": "Số hộp",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "so_nguoi",
+   "fieldtype": "Int",
+   "label": "Số người",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Chờ giá\nĐã cập nhật\nBỏ qua\nĐã huỷ",
+   "default": "Chờ giá",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày sản xuất",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngay_sx",
+   "fieldtype": "Link",
+   "label": "Phiếu ngày",
+   "options": "SX Ngay San Xuat",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bang_vao_hop",
+   "fieldtype": "Link",
+   "label": "Bảng vào hộp",
+   "options": "SX Bang Vao Hop",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_xu_ly",
+   "fieldtype": "Section Break",
+   "label": "Xử lý"
+  },
+  {
+   "fieldname": "bang_don_gia",
+   "fieldtype": "Link",
+   "label": "Bảng đơn giá",
+   "options": "SX Bang Don Gia",
+   "read_only": 1,
+   "description": "Bảng áp dụng cho ngày sản xuất — giá phải khai ở ĐÚNG bảng này."
+  },
+  {
+   "fieldname": "don_gia",
+   "fieldtype": "Currency",
+   "label": "Đơn giá đã áp",
+   "read_only": 1
+  },
+  {
+   "fieldname": "thanh_tien",
+   "fieldtype": "Currency",
+   "label": "Thành tiền đã bù",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ly_do",
+   "fieldtype": "Small Text",
+   "label": "Lý do / ghi chú",
+   "description": "Bắt buộc khi Bỏ qua."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "xu_ly_boi",
+   "fieldtype": "Link",
+   "label": "Xử lý bởi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xu_ly_luc",
+   "fieldtype": "Datetime",
+   "label": "Xử lý lúc",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-09-28 12:00:00",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX No Don Gia",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "san_pham",
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "report": 1,
+   "export": 1
+  }
+ ]
+}

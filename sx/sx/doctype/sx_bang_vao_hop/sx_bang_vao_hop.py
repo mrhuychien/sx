@@ -91,6 +91,8 @@ class SXBangVaoHop(Document):
                 _("Chưa khai đơn giá khoán {0} cho:").format(ten_bang)
                 + "<br>" + "<br>".join(sorted(set(thieu)))
                 + "<br><br>" + _("Các dòng này đang tính 0 đồng. Khai giá ở "
-                                 "SX Bang Don Gia rồi lưu lại bảng vào hộp."),
+                                 "SX Bang Don Gia rồi lưu lại bảng vào hộp. Chốt "
+                                 "trước khi có giá cũng được: các mã này vào SỔ NỢ "
+                                 "ĐƠN GIÁ, áp giá sau ở màn Quản lý."),
                 title=_("Thiếu đơn giá"), indicator="orange",
             )
