@@ -4,7 +4,7 @@ Tách ra khỏi sx/api/qc.py để test gọi thẳng: chỗ dễ sai nhất c�
 không phải là truy vấn mà là Ý NGHĨA CỦA Ô TRỐNG. Ở đây có ba thứ khác nhau mà
 trông giống hệt nhau nếu để cùng một ô trống:
 
-  "n/a"  mục không áp dụng ở lượt đó (lượt giữa ca không có phần PRP đầu ca)
+  "n/a"  mục không áp dụng ở lượt đó (lượt trưa không có phần PRP đầu ngày)
   ""     áp dụng mà chưa kiểm  ← đây mới là thứ Ban ISO cần đếm
   "—"    số chưa đo
 
@@ -19,16 +19,16 @@ from sx.qc import muc as M
 
 BOM = "﻿"
 
-COT_LUOT = ["Số phiếu", "Ngày", "Ca", "Lượt", "Có bột", "Giờ hoàn tất",
+COT_LUOT = ["Số phiếu", "Ngày", "Lượt", "Có bột", "Giờ hoàn tất",
             "Số phút", "Ghi muộn", "Nhập lại từ giấy", "QC chế biến",
             "QC đóng gói", "Đã chấm", "Phải chấm", "Xem xét lúc", "Ghi chú"]
 
-COT_SU_CO = ["Số phiếu", "Ngày", "Ca", "Nguồn", "Vòng kiểm", "Mục", "Công đoạn",
+COT_SU_CO = ["Số phiếu", "Ngày", "Nguồn", "Vòng kiểm", "Mục", "Công đoạn",
              "Loại", "Mức độ", "Mô tả", "Lô ảnh hưởng", "Xử lý ngay",
              "Nguyên nhân", "Hành động khắc phục", "Quyết định SP", "Số CAR",
              "Trạng thái", "Đóng bởi", "Đóng lúc"]
 
-KHOA_SU_CO = ["name", "ngay", "ca", "nguon", "qc_round", "muc", "cong_doan",
+KHOA_SU_CO = ["name", "ngay", "nguon", "qc_round", "muc", "cong_doan",
               "loai", "muc_do", "mo_ta", "lo_anh_huong", "xu_ly_ngay",
               "nguyen_nhan", "hanh_dong_khac_phuc", "quyet_dinh_sp", "car_so",
               "trang_thai", "dong_boi", "dong_ngay"]
@@ -42,7 +42,7 @@ def dong_luot(doc, in_gia_tri, cint):
     """Một dòng CSV cho một lượt. `doc` là bản ghi SX QC Round."""
     ap = {m["f"] for m in M.muc_ap_dung(doc.get("luot"),
                                         cint(doc.get("co_san_xuat_bot")))}
-    return ([doc.get("name"), doc.get("ngay"), doc.get("ca"), doc.get("luot"),
+    return ([doc.get("name"), doc.get("ngay"), doc.get("luot"),
              cint(doc.get("co_san_xuat_bot")), doc.get("finished_at"),
              cint(doc.get("duration_min")), cint(doc.get("ghi_muon")),
              cint(doc.get("nhap_lai_tu_giay")), doc.get("qc_user"),

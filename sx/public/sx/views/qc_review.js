@@ -8,7 +8,7 @@
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step } from '/assets/sx/sx/components/modal.js';
-import { khungTrong, veNhac } from '/assets/sx/sx/components/qcui.js';
+import { LUOT_NGAY, khungTrong, timLuot, veNhac } from '/assets/sx/sx/components/qcui.js';
 
 const st = { thang: null };
 
@@ -68,7 +68,7 @@ export async function render(api) {
   kp.appendChild(o('Ghi đúng khung giờ', `${kpi.ty_le_dung_gio}%`,
     `${kpi.ghi_muon} lượt ghi muộn`));
   kp.appendChild(o('Lượt đã làm', `${kpi.so_luot}/${kpi.can_co}`,
-    `${kpi.ty_le_hoan_tat}% so với 3 lượt × 2 ca mỗi ngày`));
+    `${kpi.ty_le_hoan_tat}% so với 3 lượt mỗi ngày`));
   kp.appendChild(o('Sự cố đang mở', kpi.su_co_mo,
     kpi.su_co_qua_han ? `${kpi.su_co_qua_han} phiếu QUÁ HẠN` : 'không có phiếu quá hạn'));
   kp.appendChild(o('Chưa xem xét', kpi.chua_xem_xet, 'lượt đã hoàn tất, Ban ISO chưa ký'));
@@ -80,19 +80,16 @@ export async function render(api) {
 
   // ── lưới ngày × lượt ────────────────────────────────────────────────
   const luoi = el('div', 'sx-qc-luoi');
-  const cot = [];
-  ['Sáng', 'Chiều'].forEach((ca) => ['Đầu ca', 'Giữa ca', 'Cuối ca']
-    .forEach((l) => cot.push([ca, l])));
+  const cot = LUOT_NGAY;
   let html = '<table><tr><th>Ngày</th>'
-    + cot.map(([ca, l]) => `<th>${esc(ca[0])}·${esc(l.split(' ')[0])}</th>`).join('')
+    + cot.map((c) => `<th>${esc(c.ngan)}</th>`).join('')
     + '<th>Sự cố</th></tr>';
   for (let i = 1; i <= cuoi.getDate(); i += 1) {
     const ngay = `${st.thang}-${String(i).padStart(2, '0')}`;
     const cua = ds.filter((r) => String(r.ngay) === ngay);
     html += `<tr><td>${i}</td>`;
-    cot.forEach(([ca, l]) => {
-      const r = cua.find((x) => x.ca === ca
-        && (x.luot === l || (l === 'Đầu ca' && x.luot === 'Tuần')));
+    cot.forEach((c) => {
+      const r = timLuot(cua, c.luot);
       const cls = !r ? 'sx-qc-o-thieu'
         : (r.ghi_muon ? 'sx-qc-o-muon' : (r.docstatus === 1 ? 'sx-qc-o-xong' : ''));
       const ky = !r ? '·' : (r.docstatus === 1 ? (r.ghi_muon ? '✻' : '✓') : '…');

@@ -7,7 +7,7 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
-import { chip, segment, veNhac } from '/assets/sx/sx/components/qcui.js';
+import { chip, veNhac } from '/assets/sx/sx/components/qcui.js';
 import { formatTime } from '/assets/sx/sx/lib/format.js';
 
 const THU = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
@@ -25,10 +25,9 @@ export async function render({ container, call, st }) {
     call('sx.api.qc.nhac', st.ngay ? { ngay: st.ngay } : {}).catch(() => null),
   ]);
   st.ngay = dl.ngay;
-  if (!st.ca) st.ca = dl.ca[0];
   container.innerHTML = '';
 
-  // ── đầu màn: ngày + người + ca ──────────────────────────────────────
+  // ── đầu màn: ngày + người ──────────────────────────────────────
   const top = el('div', 'sx-qc-top');
   const la_hom_nay = dl.ngay === dl.hom_nay;
   top.innerHTML = `<div style="flex:1;min-width:0">
@@ -59,13 +58,8 @@ export async function render({ container, call, st }) {
   // đập vào mắt trước khi người ta bấm "Bắt đầu lượt" rồi quên mất nó.
   const hopNhac = veNhac((nh && nh.ds) || []);
   if (hopNhac) container.appendChild(hopNhac);
-  container.appendChild(segment(dl.ca, st.ca, (v) => {
-    st.ca = v;
-    render({ container, call, st });
-  }));
-
-  // ── ba thẻ lượt ─────────────────────────────────────────────────────
-  const ds = dl.theo_ca[st.ca] || [];
+  // ── ba thẻ lượt trong ngày (D95: không chia ca nữa) ─────────────────
+  const ds = dl.o_luot || [];
   const ke_tiep = ds.find((x) => !x.round || x.round.docstatus === 0);
   ds.forEach((x) => container.appendChild(
     veThe(x, x === ke_tiep, dl, st, call, container)));
@@ -114,12 +108,12 @@ function veThe(x, la_ke_tiep, dl, st, call, container) {
   const r = x.round;
   const the = el('div', `sx-qc-luot${r && r.docstatus === 1 ? ' sx-qc-luot-xong' : ''}`);
   const dau = el('div', 'sx-qc-luot-dau');
-  const ten = x.luot === 'Tuần' && x.o === 'Đầu ca' ? 'Đầu ca · Tuần' : x.o;
+  const ten = x.luot === 'Tuần' && x.o === 'Đầu sáng' ? 'Đầu sáng · Tuần' : x.o;
   dau.appendChild(el('div', 'sx-qc-luot-ten', esc(ten)));
   if (r && r.docstatus === 1) {
     dau.appendChild(el('div', 'sx-qc-luot-gio', `xong ${esc(formatTime(r.finished_at))}`));
   } else {
-    const k = ((dl.khung || {})[st.ca] || {})[x.o];
+    const k = (dl.khung || {})[x.o];
     if (k) {
       // Nói trước khung giờ, đừng để QC biết mình muộn sau khi đã bị gắn cờ.
       dau.appendChild(el('div', 'sx-qc-luot-gio', esc(
@@ -159,7 +153,7 @@ function veThe(x, la_ke_tiep, dl, st, call, container) {
       nut.disabled = true;
       try {
         const kq = await call('sx.api.qc.start_round', {
-          ngay: dl.ngay, ca: st.ca, luot: x.luot,
+          ngay: dl.ngay, luot: x.luot,
           co_san_xuat_bot: st.co_bot ?? dl.co_san_xuat_bot,
           // Ngày quá khứ = nhập lại từ bản giấy. Không bắt QC tự tick: họ mở
           // ngày cũ ra là đã nói rõ mình đang làm gì rồi.

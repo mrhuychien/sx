@@ -41,11 +41,14 @@ fields = [
     f("naming_series", "Select", "Số phiếu", options="QC-.YYYY.-.MM.-.####",
       default="QC-.YYYY.-.MM.-.####", reqd=1),
     f("ngay", "Date", "Ngày", reqd=1, in_list_view=1),
-    f("ca", "Select", "Ca", options="\n".join(muc.CA), reqd=1, in_list_view=1,
-      description="Chưa có DocType ca sản xuất trong app — xem sx/qc/README.md."),
     f("luot", "Select", "Lượt", options="\n".join(muc.LUOT), reqd=1, in_list_view=1,
-      description="Tuần = lượt đầu ca thứ Hai (gồm cả phần A và phần C), "
-                  "không phải một lượt thứ tư."),
+      description="Một ngày ba lượt: Đầu sáng · Trưa · Cuối chiều. Tuần = lượt "
+                  "đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư."),
+    # Bỏ từ D95 (không còn chia ca). Giữ field để phiếu cũ còn nguyên giá trị —
+    # xoá cột là mất dấu vết phiếu đó được ghi ở ca nào.
+    f("ca", "Select", "Ca (phiếu cũ)", options="\n" + "\n".join(("Sáng", "Chiều")),
+      hidden=1, read_only=1,
+      description="Chỉ còn trên phiếu trước D95. Từ D95 một ngày ba lượt, không chia ca."),
     f("column_break_head", "Column Break"),
     f("co_san_xuat_bot", "Check", "Hôm nay có sản xuất bột", default="0"),
     f("qc_user", "Link", "QC chế biến", options="User", reqd=1),

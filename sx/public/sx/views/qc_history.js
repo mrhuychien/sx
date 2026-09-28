@@ -6,7 +6,7 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
-import { khungTrong } from '/assets/sx/sx/components/qcui.js';
+import { LUOT_NGAY, khungTrong, timLuot } from '/assets/sx/sx/components/qcui.js';
 
 const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const st = { lech: 0 };   // số tuần lùi so với tuần này
@@ -63,21 +63,17 @@ export async function render(api) {
     hang.appendChild(el('div', 'sx-qc-ngayhang-ten',
       esc(`${THU[d.getDay()]} ${ngay.slice(8)}/${ngay.slice(5, 7)}`)));
     const pills = el('div', 'sx-qc-chips');
-    ['Sáng', 'Chiều'].forEach((ca) => {
-      ['Đầu ca', 'Giữa ca', 'Cuối ca'].forEach((luot) => {
-        const r = cua.find((x) => x.ca === ca
-          && (x.luot === luot || (luot === 'Đầu ca' && x.luot === 'Tuần')));
-        let cls = '';
-        if (r && r.docstatus === 1) cls = r.ghi_muon ? ' sx-qc-pill-muon' : ' sx-qc-pill-xong';
-        else if (r) cls = ' sx-qc-pill-nhap';
-        const p = el('span', `sx-qc-pill${cls}`,
-          esc(`${ca[0]}${luot === 'Đầu ca' ? 'Đ' : (luot === 'Giữa ca' ? 'G' : 'C')}`));
-        p.title = r
-          ? `${r.luot} ${ca} — ${r.docstatus === 1 ? 'xong' : 'đang làm'}`
-            + `${r.ghi_muon ? ' (ghi muộn)' : ''}`
-          : `${luot} ${ca} — chưa có`;
-        pills.appendChild(p);
-      });
+    LUOT_NGAY.forEach(({ luot, ngan }) => {
+      const r = timLuot(cua, luot);
+      let cls = '';
+      if (r && r.docstatus === 1) cls = r.ghi_muon ? ' sx-qc-pill-muon' : ' sx-qc-pill-xong';
+      else if (r) cls = ' sx-qc-pill-nhap';
+      const p = el('span', `sx-qc-pill${cls}`, esc(ngan));
+      p.title = r
+        ? `${r.luot} — ${r.docstatus === 1 ? 'xong' : 'đang làm'}`
+          + `${r.ghi_muon ? ' (ngoài khung giờ)' : ''}`
+        : `${luot} — chưa có`;
+      pills.appendChild(p);
     });
     hang.appendChild(pills);
     if (cua.length) {
@@ -92,8 +88,8 @@ export async function render(api) {
 
   if (!coGi) container.appendChild(khungTrong('Tuần này chưa có lượt kiểm nào.'));
   container.appendChild(el('div', 'sx-qc-goiy',
-    'Ô vàng = ghi muộn · ô xanh = xong đúng khung giờ · ô xám = chưa có lượt. '
-    + 'Chữ SĐ = ca Sáng đầu ca, CG = ca Chiều giữa ca…'));
+    'Ô xanh = xong đúng khung giờ · ô vàng = ngoài khung giờ · ô xanh dương = '
+    + 'đang làm dở · ô xám = chưa có lượt.'));
 }
 
 /** Mở tờ A4 ở cửa sổ mới rồi gọi in. Server trả HTML đã dựng sẵn (day_sheet). */

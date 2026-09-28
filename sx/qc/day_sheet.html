@@ -40,7 +40,8 @@
   <table>
     <tr>
       <th class="so">#</th><th>Nội dung kiểm</th>
-      {% for r in rounds %}<th class="o">{{ r.ca }}<br>{{ r.luot }}</th>{% endfor %}
+      {# Ca chỉ còn trên phiếu trước D95 (một ngày có thể 6 lượt); phiếu mới không có ca. #}
+      {% for r in rounds %}<th class="o">{{ r.luot }}{% if r.ca %}<br>{{ r.ca }}{% endif %}</th>{% endfor %}
     </tr>
     {% for h in hang %}
       {% if h.buoc %}
@@ -76,7 +77,7 @@
   <div class="ky">
     Ghi chú của QC:
     {% for r in rounds %}
-      {%- if r.ghi_chu %}<br>· {{ r.ca }} {{ r.luot }}: {{ r.ghi_chu }}{% endif %}
+      {%- if r.ghi_chu %}<br>· {{ r.luot }}{% if r.ca %} ({{ r.ca }}){% endif %}: {{ r.ghi_chu }}{% endif %}
     {%- endfor %}
     {% if not rounds|selectattr("ghi_chu")|list %} (không có){% endif %}
     <br><br>
@@ -84,7 +85,7 @@
     <br>
     Ban ISO xem xét:
     {% for r in rounds %}
-      {%- if r.reviewed_on %} {{ r.ca }}/{{ r.luot }}: {{ r.reviewed_by }}
+      {%- if r.reviewed_on %} {{ r.luot }}{% if r.ca %} ({{ r.ca }}){% endif %}: {{ r.reviewed_by }}
         ({{ frappe.utils.format_datetime(r.reviewed_on, "dd/MM/yyyy HH:mm") }});
       {%- endif %}
     {%- endfor %}

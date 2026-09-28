@@ -328,3 +328,22 @@ export function veNhac(ds, opts = {}) {
   });
   return box;
 }
+
+// ── Ba lượt trong ngày (D95 — không còn chia ca) ─────────────────────────
+// Nhãn ngắn cho những chỗ chật (pill lịch sử, cột lưới tháng).
+export const LUOT_NGAY = [
+  { luot: 'Đầu sáng', ngan: 'Sáng' },
+  { luot: 'Trưa', ngan: 'Trưa' },
+  { luot: 'Cuối chiều', ngan: 'Chiều' },
+];
+
+/** Phiếu của một lượt trong danh sách phiếu CÙNG NGÀY.
+ *
+ * Tuần tính là Đầu sáng (nó chiếm chỗ Đầu sáng vào thứ Hai). Ngày cũ trước D95
+ * có thể có hai phiếu cùng tên lượt (ca Sáng + ca Chiều): ưu tiên phiếu ĐÃ HOÀN
+ * TẤT, vì ô này trả lời câu "lượt đó có người đi xong chưa". */
+export function timLuot(dsNgay, luot) {
+  const khop = dsNgay.filter((x) => x.luot === luot
+    || (luot === 'Đầu sáng' && x.luot === 'Tuần'));
+  return khop.find((x) => Number(x.docstatus) === 1) || khop[0] || null;
+}

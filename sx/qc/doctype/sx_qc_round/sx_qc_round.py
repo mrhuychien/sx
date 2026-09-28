@@ -56,18 +56,22 @@ class SXQCRound(Document):
         self.so_muc_da_cham = sum(1 for m in ap if M.co_ghi(m, _gia_tri(self, m)))
 
     def kiem_trung(self):
-        """Một (ngày, ca, lượt) chỉ có một phiếu; Đầu ca và Tuần loại trừ nhau.
+        """Một (ngày, lượt) chỉ có một phiếu; Đầu sáng và Tuần loại trừ nhau.
 
-        Không dùng unique index vì luật loại trừ Đầu ca ↔ Tuần không phải là
-        unique trên ba cột — và vì thông báo của MariaDB ("Duplicate entry") thì
+        Không dùng unique index vì luật loại trừ Đầu sáng ↔ Tuần không phải là
+        unique trên hai cột — và vì thông báo của MariaDB ("Duplicate entry") thì
         QC đứng giữa xưởng đọc không hiểu gì.
+
+        Không lọc theo ca (bỏ từ D95). Phiếu cũ trước D95 có thể còn hai lượt
+        cùng tên trong một ngày (ca Sáng + ca Chiều); đó là hồ sơ đã chốt, không
+        ai sửa nó, nên chuyện này chỉ chặn việc mở THÊM lượt vào ngày cũ đó.
         """
         cung = [self.luot]
-        if self.luot in M.DAU_CA_HOAC_TUAN:
-            cung = list(M.DAU_CA_HOAC_TUAN)
+        if self.luot in M.DAU_NGAY_HOAC_TUAN:
+            cung = list(M.DAU_NGAY_HOAC_TUAN)
         trung = frappe.get_all(
             "SX QC Round",
-            filters={"ngay": self.ngay, "ca": self.ca, "luot": ("in", cung),
+            filters={"ngay": self.ngay, "luot": ("in", cung),
                      "docstatus": ("<", 2), "name": ("!=", self.name or "")},
             fields=["name", "luot"], limit=1,
         )
@@ -76,10 +80,10 @@ class SXQCRound(Document):
         t = trung[0]
         them = ""
         if t["luot"] != self.luot:
-            them = _(" — lượt Tuần LÀ lượt đầu ca thứ Hai, không phải lượt thêm.")
+            them = _(" — lượt Tuần LÀ lượt đầu sáng thứ Hai, không phải lượt thêm.")
         frappe.throw(
-            _("Ngày {0} ca {1} đã có lượt {2} ({3}){4}").format(
-                self.ngay, self.ca, t["luot"], t["name"], them))
+            _("Ngày {0} đã có lượt {1} ({2}){3}").format(
+                self.ngay, t["luot"], t["name"], them))
 
     # ── hoàn tất ─────────────────────────────────────────────────────────
     def before_submit(self):
@@ -125,8 +129,7 @@ class SXQCRound(Document):
         ng = nguong()
         if cint(self.duration_min) > cint(ng.get("ghi_muon_phut")):
             return 1
-        khung = ng["khung"].get(self.ca, {}).get(
-            M.DAU_CA if self.luot == M.TUAN else self.luot)
+        khung = ng["khung"].get(M.DAU_SANG if self.luot == M.TUAN else self.luot)
         if not khung:
             return 0
         gio = get_time(get_datetime(self.finished_at))

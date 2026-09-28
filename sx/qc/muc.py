@@ -14,17 +14,26 @@ module qc phải bê nguyên sang app khác được (xem sx/qc/README.md).
 """
 
 # ── Lượt ──────────────────────────────────────────────────────────────────
-DAU_CA = "Đầu ca"
-GIUA_CA = "Giữa ca"
-CUOI_CA = "Cuối ca"
+# MỘT NGÀY BA LƯỢT, không chia ca (D95). Trước D95 là 3 lượt × 2 ca Sáng/Chiều;
+# nhà máy đổi sang ba mốc cố định trong ngày, mỗi mốc có hạn chót riêng — xem
+# khung giờ trong sx/qc/nguong.py.
+DAU_SANG = "Đầu sáng"
+TRUA = "Trưa"
+CUOI_CHIEU = "Cuối chiều"
 TUAN = "Tuần"
-LUOT = (DAU_CA, GIUA_CA, CUOI_CA, TUAN)
+LUOT = (DAU_SANG, TRUA, CUOI_CHIEU, TUAN)
 
-# Lượt Tuần LÀ lượt đầu ca thứ Hai, không phải lượt thứ tư trong ngày (spec 1.1.6).
-# Mọi chỗ hỏi "có phải đầu ca không" phải hỏi qua hàm này, đừng so chuỗi.
-DAU_CA_HOAC_TUAN = (DAU_CA, TUAN)
+# Ba ô trên màn Hôm nay, theo thứ tự trong ngày. Tuần KHÔNG nằm đây: nó chiếm
+# chỗ của Đầu sáng vào thứ Hai chứ không phải ô thứ tư.
+LUOT_TRONG_NGAY = (DAU_SANG, TRUA, CUOI_CHIEU)
 
-CA = ("Sáng", "Chiều")
+# Lượt Tuần LÀ lượt đầu sáng thứ Hai, không phải lượt thứ tư trong ngày (spec
+# 1.1.6). Mọi chỗ hỏi "có phải lượt đầu ngày không" phải hỏi qua tuple này.
+DAU_NGAY_HOAC_TUAN = (DAU_SANG, TUAN)
+
+# Tên lượt trước D95 → tên mới. Patch d95 dùng bảng này đổi phiếu cũ; giữ ở đây
+# để mọi chỗ cần đọc dữ liệu cũ tra cùng một bảng.
+DOI_TEN_CU = {"Đầu ca": DAU_SANG, "Giữa ca": TRUA, "Cuối ca": CUOI_CHIEU}
 
 # ── Công đoạn (cho phiếu sự cố) ───────────────────────────────────────────
 # 10 công đoạn mà spec ghim theo SỐ trong luật map tự động (2,3,4,6,7,8,10,12,
@@ -111,17 +120,17 @@ def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
 MUC = [
     # ── A: PRP đầu ca ────────────────────────────────────────────────────
     _m("a1_ve_sinh", "1a", "Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô",
-       "A", "PRP", ap=DAU_CA_HOAC_TUAN,
+       "A", "PRP", ap=DAU_NGAY_HOAC_TUAN,
        goi_y="sạch khô; đã vệ sinh chuyển đổi sau lạc / dừa / sữa",
        ngan="Vệ sinh xưởng, bề mặt, thiết bị"),
     _m("a2_cong_nhan", "1b", "Công nhân: bảo hộ, tay, trang sức, không ốm",
-       "A", "PRP", ap=DAU_CA_HOAC_TUAN,
+       "A", "PRP", ap=DAU_NGAY_HOAC_TUAN,
        ngan="Công nhân: BHLĐ, tay, sức khoẻ", goi_y="không trang sức, không ốm"),
     _m("a3_dong_vat", "1c", "Không dấu hiệu động vật gây hại",
-       "A", "PRP", ap=DAU_CA_HOAC_TUAN,
+       "A", "PRP", ap=DAU_NGAY_HOAC_TUAN,
        ngan="Không dấu hiệu động vật gây hại"),
     _m("a4_hoa_chat", "1d", "Không hoá chất/dầu trong khu SX; không rò dầu",
-       "A", "PRP", ap=DAU_CA_HOAC_TUAN,
+       "A", "PRP", ap=DAU_NGAY_HOAC_TUAN,
        ngan="Hoá chất cất đúng nơi", goi_y="không hoá chất/dầu trong khu SX; không rò dầu"),
 
     # ── B: dây chuyền bánh ───────────────────────────────────────────────
@@ -135,11 +144,11 @@ MUC = [
        "4", "4 Sàng cát",
        ngan="Lưới sàng nguyên vẹn", goi_y="sàng cát và sàng lại"),
     _m("nam_cham_da_kiem", "6", "Nam châm đã kiểm, vệ sinh",
-       "6", "6 Vỡ đỗ, nam châm", ap=DAU_CA_HOAC_TUAN),
+       "6", "6 Vỡ đỗ, nam châm", ap=DAU_NGAY_HOAC_TUAN),
     _m("nam_cham_vat", "6b", "Vật bắt được", "6", "6 Vỡ đỗ, nam châm",
-       kieu="chu", ap=DAU_CA_HOAC_TUAN, goi_y="để trống nếu không có", phu=True),
+       kieu="chu", ap=DAU_NGAY_HOAC_TUAN, goi_y="để trống nếu không có", phu=True),
     _m("nam_cham_mat_kim_loai", "6c", "Có mạt kim loại",
-       "6", "6 Vỡ đỗ, nam châm", kieu="co_khong", ap=DAU_CA_HOAC_TUAN,
+       "6", "6 Vỡ đỗ, nam châm", kieu="co_khong", ap=DAU_NGAY_HOAC_TUAN,
        goi_y="tích = tạo sự cố", phu=True),
     _m("do_min_dat", "7", "Độ mịn đạt, rây 0,2 mm", "7", "7 Nghiền"),
     _m("thung_bot_qua_han", "8", "Thùng bột quá 2 ngày / hở nắp",
@@ -149,7 +158,7 @@ MUC = [
     _m("kl_tinh_dat", "11", "Khối lượng tịnh đạt", "12",
        "12 Cân, khối lượng tịnh", goi=True),
     _m("moi_han_kin", "12", "Mối hàn túi kín", "12", "13 Hàn túi", goi=True,
-       ap=(GIUA_CA, CUOI_CA)),
+       ap=(TRUA, CUOI_CHIEU)),
     _m("nhan_hsd_dung", "13", "Nhãn, HSD đúng lô", "12", "14 Nhãn, HSD", goi=True),
 
     # ── C: lượt tuần ─────────────────────────────────────────────────────
@@ -181,7 +190,7 @@ MUC = [
        "B", "Bột: xay đường", bot=True,
        ngan="Đúng công thức trộn", goi_y="đường xay, rây; cân đúng"),
     _m("b4_moi_han_tui", "B4", "Mối hàn túi 40 g kín, 5 túi", "B", "Bột: đóng túi",
-       bot=True, goi=True, ap=(GIUA_CA, CUOI_CA)),
+       bot=True, goi=True, ap=(TRUA, CUOI_CHIEU)),
     _m("b5_nhan_di_ung", "B5", "Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",
        "B", "Bột: đóng túi", bot=True,
        ngan="Nhãn, HSD, cảnh báo lạc/sữa", goi_y="đúng sản phẩm"),

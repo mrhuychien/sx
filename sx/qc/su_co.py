@@ -128,7 +128,6 @@ def tao_tu_vong_kiem(doc):
         sc = frappe.get_doc({
             "doctype": "SX Su Co",
             "ngay": doc.ngay,
-            "ca": doc.ca,
             "nguon": "Vòng kiểm QC",
             "qc_round": doc.name,
             "muc": f'{m["so"]} {m["nhan"]}' if m else key,

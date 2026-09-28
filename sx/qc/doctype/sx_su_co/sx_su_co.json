@@ -57,8 +57,11 @@
   {
    "fieldname": "ca",
    "fieldtype": "Select",
-   "label": "Ca",
-   "options": "\nSáng\nChiều"
+   "label": "Ca (phiếu cũ)",
+   "options": "\nSáng\nChiều",
+   "hidden": 1,
+   "read_only": 1,
+   "description": "Chỉ còn trên phiếu trước D95. Từ D95 một ngày ba lượt, không chia ca."
   },
   {
    "fieldname": "trang_thai",

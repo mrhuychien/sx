@@ -53,8 +53,8 @@ def co(ds, chu):
     return [x for x in ds if chu in x["tieu_de"]]
 
 
-def lt(ngay, ca="Sáng", luot="Đầu ca", docstatus=1, **kw):
-    d = {"ngay": ngay, "ca": ca, "luot": luot, "docstatus": docstatus}
+def lt(ngay, luot="Đầu sáng", docstatus=1, **kw):
+    d = {"ngay": ngay, "luot": luot, "docstatus": docstatus}
     d.update(kw)
     return d
 
@@ -72,8 +72,7 @@ kiem("mốc ngày dùng trong bài đúng là thứ Hai", date(2026, 9, 14).week
 
 # ═══ 1. Im lặng khi không có gì ══════════════════════════════════════════
 print("\n-- không có việc gì thì KHÔNG nhắc --")
-ba_luot = [lt(T2, "Sáng", "Tuần"), lt(T2, "Sáng", "Giữa ca"),
-           lt(T2, "Sáng", "Cuối ca")]
+ba_luot = [lt(T2, "Tuần"), lt(T2, "Trưa"), lt(T2, "Cuối chiều")]
 kiem("ngày sạch, không sự cố → hộp nhắc RỖNG", tinh(luot=ba_luot) == [])
 kiem("không có lượt nào, không sự cố nào → chỉ nhắc lượt tuần chưa làm",
      [x["tieu_de"] for x in tinh()] == ["Hôm nay là thứ Hai — chưa làm lượt tuần"],
@@ -112,23 +111,28 @@ kiem("lượt Tuần của TUẦN TRƯỚC không tính cho tuần này",
      co(tinh(hom_nay=T4, luot=[lt("2026-09-07", luot="Tuần")]), "lượt tuần"))
 
 # ═══ 4. Lượt thiếu / bỏ dở ═══════════════════════════════════════════════
-print("\n-- ca đi thiếu lượt --")
-kiem("ca KHÔNG có lượt nào → KHÔNG nhắc (hôm đó có thể không sản xuất)",
+print("\n-- ngày đi thiếu lượt (D95: một ngày ba lượt, không chia ca) --")
+kiem("ngày KHÔNG có lượt nào → KHÔNG nhắc (hôm đó có thể không sản xuất)",
      not co(tinh(hom_nay=T4, luot=[lt(T4, luot="Tuần")]), "đi thiếu"))
-ds = tinh(hom_nay=T4, luot=[lt(T2, "Sáng", "Tuần"), lt(T2, "Sáng", "Giữa ca")])
-kiem("ca đi 2/3 lượt → có nhắc", co(ds, "đi thiếu"))
-kiem("và chỉ đúng ngày nào ca nào", "14/09 Sáng (2/3)" in co(ds, "đi thiếu")[0]["chi_tiet"],
+ds = tinh(hom_nay=T4, luot=[lt(T2, "Tuần"), lt(T2, "Trưa")])
+kiem("ngày đi 2/3 lượt → có nhắc", co(ds, "đi thiếu"))
+kiem("và chỉ đúng ngày nào", "14/09 (2/3)" in co(ds, "đi thiếu")[0]["chi_tiet"],
      co(ds, "đi thiếu")[0]["chi_tiet"])
-kiem("ca đủ 3 lượt → không nhắc",
+kiem("ngày đủ 3 lượt → không nhắc",
      not co(tinh(hom_nay=T4, luot=ba_luot + [lt(T4, luot="Tuần")]), "đi thiếu"))
+# Ngày cũ trước D95 có thể có hai phiếu cùng tên lượt (ca Sáng + ca Chiều cũ).
+# Đếm PHIẾU thì hai "Đầu sáng" thành 2/3 mà thực ra vẫn thiếu Trưa và Cuối chiều.
+kiem("hai phiếu CÙNG tên lượt (dữ liệu trước D95) vẫn tính là 1/3, không phải 2/3",
+     "(1/3)" in (co(tinh(hom_nay=T4, luot=[lt(T2, "Đầu sáng"), lt(T2, "Đầu sáng")]),
+                    "đi thiếu") or [{"chi_tiet": ""}])[0]["chi_tiet"])
 kiem("HÔM NAY đi mới 1 lượt → chưa nhắc (ngày còn đang chạy)",
-     not co(tinh(luot=[lt(T2, "Sáng", "Tuần")]), "đi thiếu"))
-ds = tinh(hom_nay=T4, luot=[lt(T2, "Sáng", "Tuần", docstatus=0)])
+     not co(tinh(luot=[lt(T2, "Tuần")]), "đi thiếu"))
+ds = tinh(hom_nay=T4, luot=[lt(T2, "Tuần", docstatus=0)])
 kiem("lượt mở ra rồi bỏ dở từ ngày cũ → có nhắc", co(ds, "bỏ dở"))
 kiem("và nói bỏ dở mấy ngày", "2 ngày" in co(ds, "bỏ dở")[0]["chi_tiet"],
      co(ds, "bỏ dở")[0]["chi_tiet"])
 kiem("lượt đang làm dở HÔM NAY → không nhắc",
-     not co(tinh(luot=[lt(T2, "Sáng", "Tuần", docstatus=0)]), "bỏ dở"))
+     not co(tinh(luot=[lt(T2, "Tuần", docstatus=0)]), "bỏ dở"))
 
 # ═══ 5. Chờ xem xét ══════════════════════════════════════════════════════
 print("\n-- chờ Ban ISO xem xét --")
@@ -158,7 +162,7 @@ kiem("mới có một tuần dữ liệu → chưa kết luận được, không
 
 # ═══ 7. Ngưỡng chưa thẩm định ════════════════════════════════════════════
 print("\n-- đang ghi số mà không có ngưỡng nào kiểm nó --")
-co_bot = ba_luot + [lt(T2, "Chiều", "Giữa ca", b2_rang_lac_nhiet=160)]
+co_bot = ba_luot + [lt(T2, "Trưa", b2_rang_lac_nhiet=160)]
 kiem("có ghi nhiệt rang lạc mà Setting chưa đặt ngưỡng → nhắc",
      co(tinh(luot=co_bot), "Ngưỡng rang lạc"))
 kiem("đặt ngưỡng rồi → im",

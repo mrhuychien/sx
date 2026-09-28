@@ -7,8 +7,8 @@
  "field_order": [
   "naming_series",
   "ngay",
-  "ca",
   "luot",
+  "ca",
   "column_break_head",
   "co_san_xuat_bot",
   "qc_user",
@@ -102,22 +102,22 @@
    "in_list_view": 1
   },
   {
-   "fieldname": "ca",
-   "fieldtype": "Select",
-   "label": "Ca",
-   "options": "Sáng\nChiều",
-   "reqd": 1,
-   "in_list_view": 1,
-   "description": "Chưa có DocType ca sản xuất trong app — xem sx/qc/README.md."
-  },
-  {
    "fieldname": "luot",
    "fieldtype": "Select",
    "label": "Lượt",
-   "options": "Đầu ca\nGiữa ca\nCuối ca\nTuần",
+   "options": "Đầu sáng\nTrưa\nCuối chiều\nTuần",
    "reqd": 1,
    "in_list_view": 1,
-   "description": "Tuần = lượt đầu ca thứ Hai (gồm cả phần A và phần C), không phải một lượt thứ tư."
+   "description": "Một ngày ba lượt: Đầu sáng · Trưa · Cuối chiều. Tuần = lượt đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư."
+  },
+  {
+   "fieldname": "ca",
+   "fieldtype": "Select",
+   "label": "Ca (phiếu cũ)",
+   "options": "\nSáng\nChiều",
+   "hidden": 1,
+   "read_only": 1,
+   "description": "Chỉ còn trên phiếu trước D95. Từ D95 một ngày ba lượt, không chia ca."
   },
   {
    "fieldname": "column_break_head",
@@ -212,13 +212,14 @@
    "fieldname": "a1_ve_sinh",
    "fieldtype": "Select",
    "label": "1a Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô",
-   "description": "đã vệ sinh chuyển đổi sau lạc / dừa / sữa",
+   "description": "sạch khô; đã vệ sinh chuyển đổi sau lạc / dừa / sữa",
    "options": "\nĐạt\nKhông đạt"
   },
   {
    "fieldname": "a2_cong_nhan",
    "fieldtype": "Select",
    "label": "1b Công nhân: bảo hộ, tay, trang sức, không ốm",
+   "description": "không trang sức, không ốm",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -231,6 +232,7 @@
    "fieldname": "a4_hoa_chat",
    "fieldtype": "Select",
    "label": "1d Không hoá chất/dầu trong khu SX; không rò dầu",
+   "description": "không hoá chất/dầu trong khu SX; không rò dầu",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -280,6 +282,7 @@
    "fieldname": "luoi_sang_nguyen_ven",
    "fieldtype": "Select",
    "label": "4 Lưới sàng cát / sàng lại nguyên vẹn",
+   "description": "sàng cát và sàng lại",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -460,6 +463,7 @@
    "fieldname": "b1_lac_sach",
    "fieldtype": "Select",
    "label": "B1 Lạc trước rang: đã sàng, không mốc/hỏng/sạn",
+   "description": "đã sàng trước rang",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -484,6 +488,7 @@
    "fieldname": "b3_cong_thuc",
    "fieldtype": "Select",
    "label": "B3 Đường xay, rây; cân đúng công thức",
+   "description": "đường xay, rây; cân đúng",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -497,6 +502,7 @@
    "fieldname": "b5_nhan_di_ung",
    "fieldtype": "Select",
    "label": "B5 Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",
+   "description": "đúng sản phẩm",
    "options": "\nĐạt\nKhông đạt"
   },
   {

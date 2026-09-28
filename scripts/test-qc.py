@@ -151,8 +151,8 @@ def kiem(ten, dk, ct=""):
 def luot(**kw):
     """Một lượt THẬT (instance của controller), không phải dict giả: có vậy mới
     gọi được before_submit và thấy đúng thứ tự các bước kiểm chạy."""
-    d = R.SXQCRound({"name": "QC-0001", "ngay": "2026-09-14", "ca": "Sáng",
-                     "luot": M.DAU_CA, "co_san_xuat_bot": 0, "log": [],
+    d = R.SXQCRound({"name": "QC-0001", "ngay": "2026-09-14",
+                     "luot": M.DAU_SANG, "co_san_xuat_bot": 0, "log": [],
                      "su_co": []})
     d.update(kw)
     return d
@@ -198,25 +198,25 @@ def ap(f, l, bot=0):
     return f in M.ma_tran(bot)[l]
 
 
-kiem("phần A chỉ ở Đầu ca và Tuần",
-     ap("a1_ve_sinh", M.DAU_CA) and ap("a1_ve_sinh", M.TUAN)
-     and not ap("a1_ve_sinh", M.GIUA_CA) and not ap("a1_ve_sinh", M.CUOI_CA))
-kiem("nam châm chỉ ở Đầu ca / Tuần",
-     ap("nam_cham_da_kiem", M.DAU_CA) and not ap("nam_cham_da_kiem", M.CUOI_CA))
-kiem("mối hàn túi chỉ ở Giữa ca / Cuối ca",
-     ap("moi_han_kin", M.GIUA_CA) and ap("moi_han_kin", M.CUOI_CA)
-     and not ap("moi_han_kin", M.DAU_CA) and not ap("moi_han_kin", M.TUAN))
+kiem("phần A chỉ ở Đầu sáng và Tuần",
+     ap("a1_ve_sinh", M.DAU_SANG) and ap("a1_ve_sinh", M.TUAN)
+     and not ap("a1_ve_sinh", M.TRUA) and not ap("a1_ve_sinh", M.CUOI_CHIEU))
+kiem("nam châm chỉ ở Đầu sáng / Tuần",
+     ap("nam_cham_da_kiem", M.DAU_SANG) and not ap("nam_cham_da_kiem", M.CUOI_CHIEU))
+kiem("mối hàn túi chỉ ở Trưa / Cuối chiều",
+     ap("moi_han_kin", M.TRUA) and ap("moi_han_kin", M.CUOI_CHIEU)
+     and not ap("moi_han_kin", M.DAU_SANG) and not ap("moi_han_kin", M.TUAN))
 kiem("phần C (t1–t11) chỉ ở lượt Tuần",
-     all(ap(f, M.TUAN) and not ap(f, M.DAU_CA)
+     all(ap(f, M.TUAN) and not ap(f, M.DAU_SANG)
          for f in ("t1_be_nuoc", "t2_so_bay_dau_hieu", "t11_can_qua_chuan")))
 kiem("phần D chỉ khi hôm đó có bột",
-     ap("b1_lac_sach", M.GIUA_CA, 1) and not ap("b1_lac_sach", M.GIUA_CA, 0))
+     ap("b1_lac_sach", M.TRUA, 1) and not ap("b1_lac_sach", M.TRUA, 0))
 kiem("rang + luộc + nhãn ghi ở MỌI lượt",
      all(ap(f, l) for f in ("luoc_soi_du", "rang_nhiet_do", "nhan_hsd_dung")
          for l in M.LUOT))
-kiem("lượt Tuần nhiều mục hơn Đầu ca thường",
-     len(M.muc_cham(M.TUAN, 0)) > len(M.muc_cham(M.DAU_CA, 0)),
-     f"{len(M.muc_cham(M.TUAN, 0))} vs {len(M.muc_cham(M.DAU_CA, 0))}")
+kiem("lượt Tuần nhiều mục hơn Đầu sáng thường",
+     len(M.muc_cham(M.TUAN, 0)) > len(M.muc_cham(M.DAU_SANG, 0)),
+     f"{len(M.muc_cham(M.TUAN, 0))} vs {len(M.muc_cham(M.DAU_SANG, 0))}")
 
 # ═══ 3. "0" nghĩa là gì ══════════════════════════════════════════════════
 print("\n-- ô ĐO với ô ĐẾM: số 0 có phải là số không --")
@@ -261,7 +261,7 @@ kiem("có vật bắt được nhưng KHÔNG phải mạt kim loại → chỉ c
      not pt(nam_cham_vat="mảnh nhựa")
      and SC.canh_bao(luot(nam_cham_vat="mảnh nhựa")))
 
-bot = {"co_san_xuat_bot": 1, "luot": M.GIUA_CA}
+bot = {"co_san_xuat_bot": 1, "luot": M.TRUA}
 kiem("B7 Dương tính → sự cố Dị ứng mức CAO",
      [(l, m) for _f, _c, l, m, _t in pt(b7_chuyen_doi="Dương tính", **bot)]
      == [("Dị ứng", "Cao")])
@@ -273,7 +273,7 @@ kiem("đặt ngưỡng rang lạc rồi thì 90 °C → sự cố",
      len(pt(b2_rang_lac_nhiet=90, **bot)) == 1)
 CAI_DAT.pop("rang_lac_nhiet_min")
 kiem("mục KHÔNG áp dụng ở lượt này thì không sinh sự cố",
-     not pt(luot=M.GIUA_CA, a1_ve_sinh="Không đạt"))
+     not pt(luot=M.TRUA, a1_ve_sinh="Không đạt"))
 kiem("nhiều lệch → nhiều phiếu, không gộp một",
      len(pt(rang_nhiet_do=250, luoc_soi_du="Không đạt", thung_bot_qua_han=2)) == 3)
 
@@ -290,7 +290,7 @@ def thu(doc, ham):
 
 
 day_du = {m["f"]: ("Đạt" if m["kieu"] == "chon" else 1)
-          for m in M.muc_cham(M.DAU_CA, 0)}
+          for m in M.muc_cham(M.DAU_SANG, 0)}
 day_du["rang_nhiet_do"] = 260
 day_du["rang_vong_quay"] = 6.5
 # ĐẾM được 1 thùng quá hạn LÀ một sự cố. Để nguyên 1 ở đây thì "lượt sạch" của
@@ -318,25 +318,44 @@ d = luot(**{**day_du, "nhap_lai_tu_giay": 1})
 kiem("nhập lại từ giấy mà không ghi ngày thật → CHẶN",
      thu(d, R.SXQCRound.kiem_de_trong) is not None)
 
-# ═══ 6. Cờ ghi muộn ══════════════════════════════════════════════════════
-print("\n-- cờ ghi muộn: gắn cờ, KHÔNG chặn --")
+# ═══ 6. Cờ ghi muộn — ba mốc trong ngày (D95) ═══════════════════════════
+# Nhà máy chốt: Đầu sáng trước 08:30 · Trưa trước 14:00 · Cuối chiều trước 20:00.
+# Khung của một lượt bắt đầu từ hạn chót lượt trước — làm Trưa lúc 07:00 không
+# phải kiểm trưa, chỉ là ghi sớm cho xong. Đúng mốc (08:30:00) vẫn tính là kịp.
+print("\n-- cờ ghi muộn: ba mốc 08:30 / 14:00 / 20:00, gắn cờ chứ KHÔNG chặn --")
 
 
-def ghi_muon(phut, ca="Sáng", l=M.DAU_CA, xong=datetime(2026, 9, 14, 7, 30)):
-    d = luot(ca=ca, luot=l, duration_min=phut, finished_at=xong)
+def ghi_muon(l, gio, phut=20):
+    h, m = gio
+    d = luot(luot=l, duration_min=phut, finished_at=datetime(2026, 9, 14, h, m))
     return R.SXQCRound.tinh_ghi_muon(d)
 
 
-kiem("làm 20 phút trong khung giờ → không muộn", ghi_muon(20) == 0)
-kiem("làm 60 phút → muộn (quá 45)", ghi_muon(60) == 1)
-kiem("đầu ca ca Sáng hoàn tất 10:30 → muộn",
-     ghi_muon(20, xong=datetime(2026, 9, 14, 10, 30)) == 1)
-kiem("giữa ca ca Sáng hoàn tất 11:00 → đúng khung",
-     ghi_muon(20, l=M.GIUA_CA, xong=datetime(2026, 9, 14, 11, 0)) == 0)
-kiem("giữa ca ca Sáng hoàn tất 08:00 → muộn (ghi trước khung)",
-     ghi_muon(20, l=M.GIUA_CA, xong=datetime(2026, 9, 14, 8, 0)) == 1)
-kiem("lượt Tuần dùng khung giờ của Đầu ca",
-     ghi_muon(20, l=M.TUAN, xong=datetime(2026, 9, 14, 10, 30)) == 1)
+for l, gio, mong, vi in [
+    (M.DAU_SANG, (7, 30), 0, "Đầu sáng 07:30 → kịp"),
+    (M.DAU_SANG, (8, 30), 0, "Đầu sáng ĐÚNG 08:30 → vẫn kịp"),
+    (M.DAU_SANG, (8, 31), 1, "Đầu sáng 08:31 → muộn"),
+    (M.TRUA, (11, 0), 0, "Trưa 11:00 → kịp"),
+    (M.TRUA, (13, 59), 0, "Trưa 13:59 → kịp"),
+    (M.TRUA, (14, 1), 1, "Trưa 14:01 → muộn"),
+    (M.TRUA, (7, 0), 1, "Trưa làm lúc 07:00 → gắn cờ (chưa tới giờ trưa, ghi sớm cho xong)"),
+    (M.CUOI_CHIEU, (19, 45), 0, "Cuối chiều 19:45 → kịp"),
+    (M.CUOI_CHIEU, (20, 5), 1, "Cuối chiều 20:05 → muộn"),
+    (M.CUOI_CHIEU, (12, 0), 1, "Cuối chiều làm lúc 12:00 → gắn cờ (ghi sớm)"),
+    (M.TUAN, (8, 0), 0, "Tuần dùng mốc của Đầu sáng: 08:00 → kịp"),
+    (M.TUAN, (9, 0), 1, "Tuần 09:00 → muộn"),
+]:
+    kiem(vi, ghi_muon(l, gio) == mong)
+kiem("làm quá 45 phút dù trong khung → vẫn gắn cờ",
+     ghi_muon(M.TRUA, (11, 0), phut=60) == 1)
+
+# Đổi hạn chót trong SX QC Setting thì luật đổi theo, không cần sửa code.
+CAI_DAT["han_trua"] = "15:00:00"
+kiem("dời hạn Trưa sang 15:00 trong Setting → 14:30 thành kịp",
+     ghi_muon(M.TRUA, (14, 30)) == 0)
+kiem("…và khung Cuối chiều tự lùi theo: 14:30 giờ là SỚM cho Cuối chiều",
+     ghi_muon(M.CUOI_CHIEU, (14, 30)) == 1)
+CAI_DAT.pop("han_trua")
 
 d = luot(nhap_lai_tu_giay=1, duration_min=600, ghi_chu="ghi thật ngày 12/9",
          started_at=GIO_SERVER[0] - timedelta(minutes=600),
@@ -345,19 +364,39 @@ R.SXQCRound.before_submit(d)
 kiem("nhập lại từ giấy → KHÔNG gắn cờ ghi muộn", d["ghi_muon"] == 0)
 
 # ═══ 7. Trùng lượt ═══════════════════════════════════════════════════════
-print("\n-- một (ngày, ca, lượt) chỉ một phiếu --")
+print("\n-- một (ngày, lượt) chỉ một phiếu — không còn ca để tách --")
 TRUNG[:] = []
 kiem("chưa có phiếu nào → qua", thu(luot(), R.SXQCRound.kiem_trung) is None)
-TRUNG[:] = [{"name": "QC-0009", "luot": M.DAU_CA}]
-kiem("đã có Đầu ca → chặn Đầu ca thứ hai",
+TRUNG[:] = [{"name": "QC-0009", "luot": M.DAU_SANG}]
+kiem("đã có Đầu sáng → chặn Đầu sáng thứ hai trong ngày",
      thu(luot(name="QC-0002"), R.SXQCRound.kiem_trung) is not None)
 loi = thu(luot(name="QC-0002", luot=M.TUAN), R.SXQCRound.kiem_trung)
-kiem("đã có Đầu ca → chặn cả lượt Tuần (Tuần LÀ đầu ca thứ Hai)", loi is not None)
+kiem("đã có Đầu sáng → chặn cả lượt Tuần (Tuần LÀ đầu sáng thứ Hai)", loi is not None)
 kiem("và nói rõ vì sao", loi and "không phải lượt thêm" in loi, loi or "")
-TRUNG[:] = [{"name": "QC-0009", "luot": M.GIUA_CA}]
-kiem("đã có Giữa ca → vẫn mở được Đầu ca",
+TRUNG[:] = [{"name": "QC-0009", "luot": M.TRUA}]
+kiem("đã có Trưa → vẫn mở được Đầu sáng",
      thu(luot(name="QC-0002"), R.SXQCRound.kiem_trung) is None)
+TRUNG[:] = [{"name": "QC-0009", "luot": M.TRUA, "ca": "Chiều"}]
+kiem("phiếu cũ có ca KHÁC vẫn tính là trùng (không còn tách theo ca)",
+     thu(luot(name="QC-0002", luot=M.TRUA, ca="Sáng"), R.SXQCRound.kiem_trung)
+     is not None)
 TRUNG[:] = []
+
+# ═══ 7b. Đổi tên lượt (patch D95) ════════════════════════════════════════
+print("\n-- tên lượt cũ → mới --")
+kiem("không còn lượt nào tên cũ trong danh mục",
+     not set(M.DOI_TEN_CU) & set(M.LUOT), str(M.LUOT))
+kiem("bảng đổi tên trỏ đúng sang ba lượt trong ngày",
+     sorted(M.DOI_TEN_CU.values()) == sorted(M.LUOT_TRONG_NGAY))
+_pa = open("sx/patches/d95_qc_mot_ngay_ba_luot.py", encoding="utf-8").read()
+# Patch CHÉP bảng đổi tên chứ không import muc.py — patch là ảnh chụp tại D95,
+# muc.py đổi sau này thì patch vẫn phải làm đúng việc nó đã làm. Nhưng ở thời
+# điểm viết, hai bảng phải khớp nhau.
+_ns = {}
+exec(_pa.split("import frappe")[1].split("def execute")[0], _ns)   # noqa: S102
+kiem("bảng trong patch khớp muc.DOI_TEN_CU", _ns.get("DOI_TEN") == M.DOI_TEN_CU)
+kiem("patch KHÔNG đụng vào trường ca của phiếu cũ",
+     '"ca"' not in _pa.split("def execute")[1])
 
 # ═══ 8. Sinh phiếu sự cố gắn hai chiều ═══════════════════════════════════
 print("\n-- sự cố gắn hai chiều với lượt --")
@@ -457,7 +496,7 @@ kiem("một cột cho mỗi mục kiểm", len(td) == len(X.COT_LUOT) + len(M.MU
 kiem("tiêu đề cột dùng nhãn ĐẦY ĐỦ (file này để phân tích, không phải để cầm tay)",
      "3a Nhiệt độ rang" in td)
 
-r_giua = luot(luot=M.GIUA_CA, name="QC-0002", rang_nhiet_do=260,
+r_giua = luot(luot=M.TRUA, name="QC-0002", rang_nhiet_do=260,
               luoc_soi_du="Đạt", a1_ve_sinh="Đạt")
 h = X.dong_luot(r_giua, _in, frappe.utils.cint)
 cot = dict(zip(td, h))
@@ -515,7 +554,7 @@ class _D(dict):
         return self.get(k)
 
 
-mau = _D({"name": "SC-2026-0007", "ngay": "2026-09-14", "ca": "Sáng",
+mau = _D({"name": "SC-2026-0007", "ngay": "2026-09-14",
           "nguon": "Vòng kiểm QC", "qc_round": "QC-0003", "cong_doan": "3 Rang",
           "loai": "oPRP", "muc": "3a Nhiệt độ rang", "muc_do": "Cao",
           "qua_han": 1, "lo_anh_huong": "DX-140926", "so_luong": "420 hộp",

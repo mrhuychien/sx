@@ -64,7 +64,9 @@ export async function render({ container, call, tham_so }) {
 
   // ── đầu màn ─────────────────────────────────────────────────────────
   const dau = el('div', 'sx-qc-top');
-  const tenLuot = `${dl.luot} · ${dl.ca} ${dl.ngay.slice(8)}/${dl.ngay.slice(5, 7)}`;
+  // Ca chỉ còn trên phiếu trước D95; phiếu mới một ngày ba lượt, không chia ca.
+  const tenLuot = `${dl.luot}${dl.ca ? ` (ca ${dl.ca})` : ''} · `
+    + `${dl.ngay.slice(8)}/${dl.ngay.slice(5, 7)}`;
   dau.innerHTML = `<div style="flex:1;min-width:0">
       <div class="sx-qc-ngay" style="font-size:var(--sx-f-md)">${esc(tenLuot)}</div>
       <div class="sx-qc-ai" id="sx-qc-gio">bắt đầu ${esc(formatTime(dl.started_at))}</div>
@@ -87,7 +89,7 @@ export async function render({ container, call, tham_so }) {
   if (dl.truoc_do) {
     const t = dl.truoc_do;
     container.appendChild(el('div', 'sx-qc-luot-phu',
-      esc(`Lượt trước (${t.ngay} ${t.ca} ${t.luot}): rang ${t.rang_nhiet_do || '—'} °C`
+      esc(`Lượt trước (${t.ngay} ${t.luot}): rang ${t.rang_nhiet_do || '—'} °C`
         + ` · vòng quay ${t.rang_vong_quay || '—'}`)));
   }
 

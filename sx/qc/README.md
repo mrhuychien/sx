@@ -18,7 +18,7 @@ scripts/test-qc.py      chốt mọi thứ trên khớp nhau
 
 | Spec viết | Ở đây | Vì sao |
 |---|---|---|
-| `ca_san_xuat` Link tới DocType ca | `ca` Select `Sáng/Chiều` | App `sx` **không có** DocType ca sản xuất. `SX Ngay San Xuat` là theo NGÀY, không có field ca. Có thêm `ngay_san_xuat` Link tuỳ chọn chỉ để nối hồ sơ — module không đọc gì từ phiếu đó. |
+| `ca_san_xuat` Link tới DocType ca; 3 lượt × 2 ca | **một ngày ba lượt, không chia ca** (D95): Đầu sáng trước 08:30 · Trưa trước 14:00 · Cuối chiều trước 20:00 | Nhà máy chốt lịch này ngày 28/9. Trường `ca` giữ lại (ẩn) chỉ cho phiếu trước D95; patch `d95_qc_mot_ngay_ba_luot` đổi tên lượt cũ (Đầu ca / Giữa ca / Cuối ca) sang tên mới trên phiếu đã có. Có thêm `ngay_san_xuat` Link tuỳ chọn chỉ để nối hồ sơ. |
 | BM.07.03 gắn custom field lên **Purchase Receipt** | gắn lên **Purchase Invoice** | Kho nguyên liệu nhập thẳng bằng Purchase Invoice, không lập Purchase Receipt. Bám spec ở đây nghĩa là dựng một chứng từ không ai lập. |
 | BM.07.03 để kết luận ở đầu phiếu | kết luận ở **từng dòng hàng** | BM.07.03 kiểm theo LÔ. Một hoá đơn có ba mặt hàng ba lô; một ô kết luận chung thì cái lô có vấn đề biến mất trong đó. Chỉ `nguoi_kiem` và `ghi_chu_qc` ở đầu phiếu. |
 | Bảng màu riêng `--sxqc-*`, font Be Vietnam Pro | bố cục theo bản thiết kế, **màu và font theo `sx`** | Một app không nên có hai phong cách. Kích thước chạm, thứ tự mục, thanh đáy cố định giữ nguyên như thiết kế. |

@@ -25,14 +25,20 @@ MAC_DINH = {
 # Ngưỡng chờ thẩm định: không có mặc định, chưa đặt thì không sinh sự cố.
 CHO_THAM_DINH = ("rang_lac_nhiet_min", "rang_lac_phut_min")
 
-KHUNG_MAC_DINH = {
-    "Sáng": {"Đầu ca": (None, "09:30:00"),
-             "Giữa ca": ("09:30:00", "12:00:00"),
-             "Cuối ca": (None, "13:00:00")},
-    "Chiều": {"Đầu ca": (None, "15:30:00"),
-              "Giữa ca": ("15:30:00", "18:00:00"),
-              "Cuối ca": (None, "19:00:00")},
-}
+# Hạn chót của từng lượt trong ngày (D95). Khung của một lượt = từ hạn chót của
+# lượt TRƯỚC tới hạn chót của chính nó — nên chỉ cần khai ba mốc, và không thể
+# khai ra hai khung chồng lên nhau hay hở một khoảng ở giữa.
+#
+#   Đầu sáng    … → 08:30
+#   Trưa    08:30 → 14:00      làm Trưa lúc 07:00 cũng bị gắn cờ: đó không phải
+#   Cuối chiều 14:00 → 20:00   lượt trưa, chỉ là ghi sớm cho xong
+#
+# (fieldname trong SX QC Setting, mặc định)
+HAN_CHOT = (
+    ("Đầu sáng", "han_dau_sang", "08:30:00"),
+    ("Trưa", "han_trua", "14:00:00"),
+    ("Cuối chiều", "han_cuoi_chieu", "20:00:00"),
+)
 
 
 def _single():
@@ -65,18 +71,11 @@ def nguong():
     ra["cho_phep_bo_qua_luot_khi_khong_san_xuat"] = int(
         (s.get("cho_phep_bo_qua_luot_khi_khong_san_xuat") if s else 1) or 0)
 
-    khung = {}
-    for ca, mac in KHUNG_MAC_DINH.items():
-        tien_to = "sang" if ca == "Sáng" else "chieu"
-        khung[ca] = {
-            "Đầu ca": (None, (s.get(f"{tien_to}_dau_den") if s else None)
-                       or mac["Đầu ca"][1]),
-            "Giữa ca": ((s.get(f"{tien_to}_giua_tu") if s else None)
-                        or mac["Giữa ca"][0],
-                        (s.get(f"{tien_to}_giua_den") if s else None)
-                        or mac["Giữa ca"][1]),
-            "Cuối ca": (None, (s.get(f"{tien_to}_cuoi_den") if s else None)
-                        or mac["Cuối ca"][1]),
-        }
+    # {lượt: (từ, đến)} — xem HAN_CHOT. Lượt Tuần dùng khung của Đầu sáng.
+    khung, truoc = {}, None
+    for luot, truong, mac in HAN_CHOT:
+        den = str((s.get(truong) if s else None) or mac)
+        khung[luot] = (truoc, den)
+        truoc = den
     ra["khung"] = khung
     return ra

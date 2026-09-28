@@ -96,7 +96,7 @@ def _nhac_luot_tuan(nay, luot):
         return []
     if nay == t2:
         return [_m(THUONG, "Hôm nay là thứ Hai — chưa làm lượt tuần",
-                   "Lượt đầu ca hôm nay ghi là lượt Tuần, có thêm 11 mục phần C.",
+                   "Lượt đầu sáng hôm nay ghi là lượt Tuần, có thêm 11 mục phần C.",
                    "#/qc")]
     return [_m(CAO, f"Tuần này chưa có lượt tuần nào",
                f"Thứ Hai ({t2.strftime('%d/%m')}) đã qua {(nay - t2).days} ngày. "
@@ -107,26 +107,30 @@ def _nhac_luot_thieu(nay, luot):
     ra = []
     tu = nay - timedelta(days=SO_NGAY_SOI)
 
-    # Ca đã bắt đầu nhưng không đi đủ 3 lượt.
+    # Ngày đã bắt đầu kiểm nhưng không đi đủ 3 lượt.
     #
-    # Ca KHÔNG có lượt nào thì không xuất hiện ở đây — và đó là chủ ý, không
-    # phải tình cờ: ca đó có thể đơn giản là không sản xuất. Đoán bừa rồi nhắc
+    # Ngày KHÔNG có lượt nào thì không xuất hiện ở đây — và đó là chủ ý, không
+    # phải tình cờ: ngày đó có thể đơn giản là không sản xuất. Đoán bừa rồi nhắc
     # mỗi ngày là cách nhanh nhất để người ta bỏ qua cả hộp nhắc việc.
-    # (Điều đó do chỗ GOM NHÓM dưới đây bảo đảm — ca rỗng không thành khoá.
-    #  `0 < len(v)` chỉ là chốt thừa phòng khi sau này ai đó đổi cách gom.)
-    theo_ca = {}
+    # (Điều đó do chỗ GOM NHÓM dưới đây bảo đảm — ngày rỗng không thành khoá.
+    #  `0 < so` chỉ là chốt thừa phòng khi sau này ai đó đổi cách gom.)
+    #
+    # Đếm TÊN LƯỢT KHÁC NHAU, không đếm số phiếu: ngày cũ trước D95 có thể có hai
+    # phiếu "Đầu sáng" (ca Sáng + ca Chiều cũ) — đếm phiếu thì ra 2/3 mà thực ra
+    # vẫn thiếu Trưa và Cuối chiều như nhau. Tuần tính là Đầu sáng.
+    theo_ngay = {}
     for x in luot:
         d = _d(x["ngay"])
         if not (tu <= d < nay):
             continue
-        theo_ca.setdefault((str(d), x.get("ca")), []).append(x)
-    thieu = [(k, v) for k, v in theo_ca.items() if 0 < len(v) < 3]
+        ten = "Đầu sáng" if x.get("luot") == "Tuần" else x.get("luot")
+        theo_ngay.setdefault(str(d), set()).add(ten)
+    thieu = [(k, v) for k, v in theo_ngay.items() if 0 < len(v) < 3]
     if thieu:
-        ds = ", ".join(f"{k[0][8:]}/{k[0][5:7]} {k[1]} ({len(v)}/3)"
-                       for k, v in sorted(thieu)[:4])
-        ra.append(_m(THUONG, f"{len(thieu)} ca đi thiếu lượt trong {SO_NGAY_SOI} ngày",
+        ds = ", ".join(f"{k[8:]}/{k[5:7]} ({len(v)}/3)" for k, v in sorted(thieu)[:4])
+        ra.append(_m(THUONG, f"{len(thieu)} ngày đi thiếu lượt trong {SO_NGAY_SOI} ngày",
                      f"{ds}{'…' if len(thieu) > 4 else ''}. "
-                     f"Ca không sản xuất thì không tính ở đây.", "#/qc/history"))
+                     f"Ngày không sản xuất thì không tính ở đây.", "#/qc/history"))
 
     # Lượt mở ra rồi bỏ dở: dữ liệu nằm đó, không vào hồ sơ, không sinh sự cố.
     do_dang = [x for x in luot
