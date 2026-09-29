@@ -1,0 +1,160 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-09-29 14:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "item",
+  "ten",
+  "so_luong",
+  "con_lai",
+  "column_break_1",
+  "trang_thai",
+  "ngay",
+  "phieu_nhap",
+  "section_xu_ly",
+  "ly_do",
+  "column_break_2",
+  "xu_ly_boi",
+  "xu_ly_luc"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "NV-.YYYY.-.####",
+   "default": "NV-.YYYY.-.####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Mã hàng",
+   "options": "Item",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên hàng",
+   "read_only": 1
+  },
+  {
+   "fieldname": "so_luong",
+   "fieldtype": "Float",
+   "label": "Kho nhận vượt số chấm",
+   "reqd": 1,
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "con_lai",
+   "fieldtype": "Float",
+   "label": "Còn nợ",
+   "in_list_view": 1,
+   "read_only": 1,
+   "description": "Giảm dần khi QC chấm bù (công nhân hoặc CÔNG NHẬT); về 0 thì tự đóng."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Chờ chấm\nĐã chấm bù\nBỏ qua\nĐã huỷ",
+   "default": "Chờ chấm",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày nhập kho",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "phieu_nhap",
+   "fieldtype": "Link",
+   "label": "Phiếu nhập kho",
+   "options": "SX Phieu Nhap TP",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_xu_ly",
+   "fieldtype": "Section Break",
+   "label": "Xử lý"
+  },
+  {
+   "fieldname": "ly_do",
+   "fieldtype": "Small Text",
+   "label": "Lý do / ghi chú",
+   "description": "Bắt buộc khi Bỏ qua."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "xu_ly_boi",
+   "fieldtype": "Link",
+   "label": "Xử lý bởi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xu_ly_luc",
+   "fieldtype": "Datetime",
+   "label": "Xử lý lúc",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-09-29 14:00:00",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX No Vao Hop",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "title_field": "item",
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "write": 1
+  },
+  {
+   "role": "SX Vao Hop",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  },
+  {
+   "role": "SX Thu Kho",
+   "read": 1,
+   "report": 1,
+   "export": 1
+  }
+ ]
+}

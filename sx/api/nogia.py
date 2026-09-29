@@ -39,6 +39,8 @@ def gom_thieu_gia(dong, bang_gia):
     for r in dong:
         if not r.get("san_pham") or cint(r.get("so_hop")) <= 0:
             continue
+        if cint(r.get("cong_nhat")):
+            continue   # công nhật không trả khoán → không có gì để nợ giá (D101)
         if tra_don_gia(bang_gia, r["san_pham"], r.get("cach_lam")) is not None:
             continue
         g = ra.setdefault((r["san_pham"], r.get("cach_lam") or ""),

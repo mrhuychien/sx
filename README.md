@@ -252,6 +252,34 @@ một dòng vào **sổ nợ đơn giá** (`SX No Don Gia`), và hộp cảnh b�
 - Huỷ chốt Vào hộp / huỷ chốt ngày: nợ đang mở → *Đã huỷ*; chốt lại tra giá từ đầu.
 - Chỉ **Quản lý** xem và xử lý.
 
+## Công nhật và nợ vào hộp (D101)
+
+Xưởng có hai kiểu làm ra hộp: **công khoán** (trả theo hộp) và **công nhật** (trả theo
+ngày). Trước D101 chỉ công khoán có chỗ chấm, và thủ kho **bị chặn** duyệt phiếu nhập
+vượt số đã chấm (D70) — hàng công nhật đóng thì không bao giờ nhập kho được cho gọn.
+
+**1. Công nhật chấm ở màn Ghi hộp.** Nút **★ Chấm hộp CÔNG NHẬT**: chọn mã → số hộp,
+y như chấm một người. Dòng đó:
+- tính vào tổng sản lượng và vào **trần nhập kho**;
+- **không** tính lương khoán, không đơn giá, không nợ đơn giá, không chấm ăn ca;
+- không gắn tên ai (DB: `cong_nhat = 1`, `nhan_vien` rỗng).
+
+Vào hộp vì thế là **số đếm đầy đủ** của xưởng: khoán + công nhật.
+
+**2. Kho nhận vượt số chấm → ghi nợ, không chặn.** Thủ kho duyệt phiếu nhập nhiều hơn số
+đã chấm (khoán + công nhật, cùng khoảng 30 ngày như trần cũ) thì phiếu vẫn qua, hàng vẫn
+vào kho; phần vượt thành một dòng **sổ nợ vào hộp** (`SX No Vao Hop`). Màn nhập kho nói
+trước khi bấm duyệt. Mã chưa chấm lần nào cũng tính (trần 0).
+
+**3. Nợ tự trừ khi chấm bù.** Card *Nợ vào hộp* (màn Ghi hộp cho QC, màn Quản lý): QC
+chấm bù cho đúng người, hoặc dòng Công nhật nếu công nhật đóng — mở card là nợ tự trừ,
+nợ cũ trả trước. **Không có nút "đã chấm bù"** bấm tay. Quản lý **Bỏ qua** được từng dòng
+(bắt buộc lý do — hàng trả về nhập lại…). Huỷ phiếu nhập → nợ của phiếu *Đã huỷ*.
+
+Nợ là **sổ gộp theo mã**, không theo ngày: chấm hôm nay cho hàng chưa chuyển kho cũng trừ
+nợ hôm qua, rồi khi hàng đó vào kho sẽ sinh nợ mới. Tổng nợ luôn bằng đúng phần kho nhận
+vượt số chấm.
+
 ## Module QC — kiểm tra chất lượng (BM.08.01 / BM.08.02)
 
 Nằm gọn trong module `qc` để sau muốn tách thành app riêng chỉ là chuyển thư mục.

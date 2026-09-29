@@ -101,8 +101,9 @@ for card, viec in [("chotngay", "chốt ngày"), ("quanly", "dashboard quản l�
     kiem(f"KHÔNG gọi được {viec}", not goi_duoc(card))
 
 card_qc = R.view_cards().get("vaohop", []) + R.view_cards().get("nhapkho", [])
-kiem("card trên hai màn của QC đúng như khai — chỉ chấm hộp + phiếu nhập kho",
-     sorted(card_qc) == ["nhapkhotp", "vaohop"], str(sorted(card_qc)))
+# D101: + sổ nợ vào hộp — QC là người phải chấm bù phần kho nhận vượt.
+kiem("card trên hai màn của QC đúng như khai — chấm hộp + nợ vào hộp + phiếu nhập kho",
+     sorted(card_qc) == ["nhapkhotp", "novaohop", "vaohop"], str(sorted(card_qc)))
 
 # ── 2. Các role khác không lấn sân ──────────────────────────────────────
 print("\n-- role khác --")

@@ -101,36 +101,16 @@ class SXPhieuNhapTP(Document):
         self.trang_thai = "Đã duyệt"
 
     def kiem_tran_da_cham(self):
-        """Không nhập quá số đã CHẤM VÀO HỘP (D70).
+        """Phần nhận VƯỢT số đã chấm vào hộp → ghi nợ, KHÔNG chặn (D101).
 
-        Kiểm lại lúc DUYỆT chứ không chỉ lúc tải: giữa lúc tải và lúc duyệt có thể
-        đã có phiếu khác nhận bớt, hoặc QC sửa bảng xuống. Chỉ chặn khi VƯỢT — nhận
-        thiếu là chuyện bình thường (chưa chuyển hết).
-
-        Dòng nào mã hàng không xuất hiện trong bảng vào hộp thì BỎ QUA kiểm: phiếu
-        nhập kho là chứng từ độc lập, vẫn cho nhập hàng không qua chấm công (vd hàng
-        làm bù, hàng trả về) — chỉ là không có trần để đối chiếu.
+        D70 chặn cứng chỗ này: hàng thật đứng ngoài kho vì QC chưa kịp chấm, còn
+        hàng công nhật đóng thì không có chỗ nào chấm. Từ D101 công nhật chấm ở màn
+        Ghi hộp, vượt thì duyệt vẫn qua, phần vượt vào SX No Vao Hop (on_submit).
+        Tính ở ĐÂY (trước khi phiếu thành đã duyệt) để phiếu chưa tự trừ chính mình.
         """
-        from frappe.utils import add_days
+        from sx.api.khotp import vuot_so_cham
 
-        from sx.api.khotp import SO_NGAY_TRAN, tran_con_lai
-
-        den = getdate(self.ngay)
-        con = tran_con_lai(add_days(den, -SO_NGAY_TRAN + 1), den, self.name)
-        vuot = []
-        for r in self.dong:
-            if r.item not in con:
-                continue
-            if flt(r.so_dem) > flt(con[r.item]) + 1e-6:
-                vuot.append(_("• {0}: nhận {1}, còn được nhập {2}").format(
-                    r.ten or r.item, flt(r.so_dem, 0), flt(con[r.item], 0)))
-        if vuot:
-            frappe.throw(
-                _("Nhận quá số đã chấm vào hộp:") + "<br>" + "<br>".join(vuot)
-                + "<br><br>" + _("Chấm thiếu thì sửa bảng vào hộp rồi bấm TẢI LẠI; "
-                                 "hàng không qua chấm công thì bỏ dòng này ra và lập "
-                                 "phiếu riêng.")
-            )
+        self.flags.vuot_cham = vuot_so_cham(self.ngay, self.dong, self.name)
 
     def kiem_ton_nguyen_lieu(self):
         """Kiểm đủ bột + bao bì TRƯỚC khi sinh chứng từ (D59).
@@ -239,6 +219,12 @@ class SXPhieuNhapTP(Document):
 
         self.db_set("ds_se", json.dumps(chung_tu), update_modified=False)
 
+        # D101: kho nhận vượt số chấm → nợ vào hộp, cùng một lần duyệt.
+        vuot = self.flags.get("vuot_cham")
+        if vuot:
+            from sx.api.khotp import ghi_no_vao_hop
+            ghi_no_vao_hop(self, vuot)
+
     def on_cancel(self):
         """Huỷ phiếu = thu hồi ĐÚNG những chứng từ do phiếu này sinh ra, đảo thứ tự
         (xuất huỷ trước, rồi SE nhập, rồi WO) để không có bước nào rút hàng chưa có."""
@@ -258,6 +244,14 @@ class SXPhieuNhapTP(Document):
                 "ly_do": _("Huỷ theo phiếu nhập {0}").format(self.name),
             }, update_modified=True)
             log.append(f"Nợ BOM {no.name} → Đã huỷ")
+        # D101: nợ vào hộp của phiếu này hết nghĩa — hàng không còn trong kho.
+        for n in frappe.get_all("SX No Vao Hop",
+                                filters={"phieu_nhap": self.name, "trang_thai": "Chờ chấm"},
+                                pluck="name"):
+            frappe.db.set_value("SX No Vao Hop", n, {
+                "trang_thai": "Đã huỷ",
+                "ly_do": _("Huỷ theo phiếu nhập {0}").format(self.name)})
+            log.append(f"Nợ vào hộp {n} → Đã huỷ")
         for ct in reversed(json.loads(self.ds_se or "[]")):
             cancel_doc(ct.get("dt"), ct.get("name"), log)
         self.db_set("trang_thai", "Đã huỷ", update_modified=False)

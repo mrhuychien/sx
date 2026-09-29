@@ -375,10 +375,14 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       const tong = rows.reduce((a, x) => a + x.so_dem, 0);
       if (!tong) { toastErr('Chưa có dòng nào có số > 0.'); return; }
       // Số đang sửa trên màn PHẢI lưu trước khi duyệt, không thì duyệt số cũ.
-      try { await luu(); } catch (e) { toastErr(e.message); return; }
+      let moi;
+      try { moi = await luu(); } catch (e) { toastErr(e.message); return; }
       // D97: nói trước dòng nào sẽ nhập tạm — thủ kho phải biết mình đang ghi
       // nợ nguyên liệu, không phải phát hiện sau qua một dòng lạ trên sổ nợ.
       const thieuBom = rows.filter((x) => x.so_dem > 0 && !coBom(x));
+      // D101: nhận vượt số QC đã chấm vào hộp → vẫn duyệt, phần vượt ghi nợ.
+      // Lấy từ kết quả VỪA LƯU, không từ lần tải trang: số vừa sửa đổi phần vượt.
+      const vuot = (((moi && moi.dong) || p.dong) || []).filter((x) => Number(x.vuot) > 0);
       confirm2Step({
         title: 'Duyệt phiếu nhận',
         message: `Nhận ${formatNumber(tong)} sản phẩm vào ${p.kho_dich} theo đúng số `
@@ -387,13 +391,19 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
             ? `\n\n⚠ ${thieuBom.length} mã CHƯA CÓ BOM (${thieuBom.map((x) => x.ten
               || tenSP(x.item)).join(', ')}): vẫn nhập kho, nhưng CHƯA trừ bột và `
               + 'bao bì — ghi vào sổ nợ BOM để quản lý hạch toán bù khi có định mức.'
+            : '')
+          + (vuot.length
+            ? `\n\n⚠ Nhận VƯỢT số đã chấm vào hộp: ${vuot.map((x) => `${x.ten
+              || tenSP(x.item)} +${formatNumber(x.vuot)}`).join(', ')}. Vẫn nhập kho; `
+              + 'phần vượt ghi vào sổ nợ vào hộp để QC chấm bù (công nhân hoặc CÔNG NHẬT).'
             : ''),
         confirmLabel: 'DUYỆT',
         onConfirm: async () => {
           try {
             await call('sx.api.khotp.duyet_phieu', { name: p.name });
             toast(`Đã nhận ${formatNumber(tong)} sản phẩm vào kho.`
-              + (thieuBom.length ? ` ${thieuBom.length} mã ghi vào sổ nợ BOM.` : ''));
+              + (thieuBom.length ? ` ${thieuBom.length} mã ghi vào sổ nợ BOM.` : '')
+              + (vuot.length ? ` ${vuot.length} mã ghi nợ vào hộp.` : ''));
             refresh();
           } catch (e) { toastErr(e.message); throw e; }
         },

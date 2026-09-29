@@ -1847,3 +1847,12 @@ main > .container {
 }
 .sx-nobom-nut { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
 .sx-nobom-dong .sx-btn { white-space: nowrap; flex: none; }
+
+/* ── D101: dòng CÔNG NHẬT ở màn Ghi hộp ─────────────────────────────────── */
+.sx-vh-congnhat {
+  width: 100%; margin-top: var(--sx-s2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0; border: 1px dashed var(--sx-line-2); background: var(--sx-surface);
+}
+.sx-vh-congnhat span { font-size: var(--sx-f-xs); color: var(--sx-text-2); font-weight: 500; }
+.sx-vh-row.sx-vh-row-cn { background: var(--sx-surface-2); }

@@ -5,6 +5,11 @@ from frappe.utils import cint, flt
 
 from sx.utils import don_gia_ap_dung, tra_don_gia
 
+# Mã giả cho dòng CÔNG NHẬT ở ranh giới API (D101): màn Ghi hộp coi công nhật như
+# một "người" trong danh sách để QC chấm cùng một cách; trong DB thì dòng đó có
+# nhan_vien rỗng + cong_nhat = 1. Chuyển đổi chỉ ở sx/api/portal.py.
+CONG_NHAT = "CONG_NHAT"
+
 
 class SXBangVaoHop(Document):
     """Bảng vào hộp — sản lượng TP + lương sản phẩm theo NGƯỜI (cả 2 nhánh bánh/bột).
@@ -17,6 +22,7 @@ class SXBangVaoHop(Document):
 
     def validate(self):
         self.validate_duy_nhat()
+        self.validate_nguoi()
         self.gop_theo_nguoi()
         self.tinh_tien()
 
@@ -35,11 +41,27 @@ class SXBangVaoHop(Document):
 
         dong = sorted(
             self.dong,
-            key=lambda r: (_ten(r.nhan_vien), r.san_pham or "", r.cach_lam or ""),
+            # Công nhật xuống cuối: bảng đọc theo người, công nhật không phải người.
+            key=lambda r: (1 if cint(r.cong_nhat) else 0,
+                           "" if cint(r.cong_nhat) else _ten(r.nhan_vien),
+                           r.san_pham or "", r.cach_lam or ""),
         )
         for i, r in enumerate(dong, start=1):
             r.idx = i
         self.dong = dong
+
+    def validate_nguoi(self):
+        """Dòng khoán phải có người; dòng công nhật thì KHÔNG gắn người (D101).
+
+        Công nhật gắn tên một người là lương khoán của người đó tự dưng có thêm
+        hộp — đúng cái lỗi mà tách công nhật ra để tránh.
+        """
+        for r in self.dong:
+            if cint(r.cong_nhat):
+                r.nhan_vien = None
+                r.ten_nhan_vien = None
+            elif not r.nhan_vien:
+                frappe.throw(_("Dòng {0}: chưa chọn công nhân.").format(r.idx))
 
     def validate_duy_nhat(self):
         # 1 bảng docstatus<2 mỗi phiếu ngày
@@ -65,6 +87,13 @@ class SXBangVaoHop(Document):
                 frappe.throw(_("Dòng {0}: số hộp phải > 0").format(row.idx))
             if not row.san_pham:
                 frappe.throw(_("Dòng {0}: chưa chọn mã hàng.").format(row.idx))
+            tong_hop += cint(row.so_hop)
+            if cint(row.cong_nhat):
+                # Sản lượng thật của xưởng, nhưng trả theo ngày công ở chỗ khác —
+                # không đơn giá, không tiền, không cảnh báo thiếu giá.
+                row.don_gia = 0
+                row.thanh_tien = 0
+                continue
             gia = tra_don_gia(bang, row.san_pham, row.cach_lam)
             if gia is None:
                 thieu.append("• {0}{1}".format(
@@ -73,7 +102,6 @@ class SXBangVaoHop(Document):
                 gia = 0
             row.don_gia = gia
             row.thanh_tien = flt(row.don_gia) * cint(row.so_hop)
-            tong_hop += cint(row.so_hop)
             tong_tien += flt(row.thanh_tien)
         self.tong_hop = tong_hop
         self.tong_tien = tong_tien

@@ -152,6 +152,12 @@ python3 scripts/test-nogia.py > /tmp/sx-ng.log 2>&1 \
   && tail -1 /tmp/sx-ng.log \
   || { cat /tmp/sx-ng.log; loi=1; }
 
+# D101 nới chặn "không nhập quá số chấm" và thêm dòng công nhật. Hỏng thì hoặc hộp
+# chấm sót biến mất khỏi sổ, hoặc công nhật lọt vào lương khoán — cả hai im lặng.
+python3 scripts/test-novaohop.py > /tmp/sx-nvh.log 2>&1 \
+  && tail -1 /tmp/sx-nvh.log \
+  || { cat /tmp/sx-nvh.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

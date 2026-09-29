@@ -78,7 +78,8 @@ MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "qc", "quanly"]
 VIEW_CARDS = {
     "ghiso": ["luutrinh", "baome", "baocan", "suco"],
     # D83: màn Ghi hộp của QC chỉ còn đúng việc chấm hộp. Báo sự cố về tổ Ghi sổ.
-    "vaohop": ["vaohop"],
+    # novaohop (D101): kho nhận vượt số chấm — QC là người phải chấm bù.
+    "vaohop": ["vaohop", "novaohop"],
     # nobom: sổ nợ BOM (D97) — thành phẩm nhập lúc chưa có định mức. Đặt ngay
     # dưới phiếu nhập để thủ kho thấy phần mình vừa nhập tạm đang nằm đâu.
     "nhapkho": ["nhapkhotp", "nobom"],
@@ -87,7 +88,8 @@ VIEW_CARDS = {
     "qc": [],
     # qcnhac đứng ĐẦU: việc QC đang treo phải đập vào mắt trước cả nút chốt ngày.
     # nogia (D99): sổ nợ đơn giá vào hộp — lương khoán đang 0 đồng chờ khai giá.
-    "quanly": ["qcnhac", "nobom", "nogia", "chotngay", "luutrinhbtp", "nguoidung"],
+    "quanly": ["qcnhac", "nobom", "nogia", "novaohop", "chotngay", "luutrinhbtp",
+               "nguoidung"],
 }
 
 # card nào role nào được GỌI API (chốt bảo mật thật — không phải ẩn tab)
@@ -116,6 +118,9 @@ CARD_ROLES = {
     "nobom": [THU_KHO, QUAN_LY],
     # Sổ nợ đơn giá (D99): áp giá là SỬA LƯƠNG của người khác — chỉ quản lý.
     "nogia": [QUAN_LY],
+    # Sổ nợ vào hộp (D101): QC vào hộp XEM (để chấm bù), quản lý thêm quyền BỎ QUA
+    # — chốt riêng trong khotp._duoc_bo_qua_no_vh.
+    "novaohop": [VAO_HOP, QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
 

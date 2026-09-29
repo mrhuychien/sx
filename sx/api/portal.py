@@ -16,6 +16,7 @@ from sx.config.roles import (
     user_roles,
     view_cards,
 )
+from sx.sx.doctype.sx_bang_vao_hop.sx_bang_vao_hop import CONG_NHAT
 from sx.utils import (
     bang_don_gia,
     cach_lam_cua,
@@ -210,7 +211,11 @@ def _bang_summary(ngay_sx):
         "tong_hop": doc.tong_hop,
         "tong_tien": doc.tong_tien,
         "dong": [
-            {"nhan_vien": r.nhan_vien, "ten_nhan_vien": r.ten_nhan_vien,
+            # Dòng công nhật đi ra với mã giả CONG_NHAT (D101) — màn Ghi hộp coi nó
+            # như một "người" để chấm cùng một cách, và gửi lại đúng mã đó.
+            {"nhan_vien": CONG_NHAT if cint(r.get("cong_nhat")) else r.nhan_vien,
+             "ten_nhan_vien": _("Công nhật") if cint(r.get("cong_nhat")) else r.ten_nhan_vien,
+             "cong_nhat": cint(r.get("cong_nhat")),
              "san_pham": r.san_pham, "cach_lam": r.cach_lam, "so_hop": r.so_hop,
              "don_gia": r.don_gia, "thanh_tien": r.thanh_tien}
             for r in doc.dong
@@ -447,9 +452,11 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None):
     doc.ngay_sx = ngay_sx
     doc.set("dong", [])
     for r in frappe.parse_json(rows) or []:
+        cn = r.get("nhan_vien") == CONG_NHAT or cint(r.get("cong_nhat"))
         doc.append(
             "dong",
-            {"nhan_vien": r.get("nhan_vien"),
+            {"nhan_vien": None if cn else r.get("nhan_vien"),
+             "cong_nhat": 1 if cn else 0,
              "san_pham": r.get("san_pham") or None,
              "cach_lam": r.get("cach_lam") or None,
              "so_hop": cint(r.get("so_hop"))},
@@ -459,6 +466,8 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None):
         for r in frappe.parse_json(an_ca) or []:
             if not (cint(r.get("an_ca")) or cint(r.get("an_dem"))):
                 continue   # không chấm gì thì khỏi lưu dòng rỗng
+            if r.get("nhan_vien") == CONG_NHAT:
+                continue   # công nhật không phải một người — không chấm ăn ở đây
             doc.append(
                 "an_ca",
                 {"nhan_vien": r.get("nhan_vien"),
@@ -504,7 +513,7 @@ def dashboard(tu_ngay=None, den_ngay=None):
                 "SX Bang Vao Hop Item",
                 filters={"parent": ("in", bang), "parenttype": "SX Bang Vao Hop"},
                 fields=["nhan_vien", "ten_nhan_vien", "san_pham", "cach_lam",
-                        "so_hop", "thanh_tien"],
+                        "so_hop", "thanh_tien", "cong_nhat"],
             )
             gop_sku, gop_nv = {}, {}
             for r in rows:
@@ -514,6 +523,8 @@ def dashboard(tu_ngay=None, den_ngay=None):
                     {"san_pham": khoa, "co_sku": bool(r.san_pham), "so_hop": 0},
                 )
                 s["so_hop"] += cint(r.so_hop)
+                if cint(r.cong_nhat):
+                    continue   # năng suất là theo NGƯỜI — công nhật không vào bảng này
                 g = gop_nv.setdefault(
                     r.nhan_vien,
                     {"nhan_vien": r.nhan_vien, "ten": r.ten_nhan_vien, "so_hop": 0, "tien": 0.0},

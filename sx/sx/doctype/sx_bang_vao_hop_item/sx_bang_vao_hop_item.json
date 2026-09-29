@@ -6,13 +6,14 @@
  "field_order": [
   "nhan_vien",
   "ten_nhan_vien",
+  "cong_nhat",
+  "activity_type",
   "san_pham",
-  "ten_san_pham",
-  "cach_lam",
   "so_hop",
   "don_gia",
   "thanh_tien",
-  "activity_type"
+  "cach_lam",
+  "ten_san_pham"
  ],
  "fields": [
   {
@@ -21,7 +22,8 @@
    "label": "Nhân viên",
    "options": "Employee",
    "in_list_view": 1,
-   "reqd": 1
+   "reqd": 0,
+   "description": "Bỏ trống ở dòng Công nhật."
   },
   {
    "fieldname": "ten_nhan_vien",
@@ -29,6 +31,14 @@
    "label": "Tên nhân viên",
    "fetch_from": "nhan_vien.employee_name",
    "read_only": 1
+  },
+  {
+   "fieldname": "cong_nhat",
+   "fieldtype": "Check",
+   "label": "Công nhật",
+   "default": "0",
+   "in_list_view": 1,
+   "description": "Hộp do bộ phận công nhật đóng: tính vào sản lượng (và trần nhập kho) nhưng KHÔNG tính lương khoán."
   },
   {
    "fieldname": "activity_type",

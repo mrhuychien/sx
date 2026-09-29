@@ -10,6 +10,13 @@ import { openModal } from '/assets/sx/sx/components/modal.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
 
+// Dòng CÔNG NHẬT (D101): hộp do bộ phận công nhật đóng. Chấm cùng một cách như
+// một người (chọn mã → số hộp) để vào hộp là số đếm ĐẦY ĐỦ của xưởng — và là trần
+// nhập kho — nhưng server không tính khoán, không chấm ăn. Mã giả này chỉ sống ở
+// màn hình + ranh giới API (sx/api/portal.py); trong DB là cờ cong_nhat.
+const CONG_NHAT = 'CONG_NHAT';
+const NV_CONG_NHAT = { name: CONG_NHAT, employee_name: 'Công nhật' };
+
 export async function render({ container, boot, call, ensureNgay }) {
   container.className = 'sx-card';
   const ngay = boot.ngay_sx;
@@ -30,6 +37,7 @@ export async function render({ container, boot, call, ensureNgay }) {
   // Tên ngắn (chỉ tên gọi; trùng thì server đã thêm họ / viết tắt đệm)
   const tenNgan = {};
   nhanVien.forEach((nv) => { tenNgan[nv.name] = nv.ten_hien_thi || nv.employee_name || nv.name; });
+  tenNgan[CONG_NHAT] = '★ Công nhật';
 
   // Bố cục theo bản thiết kế "Xưởng SX - App (1a)" (D40):
   //   [tổng sản lượng hôm nay]              [đã nhập N/43]
@@ -66,6 +74,8 @@ export async function render({ container, boot, call, ensureNgay }) {
         <button type="button" class="sx-btn sx-quet-nut" id="sx-vh-quet"
           >⌗ QUÉT THẺ</button>
       </div>
+      <button type="button" class="sx-btn sx-vh-congnhat" id="sx-vh-congnhat"
+        >★ Chấm hộp CÔNG NHẬT <span>không tính khoán</span></button>
       <div id="sx-vh-nv"></div>
       <div class="sx-vh-hang2" id="sx-vh-ds-nut" hidden>
         <button type="button" class="sx-vh-xemhet" id="sx-vh-xemhet"
@@ -105,7 +115,11 @@ export async function render({ container, boot, call, ensureNgay }) {
       if (!nhom.has(r.nhan_vien)) nhom.set(r.nhan_vien, { ten: tenNV(r), dong: [] });
       nhom.get(r.nhan_vien).dong.push({ ...r, _i: i });
     });
-    return [...nhom.values()].sort((a, b) => a.ten.localeCompare(b.ten, 'vi'));
+    // Công nhật xuống cuối — bảng đọc theo người, công nhật không phải một người.
+    return [...nhom.entries()]
+      .sort(([ka, a], [kb, b]) => ((ka === CONG_NHAT) - (kb === CONG_NHAT))
+        || a.ten.localeCompare(b.ten, 'vi'))
+      .map(([, g]) => g);
   }
 
   // Lưới chưa/đã nhập đổi theo dữ liệu -> vẽ lại CÙNG LÚC với bảng, không để lệch
@@ -117,11 +131,12 @@ export async function render({ container, boot, call, ensureNgay }) {
     let html = '';
     theoNguoi().forEach((g) => {
       g.dong.forEach((r) => {
-        html += `<div class="sx-vh-row">
+        const cn = r.nhan_vien === CONG_NHAT;
+        html += `<div class="sx-vh-row${cn ? ' sx-vh-row-cn' : ''}">
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(g.ten)}</div>
             <div class="sx-vh-meta">${esc(tenSPKhoan(r.san_pham) || '—')}${
-              r.cach_lam ? ` · ${esc(r.cach_lam)}` : ''}</div>
+              r.cach_lam ? ` · ${esc(r.cach_lam)}` : ''}${cn ? ' · không tính khoán' : ''}</div>
           </div>
           <button type="button" class="sx-vh-sl" data-i="${r._i}"${daChot ? ' disabled' : ''}
             >${esc(formatNumber(r.so_hop))}</button>
@@ -137,13 +152,16 @@ export async function render({ container, boot, call, ensureNgay }) {
 
     const tongHop = rows.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
-    const soNguoi = new Set(rows.map((r) => r.nhan_vien)).size;
+    const soNguoi = new Set(rows.map((r) => r.nhan_vien).filter((n) => n !== CONG_NHAT)).size;
+    const hopCN = rows.filter((r) => r.nhan_vien === CONG_NHAT)
+      .reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     container.querySelector('#sx-vh-tonghop').textContent = formatNumber(tongHop);
     // Không hiện tiền ở màn nhập (D43) — giữ ô rỗng để bố cục không nhảy
     container.querySelector('#sx-vh-tongtien').textContent = '';
     container.querySelector('#sx-vh-donecount').textContent = soNguoi;
     footer.innerHTML = `<span class="sx-field-label">Tổng</span>
-      <span>${formatNumber(tongHop)} sp</span>`;
+      <span>${formatNumber(tongHop)} sp${hopCN
+        ? ` <span class="sx-muted">(công nhật ${formatNumber(hopCN)})</span>` : ''}</span>`;
 
     // Dải SKU: mỗi loại công việc một ô, cuộn ngang — nhìn ra ngay hôm nay chạy loại gì
     const theoAct = {};
@@ -174,8 +192,8 @@ export async function render({ container, boot, call, ensureNgay }) {
         btn.addEventListener('click', () => suaSoLuong(Number(btn.dataset.i)));
       });
       tbody.querySelectorAll('.sx-vh-them').forEach((btn) => {
-        const nv = nhanVien.find((x) => x.name === btn.dataset.nv)
-          || { name: btn.dataset.nv };
+        const nv = btn.dataset.nv === CONG_NHAT ? NV_CONG_NHAT
+          : (nhanVien.find((x) => x.name === btn.dataset.nv) || { name: btn.dataset.nv });
         btn.addEventListener('click',
           () => themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot));
       });
@@ -192,7 +210,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       kicker: `Sửa · ${tenSPKhoan(r.san_pham) || ''}`,
       title: tenNV(r),
       unitLabel: 'Số lượng',
-      titleActions: nutAnCa({ name: r.nhan_vien }, anCa, save),
+      titleActions: r.nhan_vien === CONG_NHAT ? null : nutAnCa({ name: r.nhan_vien }, anCa, save),
       initial: r.so_hop,
       onOk: async (v) => {
         const sl = Math.round(v);
@@ -346,6 +364,12 @@ export async function render({ container, boot, call, ensureNgay }) {
 
   // Quét thẻ = đường TẮT tới đúng người, không thay đường bấm tay. Thẻ ướt, bẩn,
   // quên ở nhà, người mới chưa có thẻ — bấm tay vẫn phải chạy.
+  const btnCN = container.querySelector('#sx-vh-congnhat');
+  if (btnCN) {
+    btnCN.addEventListener('click',
+      () => themDong(NV_CONG_NHAT, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot));
+  }
+
   const btnQuet = container.querySelector('#sx-vh-quet');
   if (btnQuet) {
     btnQuet.addEventListener('click', () => moQuet({
@@ -442,6 +466,7 @@ function themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot) {
 }
 
 function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa, ghiTiep) {
+  const cn = nv.name === CONG_NHAT;
   const gia = cachLam
     ? ((sp.cach_lam || []).find((c) => c.ten === cachLam) || {}).don_gia
     : sp.gia_chung;
@@ -462,9 +487,10 @@ function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa, ghiTiep) {
     kicker: cachLam ? `${sp.ten} · ${cachLam}` : sp.ten,
     title: ten,
     unitLabel: 'Số lượng',
-    titleActions: nutAnCa(nv, anCa, save),
+    titleActions: cn ? null : nutAnCa(nv, anCa, save),
     // Đơn giá chỉ HIỆN để đối chiếu; server luôn tra lại từ bảng đơn giá áp dụng.
-    hint: (n) => (gia ? `${formatNumber(n * gia)} đ` : '⚠ chưa khai đơn giá'),
+    hint: (n) => (cn ? 'công nhật — không tính khoán'
+      : (gia ? `${formatNumber(n * gia)} đ` : '⚠ chưa khai đơn giá')),
     okLabel: 'XONG',
     onOk: (v) => { luu(v); },
     okPhu: ghiTiep ? {

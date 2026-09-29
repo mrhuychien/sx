@@ -196,7 +196,7 @@ def thu(fn):
 def phieu(*dong):
     d = P.SXPhieuNhapTP({"name": "SXNTP-0001", "ngay": "2026-09-20", "kho_dich": "KHO-TP",
                          "dong": [Doc(x, idx=i + 1) for i, x in enumerate(dong)],
-                         "ds_se": None})
+                         "ds_se": None, "flags": {}})
     return d
 
 
