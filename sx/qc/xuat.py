@@ -40,8 +40,7 @@ def tieu_de_luot():
 
 def dong_luot(doc, in_gia_tri, cint):
     """Một dòng CSV cho một lượt. `doc` là bản ghi SX QC Round."""
-    ap = {m["f"] for m in M.muc_ap_dung(doc.get("luot"),
-                                        cint(doc.get("co_san_xuat_bot")))}
+    ap = {m["f"] for m in M.muc_ap_dung(doc.get("luot"), doc)}
     return ([doc.get("name"), doc.get("ngay"), doc.get("luot"),
              cint(doc.get("co_san_xuat_bot")), doc.get("finished_at"),
              cint(doc.get("duration_min")), cint(doc.get("ghi_muon")),

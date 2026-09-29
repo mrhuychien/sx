@@ -302,3 +302,45 @@ button.sx-qc-tag-chon {
   border-radius: var(--sx-radius-sm); padding: var(--sx-s2) var(--sx-s3);
   align-items: center; justify-content: space-between;
 }
+
+/* ── D100: chọn loại bột (chip nhiều lựa chọn) ─────────────────────────── */
+.sx-qc-vi { display: flex; flex-wrap: wrap; gap: var(--sx-s2); margin: var(--sx-s1) 0; }
+.sx-qc-vi-o {
+  min-height: var(--sx-tap); padding: 6px 12px; text-align: left;
+  border: 1px solid var(--sx-line); border-radius: var(--sx-radius-sm);
+  background: var(--sx-surface); color: var(--sx-text);
+  font: inherit; font-size: var(--sx-f-sm); cursor: pointer;
+}
+.sx-qc-vi-o.sx-qc-vi-on {
+  background: var(--sx-primary-soft); border-color: var(--sx-primary);
+  color: var(--sx-primary-text); font-weight: 700;
+}
+.sx-qc-vi-lac {
+  display: inline-block; margin-left: 4px; padding: 0 6px;
+  border-radius: var(--sx-radius-pill); font-size: var(--sx-f-xs); font-weight: 700;
+  background: var(--sx-warning-soft); color: var(--sx-text);
+}
+
+/* ── D100: máy chạy song song ──────────────────────────────────────────── */
+.sx-qc-may {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sx-s2);
+  margin: var(--sx-s2) var(--sx-s3) 0; padding: 4px var(--sx-s3);
+  border-left: 3px solid var(--sx-primary); background: var(--sx-primary-soft);
+  border-radius: var(--sx-radius-sm);
+}
+.sx-qc-may-ten { font-weight: 700; font-size: var(--sx-f-sm); color: var(--sx-primary-text); }
+.sx-qc-may .sx-btn { min-height: 36px; padding: 2px 10px; white-space: nowrap; }
+.sx-qc-may-them { margin: var(--sx-s2) var(--sx-s3); width: calc(100% - 2 * var(--sx-s3)); }
+
+/* ── D100: tủ lưu mẫu ──────────────────────────────────────────────────── */
+.sx-qc-sc-luu { border-left: 4px solid var(--sx-primary); }
+.sx-qc-lm-tim { margin: var(--sx-s2) 0; width: 100%; box-sizing: border-box; }
+.sx-qc-lm-lo { font-weight: 500; color: var(--sx-text-2); }
+.sx-qc-lm-nut { display: flex; gap: var(--sx-s2); justify-content: flex-end; }
+.sx-qc-lm-chon { min-height: 1.4em; color: var(--sx-primary-text); }
+.sx-qc-lm-hang { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sx-s3); }
+.sx-qc-lm-hang .sx-qc-oso-khung { width: 100%; }
+/* Modal gắn vào <body>, NGOÀI .sx-app — không hưởng box-sizing của app. Ô nhập
+   rộng 100% + padding mà không border-box là tràn mép phải trên điện thoại. */
+.sx-modal .sx-textarea { box-sizing: border-box; max-width: 100%; }
+.sx-qc-lm-hang .sx-qc-oso-khung { box-sizing: border-box; }

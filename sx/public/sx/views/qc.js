@@ -13,6 +13,7 @@ const MAN = {
   incidents: '/assets/sx/sx/views/qc_incidents.js',
   history: '/assets/sx/sx/views/qc_history.js',
   review: '/assets/sx/sx/views/qc_review.js',
+  luumau: '/assets/sx/sx/views/qc_luumau.js',
 };
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
@@ -54,7 +55,8 @@ export async function render(api) {
 }
 
 function veTab(dang, api) {
-  const tabs = [['home', 'Hôm nay'], ['incidents', 'Sự cố'], ['history', 'Lịch sử']];
+  const tabs = [['home', 'Hôm nay'], ['incidents', 'Sự cố'], ['luumau', 'Lưu mẫu'],
+    ['history', 'Lịch sử']];
   // Tab "Xem xét" chỉ hiện với người duyệt. Ẩn nút KHÔNG phải là chốt quyền —
   // chốt thật nằm ở _guard_manager trong sx/api/qc.py; đây chỉ để đỡ rối mắt.
   if (api.boot && api.boot.is_quan_ly) tabs.push(['review', 'Xem xét']);

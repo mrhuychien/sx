@@ -13,6 +13,11 @@
   "thung_bot_max",
   "rang_lac_nhiet_min",
   "rang_lac_phut_min",
+  "section_bot",
+  "bot_co_lac",
+  "column_break_bot",
+  "han_nhiet_min",
+  "han_nhiet_max",
   "section_gio",
   "ghi_muon_phut",
   "su_co_qua_han_ngay",
@@ -24,7 +29,9 @@
   "section_tiep_nhan",
   "do_am_toi_da",
   "column_break_tn",
-  "nhom_can_coa"
+  "nhom_can_coa",
+  "section_luu_mau",
+  "luu_mau_so_ngay"
  ],
  "fields": [
   {
@@ -81,6 +88,33 @@
    "fieldtype": "Int",
    "label": "Rang lạc: thời gian tối thiểu (phút)",
    "description": "Để trống cho tới khi thẩm định xong."
+  },
+  {
+   "fieldname": "section_bot",
+   "fieldtype": "Section Break",
+   "label": "Dây chuyền bột"
+  },
+  {
+   "fieldname": "bot_co_lac",
+   "fieldtype": "Small Text",
+   "label": "Vị bột có lạc",
+   "description": "Mỗi dòng một mã hoặc tên hàng. Chọn vị này ở B0 thì mới hiện các mục về lạc (B1, B2, B7). Bỏ trống = Chè đậu đen cốt dừa."
+  },
+  {
+   "fieldname": "column_break_bot",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "han_nhiet_min",
+   "fieldtype": "Int",
+   "label": "Máy đóng gói: nhiệt độ hàn tối thiểu (°C)",
+   "description": "Bỏ trống = chỉ ghi số, không tự sinh sự cố."
+  },
+  {
+   "fieldname": "han_nhiet_max",
+   "fieldtype": "Int",
+   "label": "Máy đóng gói: nhiệt độ hàn tối đa (°C)",
+   "description": "Bỏ trống = chỉ ghi số, không tự sinh sự cố."
   },
   {
    "fieldname": "section_gio",
@@ -152,6 +186,17 @@
    "label": "Nhóm hàng bắt buộc có COA vi sinh",
    "options": "SX QC Nhom COA",
    "description": "Dừa sấy / sữa bột / phụ liệu bột… Khai bằng NHÓM HÀNG thật trên site, không viết cứng trong code. Nhóm con của nhóm đã khai cũng tính."
+  },
+  {
+   "fieldname": "section_luu_mau",
+   "fieldtype": "Section Break",
+   "label": "Lưu mẫu"
+  },
+  {
+   "fieldname": "luu_mau_so_ngay",
+   "fieldtype": "Int",
+   "label": "Lưu mẫu bao nhiêu ngày (mặc định)",
+   "description": "Hạn lưu gợi ý = ngày lấy mẫu + số ngày này; QC sửa được từng mẫu. Bỏ trống = 180."
   }
  ],
  "links": [],

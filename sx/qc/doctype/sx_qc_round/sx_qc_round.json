@@ -11,6 +11,8 @@
   "ca",
   "column_break_head",
   "co_san_xuat_bot",
+  "co_lac",
+  "can_thu_lac",
   "qc_user",
   "qc_goi_user",
   "ngay_san_xuat",
@@ -23,6 +25,12 @@
   "nhap_lai_tu_giay",
   "so_muc_ap_dung",
   "so_muc_da_cham",
+  "section_may",
+  "so_may_rang",
+  "column_break_may_1",
+  "so_may_nghien",
+  "column_break_may_2",
+  "so_may_goi_bot",
   "section_buoc_a",
   "a1_ve_sinh",
   "a2_cong_nhan",
@@ -33,6 +41,10 @@
   "section_buoc_3",
   "rang_nhiet_do",
   "rang_vong_quay",
+  "rang_nhiet_do_m2",
+  "rang_vong_quay_m2",
+  "rang_nhiet_do_m3",
+  "rang_vong_quay_m3",
   "rang_mau_dat",
   "section_buoc_4",
   "luoi_sang_nguyen_ven",
@@ -42,6 +54,7 @@
   "nam_cham_mat_kim_loai",
   "section_buoc_7",
   "do_min_dat",
+  "do_min_dat_m2",
   "section_buoc_8",
   "thung_bot_qua_han",
   "section_buoc_10",
@@ -69,9 +82,16 @@
   "b2_rang_lac_phut",
   "b2_lac_chin",
   "b3_cong_thuc",
+  "b8_nhiet_han",
   "b4_moi_han_tui",
-  "b5_nhan_di_ung",
   "b6_kl_tui",
+  "b8_nhiet_han_m2",
+  "b4_moi_han_tui_m2",
+  "b6_kl_tui_m2",
+  "b8_nhiet_han_m3",
+  "b4_moi_han_tui_m3",
+  "b6_kl_tui_m3",
+  "b5_nhan_di_ung",
   "b7_chuyen_doi",
   "b7_gio",
   "section_ghi_chu",
@@ -128,6 +148,21 @@
    "fieldtype": "Check",
    "label": "Hôm nay có sản xuất bột",
    "default": "0"
+  },
+  {
+   "fieldname": "co_lac",
+   "fieldtype": "Check",
+   "label": "Có làm vị có lạc",
+   "default": "0",
+   "read_only": 1
+  },
+  {
+   "fieldname": "can_thu_lac",
+   "fieldtype": "Check",
+   "label": "Phải thử nhanh lạc (B7)",
+   "default": "0",
+   "read_only": 1,
+   "description": "Lượt này hoặc một lượt trước trong ngày làm vị có lạc."
   },
   {
    "fieldname": "qc_user",
@@ -203,6 +238,40 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_may",
+   "fieldtype": "Section Break",
+   "label": "Máy đang chạy"
+  },
+  {
+   "fieldname": "so_may_rang",
+   "fieldtype": "Int",
+   "label": "Số máy rang đỗ đang chạy",
+   "default": "1",
+   "description": "1 – 3. Máy không chạy thì ô của nó không áp dụng."
+  },
+  {
+   "fieldname": "column_break_may_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "so_may_nghien",
+   "fieldtype": "Int",
+   "label": "Số máy nghiền bột đang chạy",
+   "default": "1",
+   "description": "1 – 2. Máy không chạy thì ô của nó không áp dụng."
+  },
+  {
+   "fieldname": "column_break_may_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "so_may_goi_bot",
+   "fieldtype": "Int",
+   "label": "Số máy đóng gói bột đang chạy",
+   "default": "1",
+   "description": "1 – 3. Máy không chạy thì ô của nó không áp dụng."
+  },
+  {
    "fieldname": "section_buoc_a",
    "fieldtype": "Section Break",
    "label": "A — Đầu ca",
@@ -267,6 +336,32 @@
    "precision": "1"
   },
   {
+   "fieldname": "rang_nhiet_do_m2",
+   "fieldtype": "Int",
+   "label": "3a Nhiệt độ rang — máy 2",
+   "description": "≥ 255 · ngoài 255–270 cảnh báo vận hành"
+  },
+  {
+   "fieldname": "rang_vong_quay_m2",
+   "fieldtype": "Float",
+   "label": "3b Vòng quay lồng rang — máy 2",
+   "description": "6,2 – 7,0",
+   "precision": "1"
+  },
+  {
+   "fieldname": "rang_nhiet_do_m3",
+   "fieldtype": "Int",
+   "label": "3a Nhiệt độ rang — máy 3",
+   "description": "≥ 255 · ngoài 255–270 cảnh báo vận hành"
+  },
+  {
+   "fieldname": "rang_vong_quay_m3",
+   "fieldtype": "Float",
+   "label": "3b Vòng quay lồng rang — máy 3",
+   "description": "6,2 – 7,0",
+   "precision": "1"
+  },
+  {
    "fieldname": "rang_mau_dat",
    "fieldtype": "Select",
    "label": "3c Hạt vàng hoa cau",
@@ -320,6 +415,12 @@
    "fieldname": "do_min_dat",
    "fieldtype": "Select",
    "label": "7 Độ mịn đạt, rây 0,2 mm",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "do_min_dat_m2",
+   "fieldtype": "Select",
+   "label": "7 Độ mịn đạt, rây 0,2 mm — máy 2",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -455,9 +556,9 @@
   },
   {
    "fieldname": "san_pham_bot",
-   "fieldtype": "Data",
-   "label": "B0 Vị đang sản xuất",
-   "description": "để truy xuất lô"
+   "fieldtype": "Small Text",
+   "label": "B0 Loại bột đang sản xuất",
+   "description": "bấm chọn — có thể nhiều vị"
   },
   {
    "fieldname": "b1_lac_sach",
@@ -492,9 +593,62 @@
    "options": "\nĐạt\nKhông đạt"
   },
   {
+   "fieldname": "b8_nhiet_han",
+   "fieldtype": "Int",
+   "label": "B8 Máy đóng gói: nhiệt độ hàn",
+   "description": "ngưỡng lấy từ SX QC Setting · QC đóng gói ghi"
+  },
+  {
    "fieldname": "b4_moi_han_tui",
    "fieldtype": "Select",
    "label": "B4 Mối hàn túi 40 g kín, 5 túi",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b6_kl_tui",
+   "fieldtype": "Select",
+   "label": "B6 KL tịnh túi 40 g",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b8_nhiet_han_m2",
+   "fieldtype": "Int",
+   "label": "B8 Máy đóng gói: nhiệt độ hàn — máy 2",
+   "description": "ngưỡng lấy từ SX QC Setting · QC đóng gói ghi"
+  },
+  {
+   "fieldname": "b4_moi_han_tui_m2",
+   "fieldtype": "Select",
+   "label": "B4 Mối hàn túi 40 g kín, 5 túi — máy 2",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b6_kl_tui_m2",
+   "fieldtype": "Select",
+   "label": "B6 KL tịnh túi 40 g — máy 2",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b8_nhiet_han_m3",
+   "fieldtype": "Int",
+   "label": "B8 Máy đóng gói: nhiệt độ hàn — máy 3",
+   "description": "ngưỡng lấy từ SX QC Setting · QC đóng gói ghi"
+  },
+  {
+   "fieldname": "b4_moi_han_tui_m3",
+   "fieldtype": "Select",
+   "label": "B4 Mối hàn túi 40 g kín, 5 túi — máy 3",
+   "description": "QC đóng gói ghi",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "b6_kl_tui_m3",
+   "fieldtype": "Select",
+   "label": "B6 KL tịnh túi 40 g — máy 3",
    "description": "QC đóng gói ghi",
    "options": "\nĐạt\nKhông đạt"
   },
@@ -503,13 +657,6 @@
    "fieldtype": "Select",
    "label": "B5 Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",
    "description": "đúng sản phẩm",
-   "options": "\nĐạt\nKhông đạt"
-  },
-  {
-   "fieldname": "b6_kl_tui",
-   "fieldtype": "Select",
-   "label": "B6 KL tịnh túi 40 g",
-   "description": "QC đóng gói ghi",
    "options": "\nĐạt\nKhông đạt"
   },
   {

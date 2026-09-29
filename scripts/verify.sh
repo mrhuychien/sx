@@ -171,6 +171,13 @@ python3 scripts/test-qcbot.py > /tmp/sx-qcbot.log 2>&1 \
   && tail -1 /tmp/sx-qcbot.log \
   || { cat /tmp/sx-qcbot.log; loi=1; }
 
+# D100 quyết định MỤC NÀO HIỆN RA trên lượt kiểm: vị có lạc, máy 2/3, nhiệt độ
+# hàn. Mục không hiện thì không ai ghi, không in, không sinh sự cố — và sai về
+# phía ẩn ở phần lạc là bỏ bước kiểm dị ứng mà hồ sơ trông vẫn đủ.
+python3 scripts/test-qcmay.py > /tmp/sx-qcmay.log 2>&1 \
+  && tail -1 /tmp/sx-qcmay.log \
+  || { cat /tmp/sx-qcmay.log; loi=1; }
+
 # BM.07.03 là một CỔNG. Nới nhầm thì lô dừa sấy không COA đi thẳng vào bánh và
 # hồ sơ vẫn ghi "Đạt"; siết nhầm thì thủ kho bỏ trống ô QC cho xong việc, tức là
 # cổng tự mở.

@@ -51,9 +51,49 @@ class SXQCRound(Document):
 
     def validate(self):
         self.kiem_trung()
-        ap = M.muc_cham(self.luot, cint(self.co_san_xuat_bot))
+        self.tinh_boi_canh()
+        ap = M.muc_cham(self.luot, self)
         self.so_muc_ap_dung = len(ap)
         self.so_muc_da_cham = sum(1 for m in ap if M.co_ghi(m, _gia_tri(self, m)))
+
+    def tinh_boi_canh(self):
+        """Số máy và hai cờ lạc (D100) — SERVER tính, không nhận từ máy QC.
+
+        Cờ lạc suy từ ô B0 (vị đang làm) + danh sách vị có lạc ở SX QC Setting.
+        Tính ở đây chứ không để máy QC gửi lên: gửi lên được thì tắt được, và tắt
+        B7 là bỏ bước thử dị ứng mà hồ sơ trông vẫn đủ.
+        """
+        for nhom, (_ten, _toi_da, truong) in M.NHOM_MAY.items():
+            self.set(truong, M.so_may(self.get(truong), nhom))
+        if not cint(self.co_san_xuat_bot):
+            self.co_lac = 0
+            self.can_thu_lac = 0
+            return
+        chon = M.tach_chon(self.get("san_pham_bot"))
+        ten = {r.name: r.item_name for r in frappe.get_all(
+            "Item", filters={"name": ("in", chon)}, fields=["name", "item_name"])} \
+            if chon else {}
+        self.co_lac = M.co_lac_trong(chon, ten, nguong()["bot_co_lac"])
+        khac = frappe.get_all(
+            "SX QC Round",
+            filters={"ngay": self.ngay, "docstatus": ("<", 2),
+                     "name": ("!=", self.name or "")},
+            fields=["luot", "co_lac"])
+        self.can_thu_lac = M.can_thu_lac(
+            self.co_lac, self.luot, [(r.luot, r.co_lac) for r in khac])
+
+    def on_update(self):
+        """Lượt này vừa đổi cờ lạc → các lượt SAU trong ngày còn dở phải tính lại
+        B7: sáng thêm chè đậu đen thì lượt trưa đang mở phải hiện ô thử lạc."""
+        if not self.has_value_changed("co_lac"):
+            return
+        t = M.thu_tu_luot(self.luot)
+        for r in frappe.get_all("SX QC Round",
+                                filters={"ngay": self.ngay, "docstatus": 0,
+                                         "name": ("!=", self.name)},
+                                fields=["name", "luot"]):
+            if M.thu_tu_luot(r.luot) > t:
+                frappe.get_doc("SX QC Round", r.name).save()
 
     def kiem_trung(self):
         """Một (ngày, lượt) chỉ có một phiếu; Đầu sáng và Tuần loại trừ nhau.
@@ -103,7 +143,7 @@ class SXQCRound(Document):
         Chỉ có nhiệt độ rang nằm ở nhóm này: nó là phép đo oPRP, không có nó thì
         cả lượt không chứng minh được gì. Mọi mục khác được phép để trống kèm lý do.
         """
-        thieu = [m for m in M.muc_cham(self.luot, cint(self.co_san_xuat_bot))
+        thieu = [m for m in M.muc_cham(self.luot, self)
                  if m["batbuoc"] and not M.co_ghi(m, _gia_tri(self, m))]
         if thieu:
             frappe.throw(_("Chưa ghi mục bắt buộc: {0}").format(
@@ -111,7 +151,7 @@ class SXQCRound(Document):
 
     def kiem_de_trong(self):
         """Mục áp dụng để trống thì phải có lý do — không chặn nếu đã ghi lý do."""
-        trong = [m for m in M.muc_cham(self.luot, cint(self.co_san_xuat_bot))
+        trong = [m for m in M.muc_cham(self.luot, self)
                  if not M.co_ghi(m, _gia_tri(self, m))]
         if trong and not (self.ghi_chu or "").strip():
             frappe.throw(
@@ -156,4 +196,4 @@ class SXQCRound(Document):
     def gia_tri_muc(self):
         """{fieldname: giá trị} của các mục áp dụng — cho tờ in và màn hình."""
         return {m["f"]: _gia_tri(self, m)
-                for m in M.muc_ap_dung(self.luot, cint(self.co_san_xuat_bot))}
+                for m in M.muc_ap_dung(self.luot, self)}

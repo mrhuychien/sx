@@ -262,6 +262,7 @@ Chi tiết ở [`sx/qc/README.md`](sx/qc/README.md); ở đây chỉ nói cái c
 | `#/qc` | ba thẻ lượt trong ngày (Đầu sáng / Trưa / Cuối chiều) kèm khung giờ, hộp nhắc việc đang treo |
 | `#/qc/round/:id` | làm một lượt — một trang dài theo trình tự công đoạn, tự lưu, thanh đáy cố định |
 | `#/qc/incidents` | sổ sự cố, ghi xử lý tại chỗ; nút **Đóng** chỉ hiện với Ban ISO |
+| `#/qc/luumau` | **tủ lưu mẫu** (D100): lấy mẫu theo lô, mẫu đến hạn huỷ đứng đầu, tìm theo lô khi có khiếu nại |
 | `#/qc/history` | dải tuần — chỗ thiếu tự lộ ra, kèm nút in tờ ngày A4 |
 | `#/qc/review` | lưới tháng × lượt + KPI + ký *đã xem xét* + in cả tháng + xuất CSV |
 

@@ -97,8 +97,33 @@ BUOC = [
 ]
 
 
+# ── Máy chạy song song (D100) ─────────────────────────────────────────────
+# Xưởng có 3 máy rang đỗ, 2 máy nghiền, 3 máy đóng gói bột — nhưng không phải
+# ngày nào cũng chạy đủ. Mục gắn nhóm máy thì MÁY 1 dùng đúng fieldname cũ (phiếu
+# trước D100 vẫn đọc nguyên), máy 2/3 là field `<f>_m2`, `<f>_m3`. Số máy đang
+# chạy nằm trên phiếu (field đếm bên dưới), mặc định 1; QC bấm "+ Thêm máy" khi
+# có thêm máy chạy. Máy không chạy thì các ô của nó KHÔNG áp dụng — không phải
+# "để trống cần giải trình".
+# nhóm: (tên hiển thị, số máy tối đa, fieldname đếm trên SX QC Round)
+NHOM_MAY = {
+    "rang": ("Máy rang đỗ", 3, "so_may_rang"),
+    "nghien": ("Máy nghiền bột", 2, "so_may_nghien"),
+    "goi_bot": ("Máy đóng gói bột", 3, "so_may_goi_bot"),
+}
+
+# ── Lạc (D100) ────────────────────────────────────────────────────────────
+# Mục về LẠC chỉ áp dụng khi hôm đó làm vị có lạc (chè đậu đen cốt dừa). Hai
+# nghĩa khác nhau, tách hai cờ:
+#   LAC_LAM  nhặt / rang lạc — chỉ khi lượt này có làm vị có lạc
+#   LAC_DOI  thử nhanh lạc sau chuyển đổi — cả khi lượt này có vị có lạc, LẪN
+#            khi một lượt TRƯỚC trong ngày có: sáng làm chè đậu đen, trưa đổi sang
+#            sữa dừa thì chính lượt trưa mới là lúc phải thử.
+LAC_LAM = "lam"
+LAC_DOI = "doi"
+
+
 def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
-       dv="", goi_y="", batbuoc=False, phu=False, ngan=""):
+       dv="", goi_y="", batbuoc=False, phu=False, ngan="", may=None, lac=None):
     """Một mục kiểm.
 
     ap   = tuple lượt áp dụng, None = mọi lượt
@@ -111,10 +136,13 @@ def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
            đếm chúng là bắt QC giải thích vì sao không có mạt kim loại.
     bot  = chỉ áp dụng khi hôm đó CÓ sản xuất bột
     goi  = do QC đóng gói ghi (QC chế biến vẫn thấy, chỉ là không phải việc mình)
+    may  = nhóm máy (NHOM_MAY) — mục này ghi riêng cho từng máy đang chạy
+    lac  = LAC_LAM / LAC_DOI — chỉ áp dụng khi có làm vị có lạc (xem trên)
     """
     return {"f": f, "so": so, "nhan": nhan, "ngan": ngan or nhan, "buoc": buoc, "cd": cd, "kieu": kieu,
             "ap": tuple(ap) if ap else None, "goi": goi, "bot": bot,
-            "dv": dv, "goi_y": goi_y, "batbuoc": batbuoc, "phu": phu}
+            "dv": dv, "goi_y": goi_y, "batbuoc": batbuoc, "phu": phu,
+            "may": may, "may_so": 1 if may else 0, "goc": f, "lac": lac}
 
 
 MUC = [
@@ -136,9 +164,10 @@ MUC = [
     # ── B: dây chuyền bánh ───────────────────────────────────────────────
     _m("luoc_soi_du", "2", "Sôi liên tục, đỗ chín nổi", "2", "2 Luộc"),
     _m("rang_nhiet_do", "3a", "Nhiệt độ rang", "3", "3 Rang", kieu="nguyen",
-       dv="°C", goi_y="≥ 255 · ngoài 255–270 cảnh báo vận hành", batbuoc=True),
+       dv="°C", goi_y="≥ 255 · ngoài 255–270 cảnh báo vận hành", batbuoc=True,
+       may="rang"),
     _m("rang_vong_quay", "3b", "Vòng quay lồng rang", "3", "3 Rang", kieu="so",
-       dv="v/ph", goi_y="6,2 – 7,0"),
+       dv="v/ph", goi_y="6,2 – 7,0", may="rang"),
     _m("rang_mau_dat", "3c", "Hạt vàng hoa cau", "3", "3 Rang"),
     _m("luoi_sang_nguyen_ven", "4", "Lưới sàng cát / sàng lại nguyên vẹn",
        "4", "4 Sàng cát",
@@ -150,7 +179,7 @@ MUC = [
     _m("nam_cham_mat_kim_loai", "6c", "Có mạt kim loại",
        "6", "6 Vỡ đỗ, nam châm", kieu="co_khong", ap=DAU_NGAY_HOAC_TUAN,
        goi_y="tích = tạo sự cố", phu=True),
-    _m("do_min_dat", "7", "Độ mịn đạt, rây 0,2 mm", "7", "7 Nghiền"),
+    _m("do_min_dat", "7", "Độ mịn đạt, rây 0,2 mm", "7", "7 Nghiền", may="nghien"),
     _m("thung_bot_qua_han", "8", "Thùng bột quá 2 ngày / hở nắp",
        "8", "8 Kho bột", kieu="nguyen", dv="thùng",
        goi_y="0 thùng = đạt · > 0 tạo sự cố"),
@@ -176,32 +205,72 @@ MUC = [
     _m("t11_can_qua_chuan", "T11", "Cân: quả chuẩn đạt", "C", "PRP", ap=(TUAN,)),
 
     # ── D: dây chuyền bột ────────────────────────────────────────────────
-    _m("san_pham_bot", "B0", "Vị đang sản xuất", "B", "Bột: trộn",
-       kieu="chu", bot=True, goi_y="để truy xuất lô", phu=True),
+    # B0: bấm chọn trong danh mục bột của báo mẻ (D100), nhiều vị một lượt. Tính
+    # vào "đã chấm": bật bột mà không nói làm vị gì thì lô không truy được.
+    _m("san_pham_bot", "B0", "Loại bột đang sản xuất", "B", "Bột: trộn",
+       kieu="chon_bot", bot=True, goi_y="bấm chọn — có thể nhiều vị"),
     _m("b1_lac_sach", "B1", "Lạc trước rang: đã sàng, không mốc/hỏng/sạn",
-       "B", "Bột: nhặt lạc", bot=True,
+       "B", "Bột: nhặt lạc", bot=True, lac=LAC_LAM,
        ngan="Lạc sạch, không mốc/sạn", goi_y="đã sàng trước rang"),
     _m("b2_rang_lac_nhiet", "B2a", "Rang lạc: nhiệt độ", "B", "Bột: rang lạc",
-       kieu="nguyen", bot=True, dv="°C", goi_y="ngưỡng lấy từ SX QC Setting"),
+       kieu="nguyen", bot=True, dv="°C", goi_y="ngưỡng lấy từ SX QC Setting",
+       lac=LAC_LAM),
     _m("b2_rang_lac_phut", "B2b", "Rang lạc: thời gian mẻ", "B", "Bột: rang lạc",
-       kieu="nguyen", bot=True, dv="phút", goi_y="ngưỡng lấy từ SX QC Setting"),
-    _m("b2_lac_chin", "B2c", "Lạc chín vàng đều", "B", "Bột: rang lạc", bot=True),
+       kieu="nguyen", bot=True, dv="phút", goi_y="ngưỡng lấy từ SX QC Setting",
+       lac=LAC_LAM),
+    _m("b2_lac_chin", "B2c", "Lạc chín vàng đều", "B", "Bột: rang lạc", bot=True,
+       lac=LAC_LAM),
     _m("b3_cong_thuc", "B3", "Đường xay, rây; cân đúng công thức",
        "B", "Bột: xay đường", bot=True,
        ngan="Đúng công thức trộn", goi_y="đường xay, rây; cân đúng"),
+    # Máy đóng gói bột (D100): nhiệt độ hàn + mối hàn + khối lượng, TỪNG MÁY.
+    _m("b8_nhiet_han", "B8", "Máy đóng gói: nhiệt độ hàn", "B", "Bột: đóng túi",
+       kieu="nguyen", bot=True, goi=True, dv="°C", may="goi_bot",
+       ngan="Nhiệt độ hàn", goi_y="ngưỡng lấy từ SX QC Setting"),
     _m("b4_moi_han_tui", "B4", "Mối hàn túi 40 g kín, 5 túi", "B", "Bột: đóng túi",
-       bot=True, goi=True, ap=(TRUA, CUOI_CHIEU)),
+       bot=True, goi=True, ap=(TRUA, CUOI_CHIEU), may="goi_bot"),
+    _m("b6_kl_tui", "B6", "KL tịnh túi 40 g", "B", "Bột: đóng túi",
+       bot=True, goi=True, may="goi_bot"),
     _m("b5_nhan_di_ung", "B5", "Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",
        "B", "Bột: đóng túi", bot=True,
        ngan="Nhãn, HSD, cảnh báo lạc/sữa", goi_y="đúng sản phẩm"),
-    _m("b6_kl_tui", "B6", "KL tịnh túi 40 g", "B", "Bột: đóng túi",
-       bot=True, goi=True),
     _m("b7_chuyen_doi", "B7", "Chuyển đổi sau chè đậu đen cốt dừa — thử nhanh lạc",
-       "B", "Bột: trộn", kieu="chon3", bot=True,
+       "B", "Bột: trộn", kieu="chon3", bot=True, lac=LAC_DOI,
        goi_y="Dương tính → sự cố Dị ứng, mức Cao",
        ngan="Chuyển đổi sau chè — thử nhanh lạc"),
-    _m("b7_gio", "B7b", "Giờ thử", "B", "Bột: trộn", kieu="gio", bot=True, phu=True),
+    _m("b7_gio", "B7b", "Giờ thử", "B", "Bột: trộn", kieu="gio", bot=True, phu=True,
+       lac=LAC_DOI),
 ]
+
+
+def _mo_rong_may(ds):
+    """Chèn các ô của máy 2, 3… ngay SAU khối máy 1 của cùng nhóm.
+
+    Khối máy 1 = các mục liền nhau cùng nhóm máy. Chèn ngay sau khối đó để màn
+    hình và tờ in đi đúng thứ tự QC đứng: hết máy 1 rồi sang máy 2, không phải
+    nhiệt độ của ba máy rồi mới tới vòng quay của ba máy.
+    """
+    ra, i = [], 0
+    while i < len(ds):
+        m = ds[i]
+        if not m["may"]:
+            ra.append(m)
+            i += 1
+            continue
+        j = i
+        while j < len(ds) and ds[j]["may"] == m["may"]:
+            j += 1
+        khoi = ds[i:j]
+        ra.extend(khoi)
+        for k in range(2, NHOM_MAY[m["may"]][1] + 1):
+            for g in khoi:
+                ra.append(dict(g, f=f'{g["f"]}_m{k}', may_so=k,
+                               nhan=f'{g["nhan"]} — máy {k}'))
+        i = j
+    return ra
+
+
+MUC = _mo_rong_may(MUC)
 
 THEO_F = {m["f"]: m for m in MUC}
 
@@ -241,23 +310,114 @@ def co_ghi(muc_, gia_tri):
     return True
 
 
-def ap_dung(muc, luot, co_bot):
-    """Mục này có phải ghi ở lượt đó không (ma trận 1.1.5)."""
-    if muc["bot"] and not co_bot:
+def _so(v, mac_dinh=0):
+    try:
+        return int(float(v or 0))
+    except (TypeError, ValueError):
+        return mac_dinh
+
+
+def so_may(v, nhom):
+    """Số máy đang chạy, kẹp trong [1, tối đa]. Rỗng / 0 = 1 máy (phiếu cũ)."""
+    return min(max(_so(v), 1), NHOM_MAY[nhom][1])
+
+
+def boi_canh(x):
+    """Những gì quyết định mục nào áp dụng, ngoài lượt: có bột, có lạc, số máy.
+
+    `x` là một phiếu (Document / dict có co_san_xuat_bot…) HOẶC một số 0/1 kiểu
+    cũ = "có bột không". Số trần thì coi như vị có lạc đi cùng bột và mỗi nhóm
+    một máy — đúng nghĩa của mọi phiếu trước D100, nên nơi gọi cũ không đổi nghĩa.
+    """
+    if isinstance(x, dict) and "may" in x and "bot" in x:
+        return x
+    if x is None or isinstance(x, (int, float, str, bool)):
+        b = 1 if _so(x) else 0
+        return {"bot": b, "lac": b, "lac_doi": b,
+                "may": {n: 1 for n in NHOM_MAY}}
+    g = x.get
+    return {"bot": 1 if _so(g("co_san_xuat_bot")) else 0,
+            "lac": 1 if _so(g("co_lac")) else 0,
+            "lac_doi": 1 if (_so(g("can_thu_lac")) or _so(g("co_lac"))) else 0,
+            "may": {n: so_may(g(t[2]), n) for n, t in NHOM_MAY.items()}}
+
+
+def ap_dung(muc, luot, bc):
+    """Mục này có phải ghi ở lượt đó không (ma trận 1.1.5 + D100).
+
+    `bc` = boi_canh(...) hoặc số 0/1 "có bột" kiểu cũ.
+    """
+    bc = boi_canh(bc)
+    if muc["bot"] and not bc["bot"]:
+        return False
+    if muc.get("lac") == LAC_LAM and not bc["lac"]:
+        return False
+    if muc.get("lac") == LAC_DOI and not bc["lac_doi"]:
+        return False
+    if muc.get("may") and muc["may_so"] > bc["may"].get(muc["may"], 1):
         return False
     if muc["ap"] is None:
         return True
     return luot in muc["ap"]
 
 
-def muc_ap_dung(luot, co_bot):
-    return [m for m in MUC if ap_dung(m, luot, co_bot)]
+def muc_ap_dung(luot, bc):
+    bc = boi_canh(bc)
+    return [m for m in MUC if ap_dung(m, luot, bc)]
 
 
-def muc_cham(luot, co_bot):
+def muc_cham(luot, bc):
     """Mục TÍNH VÀO tiến độ (bỏ ô đi kèm) — dùng cho thanh x/y và cho luật
     'để trống phải có lý do'."""
-    return [m for m in muc_ap_dung(luot, co_bot) if not m["phu"]]
+    return [m for m in muc_ap_dung(luot, bc) if not m["phu"]]
+
+
+def ten_may(m):
+    """' (máy k)' cho câu sự cố — rỗng với mục không theo máy."""
+    return f' (máy {m["may_so"]})' if m.get("may") else ""
+
+
+# ═══ Loại bột + lạc (D100) ═════════════════════════════════════════════════
+
+def tach_chon(v):
+    """Giá trị ô B0 → danh sách mã hàng. Lưu mỗi mã một dòng."""
+    # Chỉ tách theo dòng, KHÔNG theo dấu phẩy: tên hàng có dấu phẩy là chuyện
+    # thường, tách nhầm là "Bột đậu, sữa dừa" thành hai vị không tồn tại.
+    return [x.strip() for x in str(v or "").split("\n") if x.strip()]
+
+
+def _chuan(s):
+    return " ".join(str(s or "").lower().split())
+
+
+def co_lac_trong(chon, ten_theo_ma, ds_lac):
+    """Trong các vị đã chọn có vị nào có lạc không.
+
+    `ds_lac` là danh sách khai ở SX QC Setting (mã HOẶC tên hàng, không phân biệt
+    hoa thường). Khớp theo cả mã lẫn tên: người khai cài đặt gõ tên họ nhìn thấy,
+    còn phiếu lưu mã.
+    """
+    lac = {_chuan(x) for x in ds_lac if _chuan(x)}
+    return 1 if any(_chuan(c) in lac or _chuan(ten_theo_ma.get(c)) in lac
+                    for c in chon) else 0
+
+
+def thu_tu_luot(luot):
+    luot = DAU_SANG if luot == TUAN else luot
+    return LUOT_TRONG_NGAY.index(luot) if luot in LUOT_TRONG_NGAY else len(LUOT_TRONG_NGAY)
+
+
+def can_thu_lac(co_lac, luot, cac_luot_khac):
+    """Lượt này có phải thử nhanh lạc (B7) không.
+
+    Có nếu chính lượt này làm vị có lạc, HOẶC một lượt TRƯỚC trong ngày đã làm —
+    chuyển đổi sau chè đậu đen xảy ra ở lượt sau, không phải lượt đang làm chè.
+    `cac_luot_khac` = [(lượt, co_lac)] của các phiếu khác cùng ngày.
+    """
+    if co_lac:
+        return 1
+    t = thu_tu_luot(luot)
+    return 1 if any(int(c or 0) and thu_tu_luot(l) < t for l, c in cac_luot_khac) else 0
 
 
 def ma_tran(co_bot):
@@ -266,7 +426,8 @@ def ma_tran(co_bot):
     Cùng một hàm sinh ra cả hai, nên màn hình không bao giờ hiện mục mà server
     không kiểm, và ngược lại.
     """
-    return {l: [m["f"] for m in muc_ap_dung(l, co_bot)] for l in LUOT}
+    bc = boi_canh(co_bot)
+    return {l: [m["f"] for m in muc_ap_dung(l, bc)] for l in LUOT}
 
 
 # ═══ Cờ "có sản xuất bột" (D98) ════════════════════════════════════════════

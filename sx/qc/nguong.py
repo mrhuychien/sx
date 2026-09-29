@@ -20,10 +20,18 @@ MAC_DINH = {
     "ghi_muon_phut": 45,
     "su_co_qua_han_ngay": 7,
     "do_am_toi_da": 13.0,
+    "luu_mau_so_ngay": 180,
 }
 
 # Ngưỡng chờ thẩm định: không có mặc định, chưa đặt thì không sinh sự cố.
-CHO_THAM_DINH = ("rang_lac_nhiet_min", "rang_lac_phut_min")
+CHO_THAM_DINH = ("rang_lac_nhiet_min", "rang_lac_phut_min",
+                 # Nhiệt độ hàn máy đóng gói bột (D100): mỗi loại màng một khoảng,
+                 # chưa ai đưa con số — nên chưa đặt thì chỉ ghi số.
+                 "han_nhiet_min", "han_nhiet_max")
+
+# Vị bột có lạc (D100) khi SX QC Setting chưa khai gì. Đây là vị duy nhất đang
+# có lạc trong công thức (BOM chè đậu đen cốt dừa có Lạc).
+BOT_CO_LAC_MAC_DINH = ("Chè đậu đen cốt dừa",)
 
 # Hạn chót của từng lượt trong ngày (D95). Khung của một lượt = từ hạn chót của
 # lượt TRƯỚC tới hạn chót của chính nó — nên chỉ cần khai ba mốc, và không thể
@@ -68,6 +76,11 @@ def nguong():
     # thì luật COA KHÔNG chạy. Không đoán bừa vài tên nhóm: đoán sai thì hoặc
     # chặn nhầm hàng tốt, hoặc cho qua đúng thứ cần chặn.
     ra["nhom_can_coa"] = [r.item_group for r in (s.get("nhom_can_coa") or [])] if s else []
+    # Mỗi dòng một mã / tên hàng. Rỗng = mặc định ở trên — không để rỗng thành
+    # "không vị nào có lạc": thế là B1/B2/B7 lặng lẽ biến khỏi mọi lượt.
+    khai = [x.strip() for x in str((s.get("bot_co_lac") if s else "") or "").split("\n")
+            if x.strip()]
+    ra["bot_co_lac"] = khai or list(BOT_CO_LAC_MAC_DINH)
     ra["cho_phep_bo_qua_luot_khi_khong_san_xuat"] = int(
         (s.get("cho_phep_bo_qua_luot_khi_khong_san_xuat") if s else 1) or 0)
 

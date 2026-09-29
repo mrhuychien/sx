@@ -22,11 +22,16 @@ KIEU = {
     "chu":      lambda m: {"fieldtype": "Data"},
     "co_khong": lambda m: {"fieldtype": "Check", "default": "0"},
     "gio":      lambda m: {"fieldtype": "Time"},
+    # Nhiều vị một lượt, mỗi mã một dòng (D100). Small Text chứ không Data: tám
+    # vị × 30 ký tự vượt 140 ký tự của Data.
+    "chon_bot": lambda m: {"fieldtype": "Small Text"},
 }
 
 # Int mặc định 0 hợp lý cho ĐẾM (thùng quá hạn, trạm bẫy) nhưng SAI cho ĐO
 # (nhiệt độ, phút): 0 °C là một phép đo, không phải "chưa đo".
-KHONG_MAC_DINH_0 = {"rang_nhiet_do", "b2_rang_lac_nhiet", "b2_rang_lac_phut"}
+# So theo mục GỐC: ô máy 2/3 của một ô đo cũng là ô đo.
+KHONG_MAC_DINH_0 = {"rang_nhiet_do", "b2_rang_lac_nhiet", "b2_rang_lac_phut",
+                    "b8_nhiet_han"}
 
 
 def f(fieldname, fieldtype, label=None, **kw):
@@ -51,6 +56,11 @@ fields = [
       description="Chỉ còn trên phiếu trước D95. Từ D95 một ngày ba lượt, không chia ca."),
     f("column_break_head", "Column Break"),
     f("co_san_xuat_bot", "Check", "Hôm nay có sản xuất bột", default="0"),
+    # D100: hai cờ lạc do SERVER tính lúc validate từ ô B0 (loại bột) — không ai
+    # gõ tay. Xem muc.co_lac_trong / muc.can_thu_lac.
+    f("co_lac", "Check", "Có làm vị có lạc", default="0", read_only=1),
+    f("can_thu_lac", "Check", "Phải thử nhanh lạc (B7)", default="0", read_only=1,
+      description="Lượt này hoặc một lượt trước trong ngày làm vị có lạc."),
     f("qc_user", "Link", "QC chế biến", options="User", reqd=1),
     f("qc_goi_user", "Link", "QC đóng gói", options="User"),
     f("ngay_san_xuat", "Link", "Phiếu ngày sản xuất", options="SX Ngay San Xuat",
@@ -66,7 +76,13 @@ fields = [
     f("nhap_lai_tu_giay", "Check", "Nhập lại từ bản giấy", default="0"),
     f("so_muc_ap_dung", "Int", "Số mục phải chấm", read_only=1),
     f("so_muc_da_cham", "Int", "Đã chấm", read_only=1),
-]
+
+    # D100: số máy đang chạy của từng nhóm — quyết định ô máy 2/3 có áp dụng không.
+    f("section_may", "Section Break", "Máy đang chạy"),
+] + [x for i, (nhom, (ten, toi_da, truong)) in enumerate(muc.NHOM_MAY.items())
+     for x in ([f(f"column_break_may_{i}", "Column Break")] if i else [])
+     + [f(truong, "Int", f"Số {ten.lower()} đang chạy", default="1",
+          description=f"1 – {toi_da}. Máy không chạy thì ô của nó không áp dụng.")]]
 
 for ma, ten, oprp, ghi in muc.BUOC:
     nhan = f"{ma}. {ten}" if ma not in ("A", "B", "C") else f"{ma} — {ten}"
@@ -76,7 +92,7 @@ for ma, ten, oprp, ghi in muc.BUOC:
                     collapsible=1))
     for m in [x for x in muc.MUC if x["buoc"] == ma]:
         extra = KIEU[m["kieu"]](m)
-        if m["kieu"] == "nguyen" and m["f"] in KHONG_MAC_DINH_0:
+        if m["kieu"] == "nguyen" and m["goc"] in KHONG_MAC_DINH_0:
             extra.pop("default", None)
         mo_ta = " · ".join(x for x in (m["goi_y"],
                                        "QC đóng gói ghi" if m["goi"] else "") if x)

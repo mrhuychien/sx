@@ -41,47 +41,60 @@ def phat_hien(doc):
     Hàm THUẦN: không đọc DB ngoài ngưỡng, không ghi gì. Test gọi thẳng nó.
     """
     ng = nguong()
-    co_bot = cint(doc.get("co_san_xuat_bot"))
     luot = doc.get("luot")
     ra = []
 
-    for m in M.muc_ap_dung(luot, co_bot):
+    for m in M.muc_ap_dung(luot, doc):
         v = doc.get(m["f"])
+        goc = m["goc"]            # ô máy 2/3 theo đúng luật của ô gốc (D100)
+        may = M.ten_may(m) if M.boi_canh(doc)["may"].get(m.get("may"), 1) > 1 else ""
 
         if m["kieu"] == "chon" and v == M.KHONG_DAT:
             ra.append((m["f"], m["cd"], _loai(m), THUONG,
-                       _("Mục {0} {1}: Không đạt").format(m["so"], m["nhan"])))
+                       _("Mục {0} {1}: Không đạt").format(
+                           m["so"], m["nhan"] + (may if m["may_so"] == 1 else ""))))
 
-        elif m["f"] == "b7_chuyen_doi" and v == M.B7_DUONG:
+        elif goc == "b7_chuyen_doi" and v == M.B7_DUONG:
             # Dị ứng là thứ đưa người vào viện, không phải thứ ghi nhận rồi thôi.
             ra.append((m["f"], m["cd"], "Dị ứng", CAO,
                        _("B7 Chuyển đổi: thử nhanh lạc DƯƠNG TÍNH — dừng dây "
                          "chuyền, cô lập lô, vệ sinh lại trước khi chạy tiếp")))
 
-        elif m["f"] == "nam_cham_mat_kim_loai" and cint(v):
+        elif goc == "nam_cham_mat_kim_loai" and cint(v):
             ra.append((m["f"], m["cd"], "oPRP", CAO,
                        _("Nam châm bắt được mạt kim loại{0}").format(
                            _(" (vật: {0})").format(doc.get("nam_cham_vat"))
                            if doc.get("nam_cham_vat") else "")))
 
-        elif m["f"] == "rang_nhiet_do" and M.co_ghi(m, v):
+        elif goc == "rang_nhiet_do" and M.co_ghi(m, v):
             if flt(v) < ng["rang_nhiet_min"]:
                 ra.append((m["f"], m["cd"], "oPRP", CAO,
-                           _("Rang: nhiệt độ {0} °C < {1} °C").format(
-                               int(flt(v)), ng["rang_nhiet_min"])))
+                           _("Rang{0}: nhiệt độ {1} °C < {2} °C").format(
+                               may, int(flt(v)), ng["rang_nhiet_min"])))
 
-        elif m["f"] == "rang_vong_quay" and M.co_ghi(m, v):
+        elif goc == "rang_vong_quay" and M.co_ghi(m, v):
             if not (ng["vong_quay_min"] <= flt(v) <= ng["vong_quay_max"]):
                 ra.append((m["f"], m["cd"], "oPRP", THUONG,
-                           _("Rang: vòng quay {0} ngoài khoảng {1}–{2}").format(
-                               flt(v, 1), ng["vong_quay_min"], ng["vong_quay_max"])))
+                           _("Rang{0}: vòng quay {1} ngoài khoảng {2}–{3}").format(
+                               may, flt(v, 1), ng["vong_quay_min"], ng["vong_quay_max"])))
 
-        elif m["f"] == "thung_bot_qua_han":
+        elif goc == "b8_nhiet_han" and M.co_ghi(m, v):
+            # Khoảng chờ thẩm định như rang lạc: chưa đặt đầu nào thì đầu đó không
+            # sinh sự cố. Hàn nguội → hở túi; hàn nóng → cháy màng, cũng hở.
+            lo, hi = ng["han_nhiet_min"], ng["han_nhiet_max"]
+            if (lo is not None and flt(v) < lo) or (hi is not None and flt(v) > hi):
+                ra.append((m["f"], m["cd"], "Khác", THUONG,
+                           _("Máy đóng gói bột{0}: nhiệt độ hàn {1} °C ngoài khoảng "
+                             "{2}–{3}").format(may, int(flt(v)),
+                                               "…" if lo is None else lo,
+                                               "…" if hi is None else hi)))
+
+        elif goc == "thung_bot_qua_han":
             if cint(v) > ng["thung_bot_max"]:
                 ra.append((m["f"], m["cd"], "oPRP", THUONG,
                            _("Kho bột: {0} thùng quá 2 ngày / hở nắp").format(cint(v))))
 
-        elif m["f"] in ("b2_rang_lac_nhiet", "b2_rang_lac_phut") and M.co_ghi(m, v):
+        elif goc in ("b2_rang_lac_nhiet", "b2_rang_lac_phut") and M.co_ghi(m, v):
             # Ngưỡng chờ thẩm định: chưa đặt thì CHỈ GHI SỐ. Bịa ngưỡng ra để
             # "có cho đủ" là sinh báo động giả suốt ngày rồi không ai đọc nữa.
             key = ("rang_lac_nhiet_min" if m["f"].endswith("nhiet")
@@ -101,10 +114,15 @@ def canh_bao(doc):
     """
     ng = nguong()
     ra = []
-    v = doc.get("rang_nhiet_do")
-    if M.co_ghi(M.THEO_F["rang_nhiet_do"], v) and flt(v) > ng["rang_nhiet_max_van_hanh"]:
-        ra.append(_("Rang: {0} °C vượt trần vận hành {1} °C — báo tổ trưởng").format(
-            int(flt(v)), ng["rang_nhiet_max_van_hanh"]))
+    nhieu = M.boi_canh(doc)["may"]["rang"] > 1
+    for m in M.muc_ap_dung(doc.get("luot"), doc):
+        if m["goc"] != "rang_nhiet_do":
+            continue
+        v = doc.get(m["f"])
+        if M.co_ghi(m, v) and flt(v) > ng["rang_nhiet_max_van_hanh"]:
+            ra.append(_("Rang{0}: {1} °C vượt trần vận hành {2} °C — báo tổ trưởng")
+                      .format(M.ten_may(m) if nhieu else "", int(flt(v)),
+                              ng["rang_nhiet_max_van_hanh"]))
     if cint(doc.get("t2_so_bay_dau_hieu")) > 0:
         ra.append(_("Lượt tuần: {0} trạm bẫy có dấu hiệu — theo dõi tuần sau").format(
             cint(doc.get("t2_so_bay_dau_hieu"))))

@@ -113,6 +113,35 @@ không bị xoá — bật lại là thấy.
 Trước D98 cả hai đều hỏng mà không báo gì: nút ở màn Hôm nay chỉ đổi một biến trong
 trình duyệt (tải lại trang là về KHÔNG), và lượt đã mở thì không có chỗ nào bật bột.
 
+## Phần bột: vị, lạc, máy chạy song song, lưu mẫu (D100)
+
+**B0 — loại bột.** Bấm chọn trong danh mục (Item nhóm `BTP-Bot-SP` — đúng tab
+*Bột đậu* của card Báo mẻ), chọn được nhiều vị. Không cho gõ tay: gõ tay là ba cách
+viết cho một vị, và cờ lạc sẽ trượt. Tính vào "đã chấm" — bật bột mà không nói vị gì
+thì lô không truy được. Lượt mới trong ngày nhận lại vị + số máy của lượt trước.
+
+**Lạc theo vị.** B1 (lạc sạch), B2a/b/c (rang lạc) chỉ hiện khi lượt đó có làm vị có
+lạc. B7 (thử nhanh lạc sau chuyển đổi) hiện khi lượt đó **hoặc một lượt trước trong
+ngày** có làm — chuyển đổi xảy ra ở lượt sau. Vị nào có lạc: *SX QC Setting → Vị bột có
+lạc* (mỗi dòng một mã/tên; trống = Chè đậu đen cốt dừa). Hai cờ `co_lac` /
+`can_thu_lac` do **server** tính lúc lưu, máy QC không gửi lên được.
+
+**Máy chạy song song.** Máy rang đỗ ×3 (nhiệt độ, vòng quay), máy nghiền ×2 (độ mịn),
+máy đóng gói bột ×3 (**nhiệt độ hàn** B8 — mới, mối hàn, khối lượng). Máy 1 giữ
+fieldname cũ; máy 2/3 là `<field>_m2`, `<field>_m3`. Mặc định 1 máy; QC bấm
+**+ THÊM MÁY …** khi có thêm máy chạy, **Máy này nghỉ** để bớt. Máy không chạy thì
+ô của nó không áp dụng, không in, không đòi giải trình. Ô máy 2/3 theo đúng luật sự
+cố của ô gốc. Ngưỡng nhiệt độ hàn: *SX QC Setting* — **chưa đặt thì chỉ ghi số**,
+không bịa sự cố (như rang lạc).
+
+**Lưu mẫu** (`SX QC Luu Mau`, tab *Lưu mẫu*). QC chế biến / đóng gói lấy mẫu và xử
+lý; Ban ISO, QLSX xem. Hạn lưu mặc định = ngày lấy + *SX QC Setting → Lưu mẫu bao nhiêu
+ngày* (trống = 180 — **con số tạm, Ban ISO cần chốt**). Lấy mẫu ra (khiếu nại, kiểm
+nghiệm) và huỷ **trước hạn** bắt buộc lý do; hết hạn thì huỷ một bước.
+
+Phiếu trước D100: patch `d100_qc_may_va_lac` bật cờ lạc cho mọi phiếu có bột (phần
+lạc vẫn hiện như lúc ghi) và đặt số máy = 1.
+
 ## Nhắc lịch — hiện trên dashboard, KHÔNG gửi đi đâu
 
 `sx/qc/nhac.py` tính danh sách việc đang treo; hiện ở **ba chỗ, một bản duy nhất**:

@@ -166,7 +166,7 @@ thieu = [m["f"] for m in M.MUC if m["f"] not in field]
 kiem("mọi mục trong muc.py đều có field trong JSON", not thieu, ", ".join(thieu))
 
 KIEU_JSON = {"chon": "Select", "chon3": "Select", "so": "Float", "nguyen": "Int",
-             "chu": "Data", "co_khong": "Check", "gio": "Time"}
+             "chu": "Data", "co_khong": "Check", "gio": "Time", "chon_bot": "Small Text"}
 sai = [f'{m["f"]}: {field[m["f"]]["fieldtype"]} ≠ {KIEU_JSON[m["kieu"]]}'
        for m in M.MUC if m["f"] in field
        and field[m["f"]]["fieldtype"] != KIEU_JSON[m["kieu"]]]
@@ -261,7 +261,8 @@ kiem("có vật bắt được nhưng KHÔNG phải mạt kim loại → chỉ c
      not pt(nam_cham_vat="mảnh nhựa")
      and SC.canh_bao(luot(nam_cham_vat="mảnh nhựa")))
 
-bot = {"co_san_xuat_bot": 1, "luot": M.TRUA}
+# D100: mục lạc chỉ áp dụng khi lượt có làm vị có lạc (co_lac do server tính).
+bot = {"co_san_xuat_bot": 1, "co_lac": 1, "luot": M.TRUA}
 kiem("B7 Dương tính → sự cố Dị ứng mức CAO",
      [(l, m) for _f, _c, l, m, _t in pt(b7_chuyen_doi="Dương tính", **bot)]
      == [("Dị ứng", "Cao")])
@@ -511,7 +512,7 @@ kiem("mục áp dụng mà CHƯA kiểm để trống — đây mới là thứ 
 kiem("mục đã chấm ghi đúng giá trị", cot["2 Sôi liên tục, đỗ chín nổi"] == "Đạt")
 kiem("số đo ghi đúng", cot["3a Nhiệt độ rang"] == "260")
 
-r_tuan = luot(luot=M.TUAN, name="QC-0003", co_san_xuat_bot=1)
+r_tuan = luot(luot=M.TUAN, name="QC-0003", co_san_xuat_bot=1, co_lac=1)
 h2 = dict(zip(td, X.dong_luot(r_tuan, _in, frappe.utils.cint)))
 kiem("lượt Tuần thì phần C áp dụng (không còn n/a)",
      h2["T1 Bể nước sạch, có nắp"] == "")

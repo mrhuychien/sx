@@ -46,6 +46,14 @@ GHI_DUOC = {QC, QC_GOI}
 
 SO_NGAY_MAC_DINH = 30      # cửa sổ mặc định cho list / dashboard
 
+# Nhóm hàng của các vị BỘT — đúng danh mục tab "Bột đậu" ở card Báo mẻ (D100).
+# Đọc thẳng field custom_sx_nhom trên Item bằng frappe, không import sx.utils:
+# module qc vẫn bê đi được, chỉ mang theo một hằng số.
+NHOM_BOT = "BTP-Bot-SP"
+
+# Mục ghi được qua save_round dù không phải mục kiểm (không nằm trong ma trận).
+TRUONG_PHU = ("ghi_chu", "co_san_xuat_bot") + tuple(t[2] for t in M.NHOM_MAY.values())
+
 
 def _roles():
     return set(frappe.get_roles())
@@ -166,6 +174,9 @@ def get_today(ngay=None):
             1 for s in mo if getdate(nowdate()) > add_days(getdate(s["ngay"]), han)),
         "ma_tran": M.ma_tran(co_bot),
         "muc": M.MUC,
+        "loai_bot": _loai_bot(),
+        "nhom_may": {n: {"ten": t[0], "toi_da": t[1], "truong": t[2]}
+                     for n, t in M.NHOM_MAY.items()},
         "buoc": [{"ma": a, "ten": b, "oprp": c, "ghi": e} for a, b, c, e in M.BUOC],
         "nguong": {k: v for k, v in nguong().items() if k != "khung"},
         # Khung giờ hiện ngay trên thẻ lượt: QC biết mình còn bao lâu trước khi
@@ -207,15 +218,51 @@ def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ca=None):
         co_san_xuat_bot = M.co_bot_ngay(_co_bot_ban_ghi(d), frappe.get_all(
             "SX QC Round", filters={"ngay": d, "docstatus": ("<", 2)},
             fields=["co_san_xuat_bot"]))
-    doc = frappe.get_doc({
+    moi = {
         "doctype": "SX QC Round",
         "ngay": d, "luot": luot,
         "co_san_xuat_bot": cint(co_san_xuat_bot),
         "nhap_lai_tu_giay": cint(nhap_lai_tu_giay),
         "qc_user": frappe.session.user,
-    })
+    }
+    truoc = _luot_truoc_cung_ngay(d, luot)
+    if truoc:
+        for _n, (_t, _max, truong) in M.NHOM_MAY.items():
+            moi[truong] = truoc.get(truong) or 1
+        if cint(co_san_xuat_bot) and truoc.get("san_pham_bot"):
+            moi["san_pham_bot"] = truoc.san_pham_bot
+    doc = frappe.get_doc(moi)
     doc.insert()
     return chi_tiet_round(doc.name)
+
+
+def _loai_bot():
+    """Các vị bột để bấm chọn ở B0 — [{item, ten, lac}]. Rỗng nếu site chưa có
+    field custom_sx_nhom (module qc cài riêng): khi đó ô B0 cho gõ tay."""
+    try:
+        if not frappe.get_meta("Item").has_field("custom_sx_nhom"):
+            return []
+        ds = frappe.get_all("Item", filters={"custom_sx_nhom": NHOM_BOT, "disabled": 0},
+                            fields=["name", "item_name"], order_by="item_name")
+    except Exception:
+        return []
+    lac = nguong()["bot_co_lac"]
+    return [{"item": x.name, "ten": x.item_name or x.name,
+             "lac": M.co_lac_trong([x.name], {x.name: x.item_name}, lac)} for x in ds]
+
+
+def _luot_truoc_cung_ngay(d, luot):
+    """Lượt gần nhất TRƯỚC `luot` trong ngày — để lượt mới nhận lại vị bột và số
+    máy đang chạy. Dây chuyền không đổi máy mỗi lượt; bắt QC chọn lại từ đầu mỗi
+    lượt là mời họ bỏ qua cho nhanh."""
+    t = M.thu_tu_luot(luot)
+    ds = [r for r in frappe.get_all(
+        "SX QC Round", filters={"ngay": d, "docstatus": ("<", 2)},
+        fields=["name", "luot", "creation", "san_pham_bot"]
+        + [x[2] for x in M.NHOM_MAY.values()])
+        if M.thu_tu_luot(r.luot) < t]
+    ds.sort(key=lambda r: (M.thu_tu_luot(r.luot), str(r.creation or "")))
+    return ds[-1] if ds else None
 
 
 def _co_bot_ban_ghi(d):
@@ -320,8 +367,11 @@ def chi_tiet_round(name):
     _guard_qc()
     doc = frappe.get_doc("SX QC Round", name)
     co_bot = cint(doc.co_san_xuat_bot)
-    ap = [m["f"] for m in M.muc_ap_dung(doc.luot, co_bot)]
+    ap = [m["f"] for m in M.muc_ap_dung(doc.luot, doc)]
     return {
+        "so_may": M.boi_canh(doc)["may"],
+        "co_lac": cint(doc.get("co_lac")),
+        "can_thu_lac": cint(doc.get("can_thu_lac")),
         "name": doc.name,
         "ngay": str(doc.ngay), "luot": doc.luot, "ca": doc.ca or "",
         "co_san_xuat_bot": co_bot,
@@ -380,12 +430,12 @@ def save_round(name, values, client_ts=None):
         frappe.throw(_("Dữ liệu gửi lên không đúng định dạng."))
 
     ts = get_datetime(client_ts) if client_ts else now_datetime()
-    ap = {m["f"] for m in M.muc_ap_dung(doc.luot, cint(doc.co_san_xuat_bot))}
+    ap = {m["f"] for m in M.muc_ap_dung(doc.luot, doc)}
     da_ghi, bo_qua = [], []
     for f, v in values.items():
-        if f in ("ghi_chu", "co_san_xuat_bot"):
-            # Hai ô này không phải mục kiểm nên không nằm trong ma trận, nhưng
-            # vẫn phải ghi được: bật "hôm nay có bột" giữa lượt là chuyện thật.
+        if f in TRUONG_PHU:
+            # Không phải mục kiểm nên không nằm trong ma trận, nhưng vẫn phải ghi
+            # được: bật bột / thêm máy giữa lượt là chuyện thật.
             pass
         elif f not in ap:
             # Mục không thuộc lượt này: bỏ, đừng ghi lén vào ô không ai xem.
@@ -406,7 +456,10 @@ def save_round(name, values, client_ts=None):
             and not doc.qc_goi_user):
         doc.qc_goi_user = frappe.session.user
     doc.save()
+    # Đổi vị bột / số máy làm bộ mục áp dụng thay đổi → máy QC phải vẽ lại.
+    ap_moi = {m["f"] for m in M.muc_ap_dung(doc.luot, doc)}
     return {"name": doc.name, "da_ghi": da_ghi, "bo_qua": bo_qua,
+            "doi_muc": ap_moi != ap,
             "da_cham": cint(doc.so_muc_da_cham),
             "phai_cham": cint(doc.so_muc_ap_dung),
             "luc": str(now_datetime())}
@@ -717,26 +770,38 @@ def _to_ngay(ngay, kem_style=True):
     rounds = sorted((frappe.get_doc("SX QC Round", n) for n in ds), key=_thu_tu_luot)
     co_bot = 1 if any(cint(r.co_san_xuat_bot) for r in rounds) else 0
 
-    cot = [{"doc": r, "ap": {m["f"] for m in M.muc_ap_dung(
-        r.luot, cint(r.co_san_xuat_bot))}} for r in rounds]
+    cot = [{"doc": r, "ap": {m["f"] for m in M.muc_ap_dung(r.luot, r)}} for r in rounds]
+    co_mat = set().union(*[c["ap"] for c in cot]) if cot else set()
+    nhieu_may = {n for n in M.NHOM_MAY
+                 if any(M.boi_canh(r)["may"][n] > 1 for r in rounds)}
     hang = []
     for ma, ten, oprp, _ghi in M.BUOC:
+        # Dòng in ra: mục dây chuyền bánh luôn in (tờ giống bản giấy), còn máy
+        # 2/3, phần bột, phần lạc chỉ in khi có lượt nào trong ngày áp dụng —
+        # in sẵn ba máy trống thì auditor tưởng ba máy chạy mà không ai kiểm.
         muc_buoc = [m for m in M.MUC if m["buoc"] == ma
-                    and (not m["bot"] or co_bot)]
+                    and (m["f"] in co_mat
+                         or (not m["bot"] and not m.get("lac") and m["may_so"] <= 1))]
         if not muc_buoc:
             continue
         hang.append({"buoc": True, "ten": f"{ma}. {ten}"
                      + (f" ({oprp})" if oprp else "")})
         for m in muc_buoc:
+            nhan = m["nhan"]
+            if m["may_so"] == 1 and m["may"] in nhieu_may:
+                nhan += " — máy 1"
             hang.append({
-                "buoc": False, "so": m["so"], "nhan": m["nhan"],
+                "buoc": False, "so": m["so"], "nhan": nhan,
                 "o": [("" if m["f"] not in c["ap"]
                        else _in_gia_tri(m, c["doc"].get(m["f"])))
                       for c in cot],
                 "khong_ap": [m["f"] not in c["ap"] for c in cot],
             })
+    loai_bot = [(r.luot, ", ".join(M.tach_chon(r.get("san_pham_bot"))))
+                for r in rounds if cint(r.co_san_xuat_bot) and r.get("san_pham_bot")]
     return frappe.render_template("sx/qc/day_sheet.html", {
         "ngay": d, "rounds": rounds, "hang": hang, "co_bot": co_bot,
+        "loai_bot": loai_bot,
         "kem_style": kem_style,
         "su_co": frappe.get_all(
             "SX Su Co", filters={"ngay": d}, order_by="creation",
@@ -765,8 +830,15 @@ def export_csv(tu=None, den=None, loai="luot"):
                         pluck="name", order_by="ngay, creation")
     return xuat.thanh_csv(
         xuat.tieu_de_luot(),
-        [xuat.dong_luot(frappe.get_doc("SX QC Round", n), _in_gia_tri, cint)
+        [xuat.dong_luot(frappe.get_doc("SX QC Round", n), _in_csv, cint)
          for n in ds])
+
+
+def _in_csv(m, v):
+    """CSV có chỗ: in đủ tên các vị thay cho "2 vị" của tờ A4."""
+    if m["kieu"] == "chon_bot":
+        return "; ".join(M.tach_chon(v)) or "—"
+    return _in_gia_tri(m, v)
 
 
 def _in_gia_tri(m, v):
@@ -776,6 +848,135 @@ def _in_gia_tri(m, v):
         return "—"
     if m["kieu"] == "chon":
         return "Đ" if v == M.DAT else ("K" if v == M.KHONG_DAT else "—")
+    if m["kieu"] == "chon_bot":
+        # Ô trên tờ A4 chỉ rộng 34 px — in số vị, tên đầy đủ in ở dòng dưới bảng.
+        n = len(M.tach_chon(v))
+        return f"{n} vị" if n else "—"
     if m["kieu"] in M.KIEU_SO and not M.co_ghi(m, v):
         return "—"
     return str(v)
+
+
+# ──────────────────────────────────────────────────────────── lưu mẫu (D100) ──
+#
+# Tab "Lưu mẫu": QC chế biến / đóng gói lấy mẫu và xử lý mẫu; QLSX, Ban ISO xem.
+# Người đọc được = người vào được module QC — tủ mẫu không có gì bí mật, còn
+# khi có khiếu nại thì ai cũng cần tra ra "mẫu lô này còn không, nằm ở đâu".
+
+LM = "SX QC Luu Mau"
+
+
+def _han_mac_dinh(ngay_lay):
+    return add_days(getdate(ngay_lay), cint(nguong()["luu_mau_so_ngay"]))
+
+
+@frappe.whitelist()
+def list_luu_mau(q=None, trang_thai="Đang lưu", limit=200):
+    """Mẫu theo trạng thái (mặc định đang lưu), mẫu đến hạn huỷ lên đầu.
+
+    Kèm gợi ý cho form lấy mẫu: sản phẩm và vị trí dùng gần đây — lấy mẫu là việc
+    lặp lại hằng ngày với cùng vài sản phẩm, cùng vài ngăn tủ.
+    """
+    _guard_qc()
+    loc = {}
+    if trang_thai:
+        loc["trang_thai"] = trang_thai
+    or_loc = None
+    if q:
+        k = f"%{q.strip()}%"
+        or_loc = {"ten_san_pham": ("like", k), "san_pham": ("like", k),
+                  "lo": ("like", k), "vi_tri": ("like", k)}
+    ds = frappe.get_all(
+        LM, filters=loc, or_filters=or_loc,
+        fields=["name", "san_pham", "ten_san_pham", "lo", "so_luong", "dvt",
+                "ngay_lay", "han_luu", "vi_tri", "trang_thai", "lay_boi", "ly_do",
+                "xu_ly_boi", "xu_ly_luc"],
+        order_by="han_luu asc, ngay_lay desc", limit=cint(limit) or 200)
+    hom_nay = getdate(nowdate())
+    for x in ds:
+        x["den_han"] = x.trang_thai == "Đang lưu" and getdate(x.han_luu) <= hom_nay
+        x["con_ngay"] = (getdate(x.han_luu) - hom_nay).days
+        for k in ("ngay_lay", "han_luu", "xu_ly_luc"):
+            x[k] = str(x[k]) if x.get(k) else ""
+    # Không cần sắp lại: đến hạn ⇔ han_luu ≤ hôm nay, nên han_luu tăng dần đã đưa
+    # mẫu đến hạn lên đầu.
+
+    gan_day = frappe.get_all(LM, fields=["san_pham", "ten_san_pham", "vi_tri", "dvt"],
+                             order_by="creation desc", limit=60)
+    sp, vt = {}, []
+    for x in gan_day:
+        if x.san_pham and x.san_pham not in sp:
+            sp[x.san_pham] = {"item": x.san_pham, "ten": x.ten_san_pham or x.san_pham,
+                              "dvt": x.dvt or ""}
+        if x.vi_tri and x.vi_tri not in vt:
+            vt.append(x.vi_tri)
+    return {
+        "danh_sach": ds,
+        "so_den_han": frappe.db.count(LM, {"trang_thai": "Đang lưu",
+                                           "han_luu": ("<=", hom_nay)}),
+        "goi_y_sp": list(sp.values())[:8],
+        "goi_y_vi_tri": vt[:8],
+        "so_ngay_luu": cint(nguong()["luu_mau_so_ngay"]),
+        "han_mac_dinh": str(_han_mac_dinh(hom_nay)),
+        "duoc_ghi": bool(_sieu() or _roles() & GHI_DUOC),
+    }
+
+
+@frappe.whitelist()
+def tim_hang(q):
+    """Tìm sản phẩm theo mã / tên — cho ô chọn sản phẩm của form lấy mẫu."""
+    _guard_qc()
+    q = (q or "").strip()
+    if len(q) < 2:
+        return []
+    k = f"%{q}%"
+    return [{"item": x.name, "ten": x.item_name or x.name, "dvt": x.stock_uom or ""}
+            for x in frappe.get_all(
+                "Item", filters={"disabled": 0, "has_variants": 0},
+                or_filters={"name": ("like", k), "item_name": ("like", k)},
+                fields=["name", "item_name", "stock_uom"],
+                order_by="item_name", limit=20)]
+
+
+@frappe.whitelist()
+def tao_luu_mau(payload):
+    """Ghi một lần lấy mẫu. Hạn lưu bỏ trống = ngày lấy + số ngày ở SX QC Setting."""
+    _guard_ghi()
+    p = json.loads(payload) if isinstance(payload, str) else dict(payload or {})
+    ngay_lay = getdate(p.get("ngay_lay") or nowdate())
+    doc = frappe.get_doc({
+        "doctype": LM,
+        "san_pham": p.get("san_pham"),
+        "lo": (p.get("lo") or "").strip(),
+        "so_luong": flt(p.get("so_luong")),
+        "dvt": (p.get("dvt") or "").strip() or "hộp",
+        "vi_tri": (p.get("vi_tri") or "").strip(),
+        "ngay_lay": ngay_lay,
+        "han_luu": getdate(p.get("han_luu")) if p.get("han_luu") else _han_mac_dinh(ngay_lay),
+        "ghi_chu": (p.get("ghi_chu") or "").strip(),
+        "trang_thai": "Đang lưu",
+        "lay_boi": frappe.session.user,
+    })
+    if not doc.san_pham:
+        frappe.throw(_("Chưa chọn sản phẩm."))
+    doc.insert()
+    return {"name": doc.name, "han_luu": str(doc.han_luu)}
+
+
+@frappe.whitelist()
+def xu_ly_luu_mau(name, hanh_dong, ly_do=None):
+    """Kết thúc lưu một mẫu: `hanh_dong` = 'huy' (hết hạn / huỷ sớm có lý do) hoặc
+    'lay_ra' (dùng cho khiếu nại / kiểm nghiệm — bắt buộc lý do)."""
+    _guard_ghi()
+    moi = {"huy": "Đã huỷ", "lay_ra": "Đã lấy ra"}.get(hanh_dong)
+    if not moi:
+        frappe.throw(_("Thao tác không hợp lệ: {0}").format(hanh_dong))
+    doc = frappe.get_doc(LM, name)
+    if doc.trang_thai != "Đang lưu":
+        frappe.throw(_("Mẫu {0} đã ở trạng thái {1}.").format(name, doc.trang_thai))
+    doc.trang_thai = moi
+    doc.ly_do = (ly_do or "").strip() or doc.ly_do
+    doc.xu_ly_boi = frappe.session.user
+    doc.xu_ly_luc = now_datetime()
+    doc.save()            # validate chặn thiếu lý do — cùng luật cho cả Desk
+    return {"name": name, "trang_thai": moi}

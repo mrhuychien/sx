@@ -80,6 +80,10 @@
       {%- if r.ghi_chu %}<br>· {{ r.luot }}{% if r.ca %} ({{ r.ca }}){% endif %}: {{ r.ghi_chu }}{% endif %}
     {%- endfor %}
     {% if not rounds|selectattr("ghi_chu")|list %} (không có){% endif %}
+    {%- if loai_bot %}
+    <br>Loại bột (B0):
+    {%- for l, ten in loai_bot %}<br>· {{ l }}: {{ ten }}{% endfor %}
+    {%- endif %}
     <br><br>
     ✻ = ghi muộn. Cờ này do hệ thống đặt theo giờ ghi thật, không sửa được bằng tay.
     <br>

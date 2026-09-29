@@ -11,9 +11,9 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
-import { openModal } from '/assets/sx/sx/components/modal.js';
+import { confirm2Step, openModal } from '/assets/sx/sx/components/modal.js';
 import {
-  batTatBot, chip, hangChon, oCheck, oChon3, oChu, oGio, oSo, tieuDeBuoc,
+  batTatBot, chip, hangChon, oCheck, oChon3, oChonBot, oChu, oGio, oSo, tieuDeBuoc,
 } from '/assets/sx/sx/components/qcui.js';
 import { formatTime } from '/assets/sx/sx/lib/format.js';
 
@@ -100,12 +100,13 @@ export async function render({ container, call, tham_so }) {
   const nhanLuu = el('div', 'sx-qc-luu', 'chưa có thay đổi');
 
   async function gui() {
-    if (dangGui || !Object.keys(cho).length) return;
+    if (dangGui || !Object.keys(cho).length) return null;
     const values = { ...cho };
     Object.keys(cho).forEach((k) => delete cho[k]);
     dangGui = true;
+    let kq = null;
     try {
-      const kq = await call('sx.api.qc.save_round', {
+      kq = await call('sx.api.qc.save_round', {
         name: dl.name, values, client_ts: gioMay(),
       });
       if (kq && kq._hang_cho) {
@@ -131,7 +132,27 @@ export async function render({ container, call, tham_so }) {
       dangGui = false;
       if (Object.keys(cho).length) setTimeout(gui, 1500);
     }
+    return kq;
   }
+
+  // Đổi vị bột / số máy làm BỘ MỤC áp dụng đổi theo (D100) — ô lạc, ô máy 2/3
+  // hiện ra hoặc ẩn đi. Server là chỗ tính bộ mục, nên gửi ngay rồi vẽ lại cả
+  // lượt, không đoán ở máy QC. Mất mạng thì chưa vẽ lại được: nói ra.
+  async function doiVaVeLai(f, v) {
+    giaTri[f] = v;
+    cho[f] = v;
+    if (hen) clearTimeout(hen);
+    while (dangGui) await new Promise((r) => { setTimeout(r, 100); });
+    const kq = await gui();
+    if (kq && kq._hang_cho) {
+      toastErr('Mất mạng — đã lưu trên máy; các ô mới sẽ hiện khi có mạng.');
+      return;
+    }
+    if (kq) render({ container, call, tham_so });
+  }
+
+  const laLac = (v) => String(v || '').split('\n')
+    .some((c) => (hom.loai_bot || []).some((x) => x.item === c.trim() && x.lac));
 
   function onSet(f, v) {
     giaTri[f] = v;
@@ -178,14 +199,73 @@ export async function render({ container, call, tham_so }) {
   const than = el('div');
   container.appendChild(than);
   const demBuoc = {};
+  const soMay = dl.so_may || {};
+  const onSetMuc = (f, v) => {
+    // Chọn / bỏ một vị có lạc làm B1, B2, B7 hiện ra hay ẩn đi → vẽ lại.
+    if (f === 'san_pham_bot' && laLac(v) !== laLac(giaTri[f])) {
+      doiVaVeLai(f, v);
+      return;
+    }
+    onSet(f, v);
+  };
   hom.buoc.forEach((b) => {
     const cua = muc.filter((m) => m.buoc === b.ma);
     if (!cua.length) return;
     const tieu = tieuDeBuoc(b, 0, cua.filter((m) => !m.phu).length);
     demBuoc[b.ma] = { node: tieu.querySelector('.sx-qc-buoc-dem'), muc: cua };
     than.appendChild(tieu);
-    cua.forEach((m) => than.appendChild(veMuc(m, giaTri[m.f], onSet, hom.nguong, khoa)));
+    cua.forEach((m, i) => {
+      const truoc = cua[i - 1];
+      const sau = cua[i + 1];
+      if (m.may && !(truoc && truoc.may === m.may && truoc.may_so === m.may_so)) {
+        than.appendChild(dauMay(m));
+      }
+      than.appendChild(veMuc(m, giaTri[m.f], onSetMuc, hom, khoa));
+      if (m.may && !(sau && sau.may === m.may)) {
+        const n = nutThemMay(m.may);
+        if (n) than.appendChild(n);
+      }
+    });
   });
+
+  // ── máy chạy song song (D100) ───────────────────────────────────────
+  function dauMay(m) {
+    const nm = (hom.nhom_may || {})[m.may] || { ten: 'Máy', toi_da: 1 };
+    const h = el('div', 'sx-qc-may');
+    h.appendChild(el('span', 'sx-qc-may-ten', `${esc(nm.ten)} ${m.may_so}`));
+    const dang = soMay[m.may] || 1;
+    if (!khoa && m.may_so > 1 && m.may_so === dang) {
+      const bot = el('button', 'sx-btn sx-btn-ghost', 'Máy này nghỉ');
+      bot.type = 'button';
+      bot.addEventListener('click', () => {
+        const oMay = muc.filter((x) => x.may === m.may && x.may_so === m.may_so);
+        const daGhi = oMay.filter((x) => daCham(x, giaTri[x.f]));
+        const bo = () => doiVaVeLai(nm.truong, dang - 1);
+        if (!daGhi.length) { bo(); return; }
+        confirm2Step({
+          title: `${nm.ten} ${m.may_so} nghỉ?`,
+          message: `Đã ghi ${daGhi.length} ô của máy này. Các ô đó sẽ ẩn khỏi lượt, `
+            + 'khỏi tờ in và không sinh sự cố (giá trị vẫn giữ trong hồ sơ).',
+          confirmLabel: 'MÁY NÀY NGHỈ',
+          onConfirm: bo,
+        });
+      });
+      h.appendChild(bot);
+    }
+    return h;
+  }
+
+  function nutThemMay(nhom) {
+    const nm = (hom.nhom_may || {})[nhom];
+    const dang = soMay[nhom] || 1;
+    if (khoa || !nm || dang >= nm.toi_da) return null;
+    const b = el('button', 'sx-btn sx-btn-ghost sx-qc-may-them',
+      `+ THÊM ${esc(nm.ten.toUpperCase())} ${dang + 1}`);
+    b.type = 'button';
+    b.title = `Có ${dang + 1} máy đang chạy — thêm ô ghi cho máy ${dang + 1}`;
+    b.addEventListener('click', () => { b.disabled = true; doiVaVeLai(nm.truong, dang + 1); });
+    return b;
+  }
 
   // ── ghi chú ─────────────────────────────────────────────────────────
   than.appendChild(el('div', 'sx-qc-buoc',
@@ -271,7 +351,9 @@ export async function render({ container, call, tham_so }) {
   }
 }
 
-function veMuc(m, v, onSet, ng, khoa) {
+function veMuc(m, v, onSet, hom, khoa) {
+  const ng = hom.nguong;
+  if (m.kieu === 'chon_bot') return oChonBot(m, v, onSet, hom.loai_bot, khoa);
   if (m.kieu === 'so' || m.kieu === 'nguyen') return oSo(m, v, onSet, ng, khoa);
   if (m.kieu === 'chu') return oChu(m, v, onSet, khoa);
   if (m.kieu === 'gio') return oGio(m, v, onSet, khoa);

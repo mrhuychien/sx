@@ -38,6 +38,11 @@ export function trangThaiSo(f, v, ng) {
   if (f === 'b2_rang_lac_phut') {
     return (g.rang_lac_phut_min && n < g.rang_lac_phut_min) ? 'loi' : '';
   }
+  if (f === 'b8_nhiet_han') {
+    if (n === 0) return '';
+    return ((g.han_nhiet_min && n < g.han_nhiet_min)
+      || (g.han_nhiet_max && n > g.han_nhiet_max)) ? 'loi' : '';
+  }
   return '';
 }
 
@@ -128,6 +133,11 @@ function goiYNgan(f, v, ng) {
   if (f === 'b2_rang_lac_phut') {
     return g.rang_lac_phut_min ? `≥ ${g.rang_lac_phut_min} phút` : 'chưa có ngưỡng';
   }
+  if (f === 'b8_nhiet_han') {
+    if (!g.han_nhiet_min && !g.han_nhiet_max) return 'chưa có ngưỡng';
+    const kh = `${g.han_nhiet_min ?? '…'}–${g.han_nhiet_max ?? '…'} °C`;
+    return tt === 'loi' ? `✕ ngoài ${kh}` : kh;
+  }
   return '';
 }
 
@@ -144,6 +154,8 @@ function goiYNgan(f, v, ng) {
  */
 export function oSo(m, giaTri, onSet, ng, khoa) {
   const dem = m.f === 'thung_bot_qua_han' || m.f === 't2_so_bay_dau_hieu';
+  // Ô máy 2/3 dùng NGƯỠNG của ô gốc (rang_nhiet_do_m2 → rang_nhiet_do). D100.
+  const goc = m.goc || m.f;
   const thap = m.kieu === 'so';
   const wrap = el('div', 'sx-qc-oso');
   wrap.dataset.f = m.f;
@@ -165,10 +177,10 @@ export function oSo(m, giaTri, onSet, ng, khoa) {
       + (m.dv ? `<span class="sx-qc-oso-dv">${esc(m.dv)}</span>` : '');
     box.setAttribute('aria-label',
       `${m.so} ${m.ngan || m.nhan}: ${v === '' ? 'chưa ghi' : v} ${m.dv || ''}`.trim());
-    const tt = trangThaiSo(m.f, v, ng);
+    const tt = trangThaiSo(goc, v, ng);
     wrap.classList.toggle('sx-qc-oso-loi', tt === 'loi');
     wrap.classList.toggle('sx-qc-oso-canh', tt === 'canh');
-    goiy.textContent = tt ? loiSo(m.f, v, ng) : (m.goi_y || '');
+    goiy.textContent = tt ? loiSo(goc, v, ng) : (m.goi_y || '');
   };
 
   const dat = (moi) => {
@@ -185,7 +197,7 @@ export function oSo(m, giaTri, onSet, ng, khoa) {
     unitLabel: m.dv || 'SỐ',
     // Ngưỡng hiện NGAY CẠNH con số đang gõ: thấy 248 đỏ lúc còn đứng ở máy thì
     // còn kịp đi xem lại, chứ không phải biết sau khi đã bấm Hoàn tất lượt.
-    hint: (n) => goiYNgan(m.f, n, ng),
+    hint: (n) => goiYNgan(goc, n, ng),
     onOk: (n) => dat(thap ? String(n) : String(Math.round(n))),
   }));
 
@@ -283,6 +295,48 @@ export function segment(lua, dang, onSet, khoa, boDuoc = false) {
     box.appendChild(b);
   });
   return box;
+}
+
+/** B0 — chọn loại bột: bấm chip, chọn được nhiều vị (D100).
+ *
+ *  Danh mục lấy đúng tab "Bột đậu" của card Báo mẻ, không cho gõ tay: gõ tay
+ *  thì "Sữa dừa", "sua dua", "Bột SD" là ba vị khác nhau với máy, và cờ lạc
+ *  (quyết định có hiện B1/B2/B7 không) sẽ trượt đúng lúc cần nó nhất.
+ *  Vị đã lưu mà không còn trong danh mục (hàng ngừng dùng) vẫn hiện để bỏ chọn.
+ *  Danh mục rỗng (module QC cài ở nơi không có báo mẻ) → rơi về ô chữ. */
+export function oChonBot(m, giaTri, onSet, dsBot, khoa) {
+  if (!dsBot || !dsBot.length) return oChu(m, giaTri, onSet, khoa);
+  const wrap = el('div', 'sx-qc-oso');
+  wrap.dataset.f = m.f;
+  wrap.appendChild(el('div', 'sx-qc-nhan', nhan(m, false)));
+  const chon = new Set(String(giaTri || '').split('\n').map((x) => x.trim()).filter(Boolean));
+  const ds = [...dsBot];
+  chon.forEach((c) => { if (!ds.some((x) => x.item === c)) ds.push({ item: c, ten: c, lac: 0 }); });
+  const box = el('div', 'sx-qc-vi');
+  const ve = () => {
+    box.innerHTML = '';
+    ds.forEach((x) => {
+      const b = el('button', `sx-qc-vi-o${chon.has(x.item) ? ' sx-qc-vi-on' : ''}`);
+      b.type = 'button';
+      b.disabled = !!khoa;
+      b.setAttribute('aria-pressed', chon.has(x.item) ? 'true' : 'false');
+      b.innerHTML = `${chon.has(x.item) ? '✓ ' : ''}${esc(x.ten)}`
+        + (x.lac ? ' <span class="sx-qc-vi-lac">có lạc</span>' : '');
+      b.addEventListener('click', () => {
+        if (chon.has(x.item)) chon.delete(x.item); else chon.add(x.item);
+        ve();
+        // Giữ thứ tự danh mục, không theo thứ tự bấm: cùng một lựa chọn thì
+        // cùng một chuỗi, tờ in và CSV không nhảy thứ tự giữa các lượt.
+        onSet(m.f, ds.filter((y) => chon.has(y.item)).map((y) => y.item).join('\n'));
+      });
+      box.appendChild(b);
+    });
+  };
+  ve();
+  wrap.appendChild(box);
+  wrap.appendChild(el('div', 'sx-qc-goiy',
+    'Chọn vị <b>có lạc</b> thì mới hiện các mục về lạc (B1, B2, B7).'));
+  return wrap;
 }
 
 export function oChon3(m, giaTri, onSet, lua, khoa) {
