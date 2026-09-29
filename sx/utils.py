@@ -213,17 +213,59 @@ def _unique_suffix(goc, exists_fn):
     return ma
 
 
-def prefix_lo(item_code):
-    """Prefix mã lô của một Item: `custom_batch_prefix` nếu có, KHÔNG có thì chính
-    MÃ HÀNG (D102).
+PREFIX_TOI_DA = 10      # mã lô được chép tay ra thẻ — dài hơn là chép sai
 
-    Trước D102 thiếu prefix là chặn cứng — mã thành phẩm mới tạo mà quên điền là thủ
-    kho không duyệt được phiếu nhập. Điền tay cho từng mã thì mất công, còn mã hàng
-    thì lúc nào cũng có. Muốn mã lô ngắn hơn (để chép tay ra thẻ) thì vẫn điền
-    prefix như cũ — có prefix thì prefix thắng.
+
+def _khong_dau(s):
+    import unicodedata
+    s = str(s or "").replace("đ", "d").replace("Đ", "D")
+    return "".join(c for c in unicodedata.normalize("NFD", s)
+                   if unicodedata.category(c) != "Mn")
+
+
+def rut_gon_ma(ma):
+    """Mã hàng → prefix NGẮN để chép tay (D103). Hàm thuần.
+
+    Mã đã ngắn, không dấu, không khoảng trắng (TP-SEN, BDS) thì giữ nguyên. Còn lại:
+    bỏ dấu, lấy CHỮ ĐẦU mỗi từ và giữ nguyên cụm có SỐ (300g, 40g) vì đó thường là
+    thứ phân biệt hai quy cách của cùng một vị:
+        "Bánh đậu xanh sen 300g"  → BDXS300G
+        "Chè đậu đen cốt dừa"     → CDDCD
+        "Lạc"                     → LAC
+    """
+    import re
+    ma = str(ma or "").strip()
+    if ma and len(ma) <= PREFIX_TOI_DA and ma.isascii() and " " not in ma:
+        return ma
+    tu = [t for t in re.split(r"[^0-9A-Za-z]+", _khong_dau(ma).upper()) if t]
+    if not tu:
+        return ma[:PREFIX_TOI_DA]
+    if len(tu) == 1:
+        return tu[0][:PREFIX_TOI_DA]
+    ra = "".join(t if any(c.isdigit() for c in t) else t[0] for t in tu)
+    return ra[:PREFIX_TOI_DA]
+
+
+def prefix_lo(item_code):
+    """Prefix mã lô: `custom_batch_prefix` nếu có; không thì RÚT GỌN mã hàng và LƯU
+    lại vào Item (D102/D103).
+
+    Lưu lại vì hai lý do: lần sau ra cùng một prefix dù ai đổi quy tắc rút gọn, và
+    người dùng thấy nó trên Desk để sửa nếu muốn. Hai mã rút gọn trùng nhau
+    (Bột đậu sữa / Bánh đậu sen…) thì mã sau thêm số 2, 3 — hai mặt hàng chung một
+    đầu mã lô là tự gây nhầm lô.
     """
     prefix = (frappe.db.get_value("Item", item_code, "custom_batch_prefix") or "").strip()
-    return prefix or str(item_code or "").strip()
+    if prefix:
+        return prefix
+    goc = rut_gon_ma(item_code) or str(item_code)
+    prefix, n = goc, 1
+    while frappe.db.exists("Item", {"custom_batch_prefix": prefix, "name": ("!=", item_code)}):
+        n += 1
+        prefix = f"{goc[:PREFIX_TOI_DA - len(str(n))]}{n}"
+    frappe.db.set_value("Item", item_code, "custom_batch_prefix", prefix,
+                        update_modified=False)
+    return prefix
 
 
 def sinh_lo_rang(loai_dau, ngay_rang):
@@ -243,8 +285,8 @@ def sinh_lo_rang(loai_dau, ngay_rang):
     if not prefix:
         prefix = frappe.db.get_value("Item", loai_dau, "custom_batch_prefix")
     if not prefix:
-        # D102: không ai điền prefix thì dùng mã item bột nền (đúng ngữ nghĩa: batch
-        # bột nền là mã lô rang), không có bột nền thì mã item đỗ.
+        # D102: không ai điền prefix thì rút gọn mã item bột nền (đúng ngữ nghĩa:
+        # batch bột nền là mã lô rang), không có bột nền thì mã item đỗ.
         prefix = prefix_lo(item_bot or loai_dau)
     goc = f"{prefix}-{getdate(ngay_rang).strftime('%d%m%y')}"
     return _unique_suffix(

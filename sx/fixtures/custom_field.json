@@ -47,7 +47,7 @@
   "module": "SX",
   "name": "Item-custom_batch_prefix",
   "translatable": 0,
-  "description": "Đầu mã lô: {prefix}-DDMMYY. Bỏ trống = dùng luôn mã hàng. Điền khi muốn mã lô ngắn hơn để chép tay ra thẻ."
+  "description": "Đầu mã lô: {prefix}-DDMMYY. Bỏ trống = tự rút gọn từ mã hàng (vd Bánh đậu xanh sen 300g → BDXS300G) và lưu lại vào đây; sửa được."
  },
  {
   "doctype": "Custom Field",

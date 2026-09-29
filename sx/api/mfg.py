@@ -10,13 +10,49 @@ from frappe import _
 from frappe.utils import flt
 
 
+def dam_bao_quan_ly_lo(item_code):
+    """Item có quản lý lô chưa; chưa thì bật nếu còn bật được (D103).
+
+    ERPNext từ chối tạo Batch cho Item tắt "Has Batch No" — báo "The selected item
+    cannot have Batch", QC / thủ kho đọc không hiểu, và nhập kho kẹt. Mã thành phẩm
+    mới tạo trên Desk thường quên tích ô này.
+
+      · Item CHƯA có giao dịch kho nào → bật luôn has_batch_no (ERPNext cho đổi).
+      · ĐÃ có giao dịch → ERPNext cấm đổi. Không chặn nhập kho vì chuyện đó: trả
+        False, nơi gọi nhập KHÔNG có lô, và nói rõ ra để người quản lý biết mã
+        này mất truy xuất theo lô.
+    """
+    if frappe.get_cached_value("Item", item_code, "has_batch_no"):
+        return True
+    co_gd = frappe.db.exists("Stock Ledger Entry",
+                             {"item_code": item_code, "is_cancelled": 0})
+    if not co_gd:
+        frappe.db.set_value("Item", item_code, "has_batch_no", 1, update_modified=False)
+        try:
+            frappe.clear_document_cache("Item", item_code)
+        except Exception:
+            pass
+        return True
+    frappe.msgprint(
+        _("Mã {0} không quản lý theo lô và đã có giao dịch kho, nên ERPNext không cho "
+          "bật lô nữa — lần này nhập KHÔNG có số lô (mất truy xuất ngày × lô cho mã "
+          "này). Muốn có lô: tạo mã hàng mới có tích 'Has Batch No'.").format(item_code),
+        title=_("Nhập không có lô"), indicator="orange")
+    return False
+
+
 def tao_batch(item_code, batch_id, ngay_sx=None):
     """Batch tạo trước SE thành phẩm; batch_id đặt tay (D13).
+
+    Trả None khi Item không thể có lô (xem dam_bao_quan_ly_lo) — nơi gọi chuyển
+    batch None vào phiếu kho là nhập không lô.
 
     Idempotent: nếu Batch cùng batch_id đã tồn tại (vd huỷ + nhập lại lô R — batch
     bột nền dùng lại đúng lô R để giữ mắt xích truy xuất), tái dùng thay vì insert
     (tránh DuplicateEntryError). Khác item -> lỗi rõ ràng.
     """
+    if not dam_bao_quan_ly_lo(item_code):
+        return None
     if frappe.db.exists("Batch", batch_id):
         cu = frappe.db.get_value("Batch", batch_id, "item")
         if cu != item_code:
