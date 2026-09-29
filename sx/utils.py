@@ -58,7 +58,7 @@ def get_dau_items():
             seen[dau] = {
                 "name": dau,
                 "item_name": frappe.get_cached_value("Item", dau, "item_name") or dau,
-                "prefix": frappe.get_cached_value("Item", dau, "custom_batch_prefix") or "",
+                "prefix": frappe.get_cached_value("Item", dau, "custom_batch_prefix") or dau,
             }
     return list(seen.values())
 
@@ -213,6 +213,19 @@ def _unique_suffix(goc, exists_fn):
     return ma
 
 
+def prefix_lo(item_code):
+    """Prefix mã lô của một Item: `custom_batch_prefix` nếu có, KHÔNG có thì chính
+    MÃ HÀNG (D102).
+
+    Trước D102 thiếu prefix là chặn cứng — mã thành phẩm mới tạo mà quên điền là thủ
+    kho không duyệt được phiếu nhập. Điền tay cho từng mã thì mất công, còn mã hàng
+    thì lúc nào cũng có. Muốn mã lô ngắn hơn (để chép tay ra thẻ) thì vẫn điền
+    prefix như cũ — có prefix thì prefix thắng.
+    """
+    prefix = (frappe.db.get_value("Item", item_code, "custom_batch_prefix") or "").strip()
+    return prefix or str(item_code or "").strip()
+
+
 def sinh_lo_rang(loai_dau, ngay_rang):
     """Mã lô rang `{prefix}-DDMMYY(ngay_rang)`. Unique.
 
@@ -220,19 +233,19 @@ def sinh_lo_rang(loai_dau, ngay_rang):
     CHÍNH LÀ mã lô rang (D13), nên prefix thuộc về item bột, không phải item đỗ.
     Fallback prefix trên item đỗ nếu site có tự đặt.
     """
-    prefix = None
+    item_bot = None
     try:
         item_bot, _bom = get_bot_from_dau(loai_dau)
-        prefix = frappe.db.get_value("Item", item_bot, "custom_batch_prefix")
     except Exception:
-        prefix = None
+        item_bot = None
+    prefix = (frappe.db.get_value("Item", item_bot, "custom_batch_prefix")
+              if item_bot else None)
     if not prefix:
         prefix = frappe.db.get_value("Item", loai_dau, "custom_batch_prefix")
     if not prefix:
-        frappe.throw(
-            _("Chưa có prefix mã lô rang cho đỗ {0}. Đặt custom_batch_prefix (vd R / RD) "
-              "trên Item bột nền tương ứng — hoặc trên chính Item đỗ.").format(loai_dau)
-        )
+        # D102: không ai điền prefix thì dùng mã item bột nền (đúng ngữ nghĩa: batch
+        # bột nền là mã lô rang), không có bột nền thì mã item đỗ.
+        prefix = prefix_lo(item_bot or loai_dau)
     goc = f"{prefix}-{getdate(ngay_rang).strftime('%d%m%y')}"
     return _unique_suffix(
         goc,
@@ -242,11 +255,8 @@ def sinh_lo_rang(loai_dau, ngay_rang):
 
 
 def sinh_ma_lo(item_code, ngay):
-    """Batch `{Item.custom_batch_prefix}-DDMMYY`; trùng -> -2, -3 (D13)."""
-    prefix = frappe.db.get_value("Item", item_code, "custom_batch_prefix")
-    if not prefix:
-        frappe.throw(_("Item {0} chưa có custom_batch_prefix để sinh mã lô").format(item_code))
-    goc = f"{prefix}-{getdate(ngay).strftime('%d%m%y')}"
+    """Batch `{prefix}-DDMMYY`; trùng -> -2, -3 (D13). Prefix: xem prefix_lo (D102)."""
+    goc = f"{prefix_lo(item_code)}-{getdate(ngay).strftime('%d%m%y')}"
     return _unique_suffix(goc, lambda ma: frappe.db.exists("Batch", ma))
 
 

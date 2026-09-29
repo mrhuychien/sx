@@ -158,6 +158,12 @@ python3 scripts/test-novaohop.py > /tmp/sx-nvh.log 2>&1 \
   && tail -1 /tmp/sx-nvh.log \
   || { cat /tmp/sx-nvh.log; loi=1; }
 
+# D102: thiếu prefix mã lô thì dùng mã hàng. Quay về chặn là thủ kho lại không
+# duyệt được phiếu nhập của mã mới; bỏ qua prefix đã điền là mã lô ngắn bị thay.
+python3 scripts/test-prefix.py > /tmp/sx-px.log 2>&1 \
+  && tail -1 /tmp/sx-px.log \
+  || { cat /tmp/sx-px.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

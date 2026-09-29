@@ -46,7 +46,8 @@
   "label": "Prefix mã lô SX",
   "module": "SX",
   "name": "Item-custom_batch_prefix",
-  "translatable": 0
+  "translatable": 0,
+  "description": "Đầu mã lô: {prefix}-DDMMYY. Bỏ trống = dùng luôn mã hàng. Điền khi muốn mã lô ngắn hơn để chép tay ra thẻ."
  },
  {
   "doctype": "Custom Field",
