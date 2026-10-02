@@ -102,8 +102,10 @@ for card, viec in [("chotngay", "chốt ngày"), ("quanly", "dashboard quản l�
 
 card_qc = R.view_cards().get("vaohop", []) + R.view_cards().get("nhapkho", [])
 # D101: + sổ nợ vào hộp — QC là người phải chấm bù phần kho nhận vượt.
-kiem("card trên hai màn của QC đúng như khai — chấm hộp + nợ vào hộp + phiếu nhập kho",
-     sorted(card_qc) == ["nhapkhotp", "novaohop", "vaohop"], str(sorted(card_qc)))
+# D108: + lịch tháng của hai tab (chỉ đọc).
+kiem("card trên hai màn của QC đúng như khai — chấm hộp + nợ vào hộp + phiếu nhập kho + lịch",
+     sorted(card_qc) == ["lichnhapkho", "lichvaohop", "nhapkhotp", "novaohop", "vaohop"],
+     str(sorted(card_qc)))
 
 # ── 2. Các role khác không lấn sân ──────────────────────────────────────
 print("\n-- role khác --")

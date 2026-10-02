@@ -170,6 +170,12 @@ python3 scripts/test-huyphieu.py > /tmp/sx-hp.log 2>&1 \
   && tail -1 /tmp/sx-hp.log \
   || { cat /tmp/sx-hp.log; loi=1; }
 
+# D108: lịch tháng chỉ đọc nhưng dễ tin — ô trống mà đã ghi, hay số của phiếu đã
+# huỷ / chưa duyệt, là người ta đi ghi lại lần hai hoặc tin một con số không có thật.
+python3 scripts/test-lich.py > /tmp/sx-lich.log 2>&1 \
+  && tail -1 /tmp/sx-lich.log \
+  || { cat /tmp/sx-lich.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

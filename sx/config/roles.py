@@ -101,13 +101,14 @@ MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "qc", "quanly"]
 # tồn BTP (màn hình theo dõi) chuyển hẳn sang Quản lý — quanly giờ vừa dashboard vừa
 # lắp card, không còn là view standalone.
 VIEW_CARDS = {
-    "ghiso": ["luutrinh", "baome", "baocan", "suco"],
+    # lich*: lịch tháng đứng CUỐI mỗi tab nhập liệu, gập sẵn (D108).
+    "ghiso": ["luutrinh", "baome", "baocan", "suco", "lichghiso"],
     # D83: màn Ghi hộp của QC chỉ còn đúng việc chấm hộp. Báo sự cố về tổ Ghi sổ.
     # novaohop (D101): kho nhận vượt số chấm — QC là người phải chấm bù.
-    "vaohop": ["vaohop", "novaohop"],
+    "vaohop": ["vaohop", "novaohop", "lichvaohop"],
     # nobom: sổ nợ BOM (D97) — thành phẩm nhập lúc chưa có định mức. Đặt ngay
     # dưới phiếu nhập để thủ kho thấy phần mình vừa nhập tạm đang nằm đâu.
-    "nhapkho": ["nhapkhotp", "nobom"],
+    "nhapkho": ["nhapkhotp", "nobom", "lichnhapkho"],
     # Màn QC là view standalone: nó tự dựng cả 5 màn con (#/qc, /round/:name,
     # /incidents, /history, /review) và tự chốt quyền trong sx/api/qc.py.
     "qc": [],
@@ -146,6 +147,10 @@ CARD_ROLES = {
     # Sổ nợ vào hộp (D101): QC vào hộp XEM (để chấm bù), quản lý thêm quyền BỎ QUA
     # — chốt riêng trong khotp._duoc_bo_qua_no_vh.
     "novaohop": [VAO_HOP, QUAN_LY],
+    # Lịch tháng (D108): ai vào được tab nào thì xem được lịch tab đó. Chỉ đọc.
+    "lichvaohop": [VAO_HOP],
+    "lichghiso": [GHI_SO],
+    "lichnhapkho": [VAO_HOP, THU_KHO, QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
 

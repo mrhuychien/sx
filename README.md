@@ -273,6 +273,20 @@ một dòng vào **sổ nợ đơn giá** (`SX No Don Gia`), và hộp cảnh b�
 - Huỷ chốt Vào hộp / huỷ chốt ngày: nợ đang mở → *Đã huỷ*; chốt lại tra giá từ đầu.
 - Chỉ **Quản lý** xem và xử lý.
 
+## Lịch tháng ở tab Ghi hộp / Ghi sổ / Nhập kho (D108)
+
+Cuối mỗi tab có thẻ **📅 … cả tháng** (gập sẵn, bấm để mở — nhớ trạng thái mở theo tab).
+Ô ngày chỉ hiện **một con số**; ô trống = chưa ghi; viền xanh = đã chốt; ‹ › đổi tháng.
+
+| Tab | Ô ngày | Bấm vào ngày |
+|---|---|---|
+| Ghi hộp | số hộp (khoán + công nhật) | theo mã (tách khoán / công nhật), theo người, trạng thái chốt — nút **Mở ngày này để sửa** |
+| Ghi sổ | số mẻ trộn | báo mẻ (mẻ, kg), báo cán, rang đỗ, số sự cố — nút **Mở ngày này để sửa** |
+| Nhập kho | số đã nhập (chỉ phiếu **đã duyệt**) | theo mã, từng phiếu |
+
+Phiếu ngày / bảng / phiếu nhập đã huỷ không tính. Chỉ đọc; ai vào được tab nào thì xem
+được lịch tab đó (`sx/api/lich.py`).
+
 ## Huỷ phiếu nhập kho đã duyệt (D104)
 
 Màn Nhập kho → **Phiếu đã duyệt gần đây** → bấm một phiếu → xem chi tiết. Thủ kho /
