@@ -254,6 +254,12 @@ class BangMoi(BVH.SXBangVaoHop):
         BANG[self["name"]] = self
         return self
 
+    def is_new(self):
+        return self["name"] not in BANG
+
+    def delete(self, **k):
+        BANG.pop(self["name"])
+
 
 hong = 0
 
@@ -352,6 +358,17 @@ kiem("lưu: mã giả thành cờ cong_nhat, không lưu người",
 kiem("lưu: công nhật không được chấm ăn ca", [r.nhan_vien for r in luu.an_ca] == ["NV1"])
 kiem("trả về: dòng công nhật mang lại mã giả cho màn hình",
      [(r["nhan_vien"], r["cong_nhat"]) for r in kq["dong"]] == [("NV1", 0), (BVH.CONG_NHAT, 1)])
+
+print("\n-- xoá dòng CUỐI của một ngày (D106) --")
+kq = PT.luu_bang_vao_hop("NSX-2", json.dumps([]), an_ca=json.dumps([{"nhan_vien": "NV1", "an_ca": 1}]))
+kiem("xoá hết dòng nhưng còn chấm ăn ca → vẫn lưu được (bảng không bắt buộc có dòng)",
+     kq and kq["dong"] == [] and len(BANG["BVH-NSX-2"].an_ca) == 1, str(kq))
+kq = PT.luu_bang_vao_hop("NSX-2", json.dumps([]), an_ca=json.dumps([]))
+kiem("xoá hết dòng, không chấm ăn → xoá luôn bảng nháp, không báo lỗi",
+     kq is None and "BVH-NSX-2" not in BANG, str(kq))
+jd = json.load(open("sx/sx/doctype/sx_bang_vao_hop/sx_bang_vao_hop.json", encoding="utf-8"))
+kiem("bảng 'Chi tiết' không còn bắt buộc (hết lỗi 'Data missing in table Chi tiết')",
+     not next(f for f in jd["fields"] if f["fieldname"] == "dong").get("reqd"))
 
 # ═══ 2. Nhập kho vượt số chấm → nợ, không chặn ═══════════════════════════
 print("\n-- nhập kho vượt số chấm: ghi nợ, KHÔNG chặn --")

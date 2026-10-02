@@ -475,6 +475,13 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None):
                  "an_dem": cint(r.get("an_dem"))},
             )
     doc.flags.ignore_permissions = True
+    # Xoá hết dòng mà cũng không chấm ăn ca → không còn gì để lưu: xoá luôn bảng
+    # NHÁP thay vì giữ một bảng rỗng (D106). Trước D106 bảng bắt buộc có ít nhất một
+    # dòng, nên xoá dòng CUỐI của một ngày báo "Data missing in table Chi tiết".
+    if not doc.dong and not doc.get("an_ca"):
+        if not doc.is_new():
+            doc.delete(ignore_permissions=True)
+        return None
     doc.save()
     return _bang_summary(ngay_sx)
 
