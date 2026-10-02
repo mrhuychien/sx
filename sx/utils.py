@@ -297,9 +297,33 @@ def sinh_lo_rang(loai_dau, ngay_rang):
 
 
 def sinh_ma_lo(item_code, ngay):
-    """Batch `{prefix}-DDMMYY`; trùng -> -2, -3 (D13). Prefix: xem prefix_lo (D102)."""
+    """Batch `{prefix}-DDMMYY`; trùng -> -2, -3 (D13). Prefix: xem prefix_lo (D102).
+
+    Lô đã có nhưng CHƯA DÙNG (của chính mã này, mọi giao dịch đã huỷ) thì dùng lại
+    (D104): huỷ phiếu nhập rồi duyệt lại trong ngày phải ra đúng SEN-290926, không
+    phải SEN-290926-2 — mã lô ghi trên thẻ hàng là cái đầu tiên.
+    """
     goc = f"{prefix_lo(item_code)}-{getdate(ngay).strftime('%d%m%y')}"
-    return _unique_suffix(goc, lambda ma: frappe.db.exists("Batch", ma))
+    return _unique_suffix(
+        goc, lambda ma: frappe.db.exists("Batch", ma) and not lo_chua_dung(ma, item_code))
+
+
+def lo_chua_dung(ma, item_code):
+    """Batch `ma` của `item_code` và không còn giao dịch kho nào còn hiệu lực."""
+    if frappe.db.get_value("Batch", ma, "item") != item_code:
+        return False
+    if frappe.db.exists("Stock Ledger Entry", {"batch_no": ma, "is_cancelled": 0}):
+        return False
+    # ERPNext v15+ ghi lô trong Serial and Batch Bundle, SLE có thể để trống batch_no.
+    try:
+        dung = frappe.db.sql(
+            """select 1 from `tabSerial and Batch Entry` e
+                 join `tabSerial and Batch Bundle` b on b.name = e.parent
+                where e.batch_no = %s and b.docstatus = 1
+                  and ifnull(b.is_cancelled, 0) = 0 limit 1""", (ma,))
+    except Exception:
+        return False          # không chắc thì coi như đã dùng — sinh mã mới cho an toàn
+    return not dung
 
 
 # ───────────────────────────────────── topo sort theo BOM ──

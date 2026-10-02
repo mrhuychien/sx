@@ -164,6 +164,12 @@ python3 scripts/test-prefix.py > /tmp/sx-px.log 2>&1 \
   && tail -1 /tmp/sx-px.log \
   || { cat /tmp/sx-px.log; loi=1; }
 
+# D104: huỷ phiếu nhập kho đã duyệt là THU HỒI chứng từ kho thật. Hỏng thì huỷ
+# được cả khi hàng đã bán (tồn âm), hoặc huỷ không ai nói vì sao.
+python3 scripts/test-huyphieu.py > /tmp/sx-hp.log 2>&1 \
+  && tail -1 /tmp/sx-hp.log \
+  || { cat /tmp/sx-hp.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

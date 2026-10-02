@@ -11,7 +11,7 @@
 // SKU là chỗ sinh sót hàng. Bày ra để bấm, không phải để ràng buộc — vẫn ghi được mã
 // không có trong bảng chấm, và sửa số xuống thoải mái.
 
-import { esc } from '/assets/sx/sx/lib/dom.js';
+import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openSoLuong, moTaUom, tachUom } from '/assets/sx/sx/components/soluong.js';
@@ -31,8 +31,84 @@ export async function render({ container, call, refresh, boot }) {
   }
   const ganDay = await call('sx.api.khotp.phieu_gan_day').catch(() => []);
 
+  // D104: bấm một phiếu đã duyệt → xem chi tiết, thủ kho huỷ được ngay tại đây.
+  // Gắn MỘT lần trên khung card (bắt sự kiện nổi lên), vì hai nhánh dưới vẽ lại
+  // innerHTML và listener gắn trên từng dòng sẽ mất theo.
+  if (!container.dataset.ganDay) {
+    container.dataset.ganDay = '1';
+    container.addEventListener('click', (e) => {
+      const dong = e.target.closest('[data-phieu]');
+      if (dong) moPhieuDaDuyet(dong.dataset.phieu, call, refresh);
+    });
+  }
+
   if (r.nhap) return vePhieu(container, r, ganDay, call, refresh, boot);
   return veChuaCo(container, r, ganDay, call, refresh);
+}
+
+// Chi tiết phiếu ĐÃ DUYỆT + huỷ (D104). Huỷ là THU HỒI chứng từ kho thật, nên:
+// bắt lý do, nói rõ hệ quả, và có "Huỷ & lập lại" cho lý do hay gặp nhất — đếm sai
+// một dòng — để thủ kho không phải gõ lại cả phiếu.
+async function moPhieuDaDuyet(name, call, refresh) {
+  let p;
+  try { p = await call('sx.api.khotp.chi_tiet_phieu', { name }); } catch (e) {
+    toastErr(e.message); return;
+  }
+  const m = openModal({ kicker: 'Phiếu đã duyệt', title: `${p.name} · ${veNgay(p.ngay)}` });
+  m.body.innerHTML = `
+    <div class="sx-muted">Duyệt bởi ${esc(p.nguoi_duyet || '?')}${p.duyet_luc
+      ? ` lúc ${esc(String(p.duyet_luc).slice(11, 16))}` : ''} · vào ${esc(p.kho_dich || '')}</div>
+    <div class="sx-vh-list">${p.dong.map((x) => `
+      <div class="sx-vh-row" style="cursor:default">
+        <div class="sx-vh-who"><div class="sx-vh-name">${esc(x.ten || x.item)}</div></div>
+        <span class="sx-nv-qty">${formatNumber(x.so_dem)} ${esc(x.dvt || '')}</span>
+      </div>`).join('')}</div>
+    <div class="sx-vh-footer"><span class="sx-field-label">Tổng</span>
+      <span>${formatNumber(p.tong_dem)}</span></div>`;
+  if (!p.duoc_huy) {
+    m.body.appendChild(el('div', 'sx-muted', p.docstatus === 1
+      ? '🔒 Chỉ thủ kho / quản lý huỷ được phiếu đã duyệt.' : ''));
+    return;
+  }
+  m.body.appendChild(el('div', 'sx-modal-msg',
+    'Huỷ phiếu sẽ RÚT số hàng trên ra khỏi kho, trả lại bột và bao bì đã trừ; nợ '
+    + 'BOM / nợ vào hộp của phiếu này chuyển sang Đã huỷ. Hàng đã bán hoặc xuất đi '
+    + 'thì không huỷ được — phải huỷ chứng từ xuất trước.'));
+  const ta = el('textarea', 'sx-textarea');
+  ta.rows = 2;
+  ta.placeholder = 'Lý do huỷ (bắt buộc) — vd: đếm sai dòng Sen 300g';
+  m.body.appendChild(ta);
+  const huy = async (lapLai, nut) => {
+    if (!ta.value.trim()) { toastErr('Phải ghi lý do huỷ.'); ta.focus(); return; }
+    nut.disabled = true;
+    try {
+      const kq = await call('sx.api.khotp.huy_phieu',
+        { name: p.name, ly_do: ta.value.trim(), lap_lai: lapLai ? 1 : 0 });
+      toast(kq.phieu_moi
+        ? `Đã huỷ ${p.name} — phiếu nháp ${kq.phieu_moi} chép sẵn các dòng, sửa rồi duyệt lại.`
+        : `Đã huỷ ${p.name}.`);
+      m.close();
+      refresh();
+    } catch (e) { nut.disabled = false; toastErr(e.message); }
+  };
+  const hang = el('div', 'sx-nobom-nut');
+  if (!p.co_nhap) {
+    const lai = el('button', 'sx-btn sx-btn-primary', 'HUỶ & LẬP LẠI');
+    lai.type = 'button';
+    lai.title = 'Huỷ rồi lập phiếu nháp mới chép sẵn các dòng — sửa số sai rồi duyệt lại';
+    lai.addEventListener('click', () => huy(true, lai));
+    hang.appendChild(lai);
+  }
+  const chi = el('button', 'sx-btn sx-btn-danger', 'HUỶ PHIẾU');
+  chi.type = 'button';
+  chi.addEventListener('click', () => confirm2Step({
+    title: `Huỷ ${p.name}?`,
+    message: `Rút ${formatNumber(p.tong_dem)} sản phẩm ra khỏi ${p.kho_dich}. Không lập lại phiếu.`,
+    confirmLabel: 'HUỶ PHIẾU',
+    onConfirm: () => huy(false, chi),
+  }));
+  hang.appendChild(chi);
+  m.body.appendChild(hang);
 }
 
 // ───────────────────────────── chưa có phiếu nháp ─────────────────────────
@@ -466,9 +542,10 @@ function veNgay(iso) {
 function veGanDay(ds) {
   if (!ds || !ds.length) return '';
   return `
-    <div class="sx-field-label">Phiếu đã duyệt gần đây</div>
+    <div class="sx-field-label">Phiếu đã duyệt gần đây — bấm để xem / huỷ</div>
     <div class="sx-vh-list">${ds.map((g) => `
-      <div class="sx-vh-row">
+      <div class="sx-vh-row" data-phieu="${esc(g.name)}" role="button" tabindex="0"
+        style="cursor:pointer">
         <div class="sx-vh-who">
           <div class="sx-vh-name">${esc(g.name)}</div>
           <div class="sx-vh-meta">${esc(veNgay(g.ngay))} · ${esc(g.nguoi_duyet || '')}${

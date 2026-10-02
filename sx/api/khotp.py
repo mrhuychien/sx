@@ -212,6 +212,9 @@ def chi_tiet_phieu(name):
         # riêng, không thì nút "Xoá phiếu nháp" đi theo nhầm cái.
         "duoc_xoa": doc.docstatus == 0 and (
             _duoc_duyet() or doc.nguoi_lap == frappe.session.user),
+        # D104: huỷ phiếu ĐÃ DUYỆT — chỉ thủ kho / quản lý.
+        "duoc_huy": doc.docstatus == 1 and _duoc_duyet(),
+        "co_nhap": bool(frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")),
         "dong": [
             {"item": r.item, "ten": r.ten or r.item, "dvt": r.dvt or "",
              "so_lap": flt(r.so_lap, 0), "so_dem": flt(r.so_dem, 0),
@@ -312,7 +315,7 @@ def duyet_phieu(name):
 
 
 @frappe.whitelist()
-def huy_phieu(name, ly_do=None):
+def huy_phieu(name, ly_do=None, lap_lai=0):
     """Huỷ phiếu: NHÁP thì xoá, ĐÃ DUYỆT thì cancel (thu hồi chứng từ đã sinh).
 
     Hai việc khác hẳn nhau nên chốt quyền cũng khác nhau (D82):
@@ -324,7 +327,8 @@ def huy_phieu(name, ly_do=None):
       vừa lập thì chưa phải một quyền dùng được.
 
     · Huỷ phiếu ĐÃ DUYỆT — hàng đã vào kho, cancel là thu hồi chứng từ kho thật.
-      Chỉ thủ kho / quản lý.
+      Chỉ thủ kho / quản lý. Từ D104: bắt buộc lý do, kiểm hàng còn trong kho trước,
+      và `lap_lai=1` thì lập luôn phiếu nháp mới chép dòng của phiếu vừa huỷ.
     """
     guard_card("nhapkhotp")
     doc = frappe.get_doc("SX Phieu Nhap TP", name)
@@ -344,12 +348,108 @@ def huy_phieu(name, ly_do=None):
         )
     if doc.docstatus == 2:
         frappe.throw(_("Phiếu {0} đã huỷ rồi.").format(name))
-    if ly_do:
-        doc.db_set("ghi_chu", ((doc.ghi_chu or "") + "\n[Lý do huỷ] " + ly_do).strip(),
-                   update_modified=False)
+    # D104: huỷ chứng từ kho đã ghi mà không ai nói vì sao thì tháng sau đối chiếu
+    # tồn không ai giải thích được — bắt buộc lý do.
+    if not (ly_do or "").strip():
+        frappe.throw(_("Huỷ phiếu đã duyệt thì phải ghi lý do (đếm sai, nhập nhầm mã…)."))
+    _kiem_hang_con_trong_kho(doc)
+
+    doc.db_set("ghi_chu", ((doc.ghi_chu or "") + "\n[Lý do huỷ] " + ly_do.strip()).strip(),
+               update_modified=False)
     doc.flags.ignore_permissions = True
-    doc.cancel()
-    return {"da_huy": name}
+    try:
+        doc.cancel()
+    except frappe.PermissionError:
+        raise
+    except Exception as e:
+        # Lỗi ERPNext (tồn âm, lô…) bằng tiếng Anh — nói lại cho thủ kho hiểu, kèm
+        # nguyên văn để người sửa hệ thống còn tra.
+        frappe.db.rollback()
+        frappe.throw(_("Không huỷ được phiếu {0} — chưa có gì bị thu hồi. Thường là "
+                       "do hàng của phiếu đã được dùng ở chứng từ khác.<br><br>"
+                       "Chi tiết: {1}").format(name, frappe.utils.escape_html(str(e))))
+
+    ra = {"da_huy": name}
+    if cint(lap_lai):
+        ra["phieu_moi"] = _lap_lai_tu(doc)
+    return ra
+
+
+def _hang_vao_kho(doc):
+    """[(item, batch, qty)] thành phẩm mà phiếu này đã nhập vào kho đích.
+
+    Đọc từ CHÍNH các phiếu kho phiếu này sinh ra (ds_se), không suy lại mã lô:
+    lô có thể mang đuôi -2, hoặc mã đó nhập không lô (D103)."""
+    ses = [ct.get("name") for ct in json.loads(doc.ds_se or "[]")
+           if ct.get("dt") == "Stock Entry"]
+    if not ses:
+        return []
+    return [(r.item_code, r.batch_no, flt(r.qty)) for r in frappe.get_all(
+        "Stock Entry Detail",
+        filters={"parent": ("in", ses), "t_warehouse": doc.kho_dich},
+        fields=["item_code", "batch_no", "qty"])]
+
+
+def _kiem_hang_con_trong_kho(doc):
+    """Hàng của phiếu còn nằm trong kho đích không — kiểm TRƯỚC khi huỷ (D104).
+
+    Huỷ = rút hàng ra khỏi kho. Hàng đã bán / đã xuất thì rút không được, và ERPNext
+    báo một câu tiếng Anh về tồn âm. Kiểm trước để nói rõ mã nào, thiếu bao nhiêu,
+    và việc phải làm: huỷ / trả lại chứng từ xuất trước.
+    """
+    from erpnext.stock.doctype.batch.batch import get_batch_qty
+
+    can_ma, can_lo = {}, {}
+    for item, batch, qty in _hang_vao_kho(doc):
+        can_ma[item] = can_ma.get(item, 0) + qty
+        if batch:
+            can_lo[(item, batch)] = can_lo.get((item, batch), 0) + qty
+    thieu = []
+    for (item, batch), can in sorted(can_lo.items()):
+        con = flt(get_batch_qty(batch_no=batch, warehouse=doc.kho_dich, item_code=item))
+        if con + 1e-6 < can:
+            thieu.append(_("• {0} lô {1}: phiếu nhập {2}, trong kho còn {3}").format(
+                item, batch, flt(can, 0), flt(con, 0)))
+    from sx.utils import cho_phep_ton_am
+    if not cho_phep_ton_am():
+        for item, can in sorted(can_ma.items()):
+            if any(k[0] == item for k in can_lo):
+                continue          # đã kiểm theo lô — chặt hơn
+            con = flt(frappe.db.get_value("Bin", {"item_code": item,
+                                                 "warehouse": doc.kho_dich}, "actual_qty"))
+            if con + 1e-6 < can:
+                thieu.append(_("• {0}: phiếu nhập {1}, trong kho còn {2}").format(
+                    item, flt(can, 0), flt(con, 0)))
+    if thieu:
+        frappe.throw(_("Không huỷ được: một phần hàng của phiếu {0} đã ra khỏi {1}:")
+                     .format(doc.name, doc.kho_dich) + "<br>" + "<br>".join(thieu)
+                     + "<br><br>" + _("Huỷ hoặc trả lại các chứng từ xuất / bán hàng "
+                                      "đó trước, rồi huỷ phiếu này."))
+
+
+def _lap_lai_tu(doc):
+    """Huỷ & lập lại: phiếu NHÁP mới chép dòng của phiếu vừa huỷ (D104).
+
+    Lý do huỷ thường gặp nhất là đếm sai một dòng — bắt thủ kho gõ lại cả phiếu là
+    mời thêm một lần đếm sai nữa. Đang có phiếu nháp khác thì không lập (mỗi lúc
+    chỉ một phiếu nháp) và nói ra."""
+    nhap = frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")
+    if nhap:
+        frappe.msgprint(_("Đang có phiếu nháp {0} — không lập lại tự động được. Thêm "
+                          "dòng vào phiếu đó.").format(nhap), indicator="orange")
+        return None
+    moi = frappe.new_doc("SX Phieu Nhap TP")
+    moi.ngay = doc.ngay
+    moi.kho_dich = doc.kho_dich
+    moi.nguoi_lap = frappe.session.user
+    moi.ghi_chu = _("Lập lại từ phiếu đã huỷ {0}").format(doc.name)
+    for r in doc.dong:
+        moi.append("dong", {"item": r.item, "so_lap": flt(r.so_lap), "so_dem": flt(r.so_dem),
+                            "lap_uom": r.get("lap_uom"), "dem_uom": r.get("dem_uom"),
+                            "ghi_chu": r.get("ghi_chu")})
+    moi.flags.ignore_permissions = True
+    moi.insert()
+    return moi.name
 
 
 def _co_chi_tiet_uom():

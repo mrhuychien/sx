@@ -23,6 +23,7 @@ os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 ITEM = {}          # name -> {custom_batch_prefix, has_batch_no}
 BATCH = {}         # name -> item
 SLE = set()        # item có giao dịch kho
+LO_DUNG = set()    # batch có giao dịch kho còn hiệu lực
 MSG = []
 
 
@@ -31,7 +32,7 @@ class Loi(Exception):
 
 
 def lam_sach():
-    ITEM.clear(); BATCH.clear(); SLE.clear(); MSG.clear()
+    ITEM.clear(); BATCH.clear(); SLE.clear(); MSG.clear(); LO_DUNG.clear()
     for ma, px, lo in (("TP-SEN", "SEN", 1), ("BOT-DX", "R", 1), ("TP-MOI", None, 1),
                        ("TP-TRONG", "  ", 1),
                        ("Bánh đậu xanh sen 300g", None, 1),
@@ -47,7 +48,7 @@ def _exists(dt, f=None):
         return any(v.get("custom_batch_prefix") == f["custom_batch_prefix"]
                    and k != f["name"][1] for k, v in ITEM.items())
     if dt == "Stock Ledger Entry":
-        return f["item_code"] in SLE
+        return (f["batch_no"] in LO_DUNG) if "batch_no" in f else f["item_code"] in SLE
     return False
 
 
@@ -84,7 +85,8 @@ frappe.__dict__["_"] = lambda s: s
 frappe.get_doc = lambda d: Doc(d)
 frappe.get_cached_value = lambda dt, n, f: ITEM.get(n, {}).get(f)
 frappe.clear_document_cache = lambda dt, n: None
-frappe.db = types.SimpleNamespace(get_value=_get_value, exists=_exists, set_value=_set_value)
+frappe.db = types.SimpleNamespace(get_value=_get_value, exists=_exists, set_value=_set_value,
+                                  sql=lambda *a, **k: ())
 fu = types.ModuleType("frappe.utils")
 fu.cint = lambda v: int(float(v or 0))
 fu.flt = lambda v, p=None: float(v or 0)
@@ -150,7 +152,12 @@ px = U.prefix_lo("Bột đậu xanh sữa 300g")
 kiem("hai mặt hàng rút gọn TRÙNG nhau → mã sau thêm số, không chung đầu lô",
      px != "BDXS300G" and px.startswith("BDXS300") and len(px) <= U.PREFIX_TOI_DA, px)
 BATCH["TP-MOI-290926"] = "TP-MOI"
-kiem("trùng lô vẫn thêm đuôi -2", U.sinh_ma_lo("TP-MOI", D) == "TP-MOI-290926-2")
+kiem("lô cùng mã CHƯA DÙNG (phiếu đã huỷ) → dùng lại, không -2 (D104)",
+     U.sinh_ma_lo("TP-MOI", D) == "TP-MOI-290926")
+LO_DUNG.add("TP-MOI-290926")
+kiem("lô đã có hàng → thêm đuôi -2", U.sinh_ma_lo("TP-MOI", D) == "TP-MOI-290926-2")
+BATCH["SEN-290926"] = "TP-KHAC"
+kiem("lô trùng tên của MÃ KHÁC → không dùng lại", U.sinh_ma_lo("TP-SEN", D) == "SEN-290926-2")
 U.get_bot_from_dau = lambda d: ("BOT-DX", "BOM-1") if d == "DX" else (_ for _ in ()).throw(Loi("x"))
 kiem("lô rang: prefix của bột nền", U.sinh_lo_rang("DX", D).startswith("R-290926"))
 ITEM["BOT-DX"]["custom_batch_prefix"] = None

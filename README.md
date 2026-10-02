@@ -252,6 +252,23 @@ một dòng vào **sổ nợ đơn giá** (`SX No Don Gia`), và hộp cảnh b�
 - Huỷ chốt Vào hộp / huỷ chốt ngày: nợ đang mở → *Đã huỷ*; chốt lại tra giá từ đầu.
 - Chỉ **Quản lý** xem và xử lý.
 
+## Huỷ phiếu nhập kho đã duyệt (D104)
+
+Màn Nhập kho → **Phiếu đã duyệt gần đây** → bấm một phiếu → xem chi tiết. Thủ kho /
+quản lý có hai nút (QC chỉ xem):
+
+- **HUỶ & LẬP LẠI** — huỷ rồi lập ngay phiếu nháp mới chép sẵn các dòng (cùng ngày), sửa
+  số sai rồi duyệt lại. Dùng cho lý do hay gặp nhất: đếm sai một dòng. Ẩn khi đang có
+  phiếu nháp khác (mỗi lúc chỉ một phiếu nháp).
+- **HUỶ PHIẾU** — chỉ huỷ.
+
+Cả hai **bắt buộc lý do** (ghi vào phiếu). Huỷ = rút hàng khỏi kho TP, trả lại bột +
+bao bì đã trừ, nợ BOM / nợ vào hộp của phiếu → *Đã huỷ*, số "chờ nhận" hiện lại.
+**Kiểm trước** hàng còn đủ trong kho (theo lô; mã không lô theo tồn mã): đã bán / xuất
+bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ chứng từ xuất trước. Duyệt lại
+trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
+không thành `…-2`.
+
 ## Công nhật và nợ vào hộp (D101)
 
 Xưởng có hai kiểu làm ra hộp: **công khoán** (trả theo hộp) và **công nhật** (trả theo
