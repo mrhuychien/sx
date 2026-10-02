@@ -105,14 +105,13 @@ qua `Quản lý → Tài khoản portal` (xem mục dưới), không tạo tay t
 ```bash
 cd ~/frappe-bench/apps/sx && git pull && cd ~/frappe-bench
 bench --site site1.local migrate      # CHỈ khi bản mới đổi DocType / patch / fixtures
-bench restart --web --workers         # nạp lại Python (bản bench cũ không có cờ này:
-                                      #   sudo supervisorctl restart frappe-bench-web: frappe-bench-workers:)
+bench restart                         # nạp lại Python — chỉ web + worker, KHÔNG đụng Redis
 ```
 
 - **Không cần `bench build`.** App không đóng gói JS: `/assets/sx` là liên kết thẳng tới
   `sx/public`, sửa file là có ngay. `bench build` chỉ cần **một lần** lúc cài site mới.
-- **Không khởi động lại Redis** (`supervisorctl restart all`): Redis cache giữ phiên đăng
-  nhập đang chạy.
+- **Đừng dùng `sudo supervisorctl restart all`**: lệnh đó khởi động lại cả Redis cache — nơi
+  giữ phiên đăng nhập đang chạy. `bench restart` thì không đụng Redis.
 - Màn `/sx` tự báo khi máy đang chạy bản cũ (số build trên góc) — kéo xuống để tải lại.
 
 **Vì sao trước đây mỗi lần deploy là người dùng bị đăng xuất (D105).** Role của app nằm
