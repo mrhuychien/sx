@@ -27,6 +27,7 @@ os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 LUOT = []          # SX QC Round
 LM = []            # SX QC Luu Mau
+FILE = []          # File (ảnh lưu mẫu)
 ITEM = [{"name": "Chè đậu đen cốt dừa", "item_name": "Chè đậu đen cốt dừa",
          "custom_sx_nhom": "BTP-Bot-SP", "disabled": 0},
         {"name": "BDS", "item_name": "Bột đậu sữa dừa có đường",
@@ -59,7 +60,7 @@ class Doc(dict):
 
 
 def _bang(dt):
-    return {"SX QC Round": LUOT, "SX QC Luu Mau": LM, "Item": ITEM}.get(dt, [])
+    return {"SX QC Round": LUOT, "SX QC Luu Mau": LM, "Item": ITEM, "File": FILE}.get(dt, [])
 
 
 def _khop(h, f):
@@ -89,8 +90,19 @@ def get_all(dt, filters=None, fields=None, pluck=None, limit=None, order_by=None
     return [h.get(pluck) for h in ra] if pluck else ra
 
 
+class FileDoc(Doc):
+    def insert(self, **kw):
+        self["name"] = f"F{len(FILE) + 1}"
+        self["file_url"] = f"/private/files/{self['file_name']}"
+        self["file_size"] = len(self["content"])
+        FILE.append(self)
+        return self
+
+
 def _get_doc(x, n=None):
     if isinstance(x, dict):
+        if x.get("doctype") == "File":
+            return FileDoc(x)
         return (LMDoc if x.get("doctype") == "SX QC Luu Mau" else Doc)(x)
     h = next(h for h in _bang(x) if h["name"] == n)
     # Như Frappe thật: get_doc đọc ra BẢN SAO; chỉ save() mới ghi lại. Trả thẳng
@@ -117,6 +129,8 @@ frappe.db = types.SimpleNamespace(
     get_table_columns=lambda dt: ["co_lac", "can_thu_lac", "so_may_rang",
                                   "so_may_nghien", "so_may_goi_bot"],
     sql=lambda q, *a, **k: SQL.append(" ".join(q.split())),
+    set_value=lambda dt, n, f, v=None, **k: next(
+        h for h in _bang(dt) if h["name"] == n).update(f if isinstance(f, dict) else {f: v}),
 )
 frappe.__dict__["_"] = lambda s: s
 fu = types.ModuleType("frappe.utils")
@@ -410,6 +424,50 @@ LM[1].han_luu = HOM_NAY - timedelta(days=1)
 kq = Q.list_luu_mau()
 kiem("mẫu đến hạn đứng đầu, có cờ đến hạn",
      kq["danh_sach"][0]["den_han"] and not kq["danh_sach"][1]["den_han"])
+
+print("\n-- ảnh lưu mẫu (D109) --")
+import base64 as _b64  # noqa: E402
+
+JPG = _b64.b64encode(b"\xff\xd8\xff\xe0" + b"x" * 2000).decode()
+PNG = _b64.b64encode(b"\x89PNG\r\n\x1a\n" + b"y" * 100).decode()
+LM.clear(); FILE.clear()
+tao()
+n = LM[0].name
+kq = Q.them_anh_luu_mau(n, json.dumps([JPG, "data:image/png;base64," + PNG]))
+kiem("gắn 2 ảnh: File RIÊNG TƯ, gắn đúng mẫu, đúng đuôi",
+     [(f["file_name"], f["is_private"], f["attached_to_name"]) for f in FILE]
+     == [(f"{n}-1.jpg", 1, n), (f"{n}-2.png", 1, n)], str(FILE))
+kiem("ảnh đầu thành ảnh đại diện (thumbnail)", LM[0].anh == FILE[0]["file_url"])
+Q.them_anh_luu_mau(n, json.dumps([JPG]))
+kiem("thêm ảnh sau: đánh số tiếp, KHÔNG đổi ảnh đại diện",
+     FILE[-1]["file_name"] == f"{n}-3.jpg" and LM[0].anh == FILE[0]["file_url"])
+kiem("xem ảnh: trả đủ 3 ảnh theo thứ tự", [a["url"] for a in Q.anh_luu_mau(n)]
+     == [f["file_url"] for f in FILE])
+loi = thu(lambda: Q.them_anh_luu_mau(n, json.dumps([_b64.b64encode(b"%PDF-1.4 xx").decode()])))
+kiem("tệp không phải ảnh → chặn", loi and "không phải ảnh" in loi, loi or "")
+loi = thu(lambda: Q.them_anh_luu_mau(n, json.dumps(["@@@ hỏng"])))
+kiem("base64 hỏng → chặn", loi and "hỏng" in loi, loi or "")
+to = _b64.b64encode(b"\xff\xd8\xff" + b"z" * (Q.ANH_BYTE_TOI_DA + 1)).decode()
+loi = thu(lambda: Q.them_anh_luu_mau(n, json.dumps([to])))
+kiem("ảnh chưa nén (quá 1,5 MB) → chặn", loi and "quá lớn" in loi, loi or "")
+loi = thu(lambda: Q.them_anh_luu_mau(n, json.dumps([JPG] * (Q.ANH_MOT_LAN + 1))))
+kiem("quá số ảnh một lần → chặn", loi is not None)
+truoc = len(FILE)
+loi = thu(lambda: Q.them_anh_luu_mau(n, json.dumps([JPG, "@@@"])))
+kiem("một ảnh hỏng → KHÔNG lưu ảnh nào của lần đó", loi and len(FILE) == truoc)
+Q.them_anh_luu_mau(n, json.dumps([JPG] * 4))           # 3 + 4 = 7 ảnh
+loi = thu(lambda: Q.them_anh_luu_mau(n, json.dumps([JPG, JPG])))
+kiem("quá 8 ảnh một mẫu → chặn", loi and "tối đa" in loi, loi or "")
+VAI.clear(); VAI.add("ISO Manager")
+loi = thu(lambda: Q.them_anh_luu_mau(n, json.dumps([JPG])))
+kiem("Ban ISO xem được ảnh nhưng KHÔNG thêm được", loi is not None
+     and thu(lambda: Q.anh_luu_mau(n)) is None)
+VAI.clear(); VAI.add("SX QC")
+lmjs2 = open("sx/public/sx/views/qc_luumau.js", encoding="utf-8").read()
+kiem("form lấy mẫu có chụp ảnh + nén trước khi gửi",
+     "📷 CHỤP ẢNH" in lmjs2 and "nenAnh(" in lmjs2 and "capture', 'environment'" in lmjs2)
+kiem("lưu mẫu TRƯỚC rồi mới gửi ảnh (ảnh hỏng không mất lần lấy mẫu)",
+     lmjs2.index("sx.api.qc.tao_luu_mau") < lmjs2.index("guiAnh(api, r.name"))
 
 print("\n-- lưu mẫu: quyền --")
 for vai, duoc in (("SX QC Packing", True), ("ISO Manager", False),

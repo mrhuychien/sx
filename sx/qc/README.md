@@ -139,6 +139,14 @@ lý; Ban ISO, QLSX xem. Hạn lưu mặc định = ngày lấy + *SX QC Setting 
 ngày* (trống = 180 — **con số tạm, Ban ISO cần chốt**). Lấy mẫu ra (khiếu nại, kiểm
 nghiệm) và huỷ **trước hạn** bắt buộc lý do; hết hạn thì huỷ một bước.
 
+**Ảnh lưu mẫu (D109).** Form *Lấy mẫu* có **📷 CHỤP ẢNH** (mở thẳng camera sau) và
+**🖼 Ảnh có sẵn**, tối đa 4 ảnh một lần, 8 ảnh một mẫu. Ảnh được **nén ngay trên máy**
+(`lib/anh.js`): cạnh dài 1600 px — vẫn đọc được chữ HSD — JPEG hạ chất lượng từng bậc tới
+khi ≤ ~350 KB (ảnh 4–7 MB thường còn 100–300 KB); form hiện "x MB → y KB". Mẫu được lưu
+TRƯỚC, ảnh gửi SAU — gửi ảnh hỏng không mất lần lấy mẫu; nút **📷 + ẢNH** trên thẻ mẫu để
+chụp thêm / gửi lại. Server chỉ nhận JPEG/PNG/WebP ≤ 1,5 MB, lưu File **riêng tư** gắn vào
+mẫu (ai đọc được phiếu mới mở được ảnh); ảnh đầu là thumbnail trên danh sách.
+
 Phiếu trước D100: patch `d100_qc_may_va_lac` bật cờ lạc cho mọi phiếu có bột (phần
 lạc vẫn hiện như lúc ghi) và đặt số máy = 1.
 

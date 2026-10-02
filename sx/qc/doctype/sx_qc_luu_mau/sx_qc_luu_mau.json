@@ -17,6 +17,7 @@
   "han_luu",
   "vi_tri",
   "lay_boi",
+  "anh",
   "section_xu_ly",
   "ly_do",
   "column_break_2",
@@ -113,6 +114,13 @@
    "read_only": 1
   },
   {
+   "fieldname": "anh",
+   "fieldtype": "Attach Image",
+   "label": "Ảnh mẫu",
+   "read_only": 1,
+   "description": "Ảnh đầu tiên chụp lúc lấy mẫu (ảnh khác nằm trong mục đính kèm). Ảnh đã nén trên máy trước khi gửi."
+  },
+  {
    "fieldname": "section_xu_ly",
    "fieldtype": "Section Break",
    "label": "Kết thúc lưu mẫu"
@@ -205,5 +213,6 @@
    "report": 1,
    "export": 1
   }
- ]
+ ],
+ "image_field": "anh"
 }

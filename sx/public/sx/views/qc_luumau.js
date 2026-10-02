@@ -14,6 +14,98 @@ import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step, openModal } from '/assets/sx/sx/components/modal.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
+import { kb, nenAnh } from '/assets/sx/sx/lib/anh.js';
+
+const ANH_TOI_DA = 4;   // một lần chụp — khớp ANH_MOT_LAN ở sx/api/qc.py
+
+/** Ô chọn ảnh ẩn. `chup` = mở thẳng camera sau (điện thoại); không thì cho chọn
+ *  ảnh có sẵn. Trả về Promise<File[]> khi người dùng chọn xong. */
+function chonAnh(chup) {
+  return new Promise((ok) => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    if (chup) inp.setAttribute('capture', 'environment');
+    else inp.multiple = true;
+    inp.addEventListener('change', () => ok([...(inp.files || [])]));
+    inp.click();
+  });
+}
+
+/** Khối "Ảnh mẫu": chụp / chọn → NÉN NGAY trên máy → xem trước, bỏ được.
+ *  Trả {node, anh: () => [base64]}; `dangNen()` true khi còn ảnh chưa nén xong. */
+function khoiAnh() {
+  const ds = [];          // {url, base64, truoc, sau}
+  let dangNen = 0;
+  const node = el('div', 'sx-lm-anh');
+  const luoi = el('div', 'sx-lm-anh-luoi');
+  const nhan = el('div', 'sx-muted');
+  const hang = el('div', 'sx-lm-anh-nut');
+  const ve = () => {
+    luoi.innerHTML = '';
+    ds.forEach((a, i) => {
+      const o = el('div', 'sx-lm-anh-o');
+      o.innerHTML = `<img src="${a.url}" alt="Ảnh mẫu ${i + 1}">
+        <span>${esc(kb(a.sau))}</span>`;
+      const bo = el('button', 'sx-lm-anh-bo', '✕');
+      bo.type = 'button';
+      bo.setAttribute('aria-label', `Bỏ ảnh ${i + 1}`);
+      bo.addEventListener('click', () => { URL.revokeObjectURL(a.url); ds.splice(i, 1); ve(); });
+      o.appendChild(bo);
+      luoi.appendChild(o);
+    });
+    const truoc = ds.reduce((t, a) => t + a.truoc, 0);
+    const sau = ds.reduce((t, a) => t + a.sau, 0);
+    nhan.textContent = dangNen ? `Đang nén ${dangNen} ảnh…`
+      : (ds.length ? `${ds.length} ảnh · ${kb(truoc)} → ${kb(sau)} sau khi nén` : 'Chưa có ảnh (không bắt buộc).');
+    hang.querySelectorAll('button').forEach((b) => { b.disabled = ds.length + dangNen >= ANH_TOI_DA; });
+  };
+  const them = async (chup) => {
+    const files = (await chonAnh(chup)).slice(0, ANH_TOI_DA - ds.length - dangNen);
+    dangNen += files.length;
+    ve();
+    for (const f of files) {
+      try {
+        const n = await nenAnh(f);
+        ds.push({ url: URL.createObjectURL(n.blob), base64: n.base64, truoc: n.truoc, sau: n.sau });
+      } catch (e) { toastErr(`Không đọc được ảnh ${f.name}: ${e.message}`); }
+      dangNen -= 1;
+      ve();
+    }
+  };
+  [['📷 CHỤP ẢNH', true], ['🖼 Ảnh có sẵn', false]].forEach(([t, chup]) => {
+    const b = el('button', `sx-btn${chup ? ' sx-btn-primary' : ''}`, t);
+    b.type = 'button';
+    b.addEventListener('click', () => them(chup));
+    hang.appendChild(b);
+  });
+  node.appendChild(hang);
+  node.appendChild(luoi);
+  node.appendChild(nhan);
+  ve();
+  return { node, anh: () => ds.map((a) => a.base64), dangNen: () => dangNen > 0 };
+}
+
+async function guiAnh(api, name, anh) {
+  if (!anh.length) return null;
+  return api.call('sx.api.qc.them_anh_luu_mau', { name, anh: JSON.stringify(anh) });
+}
+
+async function xemAnh(x, api) {
+  let ds;
+  try { ds = await api.call('sx.api.qc.anh_luu_mau', { name: x.name }); } catch (e) {
+    toastErr(e.message); return;
+  }
+  const m = openModal({ kicker: 'Ảnh mẫu', title: `${x.ten_san_pham}${x.lo ? ` · ${x.lo}` : ''}` });
+  if (!ds.length) { m.body.appendChild(el('div', 'sx-muted', 'Mẫu này chưa có ảnh.')); return; }
+  ds.forEach((a) => {
+    const img = el('img', 'sx-lm-anh-lon');
+    img.src = a.url;
+    img.loading = 'lazy';
+    img.alt = 'Ảnh mẫu';
+    m.body.appendChild(img);
+  });
+}
 
 const st = { tab: 'Đang lưu', q: '' };
 
@@ -61,8 +153,18 @@ export async function render(api) {
 function veThe(x, dl, api) {
   const lop = x.trang_thai !== 'Đang lưu' ? 'dong' : (x.den_han ? 'mo' : 'luu');
   const the = el('div', `sx-qc-sc sx-qc-sc-${lop}`);
-  the.appendChild(el('div', 'sx-qc-sc-ten',
+  const dau = el('div', 'sx-lm-dau');
+  if (x.anh) {
+    const tb = el('button', 'sx-lm-tb');
+    tb.type = 'button';
+    tb.setAttribute('aria-label', 'Xem ảnh mẫu');
+    tb.innerHTML = `<img src="${esc(x.anh)}" alt="" loading="lazy">`;
+    tb.addEventListener('click', () => xemAnh(x, api));
+    dau.appendChild(tb);
+  }
+  dau.appendChild(el('div', 'sx-qc-sc-ten',
     `${esc(x.ten_san_pham || x.san_pham)}${x.lo ? ` · <span class="sx-qc-lm-lo">${esc(x.lo)}</span>` : ''}`));
+  the.appendChild(dau);
   const meta = el('div', 'sx-qc-sc-meta');
   meta.appendChild(chip(`${x.so_luong} ${x.dvt || ''}`.trim()));
   if (x.vi_tri) meta.appendChild(chip(`📍 ${x.vi_tri}`));
@@ -93,6 +195,27 @@ function veThe(x, dl, api) {
         },
       })
       : moLyDo(x, 'huy', api)));
+    const them = el('button', 'sx-btn sx-btn-ghost', '📷 + ẢNH');
+    them.type = 'button';
+    them.title = 'Chụp thêm ảnh cho mẫu này';
+    them.addEventListener('click', async () => {
+      const files = (await chonAnh(true)).slice(0, ANH_TOI_DA);
+      if (!files.length) return;
+      them.disabled = true;
+      them.textContent = 'đang nén…';
+      try {
+        const anh = [];
+        for (const f of files) anh.push((await nenAnh(f)).base64);
+        await guiAnh(api, x.name, anh);
+        toast('Đã thêm ảnh');
+        render(api);
+      } catch (e) {
+        toastErr(e.message);
+        them.disabled = false;
+        them.textContent = '📷 + ẢNH';
+      }
+    });
+    nut.appendChild(them);
     const ra = el('button', 'sx-btn sx-btn-ghost', 'LẤY RA');
     ra.type = 'button';
     ra.title = 'Mang mẫu đi dùng: khiếu nại, gửi kiểm nghiệm…';
@@ -239,18 +362,30 @@ function moLayMau(dl, api) {
   han.addEventListener('change', () => { f.han_luu = han.value; });
   m.body.appendChild(han);
 
+  m.body.appendChild(el('div', 'sx-field-label', 'Ảnh mẫu'));
+  const kAnh = khoiAnh();
+  m.body.appendChild(kAnh.node);
+
   const ok = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'LƯU MẪU');
   ok.type = 'button';
   ok.addEventListener('click', async () => {
     if (!f.san_pham) { toastErr('Chưa chọn sản phẩm.'); return; }
+    if (kAnh.dangNen()) { toastErr('Đợi nén ảnh xong đã.'); return; }
     ok.disabled = true;
+    let r;
     try {
-      const r = await api.call('sx.api.qc.tao_luu_mau', { payload: JSON.stringify(f) });
-      toast(`Đã lưu mẫu ${r.name}`);
-      m.close();
-      st.tab = 'Đang lưu';
-      render(api);
-    } catch (e) { ok.disabled = false; toastErr(e.message); }
+      r = await api.call('sx.api.qc.tao_luu_mau', { payload: JSON.stringify(f) });
+    } catch (e) { ok.disabled = false; toastErr(e.message); return; }
+    // Mẫu đã lưu rồi mới gửi ảnh: ảnh hỏng không được làm mất cả lần lấy mẫu.
+    try {
+      const a = await guiAnh(api, r.name, kAnh.anh());
+      toast(`Đã lưu mẫu ${r.name}${a ? ` · ${a.anh.length} ảnh` : ''}`);
+    } catch (e) {
+      toastErr(`Đã lưu mẫu ${r.name} nhưng CHƯA gửi được ảnh: ${e.message} — bấm "📷 + ẢNH" trên mẫu để gửi lại.`);
+    }
+    m.close();
+    st.tab = 'Đang lưu';
+    render(api);
   });
   m.body.appendChild(ok);
   veChon();

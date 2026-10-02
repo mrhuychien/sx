@@ -901,7 +901,7 @@ def list_luu_mau(q=None, trang_thai="Đang lưu", limit=200):
         LM, filters=loc, or_filters=or_loc,
         fields=["name", "san_pham", "ten_san_pham", "lo", "so_luong", "dvt",
                 "ngay_lay", "han_luu", "vi_tri", "trang_thai", "lay_boi", "ly_do",
-                "xu_ly_boi", "xu_ly_luc"],
+                "xu_ly_boi", "xu_ly_luc", "anh"],
         order_by="han_luu asc, ngay_lay desc", limit=cint(limit) or 200)
     hom_nay = getdate(nowdate())
     for x in ds:
@@ -991,3 +991,82 @@ def xu_ly_luu_mau(name, hanh_dong, ly_do=None):
     doc.xu_ly_luc = now_datetime()
     doc.save()            # validate chặn thiếu lý do — cùng luật cho cả Desk
     return {"name": name, "trang_thai": moi}
+
+
+# ─────────────────────────────────────────────────────── ảnh lưu mẫu (D109) ──
+#
+# Ảnh nén trên máy (lib/anh.js, ~300 KB) rồi gửi base64. Lưu thành File RIÊNG TƯ
+# gắn vào phiếu lưu mẫu: chỉ người đọc được phiếu mới mở được ảnh.
+
+ANH_MOT_LAN = 4               # ảnh tối đa một lần gửi
+ANH_TOI_DA = 8                # ảnh tối đa một mẫu
+ANH_BYTE_TOI_DA = 1536 * 1024  # 1,5 MB/ảnh SAU nén — lớn hơn là máy không nén được
+
+
+def _kieu_anh(b):
+    """'jpg' / 'png' / 'webp' theo chữ ký đầu file, None nếu không phải ảnh."""
+    if b[:3] == b"\xff\xd8\xff":
+        return "jpg"
+    if b[:8] == b"\x89PNG\r\n\x1a\n":
+        return "png"
+    if b[:4] == b"RIFF" and b[8:12] == b"WEBP":
+        return "webp"
+    return None
+
+
+def _anh_cua(name):
+    return frappe.get_all("File", filters={"attached_to_doctype": LM, "attached_to_name": name},
+                          fields=["name", "file_url", "file_size"], order_by="creation asc")
+
+
+@frappe.whitelist()
+def them_anh_luu_mau(name, anh):
+    """Gắn ảnh vào một mẫu. `anh` = [base64 JPEG/PNG/WebP]. Ảnh đầu tiên của mẫu
+    thành ảnh đại diện (field `anh`) để danh sách hiện thumbnail."""
+    import base64
+    import binascii
+
+    _guard_ghi()
+    ds = json.loads(anh) if isinstance(anh, str) else (anh or [])
+    if not ds:
+        frappe.throw(_("Chưa có ảnh nào."))
+    if len(ds) > ANH_MOT_LAN:
+        frappe.throw(_("Gửi tối đa {0} ảnh một lần.").format(ANH_MOT_LAN))
+    doc = frappe.get_doc(LM, name)
+    co = _anh_cua(name)
+    if len(co) + len(ds) > ANH_TOI_DA:
+        frappe.throw(_("Mỗi mẫu tối đa {0} ảnh — mẫu này đã có {1}.").format(ANH_TOI_DA, len(co)))
+
+    goi = []
+    for i, s in enumerate(ds, start=1):
+        try:
+            b = base64.b64decode(str(s).split(",")[-1], validate=True)
+        except (binascii.Error, ValueError):
+            frappe.throw(_("Ảnh thứ {0} hỏng — chụp lại.").format(i))
+        kieu = _kieu_anh(b)
+        if not kieu:
+            frappe.throw(_("Tệp thứ {0} không phải ảnh.").format(i))
+        if len(b) > ANH_BYTE_TOI_DA:
+            frappe.throw(_("Ảnh thứ {0} quá lớn ({1} KB) — máy chưa nén được ảnh này.")
+                         .format(i, len(b) // 1024))
+        goi.append((b, kieu))
+
+    urls = []
+    for i, (b, kieu) in enumerate(goi, start=len(co) + 1):
+        f = frappe.get_doc({
+            "doctype": "File", "file_name": f"{name}-{i}.{kieu}",
+            "attached_to_doctype": LM, "attached_to_name": name,
+            "is_private": 1, "content": b,
+        })
+        f.insert(ignore_permissions=True)
+        urls.append(f.file_url)
+    if not doc.anh and urls:
+        frappe.db.set_value(LM, name, "anh", urls[0], update_modified=False)
+    return {"name": name, "anh": urls, "so_anh": len(co) + len(urls)}
+
+
+@frappe.whitelist()
+def anh_luu_mau(name):
+    """Mọi ảnh của một mẫu — để xem lớn khi bấm vào thumbnail."""
+    _guard_qc()
+    return [{"url": f.file_url, "kb": cint(f.file_size) // 1024} for f in _anh_cua(name)]

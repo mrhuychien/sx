@@ -351,3 +351,24 @@ button.sx-qc-tag-chon {
   background: var(--sx-surface-2); border-color: var(--sx-line-2);
   color: var(--sx-text-2); text-decoration: line-through; font-weight: 600;
 }
+
+/* ── D109: ảnh lưu mẫu ──────────────────────────────────────────────────── */
+.sx-lm-dau { display: flex; gap: var(--sx-s3); align-items: center; }
+.sx-lm-tb {
+  flex: none; width: 56px; height: 56px; padding: 0; border: 1px solid var(--sx-line);
+  border-radius: var(--sx-radius-sm); overflow: hidden; background: var(--sx-surface-2); cursor: pointer;
+}
+.sx-lm-tb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sx-lm-anh-nut { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
+.sx-lm-anh-luoi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sx-s2); margin: var(--sx-s2) 0; }
+.sx-lm-anh-o { position: relative; aspect-ratio: 1; border-radius: var(--sx-radius-sm); overflow: hidden; background: var(--sx-surface-2); }
+.sx-lm-anh-o img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sx-lm-anh-o span {
+  position: absolute; left: 0; right: 0; bottom: 0; font-size: 10px; text-align: center;
+  background: rgba(0,0,0,.55); color: #fff; padding: 1px 0;
+}
+.sx-lm-anh-bo {
+  position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; border-radius: 50%;
+  border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; cursor: pointer; padding: 0;
+}
+.sx-lm-anh-lon { width: 100%; height: auto; border-radius: var(--sx-radius-sm); margin-bottom: var(--sx-s2); }
