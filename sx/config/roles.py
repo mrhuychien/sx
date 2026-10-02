@@ -27,6 +27,31 @@ ISO = "ISO Manager"               # Trưởng Ban ISO — đóng sự cố, xem 
 QLSX = "Production Manager"       # QLSX — đọc, ghi xử lý sự cố
 KHO_NL = "Warehouse"              # thủ kho nguyên liệu — BM.07.03 (P1)
 
+# Role của app và quyền vào Desk MẶC ĐỊNH khi tạo mới (D105).
+#
+# Trước D105 các role này nằm trong fixtures/role.json. Frappe nạp fixtures ở MỌI
+# lần `bench migrate` bằng cách XOÁ rồi TẠO LẠI từng role (frappe/modules/
+# import_file.py: delete_old_doc → insert). Role tạo lại thì Frappe coi như
+# desk_access "vừa đổi" và tính lại kiểu tài khoản (System / Website User) của mọi
+# người giữ role đó; người nào bị đổi kiểu là Frappe XOÁ HẾT PHIÊN của người đó
+# (frappe/core/doctype/user/user.py: user_type đổi → clear_sessions). Thêm nữa,
+# ai bật Desk cho một role SX trên site thì mỗi lần migrate bị fixtures đè về 0.
+#
+# Giờ: sx.setup.dam_bao_role chạy sau install / migrate và CHỈ TẠO role còn thiếu.
+# Role đã có thì không đụng — chỉnh trên site là giữ nguyên.
+# (tên role, desk_access khi tạo mới)
+VAI_MAC_DINH = {
+    "SX Ghi So": 0,
+    "SX Vao Hop": 0,
+    "SX Thu Kho": 0,
+    "SX Quan Ly": 1,
+    "SX QC": 0,
+    "SX QC Packing": 0,
+    "ISO Manager": 1,
+    "Production Manager": 1,   # role chuẩn của ERPNext — thường đã có sẵn
+    "Warehouse": 1,
+}
+
 # Role "siêu quyền" — thấy mọi view/card
 SUPER_ROLES = {QUAN_LY, "System Manager", "Administrator"}
 

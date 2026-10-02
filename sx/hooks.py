@@ -21,19 +21,14 @@ doc_events = {
     },
 }
 
+# Tạo role còn thiếu — chỉ TẠO, không sửa role đã có (D105).
+after_install = "sx.setup.dam_bao_role"
+after_migrate = ["sx.setup.dam_bao_role"]
+
 # ═══ Fixtures ═══
 fixtures = [
-    {
-        "doctype": "Role",
-        # Danh sách này phải KHỚP fixtures/role.json. Nó chỉ áp lúc `bench
-        # export-fixtures`, nên thiếu một tên thì lần export sau lặng lẽ XOÁ role đó
-        # khỏi file, và site cài mới sau đó thiếu role mà không ai biết.
-        "filters": [
-            ["name", "in", ["SX Ghi So", "SX Vao Hop", "SX Thu Kho", "SX Quan Ly",
-                            "SX QC", "SX QC Packing", "ISO Manager",
-                            "Production Manager", "Warehouse"]]
-        ],
-    },
+    # Role KHÔNG còn là fixture (D105): fixtures bị xoá-tạo-lại mỗi lần migrate,
+    # và tạo lại role là Frappe đăng xuất người giữ role đó. Xem sx.setup.dam_bao_role.
     # Hai module: SX (cũ) và QC (D85+). Để "=" "SX" thì lần export-fixtures sau
     # lặng lẽ xoá sạch custom field của QC khỏi file.
     {"doctype": "Custom Field", "filters": [["module", "in", ["SX", "QC"]]]},

@@ -103,9 +103,31 @@ qua `Quản lý → Tài khoản portal` (xem mục dưới), không tạo tay t
 ## Deploy (sau mỗi lần pull code mới)
 
 ```bash
-bench --site a.rongvanghoanggia.com migrate   # custom field / schema mới
-bench build --app sx                          # đẩy JS/CSS ra /assets
-bench restart                                 # nạp lại Python
+cd ~/frappe-bench/apps/sx && git pull && cd ~/frappe-bench
+bench --site site1.local migrate      # CHỈ khi bản mới đổi DocType / patch / fixtures
+bench restart --web --workers         # nạp lại Python (bản bench cũ không có cờ này:
+                                      #   sudo supervisorctl restart frappe-bench-web: frappe-bench-workers:)
+```
+
+- **Không cần `bench build`.** App không đóng gói JS: `/assets/sx` là liên kết thẳng tới
+  `sx/public`, sửa file là có ngay. `bench build` chỉ cần **một lần** lúc cài site mới.
+- **Không khởi động lại Redis** (`supervisorctl restart all`): Redis cache giữ phiên đăng
+  nhập đang chạy.
+- Màn `/sx` tự báo khi máy đang chạy bản cũ (số build trên góc) — kéo xuống để tải lại.
+
+**Vì sao trước đây mỗi lần deploy là người dùng bị đăng xuất (D105).** Role của app nằm
+trong fixtures; Frappe nạp fixtures ở MỌI lần `migrate` bằng cách xoá rồi tạo lại từng
+role. Tạo lại role là Frappe tính lại kiểu tài khoản (System / Website User) của mọi người
+giữ role đó, và ai bị đổi kiểu là bị xoá hết phiên (`frappe/core/doctype/user/user.py`).
+Từ D105 role không còn là fixture: `sx.setup.dam_bao_role` chạy sau install / migrate và
+chỉ **tạo role còn thiếu**, không đụng role đã có — nên chỉnh Desk access cho một role
+trên site cũng được giữ nguyên qua các lần deploy.
+
+Muốn biết chắc ai bị đăng xuất và vì sao — Frappe ghi lý do vào Activity Log:
+
+```bash
+bench --site site1.local mariadb -e "select creation, subject from \`tabActivity Log\`
+  where operation='Logout' order by creation desc limit 20;"
 ```
 
 ## Seed định mức (Item + BOM tầng 1/2) — ship sẵn trong app
