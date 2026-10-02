@@ -96,6 +96,14 @@ BUOC = [
     ("B",  "Bột đậu",          "",        "hôm nay có bột"),
 ]
 
+# Công đoạn TẮT ĐƯỢC khi hôm đó không chạy (D107): hôm không rang đỗ thì mục 3
+# không có gì để kiểm. Không tắt được:
+#   A  PRP đầu ca  — kiểm cái XƯỞNG (vệ sinh, công nhân, côn trùng), không phải dây chuyền
+#   8  Kho bột     — thùng bột nằm trong kho dù hôm nay có nghiền hay không
+#   C  Lượt tuần   — lịch tuần, không theo sản xuất
+#   B  Bột đậu     — đã có công tắc riêng "có sản xuất bột"
+BUOC_TAT_DUOC = ("2", "3", "4", "6", "7", "10", "12")
+
 
 # ── Máy chạy song song (D100) ─────────────────────────────────────────────
 # Xưởng có 3 máy rang đỗ, 2 máy nghiền, 3 máy đóng gói bột — nhưng không phải
@@ -334,9 +342,10 @@ def boi_canh(x):
     if x is None or isinstance(x, (int, float, str, bool)):
         b = 1 if _so(x) else 0
         return {"bot": b, "lac": b, "lac_doi": b,
-                "may": {n: 1 for n in NHOM_MAY}}
+                "may": {n: 1 for n in NHOM_MAY}, "nghi": frozenset()}
     g = x.get
-    return {"bot": 1 if _so(g("co_san_xuat_bot")) else 0,
+    return {"nghi": frozenset(buoc_nghi(g("buoc_nghi"))),
+            "bot": 1 if _so(g("co_san_xuat_bot")) else 0,
             "lac": 1 if _so(g("co_lac")) else 0,
             "lac_doi": 1 if (_so(g("can_thu_lac")) or _so(g("co_lac"))) else 0,
             "may": {n: so_may(g(t[2]), n) for n, t in NHOM_MAY.items()}}
@@ -348,6 +357,8 @@ def ap_dung(muc, luot, bc):
     `bc` = boi_canh(...) hoặc số 0/1 "có bột" kiểu cũ.
     """
     bc = boi_canh(bc)
+    if muc["buoc"] in bc.get("nghi", ()):
+        return False
     if muc["bot"] and not bc["bot"]:
         return False
     if muc.get("lac") == LAC_LAM and not bc["lac"]:
@@ -370,6 +381,14 @@ def muc_cham(luot, bc):
     """Mục TÍNH VÀO tiến độ (bỏ ô đi kèm) — dùng cho thanh x/y và cho luật
     'để trống phải có lý do'."""
     return [m for m in muc_ap_dung(luot, bc) if not m["phu"]]
+
+
+def buoc_nghi(v):
+    """Giá trị ô 'công đoạn không chạy' → [mã bước] — CHỈ những bước tắt được,
+    theo thứ tự quy trình. Mã lạ / bước không tắt được (A, 8, C, B) bị bỏ: không
+    để một ô chữ tắt được phần PRP đầu ca."""
+    chon = set(tach_chon(v))
+    return [ma for ma, *_r in BUOC if ma in BUOC_TAT_DUOC and ma in chon]
 
 
 def ten_may(m):

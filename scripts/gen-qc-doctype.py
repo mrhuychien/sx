@@ -78,7 +78,12 @@ fields = [
     f("so_muc_da_cham", "Int", "Đã chấm", read_only=1),
 
     # D100: số máy đang chạy của từng nhóm — quyết định ô máy 2/3 có áp dụng không.
-    f("section_may", "Section Break", "Máy đang chạy"),
+    f("section_may", "Section Break", "Máy và công đoạn đang chạy"),
+    # D107: công đoạn hôm nay KHÔNG chạy — mục của nó không áp dụng ở lượt này.
+    # Mỗi dòng một mã bước (sx/qc/muc.py BUOC_TAT_DUOC); server lọc bỏ mã lạ.
+    f("buoc_nghi", "Small Text", "Công đoạn không chạy",
+      description="Mã bước, mỗi dòng một mã (2 Luộc, 3 Rang, 4 Sàng cát, 6 Vỡ đỗ, "
+                  "7 Nghiền, 10 Ủ sau trộn, 12 Đóng gói). Ghi từ màn lượt kiểm."),
 ] + [x for i, (nhom, (ten, toi_da, truong)) in enumerate(muc.NHOM_MAY.items())
      for x in ([f(f"column_break_may_{i}", "Column Break")] if i else [])
      + [f(truong, "Int", f"Số {ten.lower()} đang chạy", default="1",

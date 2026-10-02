@@ -126,7 +126,9 @@ def canh_bao(doc):
     if cint(doc.get("t2_so_bay_dau_hieu")) > 0:
         ra.append(_("Lượt tuần: {0} trạm bẫy có dấu hiệu — theo dõi tuần sau").format(
             cint(doc.get("t2_so_bay_dau_hieu"))))
-    if doc.get("nam_cham_vat") and not cint(doc.get("nam_cham_mat_kim_loai")):
+    ap = {m["f"] for m in M.muc_ap_dung(doc.get("luot"), doc)}
+    if ("nam_cham_vat" in ap and doc.get("nam_cham_vat")
+            and not cint(doc.get("nam_cham_mat_kim_loai"))):
         ra.append(_("Nam châm bắt được: {0}").format(doc.get("nam_cham_vat")))
     return ra
 

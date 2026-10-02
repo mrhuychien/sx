@@ -65,6 +65,9 @@ class SXQCRound(Document):
         """
         for nhom, (_ten, _toi_da, truong) in M.NHOM_MAY.items():
             self.set(truong, M.so_may(self.get(truong), nhom))
+        # Chỉ giữ bước TẮT ĐƯỢC, đúng thứ tự quy trình (D107) — ô chữ gõ tay trên
+        # Desk không tắt được phần PRP đầu ca.
+        self.buoc_nghi = "\n".join(M.buoc_nghi(self.get("buoc_nghi"))) or None
         if not cint(self.co_san_xuat_bot):
             self.co_lac = 0
             self.can_thu_lac = 0

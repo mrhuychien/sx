@@ -142,6 +142,20 @@ nghiệm) và huỷ **trước hạn** bắt buộc lý do; hết hạn thì hu�
 Phiếu trước D100: patch `d100_qc_may_va_lac` bật cờ lạc cho mọi phiếu có bột (phần
 lạc vẫn hiện như lúc ghi) và đặt số máy = 1.
 
+## Công đoạn không chạy (D107)
+
+Hôm không rang đỗ (hay không luộc, không đóng gói…) thì mục của công đoạn đó không có gì
+để kiểm. Trên màn lượt kiểm, hàng **"Công đoạn nào hôm nay không chạy?"**: bấm một bước
+là các mục của nó rời khỏi lượt — không tính "phải chấm", không đòi lý do để trống, không
+bắt buộc nhiệt độ rang, không sinh sự cố. Bấm lại để bật. Lượt sau trong ngày nhận lại.
+
+- Tắt được: 2 Luộc, 3 Rang, 4 Sàng cát, 6 Vỡ đỗ · Nam châm, 7 Nghiền, 10 Ủ sau trộn,
+  12 Đóng gói (`muc.BUOC_TAT_DUOC`).
+- **Không** tắt được: PRP đầu ca (kiểm cái xưởng, không phải dây chuyền), 8 Kho bột (thùng
+  bột vẫn nằm trong kho), lượt tuần. Bột đậu có công tắc riêng.
+- Tắt một bước đã ghi số thì hỏi lại trước. Mỗi lần bật / tắt vào nhật ký lượt (ai, lúc
+  nào); tờ in BM.08.01 ghi "Công đoạn không chạy" để auditor hiểu vì sao cả hàng xám.
+
 ## Nhắc lịch — hiện trên dashboard, KHÔNG gửi đi đâu
 
 `sx/qc/nhac.py` tính danh sách việc đang treo; hiện ở **ba chỗ, một bản duy nhất**:

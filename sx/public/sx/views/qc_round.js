@@ -195,6 +195,46 @@ export async function render({ container, call, tham_so }) {
     container.appendChild(hang);
   }
 
+  // ── công đoạn không chạy — cho RIÊNG lượt này (D107) ────────────────
+  // Hôm không rang đỗ thì mục Rang không có gì để kiểm. Trước D107 QC phải để
+  // trống rồi viết lý do mỗi lượt. Tắt ở đây: mục của bước đó không áp dụng,
+  // không tính "phải chấm", không sinh sự cố; lượt sau trong ngày nhận lại.
+  // Bấm tắt / bật được ghi vào nhật ký lượt (ai, lúc nào) và in trên tờ BM.08.01.
+  const nghi = new Set(dl.buoc_nghi || []);
+  const tatDuoc = (hom.buoc || []).filter((b) => (hom.buoc_tat_duoc || []).includes(b.ma));
+  if (tatDuoc.length && (!khoa || nghi.size)) {
+    const box = el('div', 'sx-qc-nghi');
+    box.appendChild(el('div', 'sx-qc-luot-phu',
+      nghi.size ? `Công đoạn KHÔNG chạy lượt này (${nghi.size}) — bấm để bật lại`
+        : 'Công đoạn nào hôm nay không chạy? Bấm để bỏ khỏi lượt kiểm'));
+    const chips = el('div', 'sx-qc-vi');
+    tatDuoc.forEach((b) => {
+      const tat = nghi.has(b.ma);
+      const c = el('button', `sx-qc-vi-o${tat ? ' sx-qc-nghi-on' : ''}`,
+        `${tat ? '⊘ ' : ''}${esc(b.ma)} ${esc(b.ten)}`);
+      c.type = 'button';
+      c.disabled = khoa;
+      c.setAttribute('aria-pressed', tat ? 'true' : 'false');
+      c.addEventListener('click', () => {
+        const moi = new Set(nghi);
+        if (tat) moi.delete(b.ma); else moi.add(b.ma);
+        const giaTriMoi = tatDuoc.filter((x) => moi.has(x.ma)).map((x) => x.ma).join('\n');
+        const daGhi = tat ? [] : muc.filter((m) => m.buoc === b.ma && daCham(m, giaTri[m.f]));
+        if (!daGhi.length) { doiVaVeLai('buoc_nghi', giaTriMoi); return; }
+        confirm2Step({
+          title: `${b.ten} không chạy?`,
+          message: `Đã ghi ${daGhi.length} mục của ${b.ten}. Tắt thì các mục đó ẩn khỏi `
+            + 'lượt, khỏi tờ in và không sinh sự cố (giá trị vẫn giữ trong hồ sơ).',
+          confirmLabel: 'KHÔNG CHẠY',
+          onConfirm: () => doiVaVeLai('buoc_nghi', giaTriMoi),
+        });
+      });
+      chips.appendChild(c);
+    });
+    box.appendChild(chips);
+    container.appendChild(box);
+  }
+
   // ── thân: từng bước, từng mục ───────────────────────────────────────
   const than = el('div');
   container.appendChild(than);

@@ -344,3 +344,10 @@ button.sx-qc-tag-chon {
    rộng 100% + padding mà không border-box là tràn mép phải trên điện thoại. */
 .sx-modal .sx-textarea { box-sizing: border-box; max-width: 100%; }
 .sx-qc-lm-hang .sx-qc-oso-khung { box-sizing: border-box; }
+
+/* ── D107: công đoạn không chạy ─────────────────────────────────────────── */
+.sx-qc-nghi { padding: var(--sx-s2) var(--sx-s3); }
+.sx-qc-vi-o.sx-qc-nghi-on {
+  background: var(--sx-surface-2); border-color: var(--sx-line-2);
+  color: var(--sx-text-2); text-decoration: line-through; font-weight: 600;
+}

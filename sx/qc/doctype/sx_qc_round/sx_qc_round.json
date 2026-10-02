@@ -26,6 +26,7 @@
   "so_muc_ap_dung",
   "so_muc_da_cham",
   "section_may",
+  "buoc_nghi",
   "so_may_rang",
   "column_break_may_1",
   "so_may_nghien",
@@ -240,7 +241,13 @@
   {
    "fieldname": "section_may",
    "fieldtype": "Section Break",
-   "label": "Máy đang chạy"
+   "label": "Máy và công đoạn đang chạy"
+  },
+  {
+   "fieldname": "buoc_nghi",
+   "fieldtype": "Small Text",
+   "label": "Công đoạn không chạy",
+   "description": "Mã bước, mỗi dòng một mã (2 Luộc, 3 Rang, 4 Sàng cát, 6 Vỡ đỗ, 7 Nghiền, 10 Ủ sau trộn, 12 Đóng gói). Ghi từ màn lượt kiểm."
   },
   {
    "fieldname": "so_may_rang",

@@ -52,7 +52,8 @@ SO_NGAY_MAC_DINH = 30      # cửa sổ mặc định cho list / dashboard
 NHOM_BOT = "BTP-Bot-SP"
 
 # Mục ghi được qua save_round dù không phải mục kiểm (không nằm trong ma trận).
-TRUONG_PHU = ("ghi_chu", "co_san_xuat_bot") + tuple(t[2] for t in M.NHOM_MAY.values())
+TRUONG_PHU = ("ghi_chu", "co_san_xuat_bot", "buoc_nghi") \
+    + tuple(t[2] for t in M.NHOM_MAY.values())
 
 
 def _roles():
@@ -177,6 +178,7 @@ def get_today(ngay=None):
         "loai_bot": _loai_bot(),
         "nhom_may": {n: {"ten": t[0], "toi_da": t[1], "truong": t[2]}
                      for n, t in M.NHOM_MAY.items()},
+        "buoc_tat_duoc": list(M.BUOC_TAT_DUOC),
         "buoc": [{"ma": a, "ten": b, "oprp": c, "ghi": e} for a, b, c, e in M.BUOC],
         "nguong": {k: v for k, v in nguong().items() if k != "khung"},
         # Khung giờ hiện ngay trên thẻ lượt: QC biết mình còn bao lâu trước khi
@@ -229,6 +231,8 @@ def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ca=None):
     if truoc:
         for _n, (_t, _max, truong) in M.NHOM_MAY.items():
             moi[truong] = truoc.get(truong) or 1
+        # Công đoạn nghỉ buổi sáng thường nghỉ cả ngày (D107).
+        moi["buoc_nghi"] = truoc.get("buoc_nghi")
         if cint(co_san_xuat_bot) and truoc.get("san_pham_bot"):
             moi["san_pham_bot"] = truoc.san_pham_bot
     doc = frappe.get_doc(moi)
@@ -258,7 +262,7 @@ def _luot_truoc_cung_ngay(d, luot):
     t = M.thu_tu_luot(luot)
     ds = [r for r in frappe.get_all(
         "SX QC Round", filters={"ngay": d, "docstatus": ("<", 2)},
-        fields=["name", "luot", "creation", "san_pham_bot"]
+        fields=["name", "luot", "creation", "san_pham_bot", "buoc_nghi"]
         + [x[2] for x in M.NHOM_MAY.values()])
         if M.thu_tu_luot(r.luot) < t]
     ds.sort(key=lambda r: (M.thu_tu_luot(r.luot), str(r.creation or "")))
@@ -370,6 +374,7 @@ def chi_tiet_round(name):
     ap = [m["f"] for m in M.muc_ap_dung(doc.luot, doc)]
     return {
         "so_may": M.boi_canh(doc)["may"],
+        "buoc_nghi": M.buoc_nghi(doc.get("buoc_nghi")),
         "co_lac": cint(doc.get("co_lac")),
         "can_thu_lac": cint(doc.get("can_thu_lac")),
         "name": doc.name,
@@ -799,9 +804,15 @@ def _to_ngay(ngay, kem_style=True):
             })
     loai_bot = [(r.luot, ", ".join(M.tach_chon(r.get("san_pham_bot"))))
                 for r in rounds if cint(r.co_san_xuat_bot) and r.get("san_pham_bot")]
+    # D107: ô xám của công đoạn nghỉ phải có lời giải thích trên tờ in — auditor
+    # thấy cả hàng Rang trống mà không thấy chữ nào là hỏi ngay.
+    ten_buoc = {ma: ten for ma, ten, *_r in M.BUOC}
+    buoc_nghi = [(r.luot, ", ".join(f"{ma} {ten_buoc[ma]}" for ma in M.buoc_nghi(r.get("buoc_nghi"))))
+                 for r in rounds if M.buoc_nghi(r.get("buoc_nghi"))]
     return frappe.render_template("sx/qc/day_sheet.html", {
         "ngay": d, "rounds": rounds, "hang": hang, "co_bot": co_bot,
         "loai_bot": loai_bot,
+        "buoc_nghi": buoc_nghi,
         "kem_style": kem_style,
         "su_co": frappe.get_all(
             "SX Su Co", filters={"ngay": d}, order_by="creation",

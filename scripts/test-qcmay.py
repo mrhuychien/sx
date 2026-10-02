@@ -464,5 +464,43 @@ ui = open("sx/public/sx/components/qcui.js", encoding="utf-8").read()
 kiem("ô máy 2/3 tô màu theo ngưỡng của ô gốc", "trangThaiSo(goc," in ui)
 kiem("ô nhiệt độ hàn có ngưỡng trên màn hình", "'b8_nhiet_han'" in ui)
 
+# ═══ 7. Công đoạn không chạy (D107) ═══════════════════════════════════════
+print("\n-- công đoạn không chạy --")
+LUOT.clear(); CAI_DAT.clear()
+kiem("tắt Rang → mọi mục Rang (cả máy 2) không áp dụng",
+     not {m["f"] for m in M.MUC if m["buoc"] == "3"} & ap(buoc_nghi="3", so_may_rang=2))
+kiem("… các bước khác vẫn nguyên", "luoc_soi_du" in ap(buoc_nghi="3")
+     and "do_min_dat" in ap(buoc_nghi="3"))
+kiem("không tắt được PRP đầu ca / kho bột / lượt tuần dù gõ tay mã",
+     {"a1_ve_sinh", "thung_bot_qua_han"} <= ap("Đầu sáng", buoc_nghi="A\n8\nC")
+     and "t1_be_nuoc" in ap("Tuần", buoc_nghi="C"))
+kiem("chuẩn hoá: bỏ mã lạ, đúng thứ tự quy trình",
+     M.buoc_nghi("12\nX\n3\nA\n2") == ["2", "3", "12"])
+kiem("nhiệt độ rang KHÔNG còn bắt buộc khi Rang không chạy",
+     not any(m["batbuoc"] for m in M.muc_cham("Trưa", Doc(buoc_nghi="3"))))
+kiem("số cũ trong ô Rang không sinh sự cố khi Rang không chạy",
+     not sc(buoc_nghi="3", rang_nhiet_do=200) and sc(rang_nhiet_do=200))
+kiem("vật bắt ở nam châm không cảnh báo khi Vỡ đỗ không chạy",
+     not SC.canh_bao(Doc(luot="Đầu sáng", buoc_nghi="6", nam_cham_vat="ốc vít"))
+     and SC.canh_bao(Doc(luot="Đầu sáng", nam_cham_vat="ốc vít")))
+d = validate(buoc_nghi="12\nA\n3")
+kiem("server lọc lúc lưu: chỉ giữ bước tắt được", d.buoc_nghi == "3\n12", repr(d.buoc_nghi))
+kiem("… và số mục phải chấm giảm theo", d.so_muc_ap_dung == len(M.muc_cham("Trưa", d))
+     and d.so_muc_ap_dung < len(M.muc_cham("Trưa", Doc())))
+kiem("ghi được qua save_round (có nhật ký)", "buoc_nghi" in Q.TRUONG_PHU)
+LUOT.append(Doc({"name": "QC-1", "ngay": "2026-09-29", "luot": "Đầu sáng", "docstatus": 1,
+                 "creation": "1", "buoc_nghi": "3", "san_pham_bot": None}))
+tr = Q._luot_truoc_cung_ngay("2026-09-29", "Trưa")
+kiem("lượt sau trong ngày nhận lại công đoạn nghỉ", tr and tr.buoc_nghi == "3")
+LUOT.clear()
+jd2 = {f["fieldname"]: f for f in json.load(open(
+    "sx/qc/doctype/sx_qc_round/sx_qc_round.json", encoding="utf-8"))["fields"]}
+kiem("phiếu có ô công đoạn không chạy", jd2.get("buoc_nghi", {}).get("fieldtype") == "Small Text")
+rjs2 = open("sx/public/sx/views/qc_round.js", encoding="utf-8").read()
+kiem("màn lượt có hàng chọn công đoạn không chạy, gửi qua doiVaVeLai",
+     "doiVaVeLai('buoc_nghi'" in rjs2 and "hom.buoc_tat_duoc" in rjs2)
+html = open("sx/qc/day_sheet.html", encoding="utf-8").read()
+kiem("tờ in BM.08.01 ghi rõ công đoạn không chạy", "Công đoạn không chạy" in html)
+
 print("QCMAY-OK" if not hong else f"QCMAY: {hong} HỎNG")
 sys.exit(1 if hong else 0)
