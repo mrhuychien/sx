@@ -188,6 +188,12 @@ python3 scripts/test-luong.py > /tmp/sx-luong.log 2>&1 \
   && tail -1 /tmp/sx-luong.log \
   || { cat /tmp/sx-luong.log; loi=1; }
 
+# D111: nút copy sản lượng từng hỏng im lặng (hàm ngoài render gọi biến trong render).
+# Bấm đúng nút trong Chromium thật và đọc lại clipboard.
+node scripts/test-copy.mjs > /tmp/sx-copy.log 2>&1 \
+  && tail -1 /tmp/sx-copy.log \
+  || { cat /tmp/sx-copy.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

@@ -242,7 +242,8 @@ export async function render({ container, boot, call, ensureNgay }) {
   });
 
   container.querySelector('#sx-vh-copy').addEventListener('click', () => {
-    copySanLuong(theoNguoi(), (boot.ngay_sx && boot.ngay_sx.ngay) || boot.ngay_xem);
+    copySanLuong(theoNguoi(), (boot.ngay_sx && boot.ngay_sx.ngay) || boot.ngay_xem,
+      (code) => { const k = tenSPKhoan(code); return k && k !== code ? k : tenSP(code); });
   });
 
   async function save() {
@@ -574,8 +575,10 @@ function openCachLamPicker(ten, sp, onPick) {
 
 // Copy sản lượng ra clipboard để dán vào nhóm chat — công nhân tự đối chiếu (D27).
 // Người có nhiều loại thì ghi tắt: "Khanh (Vào hộp 170: 29, Vào hộp 300: 50)".
-function copySanLuong(nhom, ngay) {
-  if (!nhom.length) { toastErr('Chưa có dòng nào để copy.'); return; }
+/** Văn bản sản lượng gửi nhóm chat. Hàm THUẦN — `tenSP(code)` truyền vào từ
+ *  render(), nơi có danh mục mã hàng. (Trước đây hàm này gọi thẳng `tenSP` vốn chỉ
+ *  sống TRONG render() → bấm nút là lỗi "tenSP is not defined", không copy gì.) */
+export function vanBanSanLuong(nhom, ngay, tenSP) {
   const d = (ngay || '').split('-');
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
   const dong = nhom.map((g) => {
@@ -583,17 +586,38 @@ function copySanLuong(nhom, ngay) {
     return `${g.ten} (${ct})`;
   });
   const tong = nhom.reduce((a, g) => a + g.dong.reduce((x, r) => x + (Number(r.so_hop) || 0), 0), 0);
-  const text = `${tieuDe}\n${dong.join('\n')}\n— Tổng: ${formatNumber(tong)} sản phẩm`;
-  chepVaoClipboard(text);
+  return `${tieuDe}\n${dong.join('\n')}\n— Tổng: ${formatNumber(tong)} sản phẩm`;
+}
+
+function copySanLuong(nhom, ngay, tenSP) {
+  if (!nhom.length) { toastErr('Chưa có dòng nào để copy.'); return; }
+  chepVaoClipboard(vanBanSanLuong(nhom, ngay, tenSP));
+}
+
+/** Copy kiểu cũ (execCommand) — chạy được cả khi trang mở bằng http hoặc trình
+ *  duyệt chặn Clipboard API, là chuyện thường trên điện thoại xưởng. */
+function chepKieuCu(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
 }
 
 function chepVaoClipboard(text) {
   const xong = () => toast('Đã copy — dán vào nhóm chat.');
+  const duPhong = () => (chepKieuCu(text) ? xong() : hienDeChepTay(text));
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(xong, () => hienDeChepTay(text));
+    navigator.clipboard.writeText(text).then(xong, duPhong);
     return;
   }
-  hienDeChepTay(text);   // http / trình duyệt cũ: clipboard API không dùng được
+  duPhong();
 }
 
 function hienDeChepTay(text) {
