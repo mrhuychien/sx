@@ -578,7 +578,12 @@ function openCachLamPicker(ten, sp, onPick) {
 /** Văn bản sản lượng gửi nhóm chat. Hàm THUẦN — `tenSP(code)` truyền vào từ
  *  render(), nơi có danh mục mã hàng. (Trước đây hàm này gọi thẳng `tenSP` vốn chỉ
  *  sống TRONG render() → bấm nút là lỗi "tenSP is not defined", không copy gì.) */
-export function vanBanSanLuong(nhom, ngay, tenSP) {
+export function vanBanSanLuong(nhomVao, ngay, tenSP) {
+  // Bỏ dòng CÔNG NHẬT: tin gửi nhóm là để từng công nhân khoán đối chiếu số của
+  // mình — công nhật không phải một người, cũng không ai đối chiếu dòng đó.
+  const nhom = nhomVao
+    .map((g) => ({ ...g, dong: g.dong.filter((r) => r.nhan_vien !== CONG_NHAT) }))
+    .filter((g) => g.dong.length);
   const d = (ngay || '').split('-');
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
   const dong = nhom.map((g) => {
@@ -590,7 +595,9 @@ export function vanBanSanLuong(nhom, ngay, tenSP) {
 }
 
 function copySanLuong(nhom, ngay, tenSP) {
-  if (!nhom.length) { toastErr('Chưa có dòng nào để copy.'); return; }
+  if (!nhom.some((g) => g.dong.some((r) => r.nhan_vien !== CONG_NHAT))) {
+    toastErr('Chưa có dòng công khoán nào để copy.'); return;
+  }
   chepVaoClipboard(vanBanSanLuong(nhom, ngay, tenSP));
 }
 

@@ -30,13 +30,13 @@ rmSync(tam);
 console.log('-- văn bản gửi nhóm --');
 const nhom = [
   { ten: 'An', dong: [{ san_pham: 'TP-SEN', so_hop: 120 }, { san_pham: 'TP-TT', so_hop: 30 }] },
-  { ten: '★ Công nhật', dong: [{ san_pham: 'TP-SEN', so_hop: 50 }] },
+  { ten: '★ Công nhật', dong: [{ nhan_vien: 'CONG_NHAT', san_pham: 'TP-SEN', so_hop: 50 }] },
 ];
 const vb = vanBanSanLuong(nhom, '2026-10-05', (c) => ({ 'TP-SEN': 'Bánh sen', 'TP-TT': 'Bánh TT' }[c]));
 kiem('tiêu đề có ngày dd/mm/yyyy', vb.startsWith('SẢN LƯỢNG 05/10/2026\n'), JSON.stringify(vb));
 kiem('mỗi người một dòng, tên hàng thay mã', vb.includes('An (Bánh sen: 120, Bánh TT: 30)'));
-kiem('công nhật có dòng riêng', vb.includes('★ Công nhật (Bánh sen: 50)'));
-kiem('tổng cộng cả công nhật', vb.trim().endsWith('— Tổng: 200 sản phẩm'));
+kiem('KHÔNG có dòng công nhật', !vb.includes('Công nhật'), JSON.stringify(vb));
+kiem('tổng chỉ tính công khoán (không cộng công nhật)', vb.trim().endsWith('— Tổng: 150 sản phẩm'));
 kiem('mã không có tên → hiện "?" chứ không vỡ', vanBanSanLuong(
   [{ ten: 'B', dong: [{ san_pham: 'X', so_hop: 1 }] }], '', () => undefined).includes('B (?: 1)'));
 
@@ -54,7 +54,8 @@ import { render } from '/assets/sx/sx/cards/vaohop.js';
 const boot = { ngay_xem: '2026-10-05', ngay_sx: { name: 'N1', ngay: '2026-10-05', docstatus: 0 },
   bang_don_gia: 'BG', items_tp: [{ name: 'TP-SEN', item_name: 'Bánh đậu xanh sen' }],
   danh_muc_khoan: [], nhan_vien: [{ name: 'NV1', employee_name: 'Nguyễn Thị An', ten_hien_thi: 'An' }],
-  bang_vao_hop: { dong: [{ nhan_vien: 'NV1', ten_nhan_vien: 'Nguyễn Thị An', san_pham: 'TP-SEN', so_hop: 120 }], an_ca: [] } };
+  bang_vao_hop: { dong: [{ nhan_vien: 'NV1', ten_nhan_vien: 'Nguyễn Thị An', san_pham: 'TP-SEN', so_hop: 120 },
+    { nhan_vien: 'CONG_NHAT', ten_nhan_vien: 'Công nhật', cong_nhat: 1, san_pham: 'TP-SEN', so_hop: 50 }], an_ca: [] } };
 await render({ container: document.getElementById('c'), boot, call: async () => ({}), ensureNgay: async () => boot.ngay_sx });
 window.SAN_SANG = true;
 </script>`;
@@ -88,6 +89,7 @@ window.SAN_SANG = true;
   kiem('bấm nút không lỗi JavaScript', !loi.length, loi.join(' | '));
   kiem('clipboard có sản lượng, tên hàng thay mã',
     clip.includes('SẢN LƯỢNG 05/10/2026') && clip.includes('An (Bánh đậu xanh sen: 120)'), JSON.stringify(clip));
+  kiem('clipboard không có công nhật, tổng 120', !clip.includes('ông nhật') && clip.includes('Tổng: 120'));
 }
 
 console.log(hong ? `COPY: ${hong} HỎNG` : 'COPY-OK');
