@@ -182,6 +182,12 @@ node scripts/test-anh.mjs > /tmp/sx-anh.log 2>&1 \
   && tail -1 /tmp/sx-anh.log \
   || { cat /tmp/sx-anh.log; loi=1; }
 
+# D110: thẻ phiếu lương chỉ đọc nhưng là TIỀN LƯƠNG — phiếu đã huỷ lọt vào tổng,
+# hay người ngoài quản lý mở được, đều là sai người ta tin và đọc to.
+python3 scripts/test-luong.py > /tmp/sx-luong.log 2>&1 \
+  && tail -1 /tmp/sx-luong.log \
+  || { cat /tmp/sx-luong.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

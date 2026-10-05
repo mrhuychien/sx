@@ -1894,3 +1894,13 @@ main > .container {
 .sx-lich-ct-tong { font-size: var(--sx-f-lg); margin-bottom: var(--sx-s2); }
 .sx-lich-so-dai { font-size: 11px; letter-spacing: -0.3px; }
 .sx-lich-so { text-overflow: clip; }
+
+/* ── D110: thẻ phiếu lương ──────────────────────────────────────────────── */
+.sx-pl-tong { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: var(--sx-s2); margin: var(--sx-s2) 0; }
+.sx-pl-tong > div { display: flex; flex-direction: column; gap: 2px; }
+.sx-pl-tong b { font-size: var(--sx-f-md); }
+.sx-pl-dong { width: 100%; border: 0; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.sx-modal-body a.sx-btn { display: flex; align-items: center; justify-content: center; text-decoration: none; margin-top: var(--sx-s3); }
+.sx-lich-nut > span:first-child { white-space: nowrap; }
+.sx-pl-tong b { white-space: nowrap; }
+.sx-modal-body a.sx-btn { box-sizing: border-box; width: 100%; }

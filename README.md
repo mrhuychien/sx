@@ -273,6 +273,17 @@ một dòng vào **sổ nợ đơn giá** (`SX No Don Gia`), và hộp cảnh b�
 - Huỷ chốt Vào hộp / huỷ chốt ngày: nợ đang mở → *Đã huỷ*; chốt lại tra giá từ đầu.
 - Chỉ **Quản lý** xem và xử lý.
 
+## Thẻ Phiếu lương trên màn Quản lý (D110)
+
+Thẻ **💰 Phiếu lương** (gập sẵn, sau thẻ Chốt ngày), chỉ Quản lý. ‹ › đổi tháng; tổng
+thực nhận / lương SP / số phiếu đã duyệt; ô tìm tên; mỗi người một dòng (thực nhận, lương
+SP, ngày công, nhãn *đã duyệt* / *nợ giá*). Bấm một người → các khoản (cộng → tổng thu
+nhập → trừ → thực nhận), sản phẩm trong tháng gộp theo mã (số lượng × đơn giá), từng ngày
+(ăn ca/đêm, hệ số Chủ nhật), lỗi phạt; nút **Mở trên Desk để sửa / duyệt**.
+
+Chỉ đọc: số lấy nguyên từ phiếu (không tính lại), phiếu đã huỷ không tính. Sửa / duyệt
+vẫn trên Desk (`sx/api/luong.py`).
+
 ## Lịch tháng ở tab Ghi hộp / Ghi sổ / Nhập kho (D108)
 
 Cuối mỗi tab có thẻ **📅 … cả tháng** (gập sẵn, bấm để mở — nhớ trạng thái mở theo tab).

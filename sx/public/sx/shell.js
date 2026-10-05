@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-77';
+const BUILD = 'sx-78';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -39,6 +39,7 @@ const CARD_PATHS = {
   nogia: '/assets/sx/sx/cards/nogia.js',
   novaohop: '/assets/sx/sx/cards/novaohop.js',
   lichvaohop: '/assets/sx/sx/cards/lichvaohop.js',
+  phieuluong: '/assets/sx/sx/cards/phieuluong.js',
   lichghiso: '/assets/sx/sx/cards/lichghiso.js',
   lichnhapkho: '/assets/sx/sx/cards/lichnhapkho.js',
 };
