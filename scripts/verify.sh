@@ -194,6 +194,12 @@ node scripts/test-copy.mjs > /tmp/sx-copy.log 2>&1 \
   && tail -1 /tmp/sx-copy.log \
   || { cat /tmp/sx-copy.log; loi=1; }
 
+# D113: hai QC ghi vào hộp cùng ngày. Trước D113 lần lưu của người này XOÁ dòng của
+# người kia (ghi đè cả bảng) mà không ai biết.
+python3 scripts/test-ghihop.py > /tmp/sx-ghihop.log 2>&1 \
+  && tail -1 /tmp/sx-ghihop.log \
+  || { cat /tmp/sx-ghihop.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

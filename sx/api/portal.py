@@ -198,6 +198,15 @@ def _ngay_summary(ten):
     }
 
 
+def _xem_het_vao_hop():
+    """Quản lý thấy / sửa mọi dòng vào hộp; QC chỉ dòng mình ghi (D113)."""
+    return is_super(user_roles())
+
+
+def _cua_toi(r, u=None):
+    return _xem_het_vao_hop() or r.get("nguoi_ghi") == (u or frappe.session.user)
+
+
 def _bang_summary(ngay_sx):
     ten = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": ("<", 2)}, "name"
@@ -205,11 +214,14 @@ def _bang_summary(ngay_sx):
     if not ten:
         return None
     doc = frappe.get_doc("SX Bang Vao Hop", ten)
+    # D113: QC chỉ thấy dòng MÌNH ghi — tổng cũng chỉ là phần của mình.
+    dong = [r for r in doc.dong if _cua_toi(r)]
     return {
         "name": doc.name,
         "docstatus": doc.docstatus,
-        "tong_hop": doc.tong_hop,
-        "tong_tien": doc.tong_tien,
+        "xem_het": _xem_het_vao_hop(),
+        "tong_hop": sum(cint(r.so_hop) for r in dong),
+        "tong_tien": sum(flt(r.thanh_tien) for r in dong),
         "dong": [
             # Dòng công nhật đi ra với mã giả CONG_NHAT (D101) — màn Ghi hộp coi nó
             # như một "người" để chấm cùng một cách, và gửi lại đúng mã đó.
@@ -217,8 +229,10 @@ def _bang_summary(ngay_sx):
              "ten_nhan_vien": _("Công nhật") if cint(r.get("cong_nhat")) else r.ten_nhan_vien,
              "cong_nhat": cint(r.get("cong_nhat")),
              "san_pham": r.san_pham, "cach_lam": r.cach_lam, "so_hop": r.so_hop,
-             "don_gia": r.don_gia, "thanh_tien": r.thanh_tien}
-            for r in doc.dong
+             "don_gia": r.don_gia, "thanh_tien": r.thanh_tien,
+             # name = mã dòng: máy gửi lại để server biết sửa / xoá ĐÚNG dòng nào.
+             "name": r.name, "nguoi_ghi": r.get("nguoi_ghi")}
+            for r in dong
         ],
         "an_ca": [
             {"nhan_vien": r.nhan_vien, "an_ca": cint(r.an_ca), "an_dem": cint(r.an_dem)}
@@ -437,43 +451,98 @@ def su_co_cua_ngay(ngay_sx):
 
 
 @frappe.whitelist()
-def luu_bang_vao_hop(ngay_sx, rows, an_ca=None):
-    """Upsert DRAFT SX Bang Vao Hop (auto-save). Đơn giá luôn tính lại server-side.
+def luu_bang_vao_hop(ngay_sx, rows, an_ca=None, biet=None):
+    """Lưu bảng vào hộp NHÁP (auto-save) — GỘP, không ghi đè cả bảng (D113).
 
-    `an_ca` = [{nhan_vien, an_ca, an_dem}] (D30). Bỏ qua (None) thì GIỮ NGUYÊN bảng
-    chấm ăn đang có — client nào chỉ sửa sản lượng sẽ không vô tình xoá dấu chấm ăn.
+    Hai QC ghi cùng một ngày. Trước D113 mỗi lần lưu máy gửi CẢ danh sách nó đang
+    thấy và server THAY HẾT bảng: QC A mở màn lúc 8h, QC B ghi 10 dòng lúc 8h05,
+    8h10 A chấm thêm một người → 10 dòng của B biến mất, không ai biết.
+
+    Từ D113:
+      · `rows` = mọi dòng CỦA NGƯỜI GỬI (quản lý: mọi dòng) mà máy đang có; dòng cũ
+        mang `name`, dòng mới không có.
+      · `biet` = các `name` máy đã nhận từ server lần trước. Server chỉ XOÁ dòng
+        của người gửi nằm trong `biet` mà không còn trong `rows`. Dòng người khác,
+        và dòng người gửi thêm từ máy khác (không có trong `biet`), giữ nguyên.
+      · Máy bản cũ không gửi `biet` → coi như biết mọi dòng CỦA MÌNH (vẫn không
+        đụng được dòng người khác).
+      · `an_ca` = [{nhan_vien, an_ca, an_dem}] chỉ những người VỪA ĐỔI; gộp theo
+        người, 0/0 là bỏ chấm. Bỏ qua (None) thì giữ nguyên.
+    Đơn giá luôn tính lại server-side.
     """
     guard_card("vaohop")
     _chan_neu_chot(ngay_sx, "vaohop", _("sửa bảng vào hộp"))
+    u = frappe.session.user
     ten = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": 0}, "name"
     )
     doc = frappe.get_doc("SX Bang Vao Hop", ten) if ten else frappe.new_doc("SX Bang Vao Hop")
     doc.ngay_sx = ngay_sx
-    doc.set("dong", [])
+
+    biet = None if biet is None else set(frappe.parse_json(biet) or [])
+    # Dòng người gửi ĐƯỢC đụng: của mình (quản lý: mọi dòng) VÀ máy đã biết.
+    duoc_sua = {r.name for r in doc.dong if r.name and _cua_toi(r, u)
+                and (biet is None or r.name in biet)}
+    now = frappe.utils.now_datetime()
+    sua, them = {}, []
+
+    def _khoa(nv, cn, sp, cl, sl):
+        return (None if cn else nv, 1 if cn else 0, sp or None, cl or None, cint(sl))
+
+    # Dòng CỦA MÌNH mà máy CHƯA biết — thường là bản hàng chờ vừa gửi lại khi có
+    # mạng (máy vẫn giữ các dòng đó mà chưa có mã). Dòng không mã trùng y hệt một
+    # dòng như vậy thì là CÙNG một dòng, không thêm bản thứ hai.
+    la = {}
+    if biet is not None:
+        for r in doc.dong:
+            if r.name and r.name not in biet and _cua_toi(r, u):
+                k = _khoa(r.nhan_vien, cint(r.get("cong_nhat")), r.san_pham, r.cach_lam, r.so_hop)
+                la.setdefault(k, []).append(r.name)
     for r in frappe.parse_json(rows) or []:
         cn = r.get("nhan_vien") == CONG_NHAT or cint(r.get("cong_nhat"))
-        doc.append(
-            "dong",
-            {"nhan_vien": None if cn else r.get("nhan_vien"),
-             "cong_nhat": 1 if cn else 0,
-             "san_pham": r.get("san_pham") or None,
-             "cach_lam": r.get("cach_lam") or None,
-             "so_hop": cint(r.get("so_hop"))},
-        )
+        vals = {"nhan_vien": None if cn else r.get("nhan_vien"),
+                "cong_nhat": 1 if cn else 0,
+                "san_pham": r.get("san_pham") or None,
+                "cach_lam": r.get("cach_lam") or None,
+                "so_hop": cint(r.get("so_hop"))}
+        if r.get("name") in duoc_sua:
+            sua[r["name"]] = vals
+        elif r.get("name"):
+            continue      # mã dòng không phải của mình / đã mất: KHÔNG tạo bản sao
+        elif la.get(_khoa(vals["nhan_vien"], cn, vals["san_pham"], vals["cach_lam"],
+                          vals["so_hop"])):
+            la[_khoa(vals["nhan_vien"], cn, vals["san_pham"], vals["cach_lam"],
+                     vals["so_hop"])].pop()      # đã có trên server — giữ nguyên
+        else:
+            them.append(dict(vals, nguoi_ghi=u, ghi_luc=now))
+    con = []
+    for r in doc.dong:
+        if r.name in duoc_sua:
+            if r.name not in sua:
+                continue                      # người gửi đã xoá dòng này
+            r.update(sua[r.name])
+            if not r.get("nguoi_ghi"):
+                r.nguoi_ghi = u
+        con.append(r)
+    doc.set("dong", con)
+    for v in them:
+        doc.append("dong", v)
+
     if an_ca is not None:
-        doc.set("an_ca", [])
+        hien = {r.nhan_vien: r for r in (doc.get("an_ca") or [])}
         for r in frappe.parse_json(an_ca) or []:
-            if not (cint(r.get("an_ca")) or cint(r.get("an_dem"))):
-                continue   # không chấm gì thì khỏi lưu dòng rỗng
-            if r.get("nhan_vien") == CONG_NHAT:
+            nv = r.get("nhan_vien")
+            if not nv or nv == CONG_NHAT:
                 continue   # công nhật không phải một người — không chấm ăn ở đây
-            doc.append(
-                "an_ca",
-                {"nhan_vien": r.get("nhan_vien"),
-                 "an_ca": cint(r.get("an_ca")),
-                 "an_dem": cint(r.get("an_dem"))},
-            )
+            hien[nv] = {"nhan_vien": nv, "an_ca": cint(r.get("an_ca")),
+                        "an_dem": cint(r.get("an_dem"))}
+        doc.set("an_ca", [])
+        for nv, r in hien.items():
+            g = r if isinstance(r, dict) else {"nhan_vien": nv, "an_ca": r.an_ca,
+                                                "an_dem": r.an_dem}
+            if cint(g["an_ca"]) or cint(g["an_dem"]):
+                doc.append("an_ca", {"nhan_vien": nv, "an_ca": cint(g["an_ca"]),
+                                     "an_dem": cint(g["an_dem"])})
     doc.flags.ignore_permissions = True
     # Xoá hết dòng mà cũng không chấm ăn ca → không còn gì để lưu: xoá luôn bảng
     # NHÁP thay vì giữ một bảng rỗng (D106). Trước D106 bảng bắt buộc có ít nhất một

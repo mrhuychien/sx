@@ -22,6 +22,11 @@ export async function render({ container, boot, call, ensureNgay }) {
   const ngay = boot.ngay_sx;
   const daChot = ngay && (ngay.docstatus === 1 || ngay.chot_vaohop);  // nửa Vào hộp (D55)
   const rows = ((boot.bang_vao_hop || {}).dong || []).map((r) => ({ ...r }));
+  // D113: mỗi QC chỉ thấy dòng MÌNH ghi (quản lý thấy hết). `biet` = mã dòng máy đã
+  // nhận từ server — server chỉ xoá dòng nằm trong đây, nên hai QC ghi cùng lúc
+  // không xoá mất dòng của nhau.
+  let biet = rows.map((r) => r.name).filter(Boolean);
+  const thayHet = !!(boot.bang_vao_hop ? boot.bang_vao_hop.xem_het : boot.is_quan_ly);
   const itemsTp = boot.items_tp || [];
   // D68: ghi thẳng theo MÃ HÀNG, không còn Activity Type. Cùng một mã làm tay hay
   // có máy hỗ trợ thì đơn giá khác nhau, nên cách làm là một chiều riêng.
@@ -34,6 +39,9 @@ export async function render({ container, boot, call, ensureNgay }) {
   (((boot.bang_vao_hop || {}).an_ca) || []).forEach((r) => {
     anCa[r.nhan_vien] = { an_ca: Number(r.an_ca) || 0, an_dem: Number(r.an_dem) || 0 };
   });
+  // Ảnh chụp ăn ca lần lưu cuối — chỉ gửi người VỪA ĐỔI, để hai QC chấm ăn cho hai
+  // nhóm người khác nhau không đè lên nhau.
+  let anCaGoc = JSON.parse(JSON.stringify(anCa));
   // Tên ngắn (chỉ tên gọi; trùng thì server đã thêm họ / viết tắt đệm)
   const tenNgan = {};
   nhanVien.forEach((nv) => { tenNgan[nv.name] = nv.ten_hien_thi || nv.employee_name || nv.name; });
@@ -62,6 +70,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     </div>
     ${boot.canh_bao_nhan_vien ? `<div class="sx-warn-text">⚠ ${esc(boot.canh_bao_nhan_vien)}</div>` : ''}
     ${daChot ? '<div class="sx-muted">Đã chốt — chỉ xem. Muốn sửa: bấm HUỶ CHỐT NGÀY bên thẻ Chốt ngày.</div>' : ''}
+    ${thayHet ? '' : '<div class="sx-muted">Bạn đang thấy phần <b>mình ghi</b>. QC khác ghi riêng phần của họ; tổng cả ngày xem ở màn Quản lý.</div>'}
     <div class="sx-vh-strip" id="sx-vh-strip"></div>
     ${daChot ? '' : `
       <div class="sx-field-label" id="sx-vh-nhan">Chấm hộp cho công nhân</div>
@@ -136,7 +145,8 @@ export async function render({ container, boot, call, ensureNgay }) {
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(g.ten)}</div>
             <div class="sx-vh-meta">${esc(tenSPKhoan(r.san_pham) || '—')}${
-              r.cach_lam ? ` · ${esc(r.cach_lam)}` : ''}${cn ? ' · không tính khoán' : ''}</div>
+              r.cach_lam ? ` · ${esc(r.cach_lam)}` : ''}${cn ? ' · không tính khoán' : ''}${
+              thayHet && r.nguoi_ghi ? ` · ghi: ${esc(String(r.nguoi_ghi).split('@')[0])}` : ''}</div>
           </div>
           <button type="button" class="sx-vh-sl" data-i="${r._i}"${daChot ? ' disabled' : ''}
             >${esc(formatNumber(r.so_hop))}</button>
@@ -249,22 +259,31 @@ export async function render({ container, boot, call, ensureNgay }) {
   async function save() {
     try {
       const ng = await ensureNgay();
+      const doiAn = Object.entries(anCa)
+        .filter(([nv, v]) => {
+          const g = anCaGoc[nv] || { an_ca: 0, an_dem: 0 };
+          return (Number(v.an_ca) || 0) !== (Number(g.an_ca) || 0)
+            || (Number(v.an_dem) || 0) !== (Number(g.an_dem) || 0);
+        })
+        .map(([nv, v]) => ({ nhan_vien: nv, an_ca: v.an_ca, an_dem: v.an_dem }));
       const r = await call('sx.api.portal.luu_bang_vao_hop', {
         ngay_sx: ng.name,
         rows: JSON.stringify(rows.map((x) => ({
-          nhan_vien: x.nhan_vien, cach_lam: x.cach_lam,
+          name: x.name || null, nhan_vien: x.nhan_vien, cach_lam: x.cach_lam,
           san_pham: x.san_pham, so_hop: x.so_hop,
         }))),
-        an_ca: JSON.stringify(Object.entries(anCa).map(([nv, v]) => ({
-          nhan_vien: nv, an_ca: v.an_ca, an_dem: v.an_dem,
-        }))),
+        biet: JSON.stringify(biet),
+        an_ca: JSON.stringify(doiAn),
       });
+      if (r && r._hang_cho) { paint(); toast('Mất mạng — đã lưu trên máy, sẽ gửi khi có mạng.'); return; }
       rows.length = 0;
       (r && r.dong ? r.dong : []).forEach((x) => rows.push(x));
+      biet = rows.map((x) => x.name).filter(Boolean);
       Object.keys(anCa).forEach((k) => delete anCa[k]);
       ((r && r.an_ca) || []).forEach((x) => {
         anCa[x.nhan_vien] = { an_ca: Number(x.an_ca) || 0, an_dem: Number(x.an_dem) || 0 };
       });
+      anCaGoc = JSON.parse(JSON.stringify(anCa));
       // Chấm xong một người là xong việc với lưới tên — thu lại để bảng ghi hôm nay
       // trở về đúng tầm mắt, khỏi phải cuộn qua 45 cái tên.
       dongDS();

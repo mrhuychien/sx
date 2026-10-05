@@ -18,7 +18,7 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt, getdate
 
-from sx.config.roles import guard_card
+from sx.config.roles import guard_card, is_super, user_roles
 
 CARD = {"vaohop": "lichvaohop", "ghiso": "lichghiso", "nhapkho": "lichnhapkho"}
 DON_VI = {"vaohop": "hộp", "ghiso": "mẻ", "nhapkho": "sp"}
@@ -62,7 +62,15 @@ def _dong_vao_hop(ten_ngay):
         "SX Bang Vao Hop Item",
         filters={"parent": ("in", list(bang)), "parenttype": "SX Bang Vao Hop"},
         fields=["parent", "nhan_vien", "ten_nhan_vien", "san_pham", "cach_lam", "so_hop",
-                "cong_nhat"]), bang
+                "cong_nhat", "nguoi_ghi"]), bang
+
+
+def _dong_cua_toi(dong):
+    """D113: QC chỉ thấy dòng mình ghi — lịch cũng vậy. Quản lý thấy hết."""
+    if is_super(user_roles()):
+        return dong
+    u = frappe.session.user
+    return [r for r in dong if r.get("nguoi_ghi") == u]
 
 
 def _phieu_nhap(tu, den):
@@ -96,7 +104,7 @@ def thang(loai, nam, thang):
         ngay = _ngay_sx(tu, den)
         if loai == "vaohop":
             dong, bang = _dong_vao_hop(ngay)
-            for r in dong:
+            for r in _dong_cua_toi(dong):
                 n = ngay[bang[r.parent]]
                 cong(n.ngay, r.so_hop, phu=r.so_hop if cint(r.cong_nhat) else 0)
             for n in ngay.values():                    # ngày đã chốt mà 0 hộp vẫn tô
@@ -147,6 +155,7 @@ def chi_tiet(loai, ngay):
 def _ct_vao_hop(d, ra):
     ngay = _ngay_sx(d, d)
     dong, _b = _dong_vao_hop(ngay)
+    dong = _dong_cua_toi(dong)
     if any(cint(n.chot_vaohop) for n in ngay.values()):
         ra["chips"].append(_("đã chốt Vào hộp"))
     elif ngay:

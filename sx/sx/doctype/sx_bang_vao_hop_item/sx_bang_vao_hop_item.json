@@ -13,7 +13,9 @@
   "don_gia",
   "thanh_tien",
   "cach_lam",
-  "ten_san_pham"
+  "ten_san_pham",
+  "nguoi_ghi",
+  "ghi_luc"
  ],
  "fields": [
   {
@@ -95,6 +97,20 @@
    "fieldtype": "Data",
    "label": "Tên hàng",
    "fetch_from": "san_pham.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nguoi_ghi",
+   "fieldtype": "Link",
+   "label": "Người ghi",
+   "options": "User",
+   "read_only": 1,
+   "description": "QC nhập dòng này. Mỗi QC chỉ thấy và sửa dòng mình ghi (D113); quản lý thấy tất cả."
+  },
+  {
+   "fieldname": "ghi_luc",
+   "fieldtype": "Datetime",
+   "label": "Ghi lúc",
    "read_only": 1
   }
  ],

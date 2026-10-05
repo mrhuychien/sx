@@ -315,6 +315,19 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhiều QC cùng ghi vào hộp (D113)
+
+- **Mỗi QC chỉ thấy và sửa dòng mình ghi**; tổng trên màn Ghi hộp và lịch tháng của QC
+  cũng chỉ là phần của họ. **Quản lý** thấy / sửa mọi dòng (mỗi dòng ghi tên người nhập).
+- **Lưu kiểu gộp**: máy gửi các dòng của mình kèm mã dòng + danh sách mã đã biết; server
+  chỉ xoá / sửa dòng của người gửi mà máy đó đã biết. Trước D113 máy gửi cả bảng và server
+  thay hết — QC này lưu là **mất dòng của QC kia** mà không báo gì.
+- Ăn ca gộp theo từng công nhân, chỉ gửi phần vừa đổi.
+- Mất mạng: hàng chờ gửi lại không làm nhân đôi dòng; lưu vào hàng chờ không xoá trắng màn.
+- Dòng cũ (trước D113): patch gán người ghi = người tạo bảng.
+- Đánh đổi đã chọn: hai QC không thấy nhau nên có thể chấm trùng một người — phân công
+  mỗi QC một nhóm người / một dãy bàn.
+
 ## Công nhật và nợ vào hộp (D101)
 
 Xưởng có hai kiểu làm ra hộp: **công khoán** (trả theo hộp) và **công nhật** (trả theo

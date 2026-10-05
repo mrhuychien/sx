@@ -59,6 +59,7 @@ frappe.throw = lambda m, e=None: (_ for _ in ()).throw((e or Loi)(str(m)))
 frappe.whitelist = lambda *a, **k: (lambda f: f)
 frappe.PermissionError = type("PermissionError", (Loi,), {})
 frappe.get_roles = lambda u=None: list(VAI)
+frappe.session = types.SimpleNamespace(user="qc1@x")
 frappe.get_all = get_all
 frappe.db = types.SimpleNamespace(count=lambda dt, f=None: len(get_all(dt, f)))
 frappe.__dict__["_"] = lambda s: s
@@ -100,17 +101,19 @@ BANG.update({
     ],
     "SX Bang Vao Hop Item": [
         {"parent": "B1", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV1", "ten_nhan_vien": "An",
-         "san_pham": "TP-SEN", "so_hop": 100, "cong_nhat": 0},
+         "san_pham": "TP-SEN", "so_hop": 100, "cong_nhat": 0, "nguoi_ghi": "qc1@x"},
         {"parent": "B1", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV2", "ten_nhan_vien": "Bình",
-         "san_pham": "TP-SEN", "so_hop": 80, "cong_nhat": 0},
+         "san_pham": "TP-SEN", "so_hop": 80, "cong_nhat": 0, "nguoi_ghi": "qc1@x"},
         {"parent": "B1", "parenttype": "SX Bang Vao Hop", "nhan_vien": None, "ten_nhan_vien": None,
-         "san_pham": "TP-SEN", "so_hop": 50, "cong_nhat": 1},
+         "san_pham": "TP-SEN", "so_hop": 50, "cong_nhat": 1, "nguoi_ghi": "qc1@x"},
         {"parent": "B2", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV1", "ten_nhan_vien": "An",
-         "san_pham": "TP-TT", "so_hop": 30, "cong_nhat": 0},
+         "san_pham": "TP-TT", "so_hop": 30, "cong_nhat": 0, "nguoi_ghi": "qc1@x"},
+        {"parent": "B1", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV3", "ten_nhan_vien": "Cúc",
+         "san_pham": "TP-SEN", "so_hop": 40, "cong_nhat": 0, "nguoi_ghi": "qc2@x"},
         {"parent": "B2-HUY", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV1", "ten_nhan_vien": "An",
-         "san_pham": "TP-TT", "so_hop": 999, "cong_nhat": 0},
+         "san_pham": "TP-TT", "so_hop": 999, "cong_nhat": 0, "nguoi_ghi": "qc1@x"},
         {"parent": "B9", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV1", "ten_nhan_vien": "An",
-         "san_pham": "TP-TT", "so_hop": 7, "cong_nhat": 0},
+         "san_pham": "TP-TT", "so_hop": 7, "cong_nhat": 0, "nguoi_ghi": "qc1@x"},
     ],
     "SX Bao Me": [
         {"parent": "N1", "parenttype": "SX Ngay San Xuat", "item_btp": "BB", "so_me": 3, "tong_kg": 342},
@@ -172,6 +175,18 @@ kiem("chi tiết theo người: công nhật KHÔNG là một người", [x["tra
 kiem("chips: đã chốt, công nhật, số người",
      c["chips"] == ["đã chốt Vào hộp", "công nhật 50 hộp", "2 người"], str(c["chips"]))
 kiem("ngày trống: không khối nào, không lỗi", L.chi_tiet("vaohop", "2026-10-20")["khoi"] == [])
+
+print("\n-- D113: mỗi QC chỉ thấy phần mình ghi --")
+kiem("QC1 không thấy 40 hộp QC2 ghi (tổng ngày 1 vẫn 230)",
+     L.thang("vaohop", 2026, 10)["ngay"]["2026-10-01"]["so"] == 230)
+kiem("… và chi tiết không có người QC2 chấm",
+     "Cúc" not in str(L.chi_tiet("vaohop", "2026-10-01")))
+VAI.clear(); VAI.add("SX Quan Ly")
+kiem("Quản lý thấy cả hai QC (270)", L.thang("vaohop", 2026, 10)["ngay"]["2026-10-01"]["so"] == 270)
+VAI.clear(); VAI.add("SX Vao Hop")
+frappe.session.user = "qc2@x"
+kiem("QC2 chỉ thấy 40 hộp của mình", L.thang("vaohop", 2026, 10)["ngay"]["2026-10-01"]["so"] == 40)
+frappe.session.user = "qc1@x"
 
 print("\n-- lịch Ghi sổ --")
 VAI.clear(); VAI.add("SX Ghi So")
