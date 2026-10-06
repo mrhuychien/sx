@@ -67,172 +67,16 @@ def _ghi_chung_tu(doc, field, them):
     doc.set(field, json.dumps(cu + them))
 
 
-def _submit_neu_du_hai_nua(doc):
-    """Cả hai nửa xong -> submit phiếu ngày (docstatus 1 = ngày đã xong hẳn)."""
-    if not (cint(doc.chot_ghiso) and cint(doc.chot_vaohop)):
-        doc.trang_thai = "Chốt một phần"
-        doc.flags.ignore_permissions = True
-        doc.save()
-        return False
-    doc.flags.tu_chot_ngay = True
-    doc.flags.ignore_permissions = True
-    doc.save()
-    doc.submit()
-    return True
 
 
-def _kiem_chua_chot(doc, nua):
-    if doc.docstatus == 2:
-        frappe.throw(_("Phiếu ngày {0} đã huỷ.").format(doc.name))
-    if doc.docstatus == 1 or cint(doc.get(f"chot_{nua}")):
-        frappe.throw(
-            _("Phần {0} của ngày {1} ĐÃ chốt rồi.").format(
-                "Ghi sổ" if nua == "ghiso" else "Vào hộp", doc.name)
-        )
 
 
-@frappe.whitelist()
-def chot_ghiso(ngay_sx):
-    """Chốt nửa GHI SỔ: báo mẻ -> tầng 2 (nấu + trộn) -> bột vào Kho BTP.
-
-    Không đụng bảng vào hộp, không ghi lương. Sau bước này báo mẻ / báo cán / sự cố
-    của ngày bị khoá (chứng từ kho đã sinh theo số đó).
-    """
-    guard_card("chotngay")
-    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    _kiem_chua_chot(doc, "ghiso")
-    _validate_chung(doc)
-    _kiem_ton_kho(doc, get_settings())
-    gia = _xet_gia_von_ngay(doc, get_settings())
-    if gia["hoi"]:
-        from sx.api.mfg import bao_thieu_gia_von
-        bao_thieu_gia_von(gia["hoi"], _("chốt Ghi sổ"))
-
-    buoc = _("tầng 2 (nấu + trộn theo báo mẻ)")
-    try:
-        chung_tu = []
-        if gia["tu_tinh"]:
-            # D118: bán thành phẩm chưa có giá → giá tính từ nguyên liệu, trong CÙNG
-            # giao dịch với lần chốt (chốt hỏng thì rollback luôn giá này).
-            from sx.api.mfg import ghi_gia_tu_tinh
-            ghi_gia_tu_tinh(gia["tu_tinh"])
-        _chot_tang_2(doc, chung_tu)
-
-        buoc = _("ghi trạng thái chốt Ghi sổ")
-        _ghi_chung_tu(doc, "ds_wo_se_ghiso", chung_tu)
-        doc.chot_ghiso = 1
-        doc.chot_ghiso_luc = now_datetime()
-        doc.chot_ghiso_boi = frappe.session.user
-        _submit_neu_du_hai_nua(doc)
-        canh_bao = _canh_bao_mem(doc)
-    except Exception:
-        frappe.db.rollback()
-        frappe.log_error(title=f"chot_ghiso {ngay_sx} hỏng ở bước: {buoc}",
-                         message=frappe.get_traceback())
-        frappe.throw(
-            _("Chốt Ghi sổ THẤT BẠI ở bước: {0}. Toàn bộ đã hoàn tác — không có "
-              "trạng thái nửa vời. Chi tiết trong Error Log.").format(buoc)
-        )
-    return _tom_tat(doc, canh_bao)
 
 
-@frappe.whitelist()
-def chot_vaohop(ngay_sx):
-    """Chốt nửa VÀO HỘP: chốt bảng vào hộp + ghi lương khoán. KHÔNG đụng kho.
-
-    Từ D59 hai nửa THẬT SỰ độc lập, không còn bắt Ghi sổ phải chốt trước: tầng 3
-    không sinh ở đây nữa nên chốt Vào hộp chẳng cần bột của tầng 2 tồn tại. Ràng
-    buộc đó chuyển sang đúng chỗ nó thuộc về — lúc thủ kho DUYỆT phiếu nhập kho,
-    vì đó mới là lúc nguyên liệu bị trừ.
-    """
-    guard_card("chotngay")
-    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    _kiem_chua_chot(doc, "vaohop")
-    _validate_chung(doc)
-    bang = _lay_bang(doc)
-    if not _co_gi_de_ghi(bang):
-        frappe.throw(
-            _("Bảng vào hộp chưa có sản lượng lẫn chấm ăn ca — không có gì để chốt.")
-        )
-    if bang.docstatus == 0:
-        # Controller lookup đơn giá khi save — save lại để chắc mọi dòng có giá
-        bang.flags.ignore_permissions = True
-        bang.save()
-    # KHÔNG kiểm tồn ở đây nữa (D59): chốt Vào hộp không đụng kho. Nguyên liệu chỉ
-    # bị trừ khi thủ kho duyệt phiếu nhập kho, và tồn được kiểm ở đúng lúc đó.
-
-    buoc = _("submit bảng vào hộp")
-    try:
-        if bang.docstatus == 0:
-            bang.flags.ignore_permissions = True
-            bang.submit()
-
-        buoc = _("ghi phiếu lương khoán")
-        ds_salary = _ghi_luong_khoan(doc, bang)
-
-        # D99: mã chưa khai giá vẫn chốt được, nhưng ghi NỢ để bù giá sau — không
-        # để lương khoán nằm im ở 0 đồng tới cuối tháng mới lộ.
-        buoc = _("ghi sổ nợ đơn giá")
-        ghi_no_gia(doc, bang)
-
-        buoc = _("ghi trạng thái chốt Vào hộp")
-        doc.tong_hop_tp = cint(bang.tong_hop)
-        doc.tong_luong_sp = flt(bang.tong_tien)
-        doc.salary_products_json = json.dumps(ds_salary)
-        doc.chot_vaohop = 1
-        doc.chot_vaohop_luc = now_datetime()
-        doc.chot_vaohop_boi = frappe.session.user
-        _submit_neu_du_hai_nua(doc)
-        canh_bao = _canh_bao_mem(doc)
-    except Exception:
-        frappe.db.rollback()
-        frappe.log_error(title=f"chot_vaohop {ngay_sx} hỏng ở bước: {buoc}",
-                         message=frappe.get_traceback())
-        frappe.throw(
-            _("Chốt Vào hộp THẤT BẠI ở bước: {0}. Toàn bộ đã hoàn tác — không có "
-              "trạng thái nửa vời. Chi tiết trong Error Log.").format(buoc)
-        )
-    return _tom_tat(doc, canh_bao)
 
 
-@frappe.whitelist()
-def chot_ngay(ngay_sx):
-    """Chốt CẢ NGÀY trong một lần — hai nửa liên tiếp, vẫn một giao dịch.
-
-    Giữ lại vì nhiều ngày một người làm cả hai việc, và vì mọi thứ gọi sẵn method
-    này (lịch sử, script). Nửa nào đã chốt rồi thì bỏ qua, không báo lỗi.
-    """
-    guard_card("chotngay")
-    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    if doc.docstatus == 1:
-        frappe.throw(_("Phiếu ngày {0} ĐÃ chốt rồi.").format(doc.name))
-    if doc.docstatus == 2:
-        frappe.throw(_("Phiếu ngày {0} đã huỷ.").format(doc.name))
-
-    # Ngày rỗng hoàn toàn thì chốt cũng vô nghĩa — bắt ở đây cho câu báo dễ hiểu,
-    # thay vì để hai nửa lần lượt báo hai lỗi khác nhau.
-    if not doc.bao_me and not _co_gi_de_ghi(_lay_bang(doc)):
-        frappe.throw(_("Ngày chưa có báo mẻ lẫn bảng vào hộp — không có gì để chốt."))
-
-    if not cint(doc.chot_ghiso):
-        chot_ghiso(ngay_sx)
-        doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    if not cint(doc.chot_vaohop) and _co_gi_de_ghi(_lay_bang(doc)):
-        chot_vaohop(ngay_sx)
-        doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    return _tom_tat(doc, _canh_bao_mem(doc))
 
 
-def _tom_tat(doc, canh_bao=None):
-    return {
-        "name": doc.name,
-        "trang_thai": doc.trang_thai,
-        "chot_ghiso": cint(doc.chot_ghiso),
-        "chot_vaohop": cint(doc.chot_vaohop),
-        "tong_hop_tp": doc.tong_hop_tp,
-        "tong_luong_sp": doc.tong_luong_sp,
-        "canh_bao": canh_bao or [],
-    }
 
 
 # ─────────────────────────────────────────────── validate ──
@@ -453,32 +297,6 @@ def _lo_con_o_xuong(doc):
 # ─────────────────────────────────────────────── T2 / T3 ──
 
 
-def _chot_tang_2(doc, chung_tu):
-    """Mỗi dòng bao_me (topo-sort: màu → đường hoán → bột bánh/bột đậu):
-    Batch -> WO -> SE Manufacture (RM FIFO, FG vào Kho BTP)."""
-    settings = get_settings()
-    rank = topo_rank_by_bom([r.item_btp for r in doc.bao_me])
-    rows = sorted(doc.bao_me, key=lambda r: rank.get(r.item_btp, 0))
-
-    for row in rows:
-        qty = flt(row.tong_kg)
-        if qty <= 0:
-            continue
-        bom = get_bom_active(row.item_btp)
-        batch = tao_batch(row.item_btp, sinh_ma_lo(row.item_btp, doc.ngay), ngay_sx=doc.name)
-        wo = tao_wo(
-            settings.cong_ty, row.item_btp, qty, bom,
-            source_wh=settings.kho_nvl, fg_wh=settings.kho_btp,
-            ngay_sx=doc.name, planned_date=doc.ngay,
-        )
-        se = tao_se_manufacture(
-            wo, qty, batch,
-            kho_nguon=lambda item: _kho_nguon(item, settings),
-            ngay=doc.ngay, ngay_sx=doc.name,
-        )
-        row.batch, row.wo, row.se = batch, wo.name, se.name
-        chung_tu.append({"dt": "Work Order", "name": wo.name})
-        chung_tu.append({"dt": "Stock Entry", "name": se.name})
 
 
 # ─── TẦNG 3 KHÔNG CÒN SINH Ở ĐÂY NỮA (D59) ───
@@ -761,196 +579,18 @@ def _mo_ta_chung_tu(dt, name):
     return ""
 
 
-@frappe.whitelist()
-def huy_chot_ngay(ngay_sx, ly_do=None):
-    """HUỶ CHỐT để sửa lại số liệu (D24).
+# ═══════════════════ D123: KHÔNG CÒN CHỐT ═══════════════════
+#
+# Chốt Ghi sổ / Chốt Vào hộp / Huỷ chốt bị bỏ: báo mẻ và bảng vào hộp luôn sửa được,
+# kho và phiếu lương tự đồng bộ (sx/api/dongbo.py). Các method cũ còn để trả một câu
+# rõ ràng cho máy còn chạy bản cũ (hàng chờ offline có thể còn lệnh chốt).
 
-    Huỷ phiếu ngày -> hook on_cancel_ngay đảo ngược TOÀN BỘ: SE/WO tầng 3 → tầng 2
-    → phiếu nhập bột (hoàn đỗ) → bảng vào hộp → gỡ dòng lương khoán của ngày đó.
-    Rồi TỰ TẠO LẠI phiếu nháp (amend) giữ nguyên báo mẻ / báo cán / sự cố / bảng vào
-    hộp để QC sửa con số cần sửa và chốt lại — không phải gõ lại từ đầu.
-
-    Trả summary phiếu nháp mới.
-    """
-    guard_card("chotngay")
-    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    if doc.docstatus != 1:
-        frappe.throw(
-            _("Phiếu ngày {0} chưa chốt (hoặc đã huỷ) — không cần huỷ chốt.").format(ngay_sx)
-        )
-
-    bang_cu = frappe.db.get_value(
-        "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": 1}, "name"
-    )
-
-    doc.flags.ignore_permissions = True
-    doc.cancel()  # hook on_cancel_ngay đảo ngược toàn bộ chứng từ + lương
-
-    cu = frappe.get_doc("SX Ngay San Xuat", ngay_sx)  # đọc lại: hook vừa ghi ghi_chu
-    moi = frappe.copy_doc(cu)
-    moi.docstatus = 0   # copy_doc chỉ tự xoá docstatus khi KHÔNG chạy trong test
-    moi.amended_from = cu.name
-    moi.ds_wo_se = None
-    moi.ds_wo_se_ghiso = None
-    moi.salary_products_json = None
-    moi.chot_ghiso = 0
-    moi.chot_ghiso_luc = None
-    moi.chot_ghiso_boi = None
-    moi.chot_vaohop = 0
-    moi.chot_vaohop_luc = None
-    moi.chot_vaohop_boi = None
-    moi.tong_hop_tp = 0
-    moi.tong_luong_sp = 0
-    for r in moi.bao_me:
-        r.batch = None  # batch sinh lại khi chốt lại (tao_batch idempotent)
-    dau_vet = _("[Huỷ chốt {0}] {1}").format(
-        frappe.utils.now_datetime().strftime("%d/%m %H:%M"), (ly_do or "").strip() or _("không ghi lý do")
-    )
-    moi.ghi_chu = ((cu.ghi_chu or "") + "\n" + dau_vet).strip()
-    moi.flags.ignore_permissions = True
-    moi.insert()
-
-    if bang_cu:
-        b_cu = frappe.get_doc("SX Bang Vao Hop", bang_cu)
-        b_moi = frappe.copy_doc(b_cu)
-        b_moi.docstatus = 0
-        b_moi.amended_from = b_cu.name
-        b_moi.ngay_sx = moi.name
-        b_moi.flags.ignore_permissions = True
-        b_moi.insert()
-
-    from sx.api.portal import _ngay_summary  # import trễ: tránh vòng lặp import
-
-    return _ngay_summary(moi.name)
+def _da_bo(*a, **k):
+    frappe.throw(_("Không còn bước chốt (D123): số liệu tự đồng bộ vào kho và phiếu "
+                   "lương sau mỗi lần lưu. Tải lại trang để dùng bản mới."))
 
 
-def on_cancel_ngay(doc, method=None):
-    """Huỷ chuỗi ngược theo ds_wo_se, ĐẢO thứ tự sinh: SE/WO T3 -> SE/WO T2 ->
-    SX Nhap Bot (nhả bột + hoàn đỗ, huỷ sau cùng vì T2 vừa tiêu thụ bột đó)
-    -> huỷ bảng vào hộp -> xoá SalaryProduct. Batch giữ (đã có ledger).
+for _ten in ("chot_ghiso", "chot_vaohop", "chot_ngay",
+             "huy_chot_ngay", "huy_chot_ghiso", "huy_chot_vaohop"):
+    globals()[_ten] = frappe.whitelist()(_da_bo)
 
-    Chỉ thu hồi SX Nhap Bot do CHÍNH lần chốt này tạo (có trong ds_wo_se) — phiếu
-    nhập bột người dùng tự tạo trước đó không bị đụng."""
-    log = []
-    # Đảo NGƯỢC toàn tuyến: tầng 3 trước (nó tiêu thụ bột của tầng 2), rồi tầng 2.
-    # Ngày cũ trước D55 có mọi thứ trong ds_wo_se; ds_wo_se_ghiso rỗng nên vẫn đúng.
-    chung_tu = (json.loads(doc.ds_wo_se) if doc.ds_wo_se else []) \
-        + (json.loads(doc.ds_wo_se_ghiso) if doc.get("ds_wo_se_ghiso") else [])
-    for ct in reversed(chung_tu):
-        cancel_doc(ct.get("dt"), ct.get("name"), log)
-
-    bang = frappe.db.get_value(
-        "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": 1}, "name"
-    )
-    cancel_doc("SX Bang Vao Hop", bang, log)
-
-    if doc.salary_products_json:
-        log.extend(_go_luong_khoan(json.loads(doc.salary_products_json)))
-    if huy_no_gia(doc.name):
-        log.append(_("Huỷ nợ đơn giá của lần chốt này"))
-
-    batches = [r.batch for r in doc.bao_me if r.batch]
-    if batches:
-        log.append("Batch giữ nguyên (đã có ledger): " + ", ".join(batches))
-
-    # Hai cờ chốt phải tắt theo, nếu không bản amend copy sang sẽ tưởng đã chốt rồi
-    for f in ("chot_ghiso", "chot_vaohop"):
-        doc.db_set(f, 0, update_modified=False)
-
-    if log:
-        ghi_chu = (doc.ghi_chu or "") + "\n[Huỷ ngày] " + "; ".join(log)
-        doc.db_set("ghi_chu", ghi_chu.strip(), update_modified=False)
-
-
-def _huy_nua(doc, nua, field_ct, ly_do, dep=None):
-    """Huỷ NỬA chốt khi phiếu ngày còn nháp: đảo chứng từ của đúng nửa đó rồi tắt cờ.
-
-    Phiếu đã submit (cả hai nửa xong) thì KHÔNG huỷ lẻ được — Frappe không lùi
-    docstatus, và đảo lẻ một nửa của phiếu đã submit sẽ để lại phiếu "đã chốt" mà
-    chứng từ đã bị rút. Trường hợp đó dùng HUỶ CHỐT NGÀY (đảo cả hai, trả lại bản
-    nháp giữ nguyên số liệu).
-    """
-    nhan = "Ghi sổ" if nua == "ghiso" else "Vào hộp"
-    if not cint(doc.get(f"chot_{nua}")):
-        frappe.throw(_("Phần {0} chưa chốt — không có gì để huỷ.").format(nhan))
-    if doc.docstatus == 1:
-        frappe.throw(
-            _("Ngày này đã chốt CẢ HAI phần nên phiếu ngày đã khoá. Dùng HUỶ CHỐT "
-              "NGÀY để mở lại (số liệu giữ nguyên), rồi chốt lại phần cần sửa.")
-        )
-    if doc.docstatus == 2:
-        frappe.throw(_("Phiếu ngày đã huỷ."))
-    if dep:
-        frappe.throw(dep)
-
-    log = []
-    for ct in reversed(json.loads(doc.get(field_ct) or "[]")):
-        cancel_doc(ct.get("dt"), ct.get("name"), log)
-    doc.set(field_ct, None)
-    doc.set(f"chot_{nua}", 0)
-    doc.set(f"chot_{nua}_luc", None)
-    doc.set(f"chot_{nua}_boi", None)
-    doc.trang_thai = "Đang chạy" if not cint(
-        doc.chot_ghiso if nua == "vaohop" else doc.chot_vaohop) else "Chốt một phần"
-    dau_vet = _("[Huỷ chốt {0} {1}] {2}").format(
-        nhan, now_datetime().strftime("%d/%m %H:%M"),
-        (ly_do or "").strip() or _("không ghi lý do"))
-    doc.ghi_chu = ((doc.ghi_chu or "") + "\n" + dau_vet
-                   + ((" · " + "; ".join(log)) if log else "")).strip()
-    doc.flags.ignore_permissions = True
-    doc.save()
-    return log
-
-
-@frappe.whitelist()
-def huy_chot_ghiso(ngay_sx, ly_do=None):
-    """Mở lại nửa Ghi sổ: đảo chứng từ tầng 2, cho sửa báo mẻ rồi chốt lại."""
-    guard_card("chotngay")
-    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    # Tầng 3 đã tiêu thụ chính bột mà tầng 2 sinh ra -> rút bột ra trước khi rút
-    # thành phẩm là để lại kho âm. Bắt gỡ theo đúng thứ tự ngược.
-    # Không còn ràng buộc "phải huỷ Vào hộp trước" (D59 — chốt Vào hộp không đụng
-    # kho). Nhưng phiếu nhập kho ĐÃ DUYỆT thì có: nó đã trừ chính lượng bột này.
-    from sx.api.khotp import phieu_da_duyet_sau
-
-    dep = None
-    da = phieu_da_duyet_sau(doc.chot_ghiso_luc)
-    if da:
-        dep = _("Phiếu nhập kho {0} đã duyệt sau khi chốt Ghi sổ và đã trừ bột của "
-                "mẻ này. Huỷ phiếu đó trước, nếu không rút bột ra sẽ để kho âm."
-                ).format(", ".join(da))
-    log = _huy_nua(doc, "ghiso", "ds_wo_se_ghiso", ly_do, dep)
-    return {"name": doc.name, "log": log}
-
-
-@frappe.whitelist()
-def huy_chot_vaohop(ngay_sx, ly_do=None):
-    """Mở lại nửa Vào hộp: đảo chứng từ tầng 3, gỡ lương khoán, mở lại bảng."""
-    guard_card("chotngay")
-    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
-    # Không còn guard theo phiếu nhập kho (D62): phiếu nhập kho là chứng từ độc
-    # lập, không lấy số từ bảng vào hộp, nên sửa bảng không ảnh hưởng gì tới nó.
-    log = _huy_nua(doc, "vaohop", "ds_wo_se", ly_do)   # ds_wo_se rỗng từ D59
-
-    bang = frappe.db.get_value(
-        "SX Bang Vao Hop", {"ngay_sx": doc.name, "docstatus": 1}, "name")
-    if bang:
-        b = frappe.get_doc("SX Bang Vao Hop", bang)
-        b.flags.ignore_permissions = True
-        b.cancel()
-        moi = frappe.copy_doc(b)
-        moi.docstatus = 0
-        moi.amended_from = b.name
-        moi.ngay_sx = doc.name
-        moi.flags.ignore_permissions = True
-        moi.insert()
-        log.append(_("Bảng vào hộp mở lại: {0}").format(moi.name))
-
-    if doc.salary_products_json:
-        log.extend(_go_luong_khoan(json.loads(doc.salary_products_json)))
-        doc.db_set("salary_products_json", None, update_modified=False)
-    if huy_no_gia(doc.name):
-        log.append(_("Huỷ nợ đơn giá của lần chốt này"))
-    doc.db_set("tong_hop_tp", 0, update_modified=False)
-    doc.db_set("tong_luong_sp", 0, update_modified=False)
-    return {"name": doc.name, "log": log}

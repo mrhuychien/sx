@@ -22,7 +22,7 @@ from sx.config.roles import guard_card, is_super, user_roles
 
 CARD = {"vaohop": "lichvaohop", "ghiso": "lichghiso", "nhapkho": "lichnhapkho",
         "chot": "lichchot"}
-DON_VI = {"vaohop": "hộp", "ghiso": "mẻ", "nhapkho": "sp", "chot": "ngày chưa chốt"}
+DON_VI = {"vaohop": "hộp", "ghiso": "mẻ", "nhapkho": "sp", "chot": "ngày cần xem"}
 
 
 def _kiem(loai):
@@ -50,7 +50,18 @@ def _ngay_sx(tu, den):
     """{name: row} phiếu ngày còn hiệu lực trong khoảng (bỏ phiếu đã huỷ)."""
     return {r.name: r for r in frappe.get_all(
         "SX Ngay San Xuat", filters={"ngay": ("between", (tu, den)), "docstatus": ("<", 2)},
-        fields=["name", "ngay", "chot_ghiso", "chot_vaohop", "docstatus"])}
+        fields=["name", "ngay", "docstatus", "can_dong_bo_gs", "can_dong_bo_vh",
+                "loi_dong_bo_gs", "loi_dong_bo_vh"])}
+
+
+def _tt(n, phan, co_du_lieu):
+    """Trạng thái đồng bộ một phần của một ngày (D123):
+    0 không có gì · 1 đang chờ đồng bộ · 2 đã khớp · 3 LỖI (cần người xem)."""
+    if n.get(f"loi_dong_bo_{phan}"):
+        return 3
+    if cint(n.get(f"can_dong_bo_{phan}")):
+        return 1
+    return 2 if co_du_lieu else 0
 
 
 def _dong_vao_hop(ten_ngay):
@@ -110,8 +121,8 @@ def thang(loai, nam, thang):
             for r in _dong_cua_toi(dong):
                 n = ngay[bang[r.parent]]
                 cong(n.ngay, r.so_hop, phu=r.so_hop if cint(r.cong_nhat) else 0)
-            for n in ngay.values():                    # ngày đã chốt mà 0 hộp vẫn tô
-                if cint(n.chot_vaohop):
+            for n in ngay.values():                    # viền xanh = đã đồng bộ lương
+                if _tt(n, "vh", True) == 2 and n.name in bang.values():
                     cong(n.ngay, 0, chot=1)
         else:
             if ngay:
@@ -120,8 +131,11 @@ def thang(loai, nam, thang):
                                               "parenttype": "SX Ngay San Xuat"},
                         fields=["parent", "so_me", "tong_kg"]):
                     cong(ngay[r.parent].ngay, r.so_me, phu=r.tong_kg)   # phu = kg
-            for n in ngay.values():
-                if cint(n.chot_ghiso):
+            co_me = set(frappe.get_all(
+                "SX Bao Me", filters={"parent": ("in", list(ngay) or [""]),
+                                      "parenttype": "SX Ngay San Xuat"}, pluck="parent"))
+            for n in ngay.values():                    # viền xanh = đã đồng bộ kho
+                if n.name in co_me and _tt(n, "gs", True) == 2:
                     cong(n.ngay, 0, chot=1)
 
     # Ngày không có gì thì không gửi: ô trống trên lịch NÓI "chưa ghi", đừng ghi 0.
@@ -145,12 +159,13 @@ def _thang_chot(tu, den):
     for ten, n in ngay.items():
         k = str(getdate(n.ngay))
         x = o.setdefault(k, {"so": 0, "gs": 0, "vh": 0, "chot": 0})
-        x["gs"] = max(x["gs"], 2 if cint(n.chot_ghiso) else (1 if ten in co_me else 0))
-        x["vh"] = max(x["vh"], 2 if cint(n.chot_vaohop) else (1 if ten in co_hop else 0))
+        x["gs"] = max(x["gs"], _tt(n, "gs", ten in co_me))
+        x["vh"] = max(x["vh"], _tt(n, "vh", ten in co_hop))
     o = {k: v for k, v in o.items() if v["gs"] or v["vh"]}
     for v in o.values():
-        v["so"] = 1 if 1 in (v["gs"], v["vh"]) else 0
-        v["chot"] = 1 if not v["so"] else 0
+        # Ngày CẦN XEM = có phần đang lỗi. Đang chờ thì vài giây nữa tự xong.
+        v["so"] = 1 if 3 in (v["gs"], v["vh"]) else 0
+        v["chot"] = 1 if v["gs"] in (0, 2) and v["vh"] in (0, 2) else 0
     return {"nam": tu.year, "thang": tu.month, "ngay": o,
             "tong": sum(v["so"] for v in o.values()), "don_vi": DON_VI["chot"]}
 
@@ -182,13 +197,14 @@ def chi_tiet(loai, ngay):
 
 
 def _ct_chot(d, ra):
-    """Xem nhanh trước khi chốt (D117): Ghi sổ + Vào hộp của ngày trong MỘT màn, kèm
-    phiếu ngày để thẻ vẽ nút chốt / huỷ chốt ngay dưới."""
+    """Xem nhanh một ngày (D117 → D123): Ghi sổ + Vào hộp trong MỘT màn, kèm trạng
+    thái đồng bộ kho / lương để thẻ vẽ khối trạng thái + nút Thử lại."""
     gs = {"chips": [], "khoi": [], "so": 0}
     vh = {"chips": [], "khoi": [], "so": 0}
     _ct_ghi_so(d, gs)
     _ct_vao_hop(d, vh)
-    bo = lambda c: "chốt" not in c                    # trạng thái chốt vẽ ở khối nút
+    # Trạng thái đồng bộ vẽ ở khối riêng — không lặp trong chip.
+    bo = lambda c: "đồng bộ" not in c and not c.startswith(("đã vào", "lỗi"))
     ra["so"] = vh["so"]
     ra["don_vi"] = DON_VI["vaohop"]
     ra["chips"] = ([_("{0} mẻ").format(_kg(gs["so"]))] if gs["so"] else []) \
@@ -197,7 +213,8 @@ def _ct_chot(d, ra):
                                for k in vh["khoi"] if k]
     n = next(iter(_ngay_sx(d, d).values()), None)
     ra["phieu"] = {"name": n.name, "ngay": str(n.ngay), "docstatus": n.docstatus,
-                   "chot_ghiso": cint(n.chot_ghiso), "chot_vaohop": cint(n.chot_vaohop)} \
+                   "dong_bo": {p: {"tt": _tt(n, p, True), "loi": n.get(f"loi_dong_bo_{p}")}
+                               for p in ("gs", "vh")}} \
         if n else None
 
 
@@ -205,10 +222,10 @@ def _ct_vao_hop(d, ra):
     ngay = _ngay_sx(d, d)
     dong, _b = _dong_vao_hop(ngay)
     dong = _dong_cua_toi(dong)
-    if any(cint(n.chot_vaohop) for n in ngay.values()):
-        ra["chips"].append(_("đã chốt Vào hộp"))
-    elif ngay:
-        ra["chips"].append(_("chưa chốt"))
+    tt = max((_tt(n, "vh", True) for n in ngay.values()), default=0)
+    if tt:
+        ra["chips"].append({1: _("đang đồng bộ lương"), 2: _("đã vào phiếu lương"),
+                            3: _("lỗi đồng bộ lương")}[tt])
     ten = _ten_hang(r.san_pham for r in dong)
     theo_ma, theo_nguoi, cn = {}, {}, 0
     for r in dong:
@@ -240,10 +257,10 @@ def _ct_vao_hop(d, ra):
 
 def _ct_ghi_so(d, ra):
     ngay = _ngay_sx(d, d)
-    if any(cint(n.chot_ghiso) for n in ngay.values()):
-        ra["chips"].append(_("đã chốt Ghi sổ"))
-    elif ngay:
-        ra["chips"].append(_("chưa chốt"))
+    tt = max((_tt(n, "gs", True) for n in ngay.values()), default=0)
+    if tt:
+        ra["chips"].append({1: _("đang đồng bộ kho"), 2: _("đã vào kho"),
+                            3: _("lỗi đồng bộ kho")}[tt])
     me, can = [], []
     if ngay:
         loc = {"parent": ("in", list(ngay)), "parenttype": "SX Ngay San Xuat"}

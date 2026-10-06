@@ -89,11 +89,14 @@ BANG.update({
     "Item": [{"name": "TP-SEN", "item_name": "Bánh sen"}, {"name": "TP-TT", "item_name": "Bánh TT"},
              {"name": "BB", "item_name": "Bột bánh"}, {"name": "DX", "item_name": "Đỗ xanh"}],
     "SX Ngay San Xuat": [
-        {"name": "N1", "ngay": D(2026, 10, 1), "docstatus": 1, "chot_vaohop": 1, "chot_ghiso": 1},
-        {"name": "N2", "ngay": D(2026, 10, 2), "docstatus": 0, "chot_vaohop": 0, "chot_ghiso": 0},
-        {"name": "N2-HUY", "ngay": D(2026, 10, 2), "docstatus": 2, "chot_vaohop": 1, "chot_ghiso": 1},
-        {"name": "N3", "ngay": D(2026, 10, 3), "docstatus": 1, "chot_vaohop": 1, "chot_ghiso": 0},
-        {"name": "N9", "ngay": D(2026, 9, 30), "docstatus": 0, "chot_vaohop": 0, "chot_ghiso": 0},
+        # D123: không còn cờ chốt — trạng thái là ĐỒNG BỘ (dấu chờ / lỗi).
+        {"name": "N1", "ngay": D(2026, 10, 1), "docstatus": 0},                 # đã khớp
+        {"name": "N2", "ngay": D(2026, 10, 2), "docstatus": 0,
+         "can_dong_bo_gs": 1, "can_dong_bo_vh": 1},                            # đang chờ
+        {"name": "N2-HUY", "ngay": D(2026, 10, 2), "docstatus": 2},
+        {"name": "N3", "ngay": D(2026, 10, 3), "docstatus": 0, "can_dong_bo_vh": 1,
+         "loi_dong_bo_vh": "Phiếu lương PL-9 đã duyệt"},                       # lỗi
+        {"name": "N9", "ngay": D(2026, 9, 30), "docstatus": 0},
     ],
     "SX Bang Vao Hop": [
         {"name": "B1", "ngay_sx": "N1", "docstatus": 1}, {"name": "B2", "ngay_sx": "N2", "docstatus": 0},
@@ -160,10 +163,11 @@ def thu(fn):
 
 print("-- lịch Ghi hộp --")
 t = L.thang("vaohop", 2026, 10)
-kiem("ngày 1: khoán + công nhật = 230 hộp, đã chốt",
+kiem("ngày 1: khoán + công nhật = 230 hộp, đã vào phiếu lương (viền xanh)",
      t["ngay"]["2026-10-01"]["so"] == 230 and t["ngay"]["2026-10-01"]["chot"] == 1, str(t["ngay"]))
 kiem("ngày 2: bảng đã HUỶ không cộng vào (chỉ 30)", t["ngay"]["2026-10-02"]["so"] == 30)
-kiem("ngày chốt mà 0 hộp vẫn có ô (tô đã chốt)", t["ngay"].get("2026-10-03", {}).get("chot") == 1)
+kiem("ngày đang chờ đồng bộ KHÔNG tô xanh", t["ngay"]["2026-10-02"]["chot"] == 0)
+kiem("ngày lỗi đồng bộ, không bảng → không có ô", "2026-10-03" not in t["ngay"])
 kiem("ngày không ghi gì → không có ô (không ghi 0)", "2026-10-04" not in t["ngay"])
 kiem("không lẫn tháng khác (30/09)", "2026-09-30" not in t["ngay"] and t["tong"] == 260)
 c = L.chi_tiet("vaohop", "2026-10-01")
@@ -172,8 +176,8 @@ ng = next(k for k in c["khoi"] if k["ten"] == "Theo người")["dong"]
 kiem("chi tiết theo mã: tách khoán / công nhật",
      mh == [{"trai": "Bánh sen", "phai": 230, "phu": "khoán 180 · công nhật 50"}], str(mh))
 kiem("chi tiết theo người: công nhật KHÔNG là một người", [x["trai"] for x in ng] == ["An", "Bình"])
-kiem("chips: đã chốt, công nhật, số người",
-     c["chips"] == ["đã chốt Vào hộp", "công nhật 50 hộp", "2 người"], str(c["chips"]))
+kiem("chips: đã vào phiếu lương, công nhật, số người",
+     c["chips"] == ["đã vào phiếu lương", "công nhật 50 hộp", "2 người"], str(c["chips"]))
 kiem("ngày trống: không khối nào, không lỗi", L.chi_tiet("vaohop", "2026-10-20")["khoi"] == [])
 
 print("\n-- D113: mỗi QC chỉ thấy phần mình ghi --")
@@ -198,7 +202,7 @@ ten_khoi = [k["ten"] for k in c["khoi"]]
 kiem("chi tiết: báo mẻ, báo cán, rang đỗ", ten_khoi == ["Báo mẻ trộn", "Báo cán", "Rang đỗ"], str(ten_khoi))
 kiem("báo mẻ gộp theo bột, kèm kg", c["khoi"][0]["dong"] == [
     {"trai": "Bột bánh", "phai": 4.5, "phu": "513 kg"}], str(c["khoi"][0]["dong"]))
-kiem("chips: chốt, kg, sự cố", c["chips"] == ["đã chốt Ghi sổ", "513 kg", "1 sự cố"], str(c["chips"]))
+kiem("chips: đã vào kho, kg, sự cố", c["chips"] == ["đã vào kho", "513 kg", "1 sự cố"], str(c["chips"]))
 kiem("rang đỗ: kg + lô", c["khoi"][2]["dong"] == [{"trai": "Đỗ xanh", "phai": "500 kg", "phu": "lô R-011026"}])
 
 print("\n-- lịch Nhập kho --")
@@ -232,45 +236,48 @@ comp = open("sx/public/sx/components/lichthang.js", encoding="utf-8").read()
 for m in sorted(set(re.findall(r"sx\.api\.lich\.(\w+)", comp))):
     kiem(f"component gọi method có thật: {m}", callable(getattr(L, m, None)))
 
-print("\n-- D117: lịch chốt ngày --")
+print("\n-- D117 → D123: lịch đồng bộ kho & lương --")
 VAI.clear(); VAI.add("SX Quan Ly")
 t = L.thang("chot", 2026, 10)
 o = t["ngay"]
-kiem("ngày chốt đủ hai nửa → xanh cả hai", o.get("2026-10-01", {}).get("gs") == 2
+kiem("ngày đã khớp → xanh cả hai", o.get("2026-10-01", {}).get("gs") == 2
      and o["2026-10-01"]["vh"] == 2, o.get("2026-10-01"))
-kiem("có báo mẻ + bảng vào hộp mà chưa chốt → cam cả hai (phiếu HUỶ cùng ngày không che)",
+kiem("ngày còn dấu chờ → cam cả hai (phiếu HUỶ cùng ngày không che)",
      o.get("2026-10-02", {}).get("gs") == 1 and o["2026-10-02"]["vh"] == 1, o.get("2026-10-02"))
-kiem("chốt Vào hộp, không báo mẻ nào → GS xám, VH xanh",
-     o.get("2026-10-03", {}).get("gs") == 0 and o["2026-10-03"]["vh"] == 2, o.get("2026-10-03"))
+kiem("ngày lỗi lương, không báo mẻ → KHO xám, LƯƠNG đỏ",
+     o.get("2026-10-03", {}).get("gs") == 0 and o["2026-10-03"]["vh"] == 3, o.get("2026-10-03"))
 kiem("ngày tháng khác không lẫn vào", "2026-09-30" not in o)
-kiem("đếm đúng số ngày còn nửa chưa chốt", t["tong"] == 1, t["tong"])
+kiem("đếm = số ngày LỖI cần xem (đang chờ thì tự xong, không đếm)", t["tong"] == 1, t["tong"])
 ct = L.chi_tiet("chot", "2026-10-01")
 kiem("xem nhanh có cả báo mẻ lẫn vào hộp", any(k["ten"] == "Báo mẻ trộn" for k in ct["khoi"])
      and any(k["ten"].startswith("Vào hộp") for k in ct["khoi"]), [k["ten"] for k in ct["khoi"]])
-kiem("… kèm phiếu ngày để vẽ nút chốt", (ct["phieu"] or {}).get("name") == "N1"
-     and ct["phieu"]["chot_ghiso"] == 1, ct["phieu"])
-kiem("chip trạng thái chốt không lặp (nút chốt đã nói)", not any("chốt" in c for c in ct["chips"]),
-     ct["chips"])
+kiem("… kèm trạng thái đồng bộ để vẽ khối trạng thái", (ct["phieu"] or {}).get("name") == "N1"
+     and ct["phieu"]["dong_bo"]["gs"]["tt"] == 2, ct["phieu"])
+kiem("chip trạng thái không lặp (khối trạng thái đã nói)",
+     not any("đồng bộ" in c or c.startswith("đã vào") for c in ct["chips"]), ct["chips"])
+ct3 = L.chi_tiet("chot", "2026-10-03")
+kiem("ngày lỗi: câu lỗi tới tay người xem", ct3["phieu"]["dong_bo"]["vh"] == {
+    "tt": 3, "loi": "Phiếu lương PL-9 đã duyệt"}, ct3["phieu"])
 kiem("ngày không có phiếu → phieu None", L.chi_tiet("chot", "2026-10-20")["phieu"] is None)
 ct = L.chi_tiet("chot", "2026-10-02")
-kiem("ngày có phiếu huỷ + phiếu mới → nút chốt theo phiếu MỚI", ct["phieu"]["name"] == "N2", ct["phieu"])
+kiem("ngày có phiếu huỷ + phiếu mới → trạng thái theo phiếu MỚI", ct["phieu"]["name"] == "N2", ct["phieu"])
 VAI.clear(); VAI.add("SX Ghi So")
-kiem("tổ Ghi sổ không mở lịch chốt (chốt là việc quản lý)", thu(lambda: L.thang("chot", 2026, 10))[1] is not None)
+kiem("tổ Ghi sổ không mở lịch đồng bộ (việc quản lý)", thu(lambda: L.thang("chot", 2026, 10))[1] is not None)
 VAI.clear(); VAI.add("SX Quan Ly")
 kiem("màn Quản lý có thẻ lịch chốt, bỏ thẻ chốt theo ô ngày",
      "lichchot" in R.VIEW_CARDS["quanly"] and "chotngay" not in R.VIEW_CARDS["quanly"])
 kiem("shell.js biết đường dẫn lichchot", "lichchot: '/assets/sx/sx/cards/lichchot.js'" in shell)
 lc = open("sx/public/sx/cards/lichchot.js", encoding="utf-8").read()
-kiem("lịch chốt dùng lại đúng phần nút chốt của chotngay (có bước khai giá vốn)",
-     "veChot" in lc and "export function veChot" in open("sx/public/sx/cards/chotngay.js",
-                                                         encoding="utf-8").read())
+kiem("lịch có nút Thử lại (dongbo.thu_lai) + khai giá vốn, KHÔNG còn nút chốt",
+     "sx.api.dongbo.thu_lai" in lc and "export function moKhaiGia" in lc
+     and "chot_ghiso" not in lc and "chotngay" not in lc)
 
 print("\n-- D119: bố cục máy tính màn Quản lý --")
 ql = open("sx/public/sx/views/quanly.js", encoding="utf-8").read()
 cot = re.findall(r"const COT_(?:TRAI|PHAI) = \[([^\]]*)\]", ql)
 ten_cot = set(re.findall(r"'(\w+)'", " ".join(cot)))
 kiem("thẻ xếp vào hai cột đều là thẻ có thật trong shell.js",
-     ten_cot and all(f"{c}:" in shell for c in ten_cot - {"chotngay"}) and "chotngay:" in shell, sorted(ten_cot))
+     ten_cot and all(f"{c}:" in shell for c in ten_cot), sorted(ten_cot))
 kiem("mọi thẻ của màn Quản lý đều được gắn (thẻ ngoài hai cột trải rộng bên dưới)",
      "COT_TRAI.includes(c) ? trai : (COT_PHAI.includes(c) ? phai : rong)" in ql)
 kiem("D120: thẻ + số liệu Theo dõi tải SONG SONG, không chờ nối đuôi",

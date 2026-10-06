@@ -315,6 +315,28 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Bỏ CHỐT — kho và lương tự đồng bộ (D123)
+
+Không còn nút **Chốt Ghi sổ / Chốt Vào hộp / Huỷ chốt**. Báo mẻ, báo cán, bảng vào hộp
+**sửa / xoá lúc nào cũng được**, kể cả ngày cũ.
+
+- **Lưu báo mẻ** → vài giây sau hệ thống tự đưa chứng từ kho tầng 2 về khớp: báo thêm mẻ
+  thì ghi **thêm phần chênh** (cùng lô của mã trong ngày), bớt mẻ thì rút chứng từ mới
+  nhất của mã đó rồi ghi lại phần thiếu; mã không đổi không bị đụng.
+- **Lưu bảng vào hộp** (Ghi hộp, Vào hộp Tết, Desk) → tự ghi đè ngày đó trong phiếu lương
+  tháng, gỡ người không còn trong bảng, đối chiếu sổ nợ đơn giá.
+- **Lịch "Đồng bộ kho & lương"** (màn Quản lý, thay lịch chốt): ô ngày có nhãn KHO / LƯƠNG —
+  xanh = đã khớp, cam = đang chạy, **đỏ = lỗi** (thiếu tồn, thiếu giá vốn, bột đã dùng để
+  nhập TP nên không rút được, phiếu lương đã duyệt…). Bấm ngày xem lỗi, **KHAI GIÁ VỐN**,
+  **THỬ LẠI**. Đầu thẻ đếm số ngày đang lỗi.
+- Chạy nền ngay sau khi lưu; lưới an toàn: job mỗi 5 phút (`scheduler_events`). Ngày đang
+  lỗi không tự thử lại — sửa số liệu (lưu lại là xoá lỗi) hoặc bấm Thử lại.
+- Cần worker + scheduler của bench đang chạy (`bench start` / supervisor như thường lệ).
+- **Patch `d123_bo_chot`**: mở lại ngày / bảng đã chốt (chứng từ đã sinh GIỮ NGUYÊN, ghi vào
+  sổ cái đồng bộ); ngày có số liệu chưa từng chốt trong 3 ngày gần đây thì tự đồng bộ,
+  cũ hơn thì hiện đỏ "ngày cũ chưa từng chốt" chờ quản lý xem lại rồi bấm Thử lại.
+- Cần `bench --site site1.local migrate`.
+
 ## Vào hộp Tết (D122) — một màn, một lần lưu
 
 Vai trò mới **`SX QC Tet`** ("QC vào hộp Tết", không vào Desk) → tab **🧧 Vào hộp Tết**.

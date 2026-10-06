@@ -7,3 +7,4 @@ sx.patches.d87_gop_su_co
 sx.patches.d95_qc_mot_ngay_ba_luot
 sx.patches.d100_qc_may_va_lac
 sx.patches.d113_vao_hop_nguoi_ghi
+sx.patches.d123_bo_chot

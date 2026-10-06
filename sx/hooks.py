@@ -8,7 +8,6 @@ required_apps = ["frappe", "erpnext"]
 
 # ═══ DocType Events ═══
 doc_events = {
-    "SX Ngay San Xuat": {"on_cancel": "sx.api.chot.on_cancel_ngay"},
     # D120: BOM / Item đổi giữa request -> bỏ bộ nhớ tạm get_bom_active / items_tp.
     "BOM": {"on_submit": "sx.utils.xoa_nho", "on_cancel": "sx.utils.xoa_nho",
             "on_update_after_submit": "sx.utils.xoa_nho"},
@@ -16,8 +15,11 @@ doc_events = {
     "SX Bang Don Gia": {"on_update": "sx.utils.xoa_nho", "on_trash": "sx.utils.xoa_nho"},
     # D121: QC chấm (lưu / chốt bảng vào hộp) -> trừ nợ vào hộp ngay lúc đó, thay vì
     # mỗi lần mở thẻ sổ nợ.
-    "SX Bang Vao Hop": {"on_update": "sx.api.khotp.doi_soat_sau_cham",
-                        "on_submit": "sx.api.khotp.doi_soat_sau_cham"},
+    # D123: lưu / xoá bảng -> ngày đó cần đồng bộ lương (không còn chốt Vào hộp).
+    "SX Bang Vao Hop": {"on_update": ["sx.api.khotp.doi_soat_sau_cham",
+                                      "sx.api.dongbo.sau_luu_bang"],
+                        "on_submit": "sx.api.khotp.doi_soat_sau_cham",
+                        "on_trash": "sx.api.dongbo.sau_luu_bang"},
     "SX Nhap Bot": {
         "on_submit": "sx.api.tang1.on_submit_nhap_bot",
         "on_cancel": "sx.api.tang1.on_cancel_nhap_bot",
@@ -29,6 +31,10 @@ doc_events = {
         "on_submit": "sx.qc.tiep_nhan.on_submit",
     },
 }
+
+# D123: lưới an toàn của đồng bộ ngầm — ngày còn dấu "cần đồng bộ" (job nền lỡ,
+# worker vừa khởi động lại…) được làm trong vòng 5 phút.
+scheduler_events = {"cron": {"*/5 * * * *": ["sx.api.dongbo.chay_tat_ca"]}}
 
 # Tạo role còn thiếu — chỉ TẠO, không sửa role đã có (D105).
 after_install = "sx.setup.dam_bao_role"

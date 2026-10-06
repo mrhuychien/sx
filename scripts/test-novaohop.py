@@ -451,9 +451,9 @@ kiem("QC lưu bảng (chấm bù nốt 3) → hook trừ hết nợ, mở card l
      not K.so_no_vao_hop()["nhom"])
 kiem("… và nợ đã đóng trong sổ", all(x.trang_thai == "Đã chấm bù" for x in NO))
 hk = open("sx/hooks.py", encoding="utf-8").read()
-kiem("hook gắn vào lưu + chốt bảng vào hộp",
-     '"SX Bang Vao Hop": {"on_update": "sx.api.khotp.doi_soat_sau_cham"' in hk
-     and '"on_submit": "sx.api.khotp.doi_soat_sau_cham"' in hk)
+kiem("hook gắn vào lưu bảng vào hộp (đối soát nợ + đồng bộ lương D123)",
+     '"SX Bang Vao Hop": {"on_update": ["sx.api.khotp.doi_soat_sau_cham",' in hk
+     and '"sx.api.dongbo.sau_luu_bang"]' in hk)
 
 print("\n-- huỷ phiếu nhập, bỏ qua --")
 lam_sach()

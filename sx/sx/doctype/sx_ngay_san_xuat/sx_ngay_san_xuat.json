@@ -31,7 +31,15 @@
   "ds_wo_se_ghiso",
   "ds_wo_se",
   "salary_products_json",
-  "amended_from"
+  "amended_from",
+  "section_dong_bo",
+  "can_dong_bo_gs",
+  "loi_dong_bo_gs",
+  "so_cai_ghiso",
+  "column_break_dong_bo",
+  "can_dong_bo_vh",
+  "loi_dong_bo_vh",
+  "dong_bo_luc"
  ],
  "fields": [
   {
@@ -217,6 +225,54 @@
    "read_only": 1,
    "hidden": 1,
    "description": "WO/SE sinh bởi chốt Ghi sổ — dùng để huỷ ngược đúng nửa đó."
+  },
+  {
+   "fieldname": "section_dong_bo",
+   "fieldtype": "Section Break",
+   "label": "Đồng bộ kho & lương (D123)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "can_dong_bo_gs",
+   "fieldtype": "Check",
+   "label": "Chờ đồng bộ kho (báo mẻ)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "loi_dong_bo_gs",
+   "fieldtype": "Small Text",
+   "label": "Lỗi đồng bộ kho",
+   "read_only": 1
+  },
+  {
+   "fieldname": "so_cai_ghiso",
+   "fieldtype": "Long Text",
+   "label": "Sổ cái ghi sổ",
+   "read_only": 1,
+   "hidden": 1,
+   "description": "JSON [{item, kg, batch, wo, se}] — chứng từ tầng 2 đang có hiệu lực, theo mã."
+  },
+  {
+   "fieldname": "column_break_dong_bo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "can_dong_bo_vh",
+   "fieldtype": "Check",
+   "label": "Chờ đồng bộ lương (vào hộp)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "loi_dong_bo_vh",
+   "fieldtype": "Small Text",
+   "label": "Lỗi đồng bộ lương",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dong_bo_luc",
+   "fieldtype": "Datetime",
+   "label": "Đồng bộ lần cuối",
+   "read_only": 1
   }
  ],
  "is_submittable": 1,

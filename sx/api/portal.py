@@ -240,8 +240,11 @@ def _ngay_summary(ten):
         "ngay": str(doc.ngay),
         "docstatus": doc.docstatus,
         "trang_thai": doc.trang_thai,
-        "chot_ghiso": cint(doc.chot_ghiso),
-        "chot_vaohop": cint(doc.chot_vaohop),
+        # D123: không còn chốt — thay bằng trạng thái đồng bộ kho / lương.
+        "dong_bo": {
+            "gs": {"cho": cint(doc.get("can_dong_bo_gs")), "loi": doc.get("loi_dong_bo_gs")},
+            "vh": {"cho": cint(doc.get("can_dong_bo_vh")), "loi": doc.get("loi_dong_bo_vh")},
+        },
         "tong_hop_tp": doc.tong_hop_tp,
         "tong_luong_sp": doc.tong_luong_sp,
         "bao_me": [
@@ -416,25 +419,13 @@ def get_or_create_ngay(ngay=None):
 
 
 def _chan_neu_chot(ngay_sx, nua, viec):
-    """Chặn sửa dữ liệu của NỬA đã chốt (D55).
-
-    Từ D55 phiếu ngày còn NHÁP khi mới chốt một nửa, nên `docstatus != 0` không còn
-    là dấu hiệu "đã chốt" nữa — phải đọc đúng cờ của nửa đó. Chốt rồi mà vẫn sửa
-    được là phiếu một đằng chứng từ kho một nẻo.
-    """
-    d = frappe.db.get_value(
-        "SX Ngay San Xuat", ngay_sx, ["docstatus", "chot_ghiso", "chot_vaohop"],
-        as_dict=True)
-    if not d:
+    """D123: không còn chốt — chỉ chặn khi phiếu ngày không còn (đã huỷ / đã xoá).
+    Giữ tên hàm để các nơi gọi cũ không phải đổi."""
+    d = frappe.db.get_value("SX Ngay San Xuat", ngay_sx, "docstatus")
+    if d is None:
         frappe.throw(_("Không tìm thấy phiếu ngày {0}.").format(ngay_sx))
-    if d.docstatus == 2:
-        frappe.throw(_("Phiếu ngày đã huỷ."))
-    if d.docstatus == 1 or cint(d.get(f"chot_{nua}")):
-        nhan = "Ghi sổ" if nua == "ghiso" else "Vào hộp"
-        frappe.throw(
-            _("Phần {0} của ngày này đã chốt — không {1} được nữa. Huỷ chốt {0} "
-              "trước nếu cần sửa.").format(nhan, viec)
-        )
+    if cint(d) == 2:
+        frappe.throw(_("Phiếu ngày đã huỷ — không {0} được.").format(viec))
 
 
 @frappe.whitelist()
@@ -640,8 +631,7 @@ def dashboard(tu_ngay=None, den_ngay=None):
     # chốt Ghi sổ) biến mất khỏi dashboard — quản lý mở lên thấy hôm nay bằng 0.
     phieu = frappe.get_all(
         "SX Ngay San Xuat",
-        filters={"ngay": ("between", (tu_ngay, den_ngay)), "docstatus": ("<", 2),
-                 "chot_vaohop": 1},
+        filters={"ngay": ("between", (tu_ngay, den_ngay)), "docstatus": ("<", 2)},
         fields=["name", "ngay", "tong_hop_tp", "tong_luong_sp"],
         order_by="ngay",
     )
@@ -651,7 +641,7 @@ def dashboard(tu_ngay=None, den_ngay=None):
     rows = []
     if ds_phieu:
         bang = frappe.get_all(
-            "SX Bang Vao Hop", filters={"ngay_sx": ("in", ds_phieu), "docstatus": 1},
+            "SX Bang Vao Hop", filters={"ngay_sx": ("in", ds_phieu), "docstatus": ("<", 2)},
             pluck="name",
         )
         if bang:

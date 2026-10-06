@@ -6,7 +6,7 @@
 //   suco     — mấy ngày một lần                                -> gập
 // Dàn đều cả bốn thì việc chính chìm lẫn với việc phụ và phải cuộn mới thấy.
 
-import { el } from '/assets/sx/sx/lib/dom.js';
+import { el, esc } from '/assets/sx/sx/lib/dom.js';
 
 // Thẻ nào gập lại + nhãn hiện trên thanh gập. Thẻ không có trong bảng này = mở sẵn.
 const GAP = {
@@ -20,9 +20,11 @@ export async function render({ container, viewName, cards, mountCard, boot }) {
   const wrap = el('div', 'sx-view');
   container.appendChild(wrap);
   const ngay = boot.ngay_sx;
+  // D123: không còn chốt — chỉ báo khi đồng bộ kho lỗi.
+  const loi = ngay && ngay.dong_bo && ngay.dong_bo.gs && ngay.dong_bo.gs.loi;
   wrap.appendChild(el('h1', 'sx-h1', 'Ghi sổ'
-    + (ngay && (ngay.docstatus === 1 || ngay.chot_ghiso)
-      ? ' <span class="sx-badge sx-badge-ok">Đã chốt Ghi sổ</span>' : '')));
+    + (loi ? ' <span class="sx-badge sx-badge-err">Lỗi đồng bộ kho</span>' : '')));
+  if (loi) wrap.appendChild(el('div', 'sx-warn-text', esc(loi)));
 
   // Song song (D120): mountCard giữ chỗ đồng bộ nên thứ tự vẫn đúng.
   const dang = [];

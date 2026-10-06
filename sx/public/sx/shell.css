@@ -2064,3 +2064,13 @@ b.sx-tx-kl-loi { background: none; }
 .sx-tet-tong i { font-size: var(--sx-f-sm); font-style: normal; color: var(--sx-text-2); }
 .sx-tet-giai { font-size: var(--sx-f-xs); }
 .sx-tet-cho { background: var(--sx-warning-soft); color: var(--sx-warning-text); }
+
+
+/* ══════════════════ ĐỒNG BỘ KHO & LƯƠNG (D123) ══════════════════ */
+.sx-lc-3 { background: var(--sx-danger-soft); color: var(--sx-danger-text); box-shadow: inset 0 0 0 1px var(--sx-danger); }
+.sx-lc-dong { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px var(--sx-s2);
+  padding: var(--sx-s2) 0; border-bottom: 1px solid var(--sx-line); font-size: var(--sx-f-sm); }
+.sx-lc-dong-2 span { color: var(--sx-success-text); font-weight: 700; }
+.sx-lc-dong-1 span { color: var(--sx-warning-text); font-weight: 700; }
+.sx-lc-dong-3 span { color: var(--sx-danger-text); font-weight: 700; }
+.sx-lc-loi { flex-basis: 100%; color: var(--sx-danger-text); font-size: var(--sx-f-xs); white-space: pre-line; }

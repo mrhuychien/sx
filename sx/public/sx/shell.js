@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-93';
+const BUILD = 'sx-94';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -33,7 +33,6 @@ const CARD_PATHS = {
   baocan: '/assets/sx/sx/cards/baocan.js',
   suco: '/assets/sx/sx/cards/suco.js',
   vaohop: '/assets/sx/sx/cards/vaohop.js',
-  chotngay: '/assets/sx/sx/cards/chotngay.js',
   nguoidung: '/assets/sx/sx/cards/nguoidung.js',
   qcnhac: '/assets/sx/sx/cards/qcnhac.js',
   nobom: '/assets/sx/sx/cards/nobom.js',
@@ -353,8 +352,10 @@ function paintDayBar() {
   if (input && b.ngay_xem) input.value = b.ngay_xem;
   if (!tag) return;
   const ng = b.ngay_sx || {};
-  const daChot = ng.docstatus === 1 || (ng.chot_ghiso && ng.chot_vaohop);
-  const chotMotPhan = !daChot && (ng.chot_ghiso || ng.chot_vaohop);
+  // D123: không còn chốt — nhãn ngày nói trạng thái ĐỒNG BỘ kho / lương.
+  const db = ng.dong_bo || {};
+  const loiDb = [db.gs, db.vh].some((x) => x && x.loi);
+  const choDb = [db.gs, db.vh].some((x) => x && x.cho);
   // "Thứ 5, 30/07" — người ở xưởng nhớ THỨ, không nhớ ngày (bản thiết kế)
   const tenNgay = daybar.querySelector('#sx-day-ten');
   if (tenNgay && b.ngay_sx && b.ngay_sx.ngay) {
@@ -368,12 +369,8 @@ function paintDayBar() {
   if (store.tuBoNho) {
     tag.textContent = '📴 số liệu lưu trên máy';
     tag.className = 'sx-day-tag sx-day-cu';
-  } else if (daChot) { tag.textContent = '🔒 đã chốt'; tag.className = 'sx-day-tag sx-day-chot'; }
-  else if (chotMotPhan) {
-    // Nói rõ NỬA NÀO đã chốt: "đã chốt" chung chung làm QC tưởng cả ngày xong rồi
-    tag.textContent = ng.chot_ghiso ? '🔒 xong Ghi sổ' : '🔒 xong Vào hộp';
-    tag.className = 'sx-day-tag sx-day-chot';
-  }
+  } else if (loiDb) { tag.textContent = '⚠ lỗi đồng bộ — xem lịch ở Quản lý'; tag.className = 'sx-day-tag sx-day-chot'; }
+  else if (choDb) { tag.textContent = '⏳ đang đồng bộ'; tag.className = 'sx-day-tag sx-day-cu'; }
   else if (b.la_hom_nay) { tag.textContent = ''; tag.className = 'sx-day-tag'; }
   else { tag.textContent = '✎ ngày cũ'; tag.className = 'sx-day-tag sx-day-cu'; }
 }

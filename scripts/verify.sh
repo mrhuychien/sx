@@ -274,4 +274,10 @@ python3 scripts/test-tet.py > /tmp/sx-tet.log 2>&1 \
   && tail -1 /tmp/sx-tet.log \
   || { cat /tmp/sx-tet.log; loi=1; }
 
+# D123: bỏ chốt — kho + lương tự đồng bộ ngầm. Hỏng là hỏng IM LẶNG (kho lệch báo mẻ
+# mà không ai bấm gì để thấy), nên kiểm kỹ phần chênh / rút / lỗi từng mã.
+python3 scripts/test-dongbo.py > /tmp/sx-dongbo.log 2>&1 \
+  && tail -1 /tmp/sx-dongbo.log \
+  || { cat /tmp/sx-dongbo.log; loi=1; }
+
 exit $loi

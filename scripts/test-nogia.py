@@ -437,28 +437,30 @@ card = open("sx/public/sx/cards/nogia.js", encoding="utf-8").read()
 for m in re.findall(r"sx\.api\.nogia\.(\w+)", card):
     kiem(f"card gọi method có thật: {m}", callable(getattr(G, m, None)))
 
-# ═══ 8. Dây nối trong chốt / huỷ chốt ═══════════════════════════════════
-print("\n-- dây nối trong sx/api/chot.py --")
-cay = ast.parse(open("sx/api/chot.py", encoding="utf-8").read())
+# ═══ 8. Dây nối trong đồng bộ ngầm (D123 — thay chốt / huỷ chốt) ═════════════
+print("\n-- dây nối trong sx/api/dongbo.py --")
+src_db = open("sx/api/dongbo.py", encoding="utf-8").read()
+cay = ast.parse(src_db)
 ham = {f.name: f for f in cay.body if isinstance(f, ast.FunctionDef)}
 
 
 def goi_trong(ten_ham, goi):
     return [n for n in ast.walk(ham[ten_ham]) if isinstance(n, ast.Call)
-            and getattr(n.func, "id", None) == goi]
+            and (getattr(n.func, "id", None) == goi or getattr(n.func, "attr", None) == goi)]
 
 
-cv = ham["chot_vaohop"]
-thu_khoi = [n for n in ast.walk(cv) if isinstance(n, ast.Try)]
-trong_try = thu_khoi and any(getattr(getattr(n, "func", None), "id", None) == "ghi_no_gia"
-                             for s in thu_khoi[0].body for n in ast.walk(s))
-kiem("chốt Vào hộp ghi nợ TRONG giao dịch (vỡ là rollback cả nợ)", bool(trong_try))
-src = ast.get_source_segment(open("sx/api/chot.py", encoding="utf-8").read(), cv)
-kiem("ghi nợ SAU khi ghi lương, TRƯỚC khi đánh dấu đã chốt",
-     src.index("_ghi_luong_khoan(") < src.index("ghi_no_gia(") < src.index("doc.chot_vaohop = 1"))
-kiem("huỷ chốt Vào hộp huỷ nợ", bool(goi_trong("huy_chot_vaohop", "huy_no_gia")))
-kiem("huỷ chốt NGÀY (hook on_cancel) huỷ nợ", bool(goi_trong("on_cancel_ngay", "huy_no_gia")))
-kiem("cảnh báo sau chốt có nợ đơn giá", bool(goi_trong("_canh_bao_mem", "canh_bao_no_gia")))
+vh = ham["dong_bo_vaohop"]
+thu_khoi = [n for n in ast.walk(vh) if isinstance(n, ast.Try)]
+trong_try = any(getattr(getattr(n, "func", None), "id", None) == "_dong_bo_no_gia"
+                for t_ in thu_khoi for s_ in t_.body for n in ast.walk(s_))
+kiem("đồng bộ lương: nợ giá cùng savepoint (vỡ là hoàn tác cả nợ)", bool(trong_try))
+seg = ast.get_source_segment(src_db, vh)
+kiem("nợ giá đối chiếu SAU khi ghi lương",
+     seg.index("_ghi_luong_khoan(") < seg.index("_dong_bo_no_gia("))
+kiem("xoá ngày huỷ nợ giá", bool(goi_trong("go_het", "huy_no_gia")))
+seg_no = ast.get_source_segment(src_db, ham["_dong_bo_no_gia"])
+kiem("đối chiếu nợ KHÔNG huỷ-tạo lại mỗi lần lưu (giữ nợ còn thiếu)",
+     "huy_no_gia" not in seg_no and "if (sp, cl) in dang:" in seg_no)
 
 # ═══ 9. DocType ══════════════════════════════════════════════════════════
 dt = json.load(open("sx/sx/doctype/sx_no_don_gia/sx_no_don_gia.json", encoding="utf-8"))

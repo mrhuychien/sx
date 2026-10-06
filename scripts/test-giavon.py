@@ -240,16 +240,12 @@ v = next(d for d in ds if d["item"] == "VANI")
 kiem("gợi ý giá lấy giá chuẩn trên Item, kèm ĐVT", v["goi_y"] == 850000 and v["dvt"] == "Kg", v)
 kiem("không có gì để gợi ý → None (không bịa)", next(d for d in ds if d["item"] == "MAU")["goi_y"] is None)
 
-print("\n-- chốt Ghi sổ chặn TRƯỚC khi sinh phiếu kho --")
-C._kiem_chua_chot = C._validate_chung = C._kiem_ton_kho = lambda *a, **k: None
-sinh = []
-C._chot_tang_2 = lambda doc, ct: (sinh.append(1), (_ for _ in ()).throw(Loi("dừng sau tầng 2")))
-_, e = thu(lambda: C.chot_ghiso("SXN-1"))
+print("\n-- câu báo thiếu giá (duyệt nhập kho TP; đồng bộ kho xem test-dongbo.py) --")
+_, e = thu(lambda: M.bao_thieu_gia_von(ds, "duyệt nhập kho"))
 kiem("báo lỗi tiếng Việt, liệt kê HẾT mã thiếu", e and "Vani" in str(e) and "Màu" in str(e)
      and "2 mã" in str(e), e)
 kiem("… chỉ cách sửa (khai giá / Valuation Rate)", e and "KHAI GIÁ VỐN" in str(e)
      and "Valuation Rate" in str(e))
-kiem("… và CHƯA sinh phiếu kho nào", sinh == [])
 
 print("\n-- khai giá vốn --")
 VAI.clear(); VAI.add("SX Vao Hop")
@@ -267,8 +263,7 @@ kiem("lưu vết bằng comment trên Item", COMMENT and COMMENT[0][0] == "VANI"
 ds = C._thieu_gia_von_ngay(NGAY, ut.get_settings())
 kiem("khai xong → Vani hết thiếu, còn Màu", [d["item"] for d in ds] == ["MAU"])
 C.khai_gia_von([{"item": "MAU", "gia": 300000}])
-_, e = thu(lambda: C.chot_ghiso("SXN-1"))
-kiem("khai đủ → chốt đi tiếp tới bước sinh phiếu kho", sinh == [1], e)
+kiem("khai đủ → ngày hết mã thiếu giá", C._thieu_gia_von_ngay(NGAY, ut.get_settings()) == [])
 
 print("\n-- D118: bán thành phẩm TỰ TÍNH giá từ nguyên liệu, không hỏi --")
 GIA_MUA.clear(); COMMENT.clear()
@@ -303,11 +298,8 @@ ds = C._thieu_gia_von_ngay(NGAY2, ut.get_settings())
 kiem("chốt ngày làm bột đậu: chỉ hỏi đỗ xanh", [d["item"] for d in ds] == ["DAU-XANH"],
      [d["item"] for d in ds])
 SLE_GIA.add("DAU-XANH")
-sinh.clear()
-_, e = thu(lambda: C.chot_ghiso("SXN-2"))
-kiem("chốt: giá bột nền tự ghi TRƯỚC khi sinh phiếu kho, không hỏi ai",
-     sinh == [1] and ITEM["BOT-NEN"]["valuation_rate"] == round(25000 * 100 / 88, 2),
-     (sinh, ITEM["BOT-NEN"]["valuation_rate"]))
+kiem("có giá đỗ → ngày làm bột đậu không hỏi gì",
+     C._thieu_gia_von_ngay(NGAY2, ut.get_settings()) == [])
 
 print()
 if hong:
