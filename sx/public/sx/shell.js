@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-86';
+const BUILD = 'sx-87';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -46,7 +46,7 @@ const CARD_PATHS = {
   lichchot: '/assets/sx/sx/cards/lichchot.js',
 };
 const VIEW_META = {
-  ghiso: { label: 'Ghi số', icon: '📋' },
+  ghiso: { label: 'Ghi sổ', icon: '📋' },
   vaohop: { label: 'Ghi hộp', icon: '📦' },
   nhapkho: { label: 'Nhập kho', icon: '🏭' },
   quanly: { label: 'Quản lý', icon: '📊' },
@@ -197,6 +197,10 @@ function buildShell() {
     </div>
   `;
   const nav = el('nav', 'sx-bottom-nav');
+  // Trên máy tính thanh tab thành THANH TRÁI (D119) — tên app đứng đầu thanh.
+  // Điện thoại ẩn khối này (CSS), thanh dưới giữ nguyên như cũ.
+  nav.appendChild(el('div', 'sx-nav-brand',
+    '<span class="sx-nav-logo" aria-hidden="true">🥮</span><span>Sản xuất</span>'));
   views.forEach((v) => {
     const meta = VIEW_META[v] || { label: v, icon: '•' };
     const btn = el('a', 'sx-nav-btn');
@@ -218,6 +222,18 @@ function buildShell() {
   app.appendChild(main);
   app.appendChild(nav);
   onOffline((isOff) => { banner.style.display = isOff ? '' : 'none'; });
+
+  // Máy tính (D119): thanh ngày lên HẲN header, giữa tên màn và nút phụ — dải kính
+  // riêng dưới header chỉ hợp với điện thoại. Chuyển chỗ theo bề ngang thật, không
+  // dựng hai bản thanh ngày (hai bản là hai chỗ phải nhớ đồng bộ).
+  const mayTinh = window.matchMedia('(min-width: 1024px)');
+  const datThanhNgay = () => {
+    if (mayTinh.matches) header.querySelector('.sx-header-inner')
+      .insertBefore(daybar, header.querySelector('.sx-header-actions'));
+    else app.insertBefore(daybar, main);
+  };
+  datThanhNgay();
+  if (mayTinh.addEventListener) mayTinh.addEventListener('change', datThanhNgay);
 
   onQueue((tt) => {
     if (!tt.so_luong) { hang.style.display = 'none'; return; }
@@ -337,6 +353,8 @@ async function renderView(viewName, container) {
   // Màn Quản lý là màn ĐỌC trên máy tính (không phải nhập liệu trên tablet) nên
   // được nới rộng và chia 2 cột; hai màn kia giữ dải hẹp cho dễ đọc khi cầm tay.
   container.classList.toggle('sx-main-rong', viewName === 'quanly');
+  // Màn Quản lý trên máy tính dùng chữ/nút gọn hơn (chuột, không phải găng tay).
+  app.classList.toggle('sx-app-ql', viewName === 'quanly');
   daybar.style.display = VIEW_TU_LO_NGAY.has(viewName) ? 'none' : '';
   const mod = await import(withV(VIEW_PATHS[viewName]));
   const cards = (store.boot.viewCards && store.boot.viewCards[viewName]) || [];

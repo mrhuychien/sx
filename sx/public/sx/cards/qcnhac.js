@@ -21,7 +21,8 @@ export async function render({ container, call }) {
     // cả màn Quản lý vì một khối phụ.
     return;
   }
-  const hop = veNhac((nh && nh.ds) || [], { tieu_de: 'QC đang treo việc' });
+  const ds = (nh && nh.ds) || [];
+  const hop = veNhac(ds, { tieu_de: `QC đang treo việc · ${ds.length} mục` });
   if (!hop) return;
   container.style.display = '';
   container.appendChild(hop);

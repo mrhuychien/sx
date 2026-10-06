@@ -6,6 +6,13 @@ import { esc, el } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber, formatVND } from '/assets/sx/sx/lib/format.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 
+// Bố cục máy tính (D119): hai cột đầu màn — trái là việc PHẢI LÀM (QC treo, nợ,
+// lịch chốt), phải là việc TRA CỨU (truy xuất, lương, tài khoản). Thẻ không có
+// trong hai danh sách (tồn BTP theo luồng…) trải hết bề ngang bên dưới. Điện thoại
+// chỉ là một cột: trái rồi phải rồi phần rộng, thứ tự gần như cũ.
+const COT_TRAI = ['qcnhac', 'nobom', 'nogia', 'novaohop', 'lichchot', 'chotngay'];
+const COT_PHAI = ['truyxuat', 'phieuluong', 'nguoidung'];
+
 export async function render({ container, ctx, call, cards, mountCard }) {
   container.innerHTML = '';
   const wrap = el('div', 'sx-view');
@@ -17,20 +24,29 @@ export async function render({ container, ctx, call, cards, mountCard }) {
 
   // D33: chốt ngày + lưu đồ tồn BTP nằm ở ĐẦU màn, trên dashboard. Chốt ngày là việc
   // phải làm mỗi ngày nên không được nằm dưới đáy trang sau 6 bảng thống kê.
-  const dauMan = el('div');
-  wrap.appendChild(dauMan);
+  const tren = el('div', 'sx-ql-tren');
+  const trai = el('div', 'sx-ql-cot');
+  const phai = el('div', 'sx-ql-cot');
+  const rong = el('div', 'sx-ql-cot sx-ql-rong-ds');
+  tren.appendChild(trai);
+  tren.appendChild(phai);
+  wrap.appendChild(tren);
+  wrap.appendChild(rong);
   for (const c of (cards || [])) {
-    await mountCard(c, dauMan);
+    await mountCard(c, COT_TRAI.includes(c) ? trai : (COT_PHAI.includes(c) ? phai : rong));
   }
 
   let soNgay = 7;
   const than = el('div');
   wrap.appendChild(than);
+  than.className = 'sx-ql-theodoi';
   than.innerHTML = `
-    <h1 class="sx-h1">Theo dõi</h1>
-    <div class="sx-sp-grid">
-      <button type="button" class="sx-sp-chip sx-sp-chip-on" id="sx-ql-7">7 ngày</button>
-      <button type="button" class="sx-sp-chip" id="sx-ql-30">30 ngày</button>
+    <div class="sx-ql-dau">
+      <h2 class="sx-h1">Theo dõi</h2>
+      <div class="sx-ql-ky" role="group" aria-label="Kỳ xem">
+        <button type="button" class="sx-ql-ky-on" id="sx-ql-7" aria-pressed="true">7 ngày</button>
+        <button type="button" id="sx-ql-30" aria-pressed="false">30 ngày</button>
+      </div>
     </div>
     <div id="sx-ql-body"><div class="sx-boot-loading">Đang tải…</div></div>
   `;
@@ -38,8 +54,16 @@ export async function render({ container, ctx, call, cards, mountCard }) {
   const body = than.querySelector('#sx-ql-body');
   const btn7 = than.querySelector('#sx-ql-7');
   const btn30 = than.querySelector('#sx-ql-30');
-  btn7.addEventListener('click', () => { soNgay = 7; btn7.classList.add('sx-sp-chip-on'); btn30.classList.remove('sx-sp-chip-on'); load(); });
-  btn30.addEventListener('click', () => { soNgay = 30; btn30.classList.add('sx-sp-chip-on'); btn7.classList.remove('sx-sp-chip-on'); load(); });
+  const chonKy = (n) => {
+    soNgay = n;
+    [[btn7, 7], [btn30, 30]].forEach(([b, k]) => {
+      b.classList.toggle('sx-ql-ky-on', k === n);
+      b.setAttribute('aria-pressed', k === n ? 'true' : 'false');
+    });
+    load();
+  };
+  btn7.addEventListener('click', () => chonKy(7));
+  btn30.addEventListener('click', () => chonKy(30));
 
   async function load() {
     body.innerHTML = '<div class="sx-boot-loading">Đang tải…</div>';
@@ -60,7 +84,7 @@ export async function render({ container, ctx, call, cards, mountCard }) {
   // Cột dựng bằng CSS: cao theo tỉ lệ với ngày cao nhất, số ở trên, nhãn ở dưới.
   // Không cần thư viện, không cần mạng, và đọc được cả khi font chưa tải xong.
   function veCot(hop) {
-    const box = document.getElementById('sx-ql-cot');
+    const box = body.querySelector('#sx-ql-cot');
     if (!box) return;
     const ds = (hop || []).slice(-7);
     const max = Math.max(1, ...ds.map((x) => Number(x.tong) || 0));
@@ -73,11 +97,10 @@ export async function render({ container, ctx, call, cards, mountCard }) {
           Math.max(2, Math.round((v / max) * 100))}%"></div></div>
         <div class="sx-cot-nhan">${esc(nhan)}</div>
       </div>`;
-    }).join('') : '<div class="sx-muted">Chưa có ngày chốt nào.</div>';
+    }).join('') : `<div class="sx-ql-trong">Chưa có dữ liệu trong ${soNgay} ngày qua.</div>`;
   }
 
   function paint(d) {
-    veCot(d.phieu.map((p) => ({ ngay: p.ngay, tong: p.tong_hop_tp })));
     const tongHop = d.phieu.reduce((a, p) => a + p.tong_hop_tp, 0);
     const tongLuong = d.phieu.reduce((a, p) => a + p.tong_luong_sp, 0);
     const canhBaoTron = (d.tron_vs_can || []).filter((x) => x.canh_bao);
@@ -96,8 +119,16 @@ export async function render({ container, ctx, call, cards, mountCard }) {
         <div class="sx-card sx-kpi"><div class="sx-kpi-label">SKU đã đóng</div>
           <div class="sx-kpi-value">${(d.san_luong_sku || []).length}</div></div>
       </div>
-      <div class="sx-card sx-ql-rong"><div class="sx-field-label">Sản lượng theo ngày (sản phẩm)</div>
-        <div class="sx-cot" id="sx-ql-cot"></div></div>
+      <div class="sx-ql-hang">
+        <div class="sx-card sx-ql-bieudo"><div class="sx-field-label">Sản lượng theo ngày (sản phẩm)</div>
+          <div class="sx-cot" id="sx-ql-cot"></div></div>
+        <div class="sx-card sx-ql-lienket"><div class="sx-field-label">Liên kết nhanh</div>
+          <a class="sx-desk-link" href="/app/sx-ngay-san-xuat" target="_blank" rel="noopener">Mở Desk: Phiếu ngày SX <span>↗</span></a>
+          <a class="sx-desk-link" href="/app/query-report/Serial and Batch Summary" target="_blank" rel="noopener">Serial &amp; Batch Traceability Report <span>↗</span></a>
+          <a class="sx-desk-link" href="/app/stock-reconciliation" target="_blank" rel="noopener">Kiểm kê (Stock Reconciliation) <span>↗</span></a>
+        </div>
+      </div>
+      <div class="sx-ql-bang">
       <div class="sx-card"><div class="sx-field-label">Sản lượng theo SKU</div>
         <table class="sx-table"><thead><tr><th>SKU</th><th>Hộp</th></tr></thead>
         <tbody>${(d.san_luong_sku || []).map((r) => `<tr><td>${esc(r.san_pham)}</td><td><b>${formatNumber(r.so_hop)}</b></td></tr>`).join('')
@@ -106,17 +137,16 @@ export async function render({ container, ctx, call, cards, mountCard }) {
         <table class="sx-table"><thead><tr><th>Công nhân</th><th>Hộp</th><th>Lương SP</th></tr></thead>
         <tbody>${(d.nang_suat_vao_hop || []).map((r) => `<tr><td>${esc(r.ten || r.nhan_vien)}</td><td><b>${formatNumber(r.so_hop)}</b></td><td>${esc(formatVND(r.tien))}</td></tr>`).join('')
           || '<tr><td colspan="3" class="sx-muted">Chưa có dữ liệu.</td></tr>'}</tbody></table></div>
-      ${veDoiChieu(d.doi_chieu_kho)}
       <div class="sx-card"><div class="sx-field-label">Mẻ trộn vs cán (bột bánh)</div>
         <table class="sx-table"><thead><tr><th>Bột bánh</th><th>Mẻ trộn</th><th>Mẻ cán</th></tr></thead>
         <tbody>${(d.tron_vs_can || []).map((r) => `<tr class="${r.canh_bao ? 'sx-row-warn' : ''}"><td>${esc(r.item)}</td><td>${formatNumber(r.me_tron, 1)}</td><td>${formatNumber(r.me_can, 1)}</td></tr>`).join('')
           || '<tr><td colspan="3" class="sx-muted">Chưa có dữ liệu.</td></tr>'}</tbody></table></div>
-      <div class="sx-card">
-        <a class="sx-desk-link" href="/app/sx-ngay-san-xuat" target="_blank" rel="noopener">Mở Desk: Phiếu ngày SX ↗</a>
-        <a class="sx-desk-link" href="/app/query-report/Serial and Batch Summary" target="_blank" rel="noopener">Serial & Batch Traceability Report ↗</a>
-        <a class="sx-desk-link" href="/app/stock-reconciliation" target="_blank" rel="noopener">Kiểm kê (Stock Reconciliation) ↗</a>
+      ${veDoiChieu(d.doi_chieu_kho)}
       </div>
     `;
+    // Vẽ cột SAU khi khung đã vào trang — trước D119 gọi trước innerHTML nên ô
+    // biểu đồ luôn trống.
+    veCot(d.phieu.map((p) => ({ ngay: p.ngay, tong: p.tong_hop_tp })));
   }
 
   await load();

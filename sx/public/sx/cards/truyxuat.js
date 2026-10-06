@@ -38,11 +38,13 @@ export async function render({ container, call }) {
         <button type="button" class="sx-btn sx-tx-sp" id="tx-sp">Chọn sản phẩm…</button>
         <button type="button" class="sx-btn sx-quet-nut" id="tx-quet">⌗ Quét</button>
       </div>
-      <label class="sx-field-label" for="tx-hsd">HSD in trên hộp</label>
-      <input class="sx-textarea" id="tx-hsd" type="date">
-      <label class="sx-field-label" for="tx-q">hoặc mã lô</label>
-      <input class="sx-textarea" id="tx-q" type="search" autocomplete="off"
-        placeholder="VD: BB-TT-061026, R-021026…">
+      <div class="sx-tx-2o">
+        <label class="sx-tx-o"><span class="sx-field-label">HSD in trên hộp</span>
+          <input class="sx-textarea" id="tx-hsd" type="date"></label>
+        <label class="sx-tx-o"><span class="sx-field-label">hoặc mã lô</span>
+          <input class="sx-textarea" id="tx-q" type="search" autocomplete="off"
+            placeholder="VD: BB-TT-061026"></label>
+      </div>
       <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="tx-tra">TRA</button>
     </div>
     <div id="tx-kq"></div>`;

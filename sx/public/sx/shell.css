@@ -27,7 +27,7 @@
 /* Inter theo NPP. display=swap: chữ hiện ngay bằng font hệ thống rồi đổi — mất
    mạng thì đứng luôn ở font hệ thống, KHÔNG chặn render. @import PHẢI đứng trước
    mọi rule, nếu không trình duyệt bỏ qua cả dòng này. */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
 
 /* ══════════════════ 1. TOKEN ══════════════════ */
 :root {
@@ -71,7 +71,9 @@
   --sx-s5: 24px; --sx-s6: 32px; --sx-s7: 48px;
 
   /* ── Chữ ── */
-  --sx-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Be Vietnam Pro (D119, theo bản thiết kế): dấu tiếng Việt vẽ riêng, không chồng
+     lên nhau ở chữ nhỏ như Inter. Mất mạng thì rơi về font hệ thống. */
+  --sx-font: "Be Vietnam Pro", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   /* Mã lô được CHÉP TAY ra thẻ treo lô hàng. Mono là để phân biệt 0/O, 1/l —
      chép nhầm một ký tự là đứt chuỗi truy xuất. Dùng font hệ thống, không nạp
      webfont thứ hai. */
@@ -1628,32 +1630,140 @@ main > .container {
   }
 }
 
-/* ══════════════════ 19. MÀN QUẢN LÝ TRÊN MÁY TÍNH (D50) ══════════════════
- * Ghi hộp / Ghi số dùng trên tablet cầm tay -> giữ dải hẹp 900px, dòng ngắn dễ đọc.
- * Quản lý thì ngược lại: mở trên máy tính để ĐỌC và so sánh, mà dải 900px giữa màn
- * 1920px làm bảng bị bóp, biểu đồ thấp tè, hai bên bỏ trống hai phần ba màn hình.
+/* ══════════════════ 19. MÀN QUẢN LÝ — BỐ CỤC (D50 → D119) ══════════════════
+ * Điện thoại: một cột như mọi màn. Máy tính: xem mục 19b.
  */
-@media (min-width: 1100px) {
-  .sx-main-rong { max-width: 1360px; }
-  .sx-main-rong #sx-ql-body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--sx-s4);
+.sx-ql-tren, .sx-ql-cot { display: flex; flex-direction: column; gap: var(--sx-s4); }
+.sx-ql-cot:empty { display: none; }
+.sx-ql-theodoi { display: flex; flex-direction: column; gap: var(--sx-s3); }
+.sx-ql-dau { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sx-s2); }
+/* Công tắc kỳ xem: một viên thuốc hai nấc, nấc đang chọn tô màu mùa */
+.sx-ql-ky {
+  display: inline-flex; gap: 4px; padding: 3px;
+  background: var(--sx-surface); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-pill);
+}
+.sx-ql-ky button {
+  min-height: 40px; padding: 0 var(--sx-s4); border: 0; border-radius: var(--sx-radius-pill);
+  background: transparent; color: var(--sx-text-2); font: inherit; font-size: var(--sx-f-sm);
+  font-weight: 600; cursor: pointer;
+}
+.sx-ql-ky .sx-ql-ky-on { background: var(--sx-season-btn); color: #fff; }
+#sx-ql-body { display: flex; flex-direction: column; gap: var(--sx-s3); }
+.sx-ql-hang, .sx-ql-bang { display: flex; flex-direction: column; gap: var(--sx-s3); }
+.sx-ql-trong {
+  flex: 1; align-self: stretch; display: flex; align-items: center; justify-content: center;
+  min-height: 160px; border: 1px dashed var(--sx-line-2); border-radius: var(--sx-radius-sm);
+  color: var(--sx-text-3); font-size: var(--sx-f-sm); text-align: center;
+}
+.sx-ql-lienket { gap: 0; padding: var(--sx-s2); }
+.sx-ql-lienket > .sx-field-label { padding: var(--sx-s2) var(--sx-s2) var(--sx-s1); }
+.sx-ql-lienket .sx-desk-link {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sx-s2);
+  min-height: 44px; padding: 0 var(--sx-s2); border-radius: var(--sx-radius-sm);
+}
+.sx-ql-lienket .sx-desk-link { color: var(--sx-text); text-decoration: none; font-weight: 600; }
+.sx-ql-lienket .sx-desk-link:hover { background: var(--sx-surface-2); text-decoration: none; }
+.sx-lich-than:empty { display: none; }
+.sx-tx-2o { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: var(--sx-s2); }
+.sx-tx-o { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+/* ══════════════════ 19b. MÁY TÍNH ≥1024px (D119) ══════════════════
+ * Theo bản thiết kế màn Quản lý cho máy tính:
+ *   · thanh tab dưới → THANH TRÁI 216px (cùng một <nav>, chỉ đổi chỗ bằng CSS);
+ *   · thanh ngày lên header (shell.js chuyển node), header dính, kính mờ;
+ *   · Quản lý: hai cột 1.7 : 1, phần rộng bên dưới, khu Theo dõi dạng lưới.
+ * Ghi số / Ghi hộp / Nhập kho trên máy tính chỉ đổi khung (thanh trái + header),
+ * cỡ chữ và vùng chạm GIỮ NGUYÊN — tablet nằm ngang cũng ≥1024px và vẫn là găng tay.
+ */
+.sx-nav-brand { display: none; }
+@media (min-width: 1024px) {
+  .sx-app { padding-left: 216px; padding-bottom: 0; }
+  .sx-bottom-nav {
+    top: 0; bottom: 0; left: 0; right: auto;
+    width: 216px; height: auto;
+    flex-direction: column; gap: 4px;
+    padding: 20px 12px;
+    border-top: 0; border-right: 1px solid var(--sx-line);
+    background: rgba(255, 255, 255, .88);
+  }
+  .sx-nav-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 10px 20px; font-weight: 700; font-size: 15px; color: var(--sx-text);
+  }
+  .sx-nav-logo {
+    width: 34px; height: 34px; border-radius: 10px; flex: 0 0 34px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    background: var(--sx-season-btn);
+  }
+  .sx-nav-btn {
+    flex: 0 0 auto; flex-direction: row; justify-content: flex-start; gap: 12px;
+    min-height: 44px; padding: 0 12px; border-radius: 10px;
+    font-size: 14px; font-weight: 500; color: var(--sx-text-2);
+  }
+  .sx-nav-btn:hover { background: var(--sx-surface-2); }
+  .sx-nav-icon { width: 22px; height: auto; font-size: 17px; background: none !important; }
+  .sx-nav-active { background: var(--sx-season-glow); color: var(--sx-season-text); font-weight: 700; }
+  .sx-nav-active:hover { background: var(--sx-season-glow); }
+
+  .sx-header { left: 216px; }
+  .sx-header-inner { max-width: 1360px; padding: 0 clamp(12px, 2.4vw, 28px); gap: var(--sx-s4); }
+  .sx-header .sx-daybar {
+    flex: 0 1 auto; padding: 0; background: none; border: 0;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .sx-header .sx-daybar-inner { max-width: none; gap: var(--sx-s2); }
+  .sx-header .sx-day-nav, .sx-header .sx-day-today { min-height: 40px; min-width: 40px; font-size: 13px; }
+  .sx-header .sx-day-nav { padding: 0; }
+  .sx-header .sx-day-mid { flex: 0 1 auto; min-width: 150px; max-width: 240px; padding: 0 var(--sx-s1); }
+  .sx-header .sx-day-ten { font-size: 15px; }
+  .sx-header .sx-day-tag { font-size: 11px; margin-top: 0; line-height: 1.2; }
+  .sx-header .sx-day-tag:empty { display: none; }
+
+  /* ── Màn Quản lý: gọn hơn — đọc bằng chuột, không phải găng tay ── */
+  .sx-app-ql {
+    --sx-f-xs: 12px; --sx-f-sm: 13.5px; --sx-f-md: 14.5px; --sx-f-lg: 17px;
+    --sx-f-xl: 24px; --sx-f-2xl: 28px;
+    --sx-tap: 40px; --sx-tap-lg: 44px; --sx-tap-xl: 48px;
+  }
+  .sx-main-rong { max-width: 1360px; padding: clamp(12px, 2.4vw, 28px); }
+  .sx-main-rong .sx-view { gap: var(--sx-s4); }
+  .sx-main-rong .sx-card { border-radius: 16px; padding: var(--sx-s4); }
+  .sx-main-rong .sx-ql-tren {
+    display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
     align-items: start;
   }
-  .sx-main-rong #sx-ql-body > .sx-error-box,
-  .sx-main-rong #sx-ql-body > .sx-ok-box,
-  .sx-main-rong #sx-ql-body > .sx-kpi-grid { grid-column: 1 / -1; }
-  /* Đánh dấu bằng class tường minh, KHÔNG dùng :has() (chưa chắc có trên mọi máy) */
-  .sx-main-rong #sx-ql-body > .sx-ql-rong { grid-column: 1 / -1; }
-  .sx-main-rong .sx-cot { height: 280px; }
-  .sx-main-rong #sx-ql-body > .sx-card { margin: 0; }
-  .sx-main-rong .sx-tx-row .sx-textarea { max-width: 520px; }
-  .sx-main-rong .sx-lb-o { flex: 1 0 200px; }
+  .sx-main-rong .sx-ql-dau { margin-top: var(--sx-s2); }
+  .sx-main-rong .sx-ql-dau .sx-h1 { font-size: 24px; }
+  .sx-main-rong .sx-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--sx-s3); }
+  .sx-main-rong .sx-kpi-value { font-size: 24px; }
+  .sx-main-rong .sx-ql-hang { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); align-items: stretch; }
+  .sx-main-rong .sx-ql-bieudo .sx-cot { height: 240px; }
+  .sx-main-rong .sx-ql-bang { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+  .sx-main-rong .sx-table th { background: var(--sx-surface-2); }
+  .sx-main-rong .sx-table th:first-child { border-radius: 8px 0 0 8px; }
+  .sx-main-rong .sx-table th:last-child { border-radius: 0 8px 8px 0; }
+
+  /* QC treo việc: các mục thành lưới thẻ nhỏ, tiêu đề trải ngang */
+  .sx-main-rong .sx-qc-nhac {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  }
+  .sx-main-rong .sx-qc-nhac > .sx-qc-sc-ten { grid-column: 1 / -1; }
+  /* Tồn BTP theo luồng: hai luồng cạnh nhau */
+  /* 640px: luồng bánh có 5 chặng, mỗi chặng còn liệt kê mã — hẹp hơn là chặng
+     cuối bị cắt. Màn ≥1600px thì hai luồng mới đứng cạnh nhau. */
+  .sx-main-rong #sx-lb-ds {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 640px), 1fr));
+    gap: var(--sx-s3); align-items: start;
+  }
+  .sx-main-rong #sx-lb-ds .sx-lb-nhanh { margin-top: 0; }
+  .sx-main-rong .sx-lb-o { flex: 1 1 92px; }
+  .sx-main-rong .sx-lb-tp { flex: 1 1 110px; }
+  /* Lịch chốt trong cột trái: ô cao hơn cho dễ bấm chuột */
+  .sx-main-rong .sx-lich-o { min-height: 52px; }
 }
 @media (min-width: 1600px) {
-  .sx-main-rong { max-width: 1600px; }
-  .sx-main-rong #sx-ql-body { grid-template-columns: repeat(3, 1fr); }
+  .sx-main-rong { max-width: 1560px; }
+  .sx-header-inner { max-width: 1560px; }
 }
 
 /* ══════════════════ 20. QUÉT MÃ (D57) ══════════════════
