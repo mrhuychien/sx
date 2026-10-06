@@ -315,6 +315,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Vào hộp Tết (D122) — một màn, một lần lưu
+
+Vai trò mới **`SX QC Tet`** ("QC vào hộp Tết", không vào Desk) → tab **🧧 Vào hộp Tết**.
+Quản lý tạo tài khoản ở thẻ Tài khoản portal (chọn vai "QC vào hộp Tết"); quản lý cũng
+vào được tab này.
+
+1. **+ THÊM MÃ HÀNG** (hoặc **QUÉT HỘP**) → nhập số theo **thùng + hộp**.
+2. **HSD** tự điền = ngày + Shelf Life của mã; mã chưa khai thì hỏi ngay; bấm ô HSD để sửa
+   theo HSD in trên hộp.
+3. **LƯU — TẠO PHIẾU NHẬP KHO** (một lần) → cùng lúc:
+   - **phiếu nhập kho NHÁP** (nguồn "Tết", mỗi dòng có HSD) — **thủ kho đếm và duyệt** ở
+     màn Nhập kho như mọi phiếu; duyệt mới vào kho, có lô + HSD để truy xuất;
+   - **sản lượng công nhật** vào bảng vào hộp của ngày (không tính khoán theo người).
+- Phiếu nháp ghi nhầm: bấm ✕ ở "Phiếu Tết gần đây" (hoặc thủ kho xoá nháp) → xoá luôn
+  dòng công nhật đi kèm. Phiếu đã duyệt thì thủ kho huỷ ở màn Nhập kho.
+- Ngày đã chốt Vào hộp thì không ghi Tết vào ngày đó được.
+- Màn Nhập kho: phiếu Tết có nhãn 🧧; nhiều phiếu nháp thì duyệt lần lượt (cũ trước).
+  Hàng Tết đang chờ duyệt không hiện lại ở "vừa vào hộp, chưa nhập kho".
+- Cần `bench --site site1.local migrate` (thêm cột `nguon` cho phiếu nhập + tạo role).
+
 ## Tốc độ tải trang (D120)
 
 - **Trình duyệt:** các thẻ trên một màn tải SONG SONG (trước: nối đuôi, 8 thẻ = 8 lần

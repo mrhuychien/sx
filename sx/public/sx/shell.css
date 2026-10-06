@@ -2056,3 +2056,11 @@ b.sx-tx-kl-loi { background: none; }
 .sx-lc-1 { background: var(--sx-warning-soft); color: var(--sx-warning-text); box-shadow: inset 0 0 0 1px var(--sx-warning); }
 .sx-lc-2 { background: var(--sx-success-soft); color: var(--sx-success-text); }
 .sx-lc-chot { margin-top: var(--sx-s3); border-top: 1px solid var(--sx-line); padding-top: var(--sx-s3); }
+
+
+/* ══════════════════ VÀO HỘP TẾT (D122) ══════════════════ */
+.sx-tet-dau { display: flex; flex-direction: column; gap: var(--sx-s1); }
+.sx-tet-tong { font-size: var(--sx-f-2xl); font-weight: 800; line-height: 1.1; }
+.sx-tet-tong i { font-size: var(--sx-f-sm); font-style: normal; color: var(--sx-text-2); }
+.sx-tet-giai { font-size: var(--sx-f-xs); }
+.sx-tet-cho { background: var(--sx-warning-soft); color: var(--sx-warning-text); }

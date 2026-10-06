@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-92';
+const BUILD = 'sx-93';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -20,6 +20,7 @@ const VIEW_PATHS = {
   ghiso: '/assets/sx/sx/views/ghiso.js',
   vaohop: '/assets/sx/sx/views/vaohop.js',
   nhapkho: '/assets/sx/sx/views/nhapkho.js',
+  tet: '/assets/sx/sx/views/tet.js',
   quanly: '/assets/sx/sx/views/quanly.js',
   qc: '/assets/sx/sx/views/qc.js',
 };
@@ -44,11 +45,13 @@ const CARD_PATHS = {
   lichnhapkho: '/assets/sx/sx/cards/lichnhapkho.js',
   truyxuat: '/assets/sx/sx/cards/truyxuat.js',
   lichchot: '/assets/sx/sx/cards/lichchot.js',
+  vaohoptet: '/assets/sx/sx/cards/vaohoptet.js',
 };
 const VIEW_META = {
   ghiso: { label: 'Ghi sổ', icon: '📋' },
   vaohop: { label: 'Ghi hộp', icon: '📦' },
   nhapkho: { label: 'Nhập kho', icon: '🏭' },
+  tet: { label: 'Vào hộp Tết', icon: '🧧' },
   quanly: { label: 'Quản lý', icon: '📊' },
   qc: { label: 'QC', icon: '🧪' },
 };

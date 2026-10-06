@@ -21,8 +21,10 @@
   "nguoi_duyet",
   "duyet_luc",
   "section_khac",
+  "nguon",
   "ghi_chu",
   "ds_se",
+  "vao_hop_tet",
   "amended_from"
  ],
  "fields": [
@@ -122,6 +124,15 @@
    "fieldtype": "Section Break"
   },
   {
+   "fieldname": "nguon",
+   "fieldtype": "Data",
+   "label": "Nguồn",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Tết = lập từ màn Vào hộp Tết (D122): công nhật đã ghi sẵn ở bảng vào hộp."
+  },
+  {
    "fieldname": "ghi_chu",
    "fieldtype": "Small Text",
    "label": "Ghi chú"
@@ -132,6 +143,14 @@
    "label": "Chứng từ đã sinh (JSON)",
    "read_only": 1,
    "hidden": 1
+  },
+  {
+   "fieldname": "vao_hop_tet",
+   "fieldtype": "Small Text",
+   "label": "Dòng công nhật (Tết)",
+   "read_only": 1,
+   "hidden": 1,
+   "description": "JSON [{bang, dong}] — dòng công nhật sinh cùng phiếu; xoá phiếu nháp thì xoá theo."
   },
   {
    "fieldname": "amended_from",

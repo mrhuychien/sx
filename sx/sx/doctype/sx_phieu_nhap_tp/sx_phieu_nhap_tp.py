@@ -107,6 +107,12 @@ class SXPhieuNhapTP(Document):
         if self.docstatus == 0:
             self.trang_thai = "Nháp"
 
+    def on_trash(self):
+        """Phiếu Tết nháp bị xoá -> dòng công nhật sinh cùng nó cũng xoá (D122)."""
+        if self.get("vao_hop_tet"):
+            from sx.api.tet import go_cong_nhat
+            go_cong_nhat(self)
+
     def before_submit(self):
         if not any(flt(r.so_dem) > 0 for r in self.dong):
             frappe.throw(_("Chưa có dòng nào đếm được số > 0 — không duyệt phiếu rỗng."))

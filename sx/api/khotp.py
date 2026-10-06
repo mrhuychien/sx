@@ -160,10 +160,14 @@ def phieu_dang_mo():
     settings = get_settings()
     if not settings.get("kho_tp"):
         frappe.throw(_("SX Settings chưa cấu hình Kho TP."))
-    nhap = frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")
+    # D122: phiếu Tết làm có thể có HAI phiếu nháp cùng lúc — duyệt lần lượt, cũ trước.
+    nhap_ds = frappe.get_all("SX Phieu Nhap TP", filters={"docstatus": 0},
+                             pluck="name", order_by="creation asc")
+    nhap = nhap_ds[0] if nhap_ds else None
     dm = danh_muc_tp()
     return {
         "nhap": chi_tiet_phieu(nhap) if nhap else None,
+        "so_nhap_cho": max(0, len(nhap_ds) - 1),
         "kho_tp": settings.kho_tp,
         "danh_muc": dm["rows"],
         "goi_y": dm["goi_y"],
@@ -236,6 +240,7 @@ def chi_tiet_phieu(name):
         # D104: huỷ phiếu ĐÃ DUYỆT — chỉ thủ kho / quản lý.
         "duoc_huy": doc.docstatus == 1 and _duoc_duyet(),
         "co_nhap": bool(frappe.db.get_value("SX Phieu Nhap TP", {"docstatus": 0}, "name")),
+        "nguon": doc.get("nguon"),
         "dong": [
             {"item": r.item, "ten": r.ten or r.item, "dvt": r.dvt or "",
              "so_lap": flt(r.so_lap, 0), "so_dem": flt(r.so_dem, 0),
@@ -626,6 +631,19 @@ def tran_con_lai(tu_ngay, den_ngay, tru_phieu=None):
     # trong 7 ngày thì phiếu tháng trước trừ vào bảng chấm tuần này -> ra âm, mã hàng
     # biến mất khỏi danh sách "chờ nhận" dù xưởng vừa đóng xong.
     nhan = _da_nhan_theo_ma(tu_ngay)
+    # D122: hàng Tết đã có phiếu nháp riêng (chờ thủ kho duyệt) — không bày lại ở
+    # "vừa vào hộp, chưa nhập kho", không thì tải vào phiếu khác là nhập hai lần.
+    tet = frappe.get_all("SX Phieu Nhap TP",
+                         filters={"docstatus": 0, "nguon": "Tết", "ngay": (">=", tu_ngay)},
+                         pluck="name")
+    tet = [t for t in tet if t != tru_phieu]
+    if tet:
+        for r in frappe.get_all(
+            "SX Phieu Nhap TP Item",
+            filters={"parent": ("in", tet), "parenttype": "SX Phieu Nhap TP"},
+            fields=["item", "so_dem"],
+        ):
+            nhan[r.item] = nhan.get(r.item, 0) + flt(r.so_dem)
     if tru_phieu and frappe.db.get_value("SX Phieu Nhap TP", tru_phieu, "docstatus") == 1:
         for r in frappe.get_all(
             "SX Phieu Nhap TP Item",

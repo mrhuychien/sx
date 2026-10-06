@@ -232,7 +232,9 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   container.innerHTML = `
     <div class="sx-vh-top">
       <div>
-        <div class="sx-field-label">Phiếu nháp ${esc(p.name)}</div>
+        <div class="sx-field-label">Phiếu nháp ${esc(p.name)}${
+          p.nguon ? ` · 🧧 ${esc(p.nguon)}` : ''}${
+          r.so_nhap_cho ? ` · còn ${r.so_nhap_cho} phiếu nháp chờ sau` : ''}</div>
         <div class="sx-vh-tong"><span id="sx-nk-tong">0</span> <i>sp</i></div>
         <div class="sx-vh-tien" id="sx-nk-lech"></div>
       </div>
@@ -568,7 +570,7 @@ function moChonSP(danhMuc, rows, cho, onPick) {
 
 // D114: cửa sổ nhập HSD. Ô ngày + nút nhanh theo tháng (HSD bánh thường tính
 // tròn tháng từ ngày sản xuất) + "Theo mặc định" để bỏ số gõ tay.
-function moHsd({ ten, ngay, hsd, macDinh, onOk }) {
+export function moHsd({ ten, ngay, hsd, macDinh, onOk }) {
   const m = openModal({ kicker: `Hạn sử dụng · nhập ngày ${veNgayDu(ngay)}`, title: ten });
   m.body.innerHTML = `
     <div class="sx-muted">Ghi đúng HSD in trên bao bì. Ngày này thành hạn dùng của lô
@@ -619,7 +621,7 @@ export function congThang(iso, n) {
 }
 
 // "2027-02-28" -> "28/02/27"
-function veNgayDu(iso) {
+export function veNgayDu(iso) {
   const d = String(iso || '').slice(0, 10).split('-');
   return d.length === 3 ? `${d[2]}/${d[1]}/${d[0].slice(2)}` : String(iso || '');
 }

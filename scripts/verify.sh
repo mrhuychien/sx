@@ -269,4 +269,9 @@ python3 scripts/test-tocdo.py > /tmp/sx-tocdo.log 2>&1 \
   && tail -1 /tmp/sx-tocdo.log \
   || { cat /tmp/sx-tocdo.log; loi=1; }
 
+# D122: vào hộp Tết — một lần lưu ra phiếu nháp + công nhật; không được nửa chừng.
+python3 scripts/test-tet.py > /tmp/sx-tet.log 2>&1 \
+  && tail -1 /tmp/sx-tet.log \
+  || { cat /tmp/sx-tet.log; loi=1; }
+
 exit $loi

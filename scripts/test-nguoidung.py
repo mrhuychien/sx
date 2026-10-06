@@ -158,6 +158,7 @@ cfg.__path__ = []
 roles = types.ModuleType("sx.config.roles")
 roles.QUAN_LY, roles.GHI_SO = "SX Quan Ly", "SX Ghi So"
 roles.VAO_HOP, roles.THU_KHO = "SX Vao Hop", "SX Thu Kho"
+roles.QC_TET = "SX QC Tet"
 roles.guard_card = lambda c: None
 api = types.ModuleType("sx.api")
 api.__path__ = []

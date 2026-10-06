@@ -14,6 +14,10 @@ VAO_HOP = "SX Vao Hop"
 # D56: thủ kho là NGƯỜI THỨ HAI đếm lại hàng trước khi vào kho. Tách role riêng vì
 # cả giá trị của bước này nằm ở chỗ người duyệt KHÁC người lập.
 THU_KHO = "SX Thu Kho"
+# D122: QC vào hộp TẾT — một màn độc lập: nhập số + HSD một lần là ra phiếu nhập kho
+# nháp + sản lượng công nhật. Tách role để mùa Tết thuê thêm người mà không phải
+# cho họ vào màn Ghi hộp (lương khoán của cả xưởng).
+QC_TET = "SX QC Tet"
 
 # ── Module QC (BM.08.01/02) ────────────────────────────────────────────────
 # Bốn vai mới, tách khỏi "SX Vao Hop" (đang gọi là QC vào hộp): người đi kiểm
@@ -44,6 +48,7 @@ VAI_MAC_DINH = {
     "SX Ghi So": 0,
     "SX Vao Hop": 0,
     "SX Thu Kho": 0,
+    "SX QC Tet": 0,
     "SX Quan Ly": 1,
     "SX QC": 0,
     "SX QC Packing": 0,
@@ -63,6 +68,7 @@ NHAN_ROLE = {
     GHI_SO: "Ghi sổ",
     VAO_HOP: "QC vào hộp",
     THU_KHO: "Thủ kho",
+    QC_TET: "QC vào hộp Tết",
     QC: "QC chế biến",
     QC_GOI: "QC đóng gói",
     ISO: "Trưởng Ban ISO",
@@ -87,14 +93,15 @@ ROLE_VIEWS = {
     GHI_SO: ["ghiso"],
     VAO_HOP: ["vaohop", "nhapkho"],
     THU_KHO: ["nhapkho"],
-    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "qc", "quanly"],
+    QC_TET: ["tet"],
+    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly"],
     QC: ["qc"],
     QC_GOI: ["qc"],
     ISO: ["qc"],
     QLSX: ["qc"],
 }
 
-MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "qc", "quanly"]
+MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly"]
 
 # view lắp từ những card nào (thứ tự hiển thị).
 # D33: hai màn NHẬP LIỆU chỉ giữ việc phải gõ. Chốt ngày (hành động chốt sổ) và lưu đồ
@@ -109,6 +116,8 @@ VIEW_CARDS = {
     # nobom: sổ nợ BOM (D97) — thành phẩm nhập lúc chưa có định mức. Đặt ngay
     # dưới phiếu nhập để thủ kho thấy phần mình vừa nhập tạm đang nằm đâu.
     "nhapkho": ["nhapkhotp", "nobom", "lichnhapkho"],
+    # D122: vào hộp Tết — một thẻ làm trọn: số + HSD -> phiếu nhập nháp + công nhật.
+    "tet": ["vaohoptet"],
     # Màn QC là view standalone: nó tự dựng cả 5 màn con (#/qc, /round/:name,
     # /incidents, /history, /review) và tự chốt quyền trong sx/api/qc.py.
     "qc": [],
@@ -136,6 +145,8 @@ CARD_ROLES = {
     # Lập phiếu nháp: người ở xưởng. DUYỆT: chỉ THU_KHO/QUAN_LY — chốt trong
     # khotp._duoc_duyet(), không phải ở đây (card này cả hai bên đều mở được).
     "nhapkhotp": [VAO_HOP, THU_KHO, QUAN_LY],
+    # D122: QC Tết lập phiếu nháp + ghi công nhật. Duyệt vẫn là thủ kho (màn Nhập kho).
+    "vaohoptet": [QC_TET],
     "chotngay": [QUAN_LY],
     # Tạo tài khoản là cấp quyền cho người khác — chỉ quản lý, và danh sách role gán
     # được bị đóng cứng trong sx/api/nguoidung.py.

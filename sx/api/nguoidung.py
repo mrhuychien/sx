@@ -30,7 +30,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, get_url, now_datetime
 
-from sx.config.roles import GHI_SO, QUAN_LY, THU_KHO, VAO_HOP, guard_card
+from sx.config.roles import GHI_SO, QC_TET, QUAN_LY, THU_KHO, VAO_HOP, guard_card
 
 # Role gán được từ màn này. QUAN_LY có trong danh sách vì xưởng cần người thay ca,
 # nhưng không có role nào của Frappe lõi — xem docstring.
@@ -38,6 +38,7 @@ ROLE_CHO_PHEP = {
     VAO_HOP: "QC vào hộp",
     GHI_SO: "Ghi sổ",
     THU_KHO: "Thủ kho",
+    QC_TET: "QC vào hộp Tết",
     QUAN_LY: "Quản lý",
 }
 
