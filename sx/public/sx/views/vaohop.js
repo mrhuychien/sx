@@ -12,7 +12,5 @@ export async function render({ container, viewName, cards, mountCard, boot }) {
   if (ngay && (ngay.docstatus === 1 || ngay.chot_vaohop)) {
     wrap.appendChild(el('div', 'sx-badge sx-badge-ok sx-tu-canh', 'Đã chốt Vào hộp'));
   }
-  for (const c of cards) {
-    await mountCard(c, wrap);
-  }
+  await Promise.all(cards.map((c) => mountCard(c, wrap)));   // song song (D120)
 }

@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-89';
+const BUILD = 'sx-90';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -89,6 +89,17 @@ const store = {
   tuBoNho: false,  // boot đang là bản lưu trên máy?
   async refresh() {
     const ngay = this.ngayXem;
+    // D120: lần đầu mở app, boot hôm nay đã nhúng sẵn trong HTML — dùng luôn, khỏi
+    // chờ server thêm một vòng. Chỉ dùng MỘT lần: làm mới / đổi ngày thì gọi thật.
+    const nhung = window.SX_BOOT;
+    window.SX_BOOT = null;
+    if (nhung && !ngay) {
+      this.boot = nhung;
+      this.tuBoNho = false;
+      luuBoot(nhung.ngay_xem || null, nhung);
+      this.ngayXem = nhung.ngay_xem || null;
+      return this.boot;
+    }
     try {
       this.boot = await call('sx.api.portal.get_boot', ngay ? { ngay } : {});
       this.tuBoNho = false;
@@ -114,13 +125,25 @@ async function ensureNgay() {
   return dayState.ngay;
 }
 
+// Chỗ của thẻ được giữ NGAY (đồng bộ), rồi mới tải module + gọi API. Nhờ vậy các
+// view gắn mọi thẻ SONG SONG (Promise.all) mà thứ tự trên màn vẫn đúng như
+// VIEW_CARDS — trước D120 view chờ từng thẻ xong mới gắn thẻ sau: 8 thẻ là 8 lần
+// chờ mạng nối đuôi nhau.
 async function mountCard(name, container) {
   const path = CARD_PATHS[name];
   if (!path) { return; } // card không có file (vd view standalone) → bỏ qua an toàn
-  const mod = await import(withV(path));
   const wrap = el('div', 'sx-card-slot');
   container.appendChild(wrap);
-  await mod.render(cardApi(wrap));
+  try {
+    const mod = await import(withV(path));
+    await mod.render(cardApi(wrap));
+  } catch (e) {
+    // Một thẻ hỏng không được kéo sập cả màn (chạy song song thì càng phải vậy).
+    wrap.innerHTML = '';
+    const box = el('div', 'sx-error-box');
+    box.textContent = `Không tải được phần "${name}": ${e.message || e}`;
+    wrap.appendChild(box);
+  }
 }
 
 function cardApi(container) {

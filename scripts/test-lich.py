@@ -273,6 +273,8 @@ kiem("thẻ xếp vào hai cột đều là thẻ có thật trong shell.js",
      ten_cot and all(f"{c}:" in shell for c in ten_cot - {"chotngay"}) and "chotngay:" in shell, sorted(ten_cot))
 kiem("mọi thẻ của màn Quản lý đều được gắn (thẻ ngoài hai cột trải rộng bên dưới)",
      "COT_TRAI.includes(c) ? trai : (COT_PHAI.includes(c) ? phai : rong)" in ql)
+kiem("D120: thẻ + số liệu Theo dõi tải SONG SONG, không chờ nối đuôi",
+     "await Promise.all([...dangGan, load()])" in ql and "await mountCard" not in ql)
 kiem("biểu đồ vẽ SAU khi khung đã vào trang (lỗi cũ: luôn trống)",
      ql.index("body.innerHTML = `") < ql.index("veCot(d.phieu"))
 css = open("sx/public/sx/shell.css", encoding="utf-8").read()

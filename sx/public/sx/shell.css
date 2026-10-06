@@ -24,10 +24,8 @@
  * Không hardcode màu/khoảng cách ngoài khối token. Một ngoại lệ là hệ bắt đầu vỡ.
  */
 
-/* Inter theo NPP. display=swap: chữ hiện ngay bằng font hệ thống rồi đổi — mất
-   mạng thì đứng luôn ở font hệ thống, KHÔNG chặn render. @import PHẢI đứng trước
-   mọi rule, nếu không trình duyệt bỏ qua cả dòng này. */
-@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
+/* Font nạp ở sx.html bằng <link media="print" onload> — KHÔNG @import ở đây (D120):
+   @import chặn hiển thị cả trang tới khi Google Fonts trả lời. */
 
 /* ══════════════════ 1. TOKEN ══════════════════ */
 :root {

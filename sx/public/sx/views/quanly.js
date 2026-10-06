@@ -32,9 +32,9 @@ export async function render({ container, ctx, call, cards, mountCard }) {
   tren.appendChild(phai);
   wrap.appendChild(tren);
   wrap.appendChild(rong);
-  for (const c of (cards || [])) {
-    await mountCard(c, COT_TRAI.includes(c) ? trai : (COT_PHAI.includes(c) ? phai : rong));
-  }
+  // Song song (D120) — kể cả số liệu Theo dõi bên dưới (xem cuối hàm).
+  const dangGan = (cards || []).map((c) => mountCard(c,
+    COT_TRAI.includes(c) ? trai : (COT_PHAI.includes(c) ? phai : rong)));
 
   let soNgay = 7;
   const than = el('div');
@@ -149,7 +149,7 @@ export async function render({ container, ctx, call, cards, mountCard }) {
     veCot(d.phieu.map((p) => ({ ngay: p.ngay, tong: p.tong_hop_tp })));
   }
 
-  await load();
+  await Promise.all([...dangGan, load()]);
 }
 
 // Đối chiếu chấm vào hộp vs đã nhập kho (D66).

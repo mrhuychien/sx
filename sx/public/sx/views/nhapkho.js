@@ -7,5 +7,5 @@ export async function render({ container, cards, mountCard }) {
   const wrap = el('div', 'sx-view');
   container.appendChild(wrap);
   wrap.appendChild(el('h1', 'sx-h1', 'Nhập kho thành phẩm'));
-  for (const c of cards) await mountCard(c, wrap);
+  await Promise.all(cards.map((c) => mountCard(c, wrap)));   // song song (D120)
 }

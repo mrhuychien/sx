@@ -20,13 +20,15 @@ export async function render({ container, viewName, cards, mountCard, boot }) {
   const wrap = el('div', 'sx-view');
   container.appendChild(wrap);
   const ngay = boot.ngay_sx;
-  wrap.appendChild(el('h1', 'sx-h1', 'Ghi số'
+  wrap.appendChild(el('h1', 'sx-h1', 'Ghi sổ'
     + (ngay && (ngay.docstatus === 1 || ngay.chot_ghiso)
       ? ' <span class="sx-badge sx-badge-ok">Đã chốt Ghi sổ</span>' : '')));
 
+  // Song song (D120): mountCard giữ chỗ đồng bộ nên thứ tự vẫn đúng.
+  const dang = [];
   for (const c of cards) {
     if (!GAP[c]) {
-      await mountCard(c, wrap);        // việc chính: mở sẵn
+      dang.push(mountCard(c, wrap));        // việc chính: mở sẵn
       continue;
     }
     // <details> gốc: gập/mở không cần JS, bàn phím và trình đọc màn hình hiểu sẵn
@@ -37,6 +39,7 @@ export async function render({ container, viewName, cards, mountCard, boot }) {
     const slot = el('div', 'sx-fold-body');
     fold.appendChild(slot);
     wrap.appendChild(fold);
-    await mountCard(c, slot);
+    dang.push(mountCard(c, slot));
   }
+  await Promise.all(dang);
 }

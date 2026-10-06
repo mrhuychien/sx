@@ -34,8 +34,13 @@
   }
 }
 </script>
-<script>window.SX_CONTEXT = {{ sx_context }};</script>
+<script>window.SX_CONTEXT = {{ sx_context }};
+window.SX_BOOT = {{ sx_boot or "null" }};</script>
 <link rel="stylesheet" href="/assets/sx/sx/shell.css?v={{ v }}">
+<!-- Font KHÔNG chặn hiển thị (D120): media=print tải nền, xong mới áp. Mạng tới
+     Google chậm / chặn thì app vẫn hiện ngay bằng font hệ thống. -->
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/assets/sx/sx/qc.css?v={{ v }}">
 {% endblock %}
 
