@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-88';
+const BUILD = 'sx-89';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -197,10 +197,6 @@ function buildShell() {
     </div>
   `;
   const nav = el('nav', 'sx-bottom-nav');
-  // Trên máy tính thanh tab thành THANH TRÁI (D119) — tên app đứng đầu thanh.
-  // Điện thoại ẩn khối này (CSS), thanh dưới giữ nguyên như cũ.
-  nav.appendChild(el('div', 'sx-nav-brand',
-    '<span class="sx-nav-logo" aria-hidden="true">🥮</span><span>Sản xuất</span>'));
   views.forEach((v) => {
     const meta = VIEW_META[v] || { label: v, icon: '•' };
     const btn = el('a', 'sx-nav-btn');

@@ -1668,46 +1668,15 @@ main > .container {
 .sx-tx-o { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
 /* ══════════════════ 19b. MÁY TÍNH ≥900px (D119) ══════════════════
- * (Thanh trái + ngày trên header từ 900px — laptop đặt phóng to chữ 125–150% chỉ
- * còn ~900–1000px bề ngang CSS; bố cục hai cột của Quản lý từ 1100px.)
  * Theo bản thiết kế màn Quản lý cho máy tính:
- *   · thanh tab dưới → THANH TRÁI 216px (cùng một <nav>, chỉ đổi chỗ bằng CSS);
- *   · thanh ngày lên header (shell.js chuyển node), header dính, kính mờ;
- *   · Quản lý: hai cột 1.7 : 1, phần rộng bên dưới, khu Theo dõi dạng lưới.
- * Ghi số / Ghi hộp / Nhập kho trên máy tính chỉ đổi khung (thanh trái + header),
- * cỡ chữ và vùng chạm GIỮ NGUYÊN — tablet nằm ngang cũng ≥1024px và vẫn là găng tay.
+ *   · thanh điều hướng LUÔN ở đáy màn hình, mọi bề ngang (D119c — chủ xưởng chọn
+ *     vậy, đã thử thanh trái và bỏ);
+ *   · thanh ngày lên header (shell.js chuyển node), header kính mờ;
+ *   · Quản lý: hai cột 1.7 : 1 từ 1100px, phần rộng bên dưới, Theo dõi dạng lưới.
+ * Ghi sổ / Ghi hộp / Nhập kho trên máy tính chỉ đổi header; cỡ chữ và vùng chạm
+ * GIỮ NGUYÊN — tablet nằm ngang cũng rộng thế này và vẫn là găng tay.
  */
-.sx-nav-brand { display: none; }
 @media (min-width: 900px) {
-  .sx-app { padding-left: 216px; padding-bottom: 0; }
-  .sx-bottom-nav {
-    top: 0; bottom: 0; left: 0; right: auto;
-    width: 216px; height: auto;
-    flex-direction: column; gap: 4px;
-    padding: 20px 12px;
-    border-top: 0; border-right: 1px solid var(--sx-line);
-    background: rgba(255, 255, 255, .88);
-  }
-  .sx-nav-brand {
-    display: flex; align-items: center; gap: 10px;
-    padding: 4px 10px 20px; font-weight: 700; font-size: 15px; color: var(--sx-text);
-  }
-  .sx-nav-logo {
-    width: 34px; height: 34px; border-radius: 10px; flex: 0 0 34px;
-    display: flex; align-items: center; justify-content: center; font-size: 18px;
-    background: var(--sx-season-btn);
-  }
-  .sx-nav-btn {
-    flex: 0 0 auto; flex-direction: row; justify-content: flex-start; gap: 12px;
-    min-height: 44px; padding: 0 12px; border-radius: 10px;
-    font-size: 14px; font-weight: 500; color: var(--sx-text-2);
-  }
-  .sx-nav-btn:hover { background: var(--sx-surface-2); }
-  .sx-nav-icon { width: 22px; height: auto; font-size: 17px; background: none !important; }
-  .sx-nav-active { background: var(--sx-season-glow); color: var(--sx-season-text); font-weight: 700; }
-  .sx-nav-active:hover { background: var(--sx-season-glow); }
-
-  .sx-header { left: 216px; }
   .sx-header-inner { max-width: 1360px; padding: 0 clamp(12px, 2.4vw, 28px); gap: var(--sx-s4); }
   .sx-header .sx-daybar {
     flex: 0 1 auto; padding: 0; background: none; border: 0;
@@ -1722,7 +1691,7 @@ main > .container {
   .sx-header .sx-day-tag:empty { display: none; }
 
 }
-/* Quản lý: hai cột cần thêm chỗ — từ 1100px (thanh trái đã ăn 216px) */
+/* Quản lý: hai cột cần thêm chỗ — từ 1100px */
 @media (min-width: 1100px) {
   /* ── Màn Quản lý: gọn hơn — đọc bằng chuột, không phải găng tay ── */
   .sx-app-ql {
