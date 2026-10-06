@@ -941,6 +941,13 @@ def ghi_no_vao_hop(phieu, vuot):
     return ra
 
 
+def doi_soat_sau_cham(doc=None, method=None):
+    """Hook SX Bang Vao Hop (lưu / chốt): số chấm vừa đổi -> trừ nợ vào hộp (D121).
+    Không có nợ đang mở thì chỉ tốn một truy vấn kiểm."""
+    if frappe.db.exists(NO_VH, {"trang_thai": "Chờ chấm"}):
+        doi_soat_no_vao_hop()
+
+
 def doi_soat_no_vao_hop():
     """Trừ nợ theo số QC đã chấm bù — FIFO, nợ cũ trả trước.
 
@@ -994,9 +1001,10 @@ def _duoc_bo_qua_no_vh():
 
 @frappe.whitelist()
 def so_no_vao_hop():
-    """Nợ đang mở, gom theo mã hàng — sau khi đã đối soát với số chấm mới nhất."""
+    """Nợ đang mở, gom theo mã hàng. CHỈ ĐỌC (D121): đối soát chạy lúc QC lưu bảng
+    vào hộp (doi_soat_sau_cham) — trước đây mỗi lần mở thẻ là ghi database, khoá
+    dòng nợ trong khi người khác đang làm, và chậm cả màn."""
     guard_card("novaohop")
-    doi_soat_no_vao_hop()
     ds = frappe.get_all(NO_VH, filters={"trang_thai": "Chờ chấm"},
                         fields=["name", "item", "ten", "so_luong", "con_lai", "ngay",
                                 "phieu_nhap"],

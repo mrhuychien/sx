@@ -101,27 +101,44 @@ def _any_sx_guard():
 # ─────────────────────────────────────────────────────────────── boot ──
 
 
-@frappe.whitelist()
-def get_boot(ngay=None):
-    """Context khởi động: views/cards theo role, phiếu ngày, danh mục 2 nhánh,
-    lô chờ nhập bột, tồn BTP, nhân viên.
+# Danh mục theo màn (D121): get_boot chỉ trả phần NHẸ theo ngày; danh mục của
+# từng màn tải riêng, MỘT lần, khi màn đó mở. Quản lý mở màn Quản lý không còn phải
+# chờ dựng danh mục báo mẻ + vào hộp (bảng giá, nhân viên, mã quét…) mà màn đó
+# không dùng tới. Shell giữ phần đã tải trong store.boot.
+PHAN = ("ghiso", "vaohop", "quet")
+# Màn nào cần phần nào. Khớp với PHAN_VIEW trong shell.js.
+VIEW_PHAN = {"ghiso": ["ghiso"], "vaohop": ["vaohop"], "nhapkho": ["quet"]}
 
-    `ngay` = ngày đang XEM (D25). Bỏ trống -> hôm nay. Cho phép mở lại ngày cũ để
-    đối chiếu / sửa; ngày đã chốt trả về read-only (docstatus 1) cho tới khi huỷ chốt.
-    """
-    _any_sx_guard()
-    roles = user_roles()
-    super_ = is_super(roles)
-    hom_nay = nowdate()
-    ngay_xem = str(getdate(ngay)) if ngay else hom_nay
 
-    ngay_sx = _ngay_summary(
-        frappe.db.get_value(
-            "SX Ngay San Xuat", {"ngay": ngay_xem, "docstatus": ("<", 2)}, "name"
-        )
-    )
+def _phan_duoc(roles, super_):
+    """Phần danh mục user được lấy — cùng điều kiện quyền như trước D121."""
+    ra = set()
+    if super_ or "SX Ghi So" in roles:
+        ra.add("ghiso")
+    if super_ or "SX Vao Hop" in roles:
+        ra |= {"vaohop", "quet"}
+    if "SX Thu Kho" in roles:
+        ra.add("quet")      # quét hộp ở màn Nhập kho — trước D121 thủ kho không có
+    return ra
 
-    settings = get_settings()
+
+def _doc_phan(phan):
+    if phan is None:
+        return None
+    if isinstance(phan, str):
+        import json
+
+        phan = json.loads(phan) if phan.strip().startswith("[") else [phan]
+    return {p for p in phan if p in PHAN}
+
+
+def _danh_muc(phan, ngay_xem, roles, super_):
+    """Dựng các phần danh mục được yêu cầu (đã lọc theo quyền)."""
+    ra = {}
+    phan = set(phan)
+    if "vaohop" in phan:
+        phan.add("quet")        # màn Ghi hộp quét thẻ người + mã hộp
+    phan &= _phan_duoc(roles, super_)
 
     def _items_nhom(nhom, kem_co_me=True):
         out = frappe.get_all(
@@ -139,8 +156,54 @@ def get_boot(ngay=None):
                 )
         return out
 
-    can_ghiso = super_ or "SX Ghi So" in roles
-    can_vaohop = super_ or "SX Vao Hop" in roles
+    if "ghiso" in phan:
+        ra["loai_dau"] = get_dau_items()
+        ra["items_nau"] = _items_nhom("BTP-Phu")       # 3 đường hoán (màu gộp thẳng vào BOM)
+        ra["items_bot_banh"] = _items_nhom("BTP-Banh")  # 8 bột bánh
+        ra["items_bot_dau"] = _items_nhom("BTP-Bot-SP")  # 8 bột đậu
+
+    nv = None
+    if "vaohop" in phan:
+        settings = get_settings()
+        ra["items_tp"] = items_tp(["name", "item_name", "item_group"])
+        ra["tien_an_ca"] = flt(settings.get("tien_an_ca"))
+        ra["tien_an_dem"] = flt(settings.get("tien_an_dem"))
+        ra["danh_muc_khoan"] = _danh_muc_khoan(ngay_xem)
+        ra["sp_gan_day"] = _sp_gan_day()
+        ra["bang_don_gia"] = bang_don_gia(ngay_xem)
+        ra["nhan_vien"], canh_bao_nv = _nhan_vien_vao_hop()
+        nv = ra["nhan_vien"]
+        if canh_bao_nv:
+            ra["canh_bao_nhan_vien"] = canh_bao_nv
+    if "quet" in phan:
+        if nv is None:
+            nv, _cb = _nhan_vien_vao_hop()
+        ra["ma_quet"] = _ma_quet(nv)
+    ra["phan"] = sorted(phan)
+    return ra
+
+
+@frappe.whitelist()
+def get_boot(ngay=None, phan=None):
+    """Context khởi động: views/cards theo role, phiếu ngày, bảng vào hộp của ngày.
+
+    `ngay` = ngày đang XEM (D25). Bỏ trống -> hôm nay. Cho phép mở lại ngày cũ để
+    đối chiếu / sửa; ngày đã chốt trả về read-only (docstatus 1) cho tới khi huỷ chốt.
+
+    `phan` (D121) = danh sách phần danh mục kèm theo ("ghiso" / "vaohop" / "quet").
+    Bỏ trống (client cũ trước D121) -> mọi phần user được lấy, như trước.
+    """
+    _any_sx_guard()
+    roles = user_roles()
+    super_ = is_super(roles)
+    hom_nay = nowdate()
+    ngay_xem = str(getdate(ngay)) if ngay else hom_nay
+
+    ngay_sx = _ngay_summary(
+        frappe.db.get_value(
+            "SX Ngay San Xuat", {"ngay": ngay_xem, "docstatus": ("<", 2)}, "name"
+        )
+    )
 
     boot = {
         "user": frappe.session.user,
@@ -154,26 +217,18 @@ def get_boot(ngay=None):
         "ngay_sx": ngay_sx,
         "bang_vao_hop": _bang_summary(ngay_sx["name"]) if ngay_sx else None,
     }
-
-    if can_ghiso:
-        boot["loai_dau"] = get_dau_items()
-        boot["items_nau"] = _items_nhom("BTP-Phu")       # 3 đường hoán (màu gộp thẳng vào BOM)
-        boot["items_bot_banh"] = _items_nhom("BTP-Banh")  # 8 bột bánh
-        boot["items_bot_dau"] = _items_nhom("BTP-Bot-SP")  # 8 bột đậu
-
-    if can_vaohop:
-        boot["items_tp"] = items_tp(["name", "item_name", "item_group"])
-        boot["tien_an_ca"] = flt(settings.get("tien_an_ca"))
-        boot["tien_an_dem"] = flt(settings.get("tien_an_dem"))
-        boot["danh_muc_khoan"] = _danh_muc_khoan(boot.get("ngay_xem") or hom_nay)
-        boot["sp_gan_day"] = _sp_gan_day()
-        boot["bang_don_gia"] = bang_don_gia(boot.get("ngay_xem") or hom_nay)
-        boot["nhan_vien"], canh_bao_nv = _nhan_vien_vao_hop()
-        if canh_bao_nv:
-            boot["canh_bao_nhan_vien"] = canh_bao_nv
-        boot["ma_quet"] = _ma_quet(boot["nhan_vien"])
-
+    yeu_cau = _doc_phan(phan)
+    boot.update(_danh_muc(PHAN if yeu_cau is None else yeu_cau, ngay_xem, roles, super_))
     return boot
+
+
+@frappe.whitelist()
+def danh_muc(phan, ngay=None):
+    """Danh mục của một màn, tải khi màn đó mở lần đầu (D121). Cùng quyền như get_boot."""
+    _any_sx_guard()
+    roles = user_roles()
+    return _danh_muc(_doc_phan(phan) or set(), str(getdate(ngay)) if ngay else nowdate(),
+                     roles, is_super(roles))
 
 
 def _ngay_summary(ten):

@@ -14,7 +14,7 @@ from sx.config.roles import (
 )
 
 # Build marker chống "shell cũ" (LUẬT VÀNG #2 — frappe-portal-spa)
-SHELL_BUILD = "sx-91"
+SHELL_BUILD = "sx-92"
 
 # Lấy từ ROLE_VIEWS: thêm role mới ở một chỗ, trang /sx cho vào ngay. Chép tay
 # danh sách này là cách tạo ra người dùng có role, có tab, mà mở /sx thì bị đá ra.
@@ -72,10 +72,13 @@ def _boot_nhung():
     shell tự gọi get_boot như cũ, trang không được chết vì phần tăng tốc này.
     """
     try:
-        from sx.api.portal import get_boot
+        from sx.api.portal import VIEW_PHAN, get_boot
 
+        # D121: chỉ kèm danh mục của màn MỞ ĐẦU — màn khác tự tải khi được mở.
+        man = landing_view(set(frappe.get_roles()))
+        boot = get_boot(phan=VIEW_PHAN.get(man, []))
         # </script> trong chuỗi dữ liệu sẽ đóng thẻ script sớm — thoát "</".
-        return frappe.as_json(get_boot(), indent=None).replace("</", "<\\/")
+        return frappe.as_json(boot, indent=None).replace("</", "<\\/")
     except Exception:
         frappe.log_error(title="sx: nhúng boot vào /sx hỏng", message=frappe.get_traceback())
         return "null"

@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-91';
+const BUILD = 'sx-92';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -83,11 +83,15 @@ function docBoot(ngay) {
   }
 }
 
+// Danh mục theo màn (D121) — khớp VIEW_PHAN trong sx/api/portal.py. get_boot chỉ
+// trả phần nhẹ theo ngày; danh mục của một màn tải MỘT lần khi màn đó mở.
+const PHAN_VIEW = { ghiso: ['ghiso'], vaohop: ['vaohop'], nhapkho: ['quet'] };
+
 const store = {
   boot: null,
   ngayXem: null,   // null = hôm nay (D25)
   tuBoNho: false,  // boot đang là bản lưu trên máy?
-  async refresh() {
+  async refresh(viewName) {
     const ngay = this.ngayXem;
     // D120: lần đầu mở app, boot hôm nay đã nhúng sẵn trong HTML — dùng luôn, khỏi
     // chờ server thêm một vòng. Chỉ dùng MỘT lần: làm mới / đổi ngày thì gọi thật.
@@ -101,7 +105,8 @@ const store = {
       return this.boot;
     }
     try {
-      this.boot = await call('sx.api.portal.get_boot', ngay ? { ngay } : {});
+      const phan = JSON.stringify(PHAN_VIEW[viewName] || []);
+      this.boot = await call('sx.api.portal.get_boot', ngay ? { ngay, phan } : { phan });
       this.tuBoNho = false;
       luuBoot(this.boot.ngay_xem || null, this.boot);
     } catch (e) {
@@ -112,6 +117,36 @@ const store = {
     }
     this.ngayXem = this.boot.ngay_xem || null;
     return this.boot;
+  },
+  // Bảo đảm boot có đủ danh mục cho màn sắp vẽ (D121). Đã hỏi một lần thì thôi
+  // (kể cả khi server không trả vì thiếu quyền) — không hỏi lại mỗi lần đổi tab.
+  async damBao(viewName) {
+    const b = this.boot;
+    const can = PHAN_VIEW[viewName] || [];
+    // Boot lưu trước D121 không có `phan` = đã chứa đủ mọi danh mục.
+    if (!b || !b.phan) return;
+    const daHoi = new Set([...(b.phan || []), ...(b.phan_hoi || [])]);
+    const thieu = can.filter((p) => !daHoi.has(p));
+    if (!thieu.length) return;
+    let r;
+    try {
+      r = await call('sx.api.portal.danh_muc',
+        { phan: JSON.stringify(thieu), ngay: b.ngay_xem || null });
+    } catch (e) {
+      // Mất mạng: lấy danh mục từ bản lưu trên máy nếu có (D37)
+      const cu = e.mat_mang ? docBoot(this.ngayXem) : null;
+      if (!cu) throw e;
+      thieu.forEach((p) => { if (!cu.phan || cu.phan.includes(p)) daHoi.add(p); });
+      r = { ...cu };
+      delete r.phan;
+      ['ngay_sx', 'bang_vao_hop', 'ngay_xem', 'hom_nay', 'la_hom_nay'].forEach((k) => delete r[k]);
+    }
+    const coPhan = r.phan || thieu;
+    delete r.phan;
+    Object.assign(b, r);
+    b.phan = [...new Set([...(b.phan || []), ...coPhan])];
+    b.phan_hoi = [...new Set([...(b.phan_hoi || []), ...thieu])];
+    if (!this.tuBoNho) luuBoot(b.ngay_xem || null, b);
   },
 };
 
@@ -402,7 +437,8 @@ router.onRender(async (route, loader) => {
   else { markActive(`#/${viewName}`); }
   main.innerHTML = '<div class="sx-boot-loading">Đang tải…</div>';
   try {
-    if (!store.boot) await store.refresh();
+    if (!store.boot) await store.refresh(viewName);
+    if (views.includes(viewName)) await store.damBao(viewName);
     dayState.ngay = store.boot.ngay_sx || dayState.ngay;
     paintDayBar();
     await loader(main);

@@ -326,6 +326,12 @@ không thành `…-2`.
 - **Index** cho các cột lọc nhiều (ngày, trạng thái nợ, `Stock Entry.custom_lo_rang`…)
   — cần `bench --site site1.local migrate` một lần.
 - `scripts/test-tocdo.py` đếm truy vấn với dữ liệu nhỏ và lớn — phải bằng nhau.
+- **D121 — danh mục theo màn:** `get_boot` chỉ còn phần nhẹ theo ngày; danh mục báo
+  mẻ / vào hộp / mã quét tải MỘT lần khi màn cần nó mở (`portal.danh_muc`). Màn Quản lý
+  không còn dựng danh mục nó không dùng. Thủ kho giờ có bảng mã quét (trước không có
+  nên nút quét ở Nhập kho không tra được).
+- **D121 — sổ nợ vào hộp chỉ đọc:** trừ nợ chạy lúc QC lưu / chốt bảng vào hộp (hook
+  `SX Bang Vao Hop`), không còn ghi database mỗi lần mở thẻ.
 
 ## Giao diện máy tính (D119)
 

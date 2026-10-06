@@ -158,7 +158,7 @@ def kiem(ten, dk, ct=""):
     global hong
     if not dk:
         hong += 1
-    print(f"  {'ok  ' if dk else 'HỎNG'} {ten}{(' — ' + ct) if ct else ''}")
+    print(f"  {'ok  ' if dk else 'HỎNG'} {ten}{(' — ' + str(ct)) if ct else ''}")
 
 
 def la(user, vai="SX Vao Hop"):
@@ -269,6 +269,49 @@ pt = open("sx/patches/d113_vao_hop_nguoi_ghi.py", encoding="utf-8").read()
 kiem("patch gán người ghi cho dòng cũ = người tạo bảng",
      "SET i.nguoi_ghi = b.owner" in pt and "sx.patches.d113_vao_hop_nguoi_ghi"
      in open("sx/patches.txt").read())
+
+print("\n-- D121: danh mục theo màn, tải khi màn mở --")
+GOI = []
+PT.get_dau_items = lambda: GOI.append("ghiso") or ["dau"]
+PT._items_nhom = None
+PT.items_tp = lambda *a, **k: GOI.append("vaohop") or []
+PT._danh_muc_khoan = lambda ngay: []
+PT._sp_gan_day = lambda: []
+PT.bang_don_gia = lambda ngay=None: "BDG"
+PT._nhan_vien_vao_hop = lambda: (GOI.append("nhan_vien") or [{"name": "NV1"}], None)
+PT._ma_quet = lambda nv: GOI.append("quet") or {"nv": {}, "sp": {"893": "SEN"}}
+PT.get_settings = lambda: types.SimpleNamespace(get=lambda k, d=None: 0)
+PT.nap_bom = lambda items: {}
+frappe.get_all = lambda *a, **k: []
+dm = PT._danh_muc
+VAI.clear(); VAI.add("SX Quan Ly")
+GOI.clear()
+r = dm(set(), "2026-10-06", set(VAI), True)
+kiem("màn Quản lý: không dựng danh mục nào", GOI == [] and r["phan"] == [], (GOI, r))
+GOI.clear()
+r = dm({"ghiso"}, "2026-10-06", set(VAI), True)
+kiem("màn Ghi sổ: chỉ danh mục báo mẻ", GOI == ["ghiso"] and "loai_dau" in r
+     and "items_tp" not in r and r["phan"] == ["ghiso"], (GOI, sorted(r)))
+GOI.clear()
+r = dm({"vaohop"}, "2026-10-06", set(VAI), True)
+kiem("màn Ghi hộp: danh mục vào hộp + mã quét (không kèm báo mẻ)", "items_tp" in r
+     and "ma_quet" in r and "loai_dau" not in r
+     and "ghiso" not in GOI, sorted(r))
+VAI.clear(); VAI.add("SX Thu Kho")
+GOI.clear()
+r = dm({"quet", "vaohop", "ghiso"}, "2026-10-06", set(VAI), False)
+kiem("thủ kho: được bảng mã quét (trước D121 không có), KHÔNG được danh mục khác",
+     "ma_quet" in r and "items_tp" not in r and "loai_dau" not in r and r["phan"] == ["quet"],
+     sorted(r))
+VAI.clear(); VAI.add("SX Ghi So")
+r = dm({"vaohop", "quet"}, "2026-10-06", set(VAI), False)
+kiem("tổ Ghi sổ không lấy được danh mục vào hộp / mã quét", r == {"phan": []}, r)
+kiem("client cũ (không gửi phan) → đủ mọi phần được phép như trước",
+     PT._doc_phan(None) is None and PT._doc_phan('["ghiso","la"]') == {"ghiso"})
+sh = open("sx/public/sx/shell.js", encoding="utf-8").read()
+kiem("shell và server dùng CÙNG bảng màn → phần",
+     "const PHAN_VIEW = { ghiso: ['ghiso'], vaohop: ['vaohop'], nhapkho: ['quet'] };" in sh
+     and PT.VIEW_PHAN == {"ghiso": ["ghiso"], "vaohop": ["vaohop"], "nhapkho": ["quet"]})
 
 print("GHIHOP-OK" if not hong else f"GHIHOP: {hong} HỎNG")
 sys.exit(1 if hong else 0)

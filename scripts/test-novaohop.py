@@ -441,9 +441,19 @@ kiem("chấm bù 12 (dòng CÔNG NHẬT) → nợ cũ đóng, nợ mới còn 3"
      [(x.trang_thai, x.con_lai) for x in NO] == [("Đã chấm bù", 0), ("Chờ chấm", 3)],
      str([(x.trang_thai, x.con_lai) for x in NO]))
 BANG["BVH-NSX-1"].dong.append(Doc(nhan_vien="NV2", san_pham="TP-A", so_hop=3))
-# Chỉ mở card — không gọi đối soát riêng: card phải tự đối soát trước khi bày ra.
-kiem("chấm bù nốt 3 → mở card là thấy hết nợ", not K.so_no_vao_hop()["nhom"])
+# D121: mở thẻ CHỈ ĐỌC — đối soát chạy ở hook lưu bảng vào hộp.
+truoc = [(x.trang_thai, x.con_lai) for x in NO]
+K.so_no_vao_hop()
+kiem("mở thẻ sổ nợ không ghi gì vào database (chỉ đọc)",
+     [(x.trang_thai, x.con_lai) for x in NO] == truoc)
+K.doi_soat_sau_cham(BANG["BVH-NSX-1"])          # hook on_update của SX Bang Vao Hop
+kiem("QC lưu bảng (chấm bù nốt 3) → hook trừ hết nợ, mở card là thấy sạch",
+     not K.so_no_vao_hop()["nhom"])
 kiem("… và nợ đã đóng trong sổ", all(x.trang_thai == "Đã chấm bù" for x in NO))
+hk = open("sx/hooks.py", encoding="utf-8").read()
+kiem("hook gắn vào lưu + chốt bảng vào hộp",
+     '"SX Bang Vao Hop": {"on_update": "sx.api.khotp.doi_soat_sau_cham"' in hk
+     and '"on_submit": "sx.api.khotp.doi_soat_sau_cham"' in hk)
 
 print("\n-- huỷ phiếu nhập, bỏ qua --")
 lam_sach()
