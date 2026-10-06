@@ -30,8 +30,11 @@ function veSo(n) {
   return `<span class="sx-lich-so${co}">${esc(chu)}</span>`;
 }
 
-function docMo(loai) {
-  try { return localStorage.getItem(KHOA_MO + loai) === '1'; } catch (e) { return false; }
+function docMo(loai, moSan) {
+  try {
+    const v = localStorage.getItem(KHOA_MO + loai);
+    return v == null ? moSan : v === '1';
+  } catch (e) { return moSan; }
 }
 function ghiMo(loai, mo) {
   try { localStorage.setItem(KHOA_MO + loai, mo ? '1' : '0'); } catch (e) { /* bỏ qua */ }
@@ -42,13 +45,20 @@ function ghiMo(loai, mo) {
  * @param loai     'vaohop' | 'ghiso' | 'nhapkho'
  * @param tieuDe   chữ trên nút gập
  * @param moNgay   true = trong chi tiết có nút "Mở ngày này" (tab theo ngày)
+ * @param moSan    true = mở sẵn lần đầu (lịch là việc chính của thẻ, không phụ)
+ * @param oNgay    (x) => html trong ô thay cho con số
+ * @param nhanO    (x) => chữ đọc cho trình đọc màn hình khi dùng oNgay
+ * @param chuThich chú thích dưới lịch
+ * @param themChiTiet (body, ct, {dong, taiLai}) — vẽ thêm vào cửa sổ chi tiết
  */
-export async function renderLich(api, { loai, tieuDe, moNgay = false }) {
+export async function renderLich(api, {
+  loai, tieuDe, moNgay = false, moSan = false, oNgay = null, nhanO = null, chuThich = null, themChiTiet = null,
+}) {
   const { container, call, boot } = api;
   container.className = 'sx-card sx-lich';
   const goc = (boot && (boot.ngay_xem || boot.hom_nay)) || new Date().toISOString().slice(0, 10);
   const homNay = (boot && boot.hom_nay) || goc;
-  const st = { nam: Number(goc.slice(0, 4)), thang: Number(goc.slice(5, 7)), mo: docMo(loai) };
+  const st = { nam: Number(goc.slice(0, 4)), thang: Number(goc.slice(5, 7)), mo: docMo(loai, moSan) };
 
   const nut = el('button', 'sx-lich-nut');
   nut.type = 'button';
@@ -117,14 +127,15 @@ export async function renderLich(api, { loai, tieuDe, moNgay = false }) {
         + `${x && x.chot ? ' sx-lich-chot' : ''}`);
       o.type = 'button';
       o.innerHTML = `<span class="sx-lich-d">${d}</span>`
-        + (x && x.so ? veSo(x.so) : '');
-      o.setAttribute('aria-label', `Ngày ${d}: ${x && x.so ? `${x.so} ${dl.don_vi}` : 'chưa ghi'}`);
+        + (oNgay ? (x ? oNgay(x) : '') : (x && x.so ? veSo(x.so) : ''));
+      o.setAttribute('aria-label', `Ngày ${d}: ${nhanO ? (x ? nhanO(x) : 'không có gì')
+        : (x && x.so ? `${x.so} ${dl.don_vi}` : 'chưa ghi')}`);
       o.addEventListener('click', () => moChiTiet(k));
       luoi.appendChild(o);
     }
     than.appendChild(luoi);
     than.appendChild(el('div', 'sx-muted sx-lich-chu',
-      `Ô trống = chưa ghi · viền xanh = đã chốt · bấm một ngày để xem chi tiết`));
+      chuThich || 'Ô trống = chưa ghi · viền xanh = đã chốt · bấm một ngày để xem chi tiết'));
   }
 
   async function moChiTiet(ngay) {
@@ -153,6 +164,7 @@ export async function renderLich(api, { loai, tieuDe, moNgay = false }) {
       });
       m.body.appendChild(ds);
     });
+    if (themChiTiet) themChiTiet(m.body, ct, { dong: m.close, taiLai: taiThang });
     if (moNgay && api.doiNgay) {
       const nutMo = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'MỞ NGÀY NÀY ĐỂ SỬA');
       nutMo.type = 'button';

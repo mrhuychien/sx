@@ -148,7 +148,7 @@ def kiem(ten, dk, ct=""):
     global hong
     if not dk:
         hong += 1
-    print(f"  {'ok  ' if dk else 'HỎNG'} {ten}{(' — ' + ct) if ct else ''}")
+    print(f"  {'ok  ' if dk else 'HỎNG'} {ten}{(' — ' + str(ct)) if ct else ''}")
 
 
 def thu(fn):
@@ -231,6 +231,39 @@ kiem("shell.js biết đường dẫn ba card", all(f"{c_}: '/assets/sx/sx/cards
 comp = open("sx/public/sx/components/lichthang.js", encoding="utf-8").read()
 for m in sorted(set(re.findall(r"sx\.api\.lich\.(\w+)", comp))):
     kiem(f"component gọi method có thật: {m}", callable(getattr(L, m, None)))
+
+print("\n-- D117: lịch chốt ngày --")
+VAI.clear(); VAI.add("SX Quan Ly")
+t = L.thang("chot", 2026, 10)
+o = t["ngay"]
+kiem("ngày chốt đủ hai nửa → xanh cả hai", o.get("2026-10-01", {}).get("gs") == 2
+     and o["2026-10-01"]["vh"] == 2, o.get("2026-10-01"))
+kiem("có báo mẻ + bảng vào hộp mà chưa chốt → cam cả hai (phiếu HUỶ cùng ngày không che)",
+     o.get("2026-10-02", {}).get("gs") == 1 and o["2026-10-02"]["vh"] == 1, o.get("2026-10-02"))
+kiem("chốt Vào hộp, không báo mẻ nào → GS xám, VH xanh",
+     o.get("2026-10-03", {}).get("gs") == 0 and o["2026-10-03"]["vh"] == 2, o.get("2026-10-03"))
+kiem("ngày tháng khác không lẫn vào", "2026-09-30" not in o)
+kiem("đếm đúng số ngày còn nửa chưa chốt", t["tong"] == 1, t["tong"])
+ct = L.chi_tiet("chot", "2026-10-01")
+kiem("xem nhanh có cả báo mẻ lẫn vào hộp", any(k["ten"] == "Báo mẻ trộn" for k in ct["khoi"])
+     and any(k["ten"].startswith("Vào hộp") for k in ct["khoi"]), [k["ten"] for k in ct["khoi"]])
+kiem("… kèm phiếu ngày để vẽ nút chốt", (ct["phieu"] or {}).get("name") == "N1"
+     and ct["phieu"]["chot_ghiso"] == 1, ct["phieu"])
+kiem("chip trạng thái chốt không lặp (nút chốt đã nói)", not any("chốt" in c for c in ct["chips"]),
+     ct["chips"])
+kiem("ngày không có phiếu → phieu None", L.chi_tiet("chot", "2026-10-20")["phieu"] is None)
+ct = L.chi_tiet("chot", "2026-10-02")
+kiem("ngày có phiếu huỷ + phiếu mới → nút chốt theo phiếu MỚI", ct["phieu"]["name"] == "N2", ct["phieu"])
+VAI.clear(); VAI.add("SX Ghi So")
+kiem("tổ Ghi sổ không mở lịch chốt (chốt là việc quản lý)", thu(lambda: L.thang("chot", 2026, 10))[1] is not None)
+VAI.clear(); VAI.add("SX Quan Ly")
+kiem("màn Quản lý có thẻ lịch chốt, bỏ thẻ chốt theo ô ngày",
+     "lichchot" in R.VIEW_CARDS["quanly"] and "chotngay" not in R.VIEW_CARDS["quanly"])
+kiem("shell.js biết đường dẫn lichchot", "lichchot: '/assets/sx/sx/cards/lichchot.js'" in shell)
+lc = open("sx/public/sx/cards/lichchot.js", encoding="utf-8").read()
+kiem("lịch chốt dùng lại đúng phần nút chốt của chotngay (có bước khai giá vốn)",
+     "veChot" in lc and "export function veChot" in open("sx/public/sx/cards/chotngay.js",
+                                                         encoding="utf-8").read())
 
 print("LICH-OK" if not hong else f"LICH: {hong} HỎNG")
 sys.exit(1 if hong else 0)

@@ -20,8 +20,9 @@ from frappe.utils import cint, flt, getdate
 
 from sx.config.roles import guard_card, is_super, user_roles
 
-CARD = {"vaohop": "lichvaohop", "ghiso": "lichghiso", "nhapkho": "lichnhapkho"}
-DON_VI = {"vaohop": "hộp", "ghiso": "mẻ", "nhapkho": "sp"}
+CARD = {"vaohop": "lichvaohop", "ghiso": "lichghiso", "nhapkho": "lichnhapkho",
+        "chot": "lichchot"}
+DON_VI = {"vaohop": "hộp", "ghiso": "mẻ", "nhapkho": "sp", "chot": "ngày chưa chốt"}
 
 
 def _kiem(loai):
@@ -97,6 +98,8 @@ def thang(loai, nam, thang):
         if chot:
             x["chot"] = 1
 
+    if loai == "chot":
+        return _thang_chot(tu, den)
     if loai == "nhapkho":
         for p in _phieu_nhap(tu, den).values():
             cong(p.ngay, p.tong_dem, phu=1)            # phu = số phiếu
@@ -127,6 +130,31 @@ def thang(loai, nam, thang):
             "tong": sum(v["so"] for v in o.values()), "don_vi": DON_VI[loai]}
 
 
+def _thang_chot(tu, den):
+    """Lịch chốt ngày (D117): mỗi ngày hai trạng thái, gs (Ghi sổ) và vh (Vào hộp):
+    0 = không có gì để chốt · 1 = có số liệu, CHƯA chốt · 2 = đã chốt.
+    `tong` = số ngày còn nửa nào chưa chốt — con số quản lý cần thấy đầu tiên."""
+    ngay = _ngay_sx(tu, den)
+    co_me = set(frappe.get_all(
+        "SX Bao Me", filters={"parent": ("in", list(ngay) or [""]),
+                              "parenttype": "SX Ngay San Xuat"}, pluck="parent"))
+    co_hop = set(frappe.get_all(
+        "SX Bang Vao Hop", filters={"ngay_sx": ("in", list(ngay) or [""]),
+                                    "docstatus": ("<", 2)}, pluck="ngay_sx"))
+    o = {}
+    for ten, n in ngay.items():
+        k = str(getdate(n.ngay))
+        x = o.setdefault(k, {"so": 0, "gs": 0, "vh": 0, "chot": 0})
+        x["gs"] = max(x["gs"], 2 if cint(n.chot_ghiso) else (1 if ten in co_me else 0))
+        x["vh"] = max(x["vh"], 2 if cint(n.chot_vaohop) else (1 if ten in co_hop else 0))
+    o = {k: v for k, v in o.items() if v["gs"] or v["vh"]}
+    for v in o.values():
+        v["so"] = 1 if 1 in (v["gs"], v["vh"]) else 0
+        v["chot"] = 1 if not v["so"] else 0
+    return {"nam": tu.year, "thang": tu.month, "ngay": o,
+            "tong": sum(v["so"] for v in o.values()), "don_vi": DON_VI["chot"]}
+
+
 # ═════════════════════════════════════════════════════════════ chi tiết ══
 
 def _kg(x):
@@ -147,9 +175,30 @@ def chi_tiet(loai, ngay):
     _kiem(loai)
     d = getdate(ngay)
     ra = {"ngay": str(d), "don_vi": DON_VI[loai], "chips": [], "khoi": [], "so": 0}
-    {"vaohop": _ct_vao_hop, "ghiso": _ct_ghi_so, "nhapkho": _ct_nhap_kho}[loai](d, ra)
+    {"vaohop": _ct_vao_hop, "ghiso": _ct_ghi_so, "nhapkho": _ct_nhap_kho,
+     "chot": _ct_chot}[loai](d, ra)
     ra["khoi"] = [k for k in ra["khoi"] if k]
     return ra
+
+
+def _ct_chot(d, ra):
+    """Xem nhanh trước khi chốt (D117): Ghi sổ + Vào hộp của ngày trong MỘT màn, kèm
+    phiếu ngày để thẻ vẽ nút chốt / huỷ chốt ngay dưới."""
+    gs = {"chips": [], "khoi": [], "so": 0}
+    vh = {"chips": [], "khoi": [], "so": 0}
+    _ct_ghi_so(d, gs)
+    _ct_vao_hop(d, vh)
+    bo = lambda c: "chốt" not in c                    # trạng thái chốt vẽ ở khối nút
+    ra["so"] = vh["so"]
+    ra["don_vi"] = DON_VI["vaohop"]
+    ra["chips"] = ([_("{0} mẻ").format(_kg(gs["so"]))] if gs["so"] else []) \
+        + [c for c in gs["chips"] + vh["chips"] if bo(c)]
+    ra["khoi"] = gs["khoi"] + [dict(k, ten=_("Vào hộp — {0}").format(k["ten"].lower()))
+                               for k in vh["khoi"] if k]
+    n = next(iter(_ngay_sx(d, d).values()), None)
+    ra["phieu"] = {"name": n.name, "ngay": str(n.ngay), "docstatus": n.docstatus,
+                   "chot_ghiso": cint(n.chot_ghiso), "chot_vaohop": cint(n.chot_vaohop)} \
+        if n else None
 
 
 def _ct_vao_hop(d, ra):

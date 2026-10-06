@@ -315,6 +315,14 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Chốt ngày bằng lịch tháng (D117)
+
+Màn Quản lý: thẻ **📅 Chốt ngày** (thay thẻ chốt theo ô ngày cũ). Mỗi ô ngày có hai chấm
+**GS** (Ghi sổ) và **VH** (Vào hộp): cam = có số liệu chưa chốt, xanh = đã chốt, xám =
+không có gì. Đầu thẻ đếm số ngày còn chưa chốt. Bấm một ngày → xem nhanh báo mẻ, báo cán,
+rang đỗ, vào hộp (theo mã, theo người) → thấy ổn bấm **CHỐT GHI SỔ / CHỐT VÀO HỘP** ngay
+dưới (huỷ chốt cũng ở đó). Thiếu giá vốn thì hiện bước khai giá trước (D116).
+
 ## Mã nguyên liệu chưa có giá vốn (D116)
 
 Lỗi ERPNext "Valuation Rate for the Item …, is required to do accounting entries" xảy ra

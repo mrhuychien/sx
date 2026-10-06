@@ -13,7 +13,12 @@ import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 
 export async function render({ container, boot, call, ensureNgay, refresh }) {
   container.className = 'sx-card';
-  const ngay = boot.ngay_sx;
+  veChot(container, boot.ngay_sx, { boot, call, ensureNgay, refresh });
+}
+
+/** Hai nửa chốt của MỘT phiếu ngày vào `container` — thẻ này và lịch chốt (D117)
+ *  dùng chung. `ngay` = {name, ngay, docstatus, chot_ghiso, chot_vaohop}. */
+export function veChot(container, ngay, { boot, call, ensureNgay, refresh }) {
   const xongCa = ngay && ngay.docstatus === 1;
   const gs = xongCa || (ngay && ngay.chot_ghiso);
   const vh = xongCa || (ngay && ngay.chot_vaohop);
@@ -147,9 +152,9 @@ async function layThieuGia(call, ngaySx) {
 export function moKhaiGia(ds, call, xong) {
   const m = openModal({ kicker: 'Chốt Ghi sổ', title: 'Khai giá vốn' });
   m.body.innerHTML = `
-    <div class="sx-modal-msg">${ds.length} mã nguyên liệu chưa có giá vốn (chưa nhập mua có đơn
-      giá) nên ERPNext không trừ kho được. Nhập giá mua ước tính cho mỗi đơn vị kho — chỉ
-      cần một lần; nhập mua có giá sau này sẽ thay giá này.</div>
+    <div class="sx-modal-msg">${ds.length} mã nguyên liệu chưa có giá vốn (chưa nhập mua có đơn `
+      + 'giá) nên ERPNext không trừ kho được. Nhập giá mua ước tính cho mỗi đơn vị kho — chỉ '
+      + `cần một lần; nhập mua có giá sau này sẽ thay giá này.</div>
     ${ds.map((d, i) => `<label class="sx-kgv">
       <span class="sx-kgv-ten">${esc(d.ten)} <span class="sx-muted">${esc(d.item)}</span></span>
       <span class="sx-kgv-o"><input class="sx-textarea" type="number" inputmode="decimal" min="0"

@@ -1962,3 +1962,15 @@ b.sx-tx-kl-loi { background: none; }
 .sx-kgv-o { display: flex; align-items: center; gap: var(--sx-s2); }
 .sx-kgv-o .sx-textarea { flex: 1; min-width: 0; box-sizing: border-box; }
 .sx-kgv-o > span { white-space: nowrap; color: var(--sx-text-2); }
+
+
+/* ══════════════════ LỊCH CHỐT NGÀY (D117) ══════════════════ */
+.sx-lc { display: flex; gap: 2px; justify-content: center; margin-top: 2px; }
+.sx-lc i {
+  font-style: normal; font-size: 9px; font-weight: 800; line-height: 1;
+  padding: 2px 3px; border-radius: 4px;
+}
+.sx-lc-0 { background: var(--sx-surface-2); color: var(--sx-text-2); opacity: .55; }
+.sx-lc-1 { background: var(--sx-warning-soft); color: var(--sx-warning-text); box-shadow: inset 0 0 0 1px var(--sx-warning); }
+.sx-lc-2 { background: var(--sx-success-soft); color: var(--sx-success-text); }
+.sx-lc-chot { margin-top: var(--sx-s3); border-top: 1px solid var(--sx-line); padding-top: var(--sx-s3); }

@@ -116,7 +116,9 @@ VIEW_CARDS = {
     # nogia (D99): sổ nợ đơn giá vào hộp — lương khoán đang 0 đồng chờ khai giá.
     # phieuluong (D110): xem nhanh phiếu lương tháng — gập sẵn, sau thẻ chốt ngày.
     # truyxuat (D115): truy xuất nguồn gốc 2 chiều — thay ô "nhập mã batch" cũ.
-    "quanly": ["qcnhac", "nobom", "nogia", "novaohop", "chotngay", "truyxuat",
+    # lichchot (D117): chốt ngày bằng lịch tháng — bấm ngày, xem nhanh, chốt luôn.
+    # Thay thẻ chotngay (vẫn giữ file: lịch dùng lại phần nút chốt của nó).
+    "quanly": ["qcnhac", "nobom", "nogia", "novaohop", "lichchot", "truyxuat",
                "phieuluong", "luutrinhbtp", "nguoidung"],
 }
 
@@ -158,6 +160,7 @@ CARD_ROLES = {
     "lichvaohop": [VAO_HOP],
     "lichghiso": [GHI_SO],
     "lichnhapkho": [VAO_HOP, THU_KHO, QUAN_LY],
+    "lichchot": [QUAN_LY],
     "quanly": [],  # chỉ super roles
 }
 
