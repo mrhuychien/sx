@@ -276,9 +276,9 @@ kiem("mọi thẻ của màn Quản lý đều được gắn (thẻ ngoài hai 
 kiem("biểu đồ vẽ SAU khi khung đã vào trang (lỗi cũ: luôn trống)",
      ql.index("body.innerHTML = `") < ql.index("veCot(d.phieu"))
 css = open("sx/public/sx/shell.css", encoding="utf-8").read()
-kiem("thanh trái chỉ từ 1024px — điện thoại giữ thanh dưới",
-     "@media (min-width: 1024px)" in css and ".sx-nav-brand { display: none; }" in css)
-kiem("shell chuyển thanh ngày lên header theo bề ngang thật", "matchMedia('(min-width: 1024px)')" in shell)
+kiem("thanh trái từ 900px (laptop phóng to chữ) — điện thoại/tablet dọc giữ thanh dưới",
+     "@media (min-width: 900px)" in css and ".sx-nav-brand { display: none; }" in css)
+kiem("shell chuyển thanh ngày lên header theo bề ngang thật", "matchMedia('(min-width: 900px)')" in shell)
 
 print("LICH-OK" if not hong else f"LICH: {hong} HỎNG")
 sys.exit(1 if hong else 0)

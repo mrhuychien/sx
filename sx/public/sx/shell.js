@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-87';
+const BUILD = 'sx-88';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -226,7 +226,7 @@ function buildShell() {
   // Máy tính (D119): thanh ngày lên HẲN header, giữa tên màn và nút phụ — dải kính
   // riêng dưới header chỉ hợp với điện thoại. Chuyển chỗ theo bề ngang thật, không
   // dựng hai bản thanh ngày (hai bản là hai chỗ phải nhớ đồng bộ).
-  const mayTinh = window.matchMedia('(min-width: 1024px)');
+  const mayTinh = window.matchMedia('(min-width: 900px)');
   const datThanhNgay = () => {
     if (mayTinh.matches) header.querySelector('.sx-header-inner')
       .insertBefore(daybar, header.querySelector('.sx-header-actions'));

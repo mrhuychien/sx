@@ -317,10 +317,10 @@ không thành `…-2`.
 
 ## Giao diện máy tính (D119)
 
-Từ 1024px trở lên: thanh tab dưới thành **thanh trái** (logo + Ghi sổ / Ghi hộp / Nhập kho
+Cửa sổ rộng từ 900px (bề ngang CSS — laptop phóng to chữ 150% vẫn đạt): thanh tab dưới thành **thanh trái** (logo + Ghi sổ / Ghi hộp / Nhập kho
 / QC / Quản lý), thanh ngày nằm **trên header**. Màn **Quản lý** theo bản thiết kế: hai cột
 (trái: QC treo việc, sổ nợ, lịch Chốt ngày — phải: Truy xuất, Phiếu lương, Tài khoản),
-dưới là Tồn BTP theo luồng và khu **Theo dõi** (KPI, biểu đồ sản lượng + liên kết nhanh,
+(hai cột từ 1100px), dưới là Tồn BTP theo luồng và khu **Theo dõi** (KPI, biểu đồ sản lượng + liên kết nhanh,
 các bảng dạng lưới), chữ/nút gọn hơn cho chuột. Các màn nhập liệu giữ cỡ chữ và vùng
 chạm lớn (tablet nằm ngang). Điện thoại không đổi. Font chuyển sang Be Vietnam Pro.
 
