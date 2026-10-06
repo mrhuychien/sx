@@ -78,7 +78,8 @@
    "default": "Chờ BOM",
    "reqd": 1,
    "in_list_view": 1,
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "search_index": 1
   },
   {
    "fieldname": "ngay",
@@ -122,7 +123,8 @@
    "fieldtype": "Link",
    "label": "Lô thành phẩm",
    "options": "Batch",
-   "read_only": 1
+   "read_only": 1,
+   "search_index": 1
   },
   {
    "fieldname": "kho",
@@ -156,7 +158,8 @@
    "label": "Phiếu kho trừ nguyên liệu bù",
    "options": "Stock Entry",
    "read_only": 1,
-   "description": "Material Issue: bột + bao bì theo BOM × số lượng đã nhập."
+   "description": "Material Issue: bột + bao bì theo BOM × số lượng đã nhập.",
+   "search_index": 1
   },
   {
    "fieldname": "ly_do",

@@ -171,6 +171,9 @@ ut.items_tp = lambda *a, **k: [Doc(name=i, item_name=i, stock_uom="Hộp",
 ut.nhom_tp = lambda: []
 ut.sinh_ma_lo = lambda item, ngay: f"{item}-{_getdate(ngay):%d%m%y}"
 ut.cho_phep_ton_am = lambda: False
+ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
+ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
+ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
 
 

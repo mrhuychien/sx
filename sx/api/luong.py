@@ -25,15 +25,18 @@ def _no_gia(employee_thang):
     ra = {}
     if not frappe.db.table_exists("SX No Don Gia"):
         return ra
-    for ten, thang, nam in employee_thang:
-        n = frappe.db.sql("""
-            select count(*) from `tabSX Phieu Luong Chi Tiet` c
+    ten_ds = [t for t, _th, _n in employee_thang]
+    if not ten_ds:
+        return ra
+    # D120: MỘT truy vấn cho cả tháng (trước: một truy vấn mỗi phiếu, ~45 lần).
+    for parent, n in frappe.db.sql("""
+            select c.parent, count(*) from `tabSX Phieu Luong Chi Tiet` c
               join `tabSX No Don Gia` n on n.san_pham = c.san_pham and n.ngay = c.ngay
                    and ifnull(n.cach_lam, '') = ifnull(c.cach_lam, '') and n.trang_thai = 'Chờ giá'
-             where c.parent = %s and c.parenttype = %s and ifnull(c.don_gia, 0) = 0""",
-                          (ten, PL))
-        if n and n[0][0]:
-            ra[ten] = cint(n[0][0])
+             where c.parent in %s and c.parenttype = %s and ifnull(c.don_gia, 0) = 0
+             group by c.parent""", (tuple(ten_ds), PL)):
+        if n:
+            ra[parent] = cint(n)
     return ra
 
 

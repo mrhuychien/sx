@@ -40,7 +40,8 @@
    "label": "Ngày nhận",
    "reqd": 1,
    "in_list_view": 1,
-   "description": "Ngày hàng vào kho. Mã lô thành phẩm sinh theo ngày này."
+   "description": "Ngày hàng vào kho. Mã lô thành phẩm sinh theo ngày này.",
+   "search_index": 1
   },
   {
    "fieldname": "trang_thai",

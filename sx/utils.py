@@ -14,13 +14,99 @@ def get_settings():
     return frappe.get_cached_doc("SX Settings")
 
 
+# ───────────────────────────── nhớ tạm trong MỘT request (D120) ──
+#
+# Các màn tải trang gọi get_bom_active / items_tp / get_bot_from_dau trong VÒNG LẶP
+# — mỗi lần một truy vấn, 80–1000 truy vấn cho một lần mở màn. Nhớ trong
+# frappe.local: hết request là mất, không bao giờ trả số cũ của lần mở trước.
+# BOM / Item đổi GIỮA request (hiếm: submit BOM rồi đọc lại) thì hook xoa_nho xoá.
+
+
+def nho(ten):
+    """dict nhớ tạm tên `ten` của request hiện tại. Không có frappe.local (test
+    giả) thì trả dict mới mỗi lần — tức là không nhớ, hành vi y như cũ."""
+    loc = getattr(frappe, "local", None)
+    if loc is None:
+        return {}
+    try:
+        d = loc.sx_nho
+    except AttributeError:
+        d = {}
+        try:
+            loc.sx_nho = d
+        except Exception:
+            return {}
+    return d.setdefault(ten, {})
+
+
+def xoa_nho(doc=None, method=None):
+    """Hook BOM / Item: dữ liệu vừa đổi -> bỏ mọi thứ đã nhớ trong request này."""
+    loc = getattr(frappe, "local", None)
+    if loc is not None and getattr(loc, "sx_nho", None):
+        loc.sx_nho = {}
+
+
 def get_bom_active(item_code):
-    """BOM active/default (docstatus 1) của 1 item, hoặc None."""
-    return frappe.db.get_value(
+    """BOM active/default (docstatus 1) của 1 item, hoặc None. Nhớ theo request."""
+    m = nho("bom")
+    if item_code in m:
+        return m[item_code]
+    m[item_code] = frappe.db.get_value(
         "BOM",
         {"item": item_code, "is_active": 1, "is_default": 1, "docstatus": 1},
         "name",
     )
+    return m[item_code]
+
+
+def nap_bom(items):
+    """Nạp BOM active của CẢ danh sách bằng MỘT truy vấn vào bộ nhớ request — gọi
+    trước vòng lặp có get_bom_active. Trả {item: bom | None}."""
+    m = nho("bom")
+    thieu = [i for i in dict.fromkeys(items or []) if i and i not in m]
+    if thieu:
+        co = {b.item: b.name for b in frappe.get_all(
+            "BOM", filters={"item": ("in", thieu), "is_active": 1, "is_default": 1,
+                            "docstatus": 1},
+            fields=["item", "name"])}
+        for i in thieu:
+            m[i] = co.get(i)
+    return {i: m.get(i) for i in (items or [])}
+
+
+def ton_bin(items, kho):
+    """{item: actual_qty} tại MỘT kho cho cả danh sách — một truy vấn thay vì
+    một get_value Bin cho mỗi mã."""
+    items = [i for i in dict.fromkeys(items or []) if i]
+    if not items or not kho:
+        return {}
+    return {b.item_code: flt(b.actual_qty) for b in frappe.get_all(
+        "Bin", filters={"item_code": ("in", items), "warehouse": kho},
+        fields=["item_code", "actual_qty"])}
+
+
+def ton_cac_lo(batches):
+    """{(batch, kho): số tồn} cho cả danh sách lô — MỘT truy vấn thay cho
+    get_batch_qty từng lô (mỗi lần là một lượt quét sổ cái).
+
+    ERPNext v15+ ghi lô trong Serial and Batch Bundle; SLE có thể để trống batch_no.
+    Gom cả hai đường, số lượng lấy theo dòng của đúng lô trong bundle.
+    """
+    batches = [b for b in dict.fromkeys(batches or []) if b]
+    if not batches:
+        return {}
+    rows = frappe.db.sql(
+        """select coalesce(e.batch_no, sle.batch_no) as b, sle.warehouse as w,
+                  sum(coalesce(e.qty, sle.actual_qty)) as q
+             from `tabStock Ledger Entry` sle
+             left join `tabSerial and Batch Entry` e
+               on e.parent = sle.serial_and_batch_bundle
+            where sle.is_cancelled = 0
+              and (sle.batch_no in %(b)s or e.batch_no in %(b)s)
+            group by coalesce(e.batch_no, sle.batch_no), sle.warehouse""",
+        {"b": tuple(batches)}, as_dict=True)
+    tap = set(batches)
+    return {(r.b, r.w): flt(r.q) for r in rows if r.b in tap}
 
 
 # ───────────────────────────────────── đỗ ↔ bột nền (suy từ BOM T1) ──
@@ -49,6 +135,7 @@ def get_dau_items():
     bot_items = frappe.get_all(
         "Item", filters={"custom_sx_nhom": "BTP-Bot", "disabled": 0}, pluck="name"
     )
+    nap_bom(bot_items)
     for bot in bot_items:
         bom = get_bom_active(bot)
         if not bom:
@@ -66,17 +153,23 @@ def get_dau_items():
 def get_bot_from_dau(loai_dau):
     """Suy item bột nền + BOM T1 từ loại đỗ (BTP-Bot có loai_dau là RM).
 
-    Trả (item_bot, bom_name). Không tìm được -> throw rõ ràng.
+    Trả (item_bot, bom_name). Không tìm được -> throw rõ ràng. Nhớ theo request
+    (lưu đồ gọi 2 lần cho MỖI lô — D120).
     """
+    m = nho("bot_tu_dau")
+    if loai_dau in m:
+        return m[loai_dau]
     bot_items = frappe.get_all(
         "Item", filters={"custom_sx_nhom": "BTP-Bot", "disabled": 0}, pluck="name"
     )
+    nap_bom(bot_items)
     for bot in bot_items:
         bom = get_bom_active(bot)
         if not bom:
             continue
         dau, _qty = _dau_rm_cua_bom(bom)
         if dau == loai_dau:
+            m[loai_dau] = (bot, bom)
             return bot, bom
     frappe.throw(
         _("Không tìm thấy BOM bột nền (nhóm BTP-Bot) dùng đỗ {0} làm nguyên liệu. "
@@ -453,9 +546,13 @@ def nhom_tp():
     "Thành phẩm > Bánh > ...", chọn "Thành phẩm" mà không lấy nhánh dưới thì gần như
     không khớp Item nào.
     """
+    m = nho("nhom_tp")
+    if "x" in m:
+        return list(m["x"])
     settings = get_settings()
     goc = [r.item_group for r in (settings.get("nhom_tp") or []) if r.item_group]
     if not goc:
+        m["x"] = []
         return []
     ra = list(goc)
     for g in goc:
@@ -468,7 +565,8 @@ def nhom_tp():
             )
         except Exception:
             pass   # cây nested set hỏng -> vẫn dùng được đúng nhóm đã chọn
-    return list(dict.fromkeys(ra))
+    m["x"] = list(dict.fromkeys(ra))
+    return list(m["x"])
 
 
 def items_tp(fields=None, filters=None):
@@ -478,17 +576,25 @@ def items_tp(fields=None, filters=None):
     viết lại ở 4 nơi, nên thêm cách đánh dấu thứ hai là phải sửa cả 4.
     """
     fields = fields or ["name", "item_name", "stock_uom"]
+    # Nhớ theo request (D120): get_boot gọi 3 lần, luu_do_btp/truy xuất gọi lại nữa.
+    m = nho("items_tp")
+    khoa = (tuple(fields), repr(sorted((filters or {}).items())))
+    if khoa in m:
+        return [frappe._dict(x) for x in m[khoa]]
     loc = {"disabled": 0}
     loc.update(filters or {})
     nhom = nhom_tp()
     if not nhom:
         loc["custom_sx_nhom"] = "TP"
-        return frappe.get_all("Item", filters=loc, fields=fields, order_by="item_name")
-    return frappe.get_all(
-        "Item", filters=loc,
-        or_filters=[["custom_sx_nhom", "=", "TP"], ["item_group", "in", nhom]],
-        fields=fields, order_by="item_name",
-    )
+        ra = frappe.get_all("Item", filters=loc, fields=fields, order_by="item_name")
+    else:
+        ra = frappe.get_all(
+            "Item", filters=loc,
+            or_filters=[["custom_sx_nhom", "=", "TP"], ["item_group", "in", nhom]],
+            fields=fields, order_by="item_name",
+        )
+    m[khoa] = ra
+    return [frappe._dict(x) for x in ra]
 
 
 # ─────────────────────────────────────── ĐƠN GIÁ KHOÁN THEO THÁNG (D67) ──
@@ -506,15 +612,19 @@ def bang_don_gia(ngay=None):
     docstatus 0 còn bảng cũ lập trước D80 vẫn đang ở docstatus 1.
     """
     d = getdate(ngay or nowdate())
+    m = nho("bang_don_gia")          # D120: sổ nợ giá gọi lại cho từng ngày
+    if str(d) in m:
+        return m[str(d)]
     ten = frappe.db.get_value(
         "SX Bang Don Gia",
         {"hieu_luc_tu": ("<=", d), "docstatus": ("<", 2)},
         "name", order_by="hieu_luc_tu desc",
     )
-    if ten:
-        return ten
-    return frappe.db.get_value(
-        "SX Bang Don Gia", {"docstatus": ("<", 2)}, "name", order_by="hieu_luc_tu asc")
+    if not ten:
+        ten = frappe.db.get_value(
+            "SX Bang Don Gia", {"docstatus": ("<", 2)}, "name", order_by="hieu_luc_tu asc")
+    m[str(d)] = ten
+    return ten
 
 
 def don_gia_ap_dung(ngay=None):
@@ -527,13 +637,16 @@ def don_gia_ap_dung(ngay=None):
     ten = bang_don_gia(ngay)
     if not ten:
         return {}
-    return {
-        (r.san_pham, r.cach_lam or ""): flt(r.don_gia)
-        for r in frappe.get_all(
-            "SX Bang Don Gia Item", filters={"parent": ten, "parenttype": "SX Bang Don Gia"},
-            fields=["san_pham", "cach_lam", "don_gia"],
-        )
-    }
+    m = nho("don_gia")               # D120: nhiều ngày chung một bảng
+    if ten not in m:
+        m[ten] = {
+            (r.san_pham, r.cach_lam or ""): flt(r.don_gia)
+            for r in frappe.get_all(
+                "SX Bang Don Gia Item", filters={"parent": ten, "parenttype": "SX Bang Don Gia"},
+                fields=["san_pham", "cach_lam", "don_gia"],
+            )
+        }
+    return dict(m[ten])
 
 
 def tra_don_gia(bang, san_pham, cach_lam=None):

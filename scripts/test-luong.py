@@ -80,7 +80,7 @@ frappe.get_all = lambda dt, filters=None, **k: sorted(
     [Doc(h) for h in PHIEU if _khop(h, filters)], key=lambda h: h.ten_nhan_vien)
 frappe.get_doc = lambda dt, n: next(h for h in PHIEU if h.name == n)
 frappe.db = types.SimpleNamespace(table_exists=lambda dt: True,
-                                  sql=lambda q, a=None: [(NO_GIA.get(a[0], 0),)])
+                                  sql=lambda q, a=None: [(t, NO_GIA[t]) for t in a[0] if NO_GIA.get(t)])
 frappe.__dict__["_"] = lambda s: s
 fu = types.ModuleType("frappe.utils")
 fu.cint = lambda v: int(float(v or 0))

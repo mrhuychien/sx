@@ -9,6 +9,11 @@ required_apps = ["frappe", "erpnext"]
 # ═══ DocType Events ═══
 doc_events = {
     "SX Ngay San Xuat": {"on_cancel": "sx.api.chot.on_cancel_ngay"},
+    # D120: BOM / Item đổi giữa request -> bỏ bộ nhớ tạm get_bom_active / items_tp.
+    "BOM": {"on_submit": "sx.utils.xoa_nho", "on_cancel": "sx.utils.xoa_nho",
+            "on_update_after_submit": "sx.utils.xoa_nho"},
+    "Item": {"on_update": "sx.utils.xoa_nho"},
+    "SX Bang Don Gia": {"on_update": "sx.utils.xoa_nho", "on_trash": "sx.utils.xoa_nho"},
     "SX Nhap Bot": {
         "on_submit": "sx.api.tang1.on_submit_nhap_bot",
         "on_cancel": "sx.api.tang1.on_cancel_nhap_bot",

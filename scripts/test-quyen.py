@@ -150,6 +150,9 @@ ut = types.ModuleType("sx.utils")
 for ten in ("get_settings", "items_tp", "nhom_tp", "get_bom_active", "cho_phep_ton_am",
             "sinh_ma_lo"):
     setattr(ut, ten, lambda *a, **k: None)
+ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
+ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
+ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
 api = types.ModuleType("sx.api")
 api.__path__ = []

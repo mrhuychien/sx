@@ -19,13 +19,14 @@ from sx.config.roles import (
 from sx.sx.doctype.sx_bang_vao_hop.sx_bang_vao_hop import CONG_NHAT
 from sx.utils import (
     bang_don_gia,
-    cach_lam_cua,
     dat_ten_hien_thi,
     don_gia_ap_dung,
     get_bom_active,
     get_dau_items,
     get_settings,
     items_tp,
+    nap_bom,
+    ton_bin,
 )
 
 # Nguồn phân loại "công khoán" trên Employee -> fieldname tương ứng
@@ -128,10 +129,13 @@ def get_boot(ngay=None):
             fields=["name", "item_name"], order_by="item_name",
         )
         if kem_co_me:
+            # D120: một truy vấn BOM cho cả nhóm + cỡ mẻ đọc qua cache tài liệu,
+            # thay cho 2 truy vấn mỗi mã.
+            bom_cua = nap_bom([it["name"] for it in out])
             for it in out:
-                bom = get_bom_active(it["name"])
+                bom = bom_cua.get(it["name"])
                 it["co_me_chuan_kg"] = (
-                    flt(frappe.db.get_value("BOM", bom, "custom_co_me_chuan_kg")) if bom else 0
+                    flt(frappe.get_cached_value("BOM", bom, "custom_co_me_chuan_kg")) if bom else 0
                 )
         return out
 
@@ -199,8 +203,14 @@ def _ngay_summary(ten):
 
 
 def _xem_het_vao_hop():
-    """Quản lý thấy / sửa mọi dòng vào hộp; QC chỉ dòng mình ghi (D113)."""
-    return is_super(user_roles())
+    """Quản lý thấy / sửa mọi dòng vào hộp; QC chỉ dòng mình ghi (D113).
+    Nhớ theo request — được hỏi cho MỖI dòng bảng (D120)."""
+    from sx.utils import nho
+
+    m = nho("quyen")
+    if "xem_het_vh" not in m:
+        m["xem_het_vh"] = is_super(user_roles())
+    return m["xem_het_vh"]
 
 
 def _cua_toi(r, u=None):
@@ -275,9 +285,14 @@ def _danh_muc_khoan(ngay):
     Còn lại -> hỏi cách làm, vì hai cách làm hai đơn giá khác nhau.
     """
     bang = don_gia_ap_dung(ngay) if ngay else {}
+    # Gom cách làm theo mã MỘT lần (D120) — cach_lam_cua quét cả bảng cho mỗi mã.
+    cach_theo_ma = {}
+    for (sp, cl) in bang:
+        if cl:
+            cach_theo_ma.setdefault(sp, set()).add(cl)
     ds = []
     for it in items_tp(["name", "item_name", "stock_uom"]):
-        cach = cach_lam_cua(bang, it.name)
+        cach = sorted(cach_theo_ma.get(it.name, ()))
         chung = bang.get((it.name, ""))
         ds.append({
             "item": it.name,
@@ -740,12 +755,10 @@ def _ton_btp():
     out = []
     for nhom in ("BTP-Dau", "BTP-Bot", "BTP-Phu", "BTP-Banh", "BTP-Bot-SP"):
         kho = kho_x if nhom == "BTP-Dau" else settings.kho_btp
-        for it in frappe.get_all("Item", filters={"custom_sx_nhom": nhom}, pluck="name"):
-            qty = flt(
-                frappe.db.get_value(
-                    "Bin", {"item_code": it, "warehouse": kho}, "actual_qty"
-                )
-            )
+        ds = frappe.get_all("Item", filters={"custom_sx_nhom": nhom}, pluck="name")
+        ton = ton_bin(ds, kho)                 # D120: một truy vấn cho cả nhóm
+        for it in ds:
+            qty = flt(ton.get(it))
             out.append({"item": it, "nhom": nhom, "kho": kho,
                         "ton_kg": flt(qty, 1), "am": qty < 0})
     return out
@@ -772,22 +785,22 @@ def _ton_nhom(nhom, kho, kem_me=False):
     kem_me: quy ra số mẻ theo cỡ mẻ chuẩn BOM.
     """
     out = []
-    for it in frappe.get_all(
+    ds = frappe.get_all(
         "Item", filters={"custom_sx_nhom": nhom, "disabled": 0},
         fields=["name", "item_name"], order_by="item_name",
-    ):
-        ton = flt(
-            frappe.db.get_value(
-                "Bin", {"item_code": it["name"], "warehouse": kho}, "actual_qty"
-            )
-        )
+    )
+    ton_cua = ton_bin([it["name"] for it in ds], kho)     # D120: một truy vấn
+    if kem_me:
+        nap_bom([it["name"] for it in ds])
+    for it in ds:
+        ton = flt(ton_cua.get(it["name"]))
         if abs(ton) < 1e-6:
             continue
         dong = {"item": it["name"], "ten": it["item_name"] or it["name"],
                 "ton": flt(ton, 1), "am": ton < 0}
         if kem_me:
             bom = get_bom_active(it["name"])
-            co_me = flt(frappe.db.get_value("BOM", bom, "custom_co_me_chuan_kg")) if bom else 0
+            co_me = flt(frappe.get_cached_value("BOM", bom, "custom_co_me_chuan_kg")) if bom else 0
             dong["so_me"] = flt(ton / co_me, 1) if co_me else None
         out.append(dong)
     out.sort(key=lambda d: -d["ton"])   # nhiều hàng nhất lên trước
@@ -811,7 +824,9 @@ def _tp_theo_nhanh():
     Không đoán theo tên SKU — tên đặt tay, đổi lúc nào không biết. BOM mới là sự thật.
     """
     nhanh = {"banh": [], "bot": []}
-    for tp in [i.name for i in items_tp(["name"])]:
+    ds = [i.name for i in items_tp(["name"])]
+    nap_bom(ds)                                           # D120
+    for tp in ds:
         bom = get_bom_active(tp)
         if not bom:
             continue
@@ -829,8 +844,9 @@ def _tp_theo_nhanh():
 def _ton_tp(ds_tp, kho):
     """Tồn TP: gộp thành 1 con số + đếm SKU còn hàng (liệt kê hết thì dài vô ích)."""
     tong, co_hang = 0.0, 0
+    ton = ton_bin(ds_tp, kho)                             # D120: một truy vấn
     for tp in ds_tp:
-        q = flt(frappe.db.get_value("Bin", {"item_code": tp, "warehouse": kho}, "actual_qty"))
+        q = flt(ton.get(tp))
         tong += q
         if q > 0:
             co_hang += 1

@@ -26,6 +26,7 @@ from sx.utils import (
     get_yield_bot,
     item_cua_chang,
     kho_xuong,
+    ton_cac_lo,
 )
 
 
@@ -238,6 +239,29 @@ def _da_tieu_thu(lo_rang, cong_doan, item_vao):
     return flt(sum(flt(q) for q in rows))
 
 
+def _da_rang_cac_lo(ds):
+    """{lo_rang: kg đỗ đã đưa vào nồi rang} cho cả danh sách lô — hai truy vấn
+    thay cho hai truy vấn MỖI lô (_da_tieu_thu)."""
+    lo = {r.lo_rang: r.loai_dau for r in ds if r.get("se_xuat_kho") and r.lo_rang}
+    if not lo:
+        return {}
+    se = {x.name: x.custom_lo_rang for x in frappe.get_all(
+        "Stock Entry",
+        filters={"docstatus": 1, "custom_lo_rang": ("in", list(lo)), "custom_cong_doan": "rang"},
+        fields=["name", "custom_lo_rang"])}
+    if not se:
+        return {}
+    ra = {}
+    for d in frappe.get_all(
+            "Stock Entry Detail",
+            filters={"parent": ("in", list(se)), "is_finished_item": 0},
+            fields=["parent", "item_code", "qty"]):
+        lr = se.get(d.parent)
+        if lr and d.item_code == lo.get(lr):
+            ra[lr] = ra.get(lr, 0.0) + flt(d.qty)
+    return ra
+
+
 def _do_chua_rang(xd):
     """Đỗ của RIÊNG lô này còn nằm ở xưởng chưa rang.
 
@@ -270,24 +294,52 @@ def luu_do_lo(ngay=None):
                 "trang_thai_bot", "se_xuat_kho"],
         order_by="ngay_rang desc, creation desc",
     )
+    # D120: trước đây MỖI lô ~12 truy vấn + 3 lần get_batch_qty + 1 lần quét Stock
+    # Entry — 90 lô là hơn nghìn truy vấn cho một lần mở tab Ghi sổ. Giờ đọc gộp:
+    # tồn mọi lô một truy vấn, đỗ đã rang mọi lô một lượt, item / tỉ lệ nhớ theo
+    # loại đỗ.
+    CHANG = (
+        ("dau", _("Đỗ ở xưởng"), kho_x),
+        ("u", _("Đỗ ủ"), kho_x),
+        ("vo", _("Đỗ vỡ"), kho_x),
+        ("bot", _("Bột nền"), settings.kho_btp),
+    )
+    ton_lo = ton_cac_lo([batch_cua_chang(r.lo_rang, c) for r in ds for c, _n, _k in CHANG
+                         if c != "dau"])
+    da_rang = _da_rang_cac_lo(ds)
+    nho_item, nho_ty_le = {}, {}
+
+    def item_chang(loai_dau, c):
+        k = (loai_dau, c)
+        if k not in nho_item:
+            try:
+                nho_item[k] = item_cua_chang(loai_dau, c)
+            except Exception:
+                nho_item[k] = None
+        return nho_item[k]
+
+    def ty_le(loai_dau, ma):
+        k = (loai_dau, ma)
+        if k not in nho_ty_le:
+            nho_ty_le[k] = _ty_le_goi_y(loai_dau, ma)
+        return nho_ty_le[k]
+
     out = []
     for r in ds:
         chang = []
         con_lai = 0.0
-        for ten_chang, nhan, kho in (
-            ("dau", _("Đỗ ở xưởng"), kho_x),
-            ("u", _("Đỗ ủ"), kho_x),
-            ("vo", _("Đỗ vỡ"), kho_x),
-            ("bot", _("Bột nền"), settings.kho_btp),
-        ):
-            try:
-                item = item_cua_chang(r.loai_dau, ten_chang)
-            except Exception:
+        for ten_chang, nhan, kho in CHANG:
+            item = item_chang(r.loai_dau, ten_chang)
+            if not item:
                 chang.append({"chang": ten_chang, "nhan": nhan, "item": None, "ton": 0,
                               "thieu_item": 1})
                 continue
             batch = batch_cua_chang(r.lo_rang, ten_chang)
-            ton = _do_chua_rang(r) if ten_chang == "dau" else _ton_batch(item, kho, batch)
+            if ten_chang == "dau":
+                ton = (max(0.0, flt(r.dau_kg) - flt(da_rang.get(r.lo_rang)))
+                       if r.get("se_xuat_kho") else 0.0)    # = _do_chua_rang, đọc gộp
+            else:
+                ton = flt(ton_lo.get((batch, kho)))
             if ten_chang != "bot":
                 con_lai += ton   # bột đã vào Kho BTP -> không còn "ở xưởng"
             chang.append({"chang": ten_chang, "nhan": nhan, "item": item,
@@ -302,7 +354,7 @@ def luu_do_lo(ngay=None):
             "chang": chang, "con_o_xuong": flt(con_lai, 2),
             "cong_doan": [
                 {"ma": c["ma"], "ten": c["ten"],
-                 "ty_le": _ty_le_goi_y(r.loai_dau, c["ma"])}
+                 "ty_le": ty_le(r.loai_dau, c["ma"])}
                 for c in CONG_DOAN
             ],
         })

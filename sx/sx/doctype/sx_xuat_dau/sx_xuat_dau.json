@@ -34,14 +34,16 @@
    "label": "Ngày xuất (D-1)",
    "default": "Today",
    "in_list_view": 1,
-   "reqd": 1
+   "reqd": 1,
+   "search_index": 1
   },
   {
    "fieldname": "ngay_rang",
    "fieldtype": "Date",
    "label": "Ngày rang (D)",
    "in_standard_filter": 1,
-   "reqd": 1
+   "reqd": 1,
+   "search_index": 1
   },
   {
    "fieldname": "column_break_head",
@@ -75,7 +77,8 @@
    "read_only": 1,
    "unique": 1,
    "in_list_view": 1,
-   "bold": 1
+   "bold": 1,
+   "search_index": 1
   },
   {
    "fieldname": "se_xuat_kho",

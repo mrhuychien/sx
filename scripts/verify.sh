@@ -263,4 +263,10 @@ python3 scripts/test-giavon.py > /tmp/sx-gv.log 2>&1 \
   && tail -1 /tmp/sx-gv.log \
   || { cat /tmp/sx-gv.log; loi=1; }
 
+# D120: chậm kiểu N+1 chỉ lộ ra khi dữ liệu đã nhiều. Đếm truy vấn với dữ liệu nhỏ
+# và lớn — phải bằng nhau.
+python3 scripts/test-tocdo.py > /tmp/sx-tocdo.log 2>&1 \
+  && tail -1 /tmp/sx-tocdo.log \
+  || { cat /tmp/sx-tocdo.log; loi=1; }
+
 exit $loi

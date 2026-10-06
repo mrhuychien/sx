@@ -145,6 +145,9 @@ ut.get_settings = lambda: Doc(kho_tp="TP")
 ut.items_tp = lambda *a, **k: []
 ut.nhom_tp = lambda: []
 ut.cho_phep_ton_am = lambda: TON_AM[0]
+ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
+ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
+ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
 mfg = types.ModuleType("sx.api.mfg")
 mfg.thieu_gia_von = lambda cap: []   # D116: giá vốn kiểm ở test-giavon.py

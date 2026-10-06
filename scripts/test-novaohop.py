@@ -212,6 +212,9 @@ ut.cho_phep_ton_am = lambda: True
 for ten in ("cach_lam_cua", "dat_ten_hien_thi", "get_dau_items", "topo_rank_by_bom",
             "loai_phieu_kho"):
     setattr(ut, ten, lambda *a, **k: None)
+ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
+ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
+ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
 
 mfg = types.ModuleType("sx.api.mfg")

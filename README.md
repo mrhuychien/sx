@@ -315,6 +315,18 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Tốc độ tải trang (D120)
+
+- **Trình duyệt:** các thẻ trên một màn tải SONG SONG (trước: nối đuôi, 8 thẻ = 8 lần
+  chờ); dữ liệu khởi động nhúng sẵn trong HTML; Google Fonts không còn chặn hiển thị.
+- **Server:** bỏ truy vấn lặp theo từng mã / từng lô — BOM, tồn Bin, tồn theo lô, quy
+  đổi ĐVT, nợ vào hộp, nợ giá phiếu lương đều đọc gộp một lần; nhớ tạm trong một
+  request (`sx.utils.nho`, xoá khi BOM / Item / bảng đơn giá đổi). Lưu đồ tầng 1
+  (tab Ghi sổ) từ ~12 truy vấn MỖI lô xuống ~8 truy vấn cho cả màn.
+- **Index** cho các cột lọc nhiều (ngày, trạng thái nợ, `Stock Entry.custom_lo_rang`…)
+  — cần `bench --site site1.local migrate` một lần.
+- `scripts/test-tocdo.py` đếm truy vấn với dữ liệu nhỏ và lớn — phải bằng nhau.
+
 ## Giao diện máy tính (D119)
 
 Thanh điều hướng **luôn ở đáy màn hình** (cả điện thoại lẫn máy tính). Từ 900px bề ngang:

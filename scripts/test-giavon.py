@@ -177,6 +177,9 @@ ut.get_bom_active = lambda i: BOM_CUA.get(i)
 ut.cho_phep_ton_am = lambda: True
 ut.sinh_ma_lo = lambda *a: "LO"
 ut.topo_rank_by_bom = lambda ds: {}
+ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
+ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
+ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
 ng = types.ModuleType("sx.api.nogia")
 ng.canh_bao_no_gia = ng.ghi_no_gia = ng.huy_no_gia = lambda *a, **k: None

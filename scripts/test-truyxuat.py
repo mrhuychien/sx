@@ -262,6 +262,9 @@ for g in ("sx", "sx.api", "sx.config"):
     m = types.ModuleType(g); m.__path__ = []; sys.modules[g] = m
 ut = types.ModuleType("sx.utils")
 ut.items_tp = lambda fields=None, **k: [D(name=i, item_name=i) for i, n in NHOM.items() if n == "TP"]
+ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
+ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
+ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
 po = types.ModuleType("sx.api.portal")
 po._ma_quet = lambda nv: {"nv": {}, "sp": {"8930000000017": "TP-SEN"}}

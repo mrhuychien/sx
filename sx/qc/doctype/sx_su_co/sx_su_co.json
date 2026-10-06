@@ -52,7 +52,8 @@
    "fieldtype": "Date",
    "label": "Ngày",
    "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "search_index": 1
   },
   {
    "fieldname": "ca",
@@ -71,7 +72,8 @@
    "default": "Mở",
    "reqd": 1,
    "in_list_view": 1,
-   "description": "Chỉ ISO Manager chuyển sang Đóng — chốt ở server, không phải ở nút trên màn hình."
+   "description": "Chỉ ISO Manager chuyển sang Đóng — chốt ở server, không phải ở nút trên màn hình.",
+   "search_index": 1
   },
   {
    "fieldname": "column_break_head",
@@ -150,7 +152,8 @@
    "label": "Phiếu ngày sản xuất",
    "options": "SX Ngay San Xuat",
    "read_only": 1,
-   "description": "Có khi sự cố đến từ Nhật ký chuyền. Chỉ để nối hồ sơ."
+   "description": "Có khi sự cố đến từ Nhật ký chuyền. Chỉ để nối hồ sơ.",
+   "search_index": 1
   },
   {
    "fieldname": "khoa_cu",

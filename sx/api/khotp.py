@@ -26,7 +26,7 @@ from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
 from sx.config.roles import QUAN_LY, guard_card, is_super, user_roles
-from sx.utils import get_bom_active, get_settings, items_tp, nhom_tp
+from sx.utils import get_bom_active, get_settings, items_tp, nap_bom, nho, nhom_tp
 
 # Khoảng ngày dùng CHUNG cho "còn được nhập": danh sách chờ nhận, nút tải, và
 # lần kiểm lúc duyệt. Ba chỗ lấy ba khoảng khác nhau thì màn hình mời nhập một
@@ -49,6 +49,7 @@ def danh_muc_tp():
     co_bom_set = set(frappe.get_all(
         "BOM", filters={"is_active": 1, "is_default": 1, "docstatus": 1},
         pluck="item", distinct=True))
+    _nap_uom([i.name for i in ds])
     rows = [
         {"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or "",
          "uoms": _uom_cua(i.name, i.stock_uom),
@@ -87,6 +88,22 @@ def danh_muc_tp():
     }
 
 
+def _nap_uom(items):
+    """Bảng quy đổi ĐVT của cả danh sách mã — MỘT truy vấn (D120), nhớ theo request.
+    Trước đây danh mục TP gọi một truy vấn cho mỗi mã."""
+    m = nho("uom")
+    thieu = [i for i in dict.fromkeys(items or []) if i and i not in m]
+    if not thieu:
+        return
+    for i in thieu:
+        m[i] = []
+    for r in frappe.get_all(
+            "UOM Conversion Detail",
+            filters={"parent": ("in", thieu), "parenttype": "Item"},
+            fields=["parent", "uom", "conversion_factor"]):
+        m.setdefault(r.parent, []).append(r)
+
+
 def _uom_cua(item, stock_uom):
     """Các đơn vị đếm được của một Item, kèm hệ số quy về đơn vị kho.
 
@@ -96,11 +113,11 @@ def _uom_cua(item, stock_uom):
     Sắp hệ số GIẢM DẦN (thùng trước, hộp sau) — đúng thứ tự người ta đọc số khi đếm.
     Đơn vị kho luôn có mặt với hệ số 1 dù Item chưa khai bảng quy đổi.
     """
+    m = nho("uom")
+    if item not in m:
+        _nap_uom([item])
     ra = {}
-    for r in frappe.get_all(
-        "UOM Conversion Detail", filters={"parent": item},
-        fields=["uom", "conversion_factor"],
-    ):
+    for r in m.get(item, []):
         he_so = flt(r.conversion_factor)
         if r.uom and he_so > 0:
             ra[r.uom] = he_so
@@ -202,6 +219,7 @@ def chi_tiet_phieu(name):
     vuot_dong = {}
     for r in doc.dong:
         vuot_dong.setdefault(r.item, r.idx)
+    nap_bom([r.item for r in doc.dong])                   # D120: một truy vấn BOM
     from sx.sx.doctype.sx_phieu_nhap_tp.sx_phieu_nhap_tp import hsd_goi_y
     return {
         "name": doc.name, "ngay": str(doc.ngay), "docstatus": doc.docstatus,
@@ -515,6 +533,40 @@ def phieu_da_duyet_sau(luc):
     ]
 
 
+def _nhan_theo_ngay(tu_ngay, items):
+    """[(ngày, item, số đếm)] của phiếu nhập ĐÃ DUYỆT từ `tu_ngay`, chỉ các mã `items`."""
+    phieu = {p.name: getdate(p.ngay) for p in frappe.get_all(
+        "SX Phieu Nhap TP", filters={"docstatus": 1, "ngay": (">=", tu_ngay)},
+        fields=["name", "ngay"])}
+    if not phieu or not items:
+        return []
+    return [(phieu[r.parent], r.item, flt(r.so_dem)) for r in frappe.get_all(
+        "SX Phieu Nhap TP Item",
+        filters={"parent": ("in", list(phieu)), "parenttype": "SX Phieu Nhap TP",
+                 "item": ("in", items)},
+        fields=["parent", "item", "so_dem"])]
+
+
+def _cham_theo_ngay(tu_ngay, den_ngay, items):
+    """[(ngày, mã, số hộp)] đã chấm vào hộp (nháp + chốt) trong khoảng, các mã `items`."""
+    ngay = {n.name: getdate(n.ngay) for n in frappe.get_all(
+        "SX Ngay San Xuat",
+        filters={"ngay": ("between", (tu_ngay, den_ngay)), "docstatus": ("<", 2)},
+        fields=["name", "ngay"])}
+    if not ngay or not items:
+        return []
+    bang = {b.name: ngay.get(b.ngay_sx) for b in frappe.get_all(
+        "SX Bang Vao Hop", filters={"ngay_sx": ("in", list(ngay)), "docstatus": ("<", 2)},
+        fields=["name", "ngay_sx"])}
+    if not bang:
+        return []
+    return [(bang[r.parent], r.san_pham, cint(r.so_hop)) for r in frappe.get_all(
+        "SX Bang Vao Hop Item",
+        filters={"parent": ("in", list(bang)), "parenttype": "SX Bang Vao Hop",
+                 "san_pham": ("in", items)},
+        fields=["parent", "san_pham", "so_hop"]) if bang.get(r.parent)]
+
+
 def _da_nhan_theo_ma(tu_ngay=None):
     """{item: đã nhận} — cộng số ĐẾM của mọi phiếu ĐÃ DUYỆT, để tính phần còn lại."""
     loc = {"docstatus": 1}
@@ -640,6 +692,7 @@ def cho_nhan(so_ngay=None, den=None):
             "Item", filters={"name": ("in", ma)}, fields=["name", "item_name", "stock_uom"])
     }
     rows = []
+    _nap_uom(ma)
     for item in ma:
         t, dvt = ten.get(item, (item, ""))
         rows.append({"item": item, "ten": t, "dvt": dvt,
@@ -752,6 +805,7 @@ def so_no_bom():
             "phieu_nhap": x.phieu_nhap, "batch": x.batch,
         })
     ra = []
+    nap_bom([g["item"] for g in nhom.values()])          # D120: một truy vấn BOM
     for g in nhom.values():
         cu = getdate(g["dong"][0]["ngay"])
         g["so_ngay"] = (hom_nay - cu).days
@@ -903,10 +957,20 @@ def doi_soat_no_vao_hop():
         theo_ma.setdefault(x.item, []).append(x)
     hom_nay = getdate(nowdate())
     dong = []
+    if not theo_ma:
+        return dong
+    # D120: đọc nhận / chấm MỘT lần từ ngày sớm nhất, cộng theo từng mã trong bộ nhớ
+    # — trước đây mỗi mã nợ 5 truy vấn quét lại cả khoảng ngày.
+    tu_cua = {item: getdate(add_days(getdate(ds_no[0].ngay), -SO_NGAY_TRAN + 1))
+              for item, ds_no in theo_ma.items()}
+    tu_min = min(tu_cua.values())
+    nhan_ds = _nhan_theo_ngay(tu_min, list(theo_ma))
+    cham_ds = _cham_theo_ngay(tu_min, hom_nay, list(theo_ma))
     for item, ds_no in theo_ma.items():
-        tu = add_days(getdate(ds_no[0].ngay), -SO_NGAY_TRAN + 1)
-        thieu = max(0.0, flt(_da_nhan_theo_ma(tu).get(item, 0))
-                    - flt(_da_cham_theo_ma(tu, hom_nay).get(item, 0)))
+        tu = tu_cua[item]
+        da_nhan = sum(q for (ng, it, q) in nhan_ds if it == item and ng >= tu)
+        da_cham = sum(q for (ng, it, q) in cham_ds if it == item and ng >= tu)
+        thieu = max(0.0, flt(da_nhan) - flt(da_cham))
         giam = sum(flt(x.con_lai) for x in ds_no) - thieu
         for x in ds_no:
             if giam <= 1e-6:

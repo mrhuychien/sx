@@ -45,7 +45,7 @@ def f(fieldname, fieldtype, label=None, **kw):
 fields = [
     f("naming_series", "Select", "Số phiếu", options="QC-.YYYY.-.MM.-.####",
       default="QC-.YYYY.-.MM.-.####", reqd=1),
-    f("ngay", "Date", "Ngày", reqd=1, in_list_view=1),
+    f("ngay", "Date", "Ngày", reqd=1, in_list_view=1, search_index=1),   # D120
     f("luot", "Select", "Lượt", options="\n".join(muc.LUOT), reqd=1, in_list_view=1,
       description="Một ngày ba lượt: Đầu sáng · Trưa · Cuối chiều. Tuần = lượt "
                   "đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư."),

@@ -106,6 +106,9 @@ for ten in ("bang_don_gia", "cach_lam_cua", "dat_ten_hien_thi", "get_bom_active"
     setattr(ut, ten, lambda *a, **k: None)
 ut.don_gia_ap_dung = lambda ngay=None: {("SEN", ""): 1000.0, ("TT", ""): 800.0}
 ut.tra_don_gia = lambda b, sp, cl=None: b.get((sp, cl or ""), b.get((sp, "")))
+ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
+ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
+ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
 
 
