@@ -103,14 +103,19 @@ def chot_ghiso(ngay_sx):
     _kiem_chua_chot(doc, "ghiso")
     _validate_chung(doc)
     _kiem_ton_kho(doc, get_settings())
-    thieu_gia = _thieu_gia_von_ngay(doc, get_settings())
-    if thieu_gia:
+    gia = _xet_gia_von_ngay(doc, get_settings())
+    if gia["hoi"]:
         from sx.api.mfg import bao_thieu_gia_von
-        bao_thieu_gia_von(thieu_gia, _("chốt Ghi sổ"))
+        bao_thieu_gia_von(gia["hoi"], _("chốt Ghi sổ"))
 
     buoc = _("tầng 2 (nấu + trộn theo báo mẻ)")
     try:
         chung_tu = []
+        if gia["tu_tinh"]:
+            # D118: bán thành phẩm chưa có giá → giá tính từ nguyên liệu, trong CÙNG
+            # giao dịch với lần chốt (chốt hỏng thì rollback luôn giá này).
+            from sx.api.mfg import ghi_gia_tu_tinh
+            ghi_gia_tu_tinh(gia["tu_tinh"])
         _chot_tang_2(doc, chung_tu)
 
         buoc = _("ghi trạng thái chốt Ghi sổ")
@@ -302,13 +307,21 @@ def _nhu_cau_ngay(doc, settings):
     return can
 
 
-def _thieu_gia_von_ngay(doc, settings):
-    """Mã nguyên liệu của ngày chưa có giá vốn (D116). BTP làm ra trong CÙNG lần
-    chốt (đường hoán → bột bánh) được giá từ chính phiếu sinh ra nó — bỏ qua."""
-    from sx.api.mfg import thieu_gia_von
+def _xet_gia_von_ngay(doc, settings):
+    """{hoi, tu_tinh} giá vốn nguyên liệu của ngày (D116/D118).
+
+    BTP làm ra trong CÙNG lần chốt (đường hoán → bột bánh) được giá từ chính phiếu
+    sinh ra nó — bỏ qua. BTP làm từ hôm trước mà chưa có giá thì TỰ TÍNH từ nguyên
+    liệu (tu_tinh); chỉ nguyên liệu mua ngoài thiếu giá mới phải hỏi (hoi).
+    """
+    from sx.api.mfg import xet_gia_von
 
     lam_ra = {r.item_btp for r in doc.bao_me}
-    return thieu_gia_von({k for k in _nhu_cau_ngay(doc, settings) if k[0] not in lam_ra})
+    return xet_gia_von({k for k in _nhu_cau_ngay(doc, settings) if k[0] not in lam_ra})
+
+
+def _thieu_gia_von_ngay(doc, settings):
+    return _xet_gia_von_ngay(doc, settings)["hoi"]
 
 
 @frappe.whitelist()

@@ -50,6 +50,14 @@ ITEM = {
     "DUONG-HOAN": D(item_name="Đường hoán", stock_uom="Kg", valuation_rate=0,
                     is_stock_item=1, custom_sx_nhom="BTP-Phu"),
     "BOT-BANH": D(item_name="Bột bánh", is_stock_item=1, custom_sx_nhom="BTP-Banh"),
+    "BOT-DAU": D(item_name="Bột đậu", stock_uom="Kg", is_stock_item=1, custom_sx_nhom="BTP-Bot-SP"),
+    "BOT-NEN": D(item_name="Bột nền", stock_uom="Kg", is_stock_item=1, custom_sx_nhom="BTP-Bot"),
+    "DX-U": D(item_name="Đỗ ủ", is_stock_item=1, custom_sx_nhom="BTP-Dau"),
+    "DX-V": D(item_name="Đỗ vỡ", is_stock_item=1, custom_sx_nhom="BTP-Dau"),
+    "DAU-XANH": D(item_name="Đỗ xanh", stock_uom="Kg", is_stock_item=1, custom_sx_nhom="NVL",
+                  last_purchase_rate=31000),
+    "BOT-MOI": D(item_name="Bột chưa làm bao giờ", stock_uom="Kg", is_stock_item=1,
+                 custom_sx_nhom="BTP-Bot"),
 }
 BIN = {("DUONG", "NVL"): 18000}                 # có giá vốn đang chạy
 SLE_GIA = {"MUOI"}                               # từng nhập có giá ở kho khác
@@ -64,14 +72,46 @@ BOM = {
                                      D(item_code="MUOI", stock_qty=1),
                                      D(item_code="NUOC", stock_qty=30)]),
 }
-BOM_CUA = {"DUONG-HOAN": "BOM-DH", "BOT-BANH": "BOM-BB"}
+BOM["BOM-BD"] = types.SimpleNamespace(quantity=50, items=[D(item_code="BOT-NEN", stock_qty=40),
+                                                          D(item_code="DUONG-HOAN", stock_qty=10)])
+BOM_CUA = {"DUONG-HOAN": "BOM-DH", "BOT-BANH": "BOM-BB", "BOT-DAU": "BOM-BD"}
+# Rang → tách vỏ → nghiền: Repack, không BOM — giá theo phiếu gần nhất (số cân thật).
+SED = [
+    D(parent="SE-R", item_code="DAU-XANH", qty=100, is_finished_item=0, docstatus=1, s_warehouse="X"),
+    D(parent="SE-R", item_code="DX-U", qty=120, is_finished_item=1, docstatus=1),
+    D(parent="SE-T", item_code="DX-U", qty=120, is_finished_item=0, docstatus=1, s_warehouse="X"),
+    D(parent="SE-T", item_code="DX-V", qty=90, is_finished_item=1, docstatus=1),
+    D(parent="SE-N", item_code="DX-V", qty=90, is_finished_item=0, docstatus=1, s_warehouse="X"),
+    D(parent="SE-N", item_code="BOT-NEN", qty=88, is_finished_item=1, docstatus=1),
+]
+
+
+def get_all(dt, filters=None, fields=None, pluck=None, limit=None, **k):
+    if dt != "Stock Entry Detail":
+        return []
+    ra = []
+    for h in SED:
+        ok = True
+        for kk, v in (filters or {}).items():
+            if isinstance(v, tuple):
+                ok = ok and bool(h.get(kk))
+            elif h.get(kk) != v:
+                ok = False
+        if ok:
+            ra.append(D(h))
+    ra.reverse()                                      # order_by creation desc
+    return ra[:limit] if limit else ra
 COMMENT = []
 VAI = {"SX Quan Ly"}
 
 
 def get_value(dt, f, field=None, as_dict=False, **k):
     if dt == "Bin":
+        if "warehouse" not in f:                      # kho bất kỳ có giá
+            return next((g for (i, _k), g in BIN.items() if i == f["item_code"] and g > 0), None)
         return BIN.get((f["item_code"], f["warehouse"]))
+    if dt == "Stock Ledger Entry":
+        return 25000 if f["item_code"] in SLE_GIA and f.get("valuation_rate") == (">", 0) else None
     if dt == "Item Price":
         return GIA_MUA.get(f["item_code"])
     if dt == "Item":
@@ -113,7 +153,8 @@ frappe.session = types.SimpleNamespace(user="ql@x")
 frappe.get_roles = lambda u=None: list(VAI)
 frappe.get_cached_value = lambda dt, n, f=None: get_value(dt, n, f)
 frappe.get_cached_doc = lambda dt, n: BOM[n]
-frappe.get_doc = lambda dt, n=None: ItemDoc(n) if dt == "Item" else NGAY
+frappe.get_all = get_all
+frappe.get_doc = lambda dt, n=None: ItemDoc(n) if dt == "Item" else (NGAY2 if n == "SXN-2" else NGAY)
 frappe.clear_document_cache = lambda *a: None
 frappe.db = types.SimpleNamespace(get_value=get_value, exists=exists, set_value=set_value,
                                   rollback=lambda: None)
@@ -153,6 +194,7 @@ def nap(ten, p):
 nap("sx.config.roles", "sx/config/roles.py")
 M = nap("sx.api.mfg", "sx/api/mfg.py")
 C = nap("sx.api.chot", "sx/api/chot.py")
+NGAY2 = None
 NGAY = D(name="SXN-1", ngay="2026-10-06", docstatus=0, chot_ghiso=0,
          bao_me=[D(item_btp="DUONG-HOAN", tong_kg=10), D(item_btp="BOT-BANH", tong_kg=100)],
          bao_can=[], su_co=[])
@@ -224,6 +266,45 @@ kiem("khai xong → Vani hết thiếu, còn Màu", [d["item"] for d in ds] == [
 C.khai_gia_von([{"item": "MAU", "gia": 300000}])
 _, e = thu(lambda: C.chot_ghiso("SXN-1"))
 kiem("khai đủ → chốt đi tiếp tới bước sinh phiếu kho", sinh == [1], e)
+
+print("\n-- D118: bán thành phẩm TỰ TÍNH giá từ nguyên liệu, không hỏi --")
+GIA_MUA.clear(); COMMENT.clear()
+cap = {("BOT-NEN", "BTP"), ("DUONG-HOAN", "BTP")}
+r = M.xet_gia_von(cap)
+kiem("đỗ xanh chưa có giá → hỏi ĐỖ XANH, không hỏi bột nền", [d["item"] for d in r["hoi"]]
+     == ["DAU-XANH"], [d["item"] for d in r["hoi"]])
+kiem("… gợi ý giá mua gần nhất của đỗ", r["hoi"][0]["goi_y"] == 31000)
+kiem("đường hoán tính từ đường (giá kho 18000) + màu (đã khai 300000) theo BOM",
+     [(d["item"], d["gia"]) for d in r["tu_tinh"]] == [("DUONG-HOAN", 21000.0)], r["tu_tinh"])
+SLE_GIA.add("DAU-XANH")                               # đã nhập mua đỗ giá 25000
+r = M.xet_gia_von(cap)
+g = {d["item"]: d["gia"] for d in r["tu_tinh"]}
+kiem("có giá đỗ → không hỏi gì", r["hoi"] == [], r["hoi"])
+kiem("bột nền = giá đỗ × hao hụt thật qua rang/tách vỏ/nghiền (25000×100/88)",
+     g.get("BOT-NEN") == round(25000 * 100 / 88, 2), g)
+r = M.xet_gia_von({("BOT-DAU", "BTP")})
+kiem("bột đậu (BOM gồm bột nền + đường hoán) tính lồng nhiều tầng",
+     r["hoi"] == [] and r["tu_tinh"][0]["gia"] == round((40 * 25000 * 100 / 88 + 10 * 21000) / 50, 2),
+     r["tu_tinh"])
+r = M.xet_gia_von({("BOT-MOI", "BTP")})
+kiem("bán thành phẩm chưa từng làm, không BOM → đành hỏi chính nó",
+     [d["item"] for d in r["hoi"]] == ["BOT-MOI"] and not r["tu_tinh"])
+M.ghi_gia_tu_tinh([{"item": "BOT-NEN", "gia": 28409.09}])
+kiem("ghi giá tự tính vào Item + comment nói rõ TỰ TÍNH",
+     ITEM["BOT-NEN"]["valuation_rate"] == 28409.09 and "TỰ TÍNH" in COMMENT[-1][1])
+kiem("đã có giá thì thôi, không tính lại", M.xet_gia_von({("BOT-NEN", "BTP")}) == {"hoi": [], "tu_tinh": []})
+ITEM["BOT-NEN"]["valuation_rate"] = 0
+SLE_GIA.discard("DAU-XANH")
+NGAY2 = D(name="SXN-2", bao_me=[D(item_btp="BOT-DAU", tong_kg=50)])
+ds = C._thieu_gia_von_ngay(NGAY2, ut.get_settings())
+kiem("chốt ngày làm bột đậu: chỉ hỏi đỗ xanh", [d["item"] for d in ds] == ["DAU-XANH"],
+     [d["item"] for d in ds])
+SLE_GIA.add("DAU-XANH")
+sinh.clear()
+_, e = thu(lambda: C.chot_ghiso("SXN-2"))
+kiem("chốt: giá bột nền tự ghi TRƯỚC khi sinh phiếu kho, không hỏi ai",
+     sinh == [1] and ITEM["BOT-NEN"]["valuation_rate"] == round(25000 * 100 / 88, 2),
+     (sinh, ITEM["BOT-NEN"]["valuation_rate"]))
 
 print()
 if hong:

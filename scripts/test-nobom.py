@@ -146,6 +146,8 @@ sys.modules["sx.api.chot"] = chot
 mfg = types.ModuleType("sx.api.mfg")
 mfg.thieu_gia_von = lambda cap: []   # D116: giá vốn kiểm ở test-giavon.py
 mfg.bao_thieu_gia_von = lambda ds, viec: None
+mfg.xet_gia_von = lambda cap: {"hoi": [], "tu_tinh": []}
+mfg.ghi_gia_tu_tinh = lambda ds: None
 
 
 def _se(loai, **kw):

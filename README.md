@@ -333,6 +333,11 @@ chưa khai Valuation Rate — thường vì kho cho tồn âm nên dùng trướ
   nhập giá ước tính mỗi đơn vị kho (điền sẵn theo giá mua / giá chuẩn trên Item nếu có) →
   **LƯU GIÁ & CHỐT TIẾP**. Giá ghi vào `Item.valuation_rate` (có comment lưu vết), chỉ
   cho mã đang thiếu; nhập mua có giá sau này sẽ thay giá này.
+- **Bán thành phẩm không bao giờ bị hỏi giá** (D118): bột nền / đỗ ủ / đỗ vỡ tính từ giá
+  đỗ theo hao hụt thật của phiếu rang → tách vỏ → nghiền gần nhất; đường hoán, bột bánh,
+  bột đậu tính theo BOM từ giá nguyên liệu (lồng nhiều tầng). Chỉ hỏi nguyên liệu mua
+  ngoài thật sự thiếu giá (đỗ xanh, vani…). Giá tự tính ghi vào Item.valuation_rate kèm
+  comment "TỰ TÍNH", trong cùng giao dịch với lần chốt.
 - Duyệt nhập kho TP gặp mã thiếu giá (bao bì…) thì báo rõ tên mã, nhờ quản lý khai.
 - Trên Desk: Item → ô **Valuation Rate**. Tốt nhất vẫn là nhập mua (Purchase Invoice) có giá.
 

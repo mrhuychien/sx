@@ -154,7 +154,8 @@ export function moKhaiGia(ds, call, xong) {
   m.body.innerHTML = `
     <div class="sx-modal-msg">${ds.length} mã nguyên liệu chưa có giá vốn (chưa nhập mua có đơn `
       + 'giá) nên ERPNext không trừ kho được. Nhập giá mua ước tính cho mỗi đơn vị kho — chỉ '
-      + `cần một lần; nhập mua có giá sau này sẽ thay giá này.</div>
+      + 'cần một lần; nhập mua có giá sau này sẽ thay giá này. Bán thành phẩm (bột, đường '
+      + `hoán…) không phải nhập — máy tự tính từ giá nguyên liệu.</div>
     ${ds.map((d, i) => `<label class="sx-kgv">
       <span class="sx-kgv-ten">${esc(d.ten)} <span class="sx-muted">${esc(d.item)}</span></span>
       <span class="sx-kgv-o"><input class="sx-textarea" type="number" inputmode="decimal" min="0"

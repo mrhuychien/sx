@@ -7,7 +7,7 @@ batch_no (bundle tự sinh khi submit). Non-stock (Nước) tự loại khỏi S
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import cint, flt
 
 
 def dam_bao_quan_ly_lo(item_code):
@@ -92,44 +92,139 @@ def tao_batch(item_code, batch_id, ngay_sx=None, nsx=None, hsd=None):
     return batch.name
 
 
-def co_gia_von(item_code, kho):
-    """ERPNext có tìm ra giá vốn để XUẤT mã này không (D116).
+def gia_von_hien(item_code, kho=None):
+    """Giá vốn ERPNext sẽ dùng khi XUẤT mã này, 0 = không tìm ra (D116).
 
     Đi đúng thứ tự dự phòng của ERPNext (stock_ledger.get_valuation_rate): giá vốn
-    đang chạy ở kho → giá của bất kỳ lần nhập nào → Item.valuation_rate → giá mua
+    đang chạy ở kho → giá của lần nhập gần nhất có giá → Item.valuation_rate → giá mua
     trong Item Price. Hết cả bốn thì submit phiếu kho văng "Valuation Rate for the
     Item … is required" — tiếng Anh, từng mã một, và giữa chừng lần chốt.
-    Hay gặp ở mã phụ gia (vani, màu…) chưa từng nhập mua có giá mà kho cho tồn âm.
     """
-    if flt(frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": kho},
-                               "valuation_rate")) > 0:
-        return True
-    if flt(frappe.get_cached_value("Item", item_code, "valuation_rate")) > 0:
-        return True
-    if frappe.db.exists("Stock Ledger Entry", {"item_code": item_code, "is_cancelled": 0,
-                                               "valuation_rate": (">", 0)}):
-        return True
+    if kho:
+        g = flt(frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": kho},
+                                    "valuation_rate"))
+        if g > 0:
+            return g
+    g = flt(frappe.db.get_value("Bin", {"item_code": item_code, "valuation_rate": (">", 0)},
+                                "valuation_rate"))
+    if g > 0:
+        return g
+    g = flt(frappe.db.get_value(
+        "Stock Ledger Entry",
+        {"item_code": item_code, "is_cancelled": 0, "valuation_rate": (">", 0)},
+        "valuation_rate", order_by="posting_date desc, creation desc"))
+    if g > 0:
+        return g
+    g = flt(frappe.get_cached_value("Item", item_code, "valuation_rate"))
+    if g > 0:
+        return g
     return flt(frappe.db.get_value("Item Price", {"item_code": item_code, "buying": 1},
-                                   "price_list_rate")) > 0
+                                   "price_list_rate"))
 
 
-def thieu_gia_von(cap):
-    """[{item, ten, dvt, goi_y}] những mã trong `cap` = {(item, kho)} chưa có giá vốn.
+def co_gia_von(item_code, kho):
+    return gia_von_hien(item_code, kho) > 0
 
-    `goi_y` = giá mua gần nhất / giá chuẩn trên Item nếu có — chỉ để điền sẵn, người
-    khai vẫn phải xác nhận. Không bao giờ tự lấy làm giá.
+
+def _la_btp(item_code):
+    return (frappe.get_cached_value("Item", item_code, "custom_sx_nhom") or "").startswith("BTP")
+
+
+def _cong_thuc(item_code):
+    """(số ra, [(mã vào, số vào)]) để tính giá một bán thành phẩm từ đầu vào.
+
+    Có BOM → theo BOM (đường hoán, bột bánh…). Không BOM (đỗ ủ / đỗ vỡ / bột nền —
+    công đoạn rang, tách vỏ, nghiền là Repack theo số cân thật) → theo phiếu GẦN NHẤT
+    làm ra mã này: hao hụt thật của lần gần nhất, không phải một tỉ lệ đoán.
     """
-    ra, da = [], set()
+    from sx.utils import get_bom_active
+
+    bom = get_bom_active(item_code)
+    if bom:
+        b = frappe.get_cached_doc("BOM", bom)
+        vao = [(r.item_code, flt(r.stock_qty)) for r in b.items
+               if cint(frappe.get_cached_value("Item", r.item_code, "is_stock_item"))]
+        return flt(b.quantity) or 1, vao
+    ra = frappe.get_all("Stock Entry Detail",
+                        filters={"item_code": item_code, "is_finished_item": 1, "docstatus": 1},
+                        fields=["parent", "transfer_qty", "qty"],
+                        order_by="creation desc", limit=1)
+    if not ra:
+        return None, []
+    vao = [(r.item_code, flt(r.transfer_qty or r.qty)) for r in frappe.get_all(
+        "Stock Entry Detail",
+        filters={"parent": ra[0].parent, "is_finished_item": 0, "docstatus": 1,
+                 "s_warehouse": ("is", "set")},
+        fields=["item_code", "transfer_qty", "qty"])]
+    return flt(ra[0].transfer_qty or ra[0].qty), vao
+
+
+def _gia(item_code, kho, seen, sau):
+    """(giá, {mã NVL thiếu giá}). Bán thành phẩm không có giá thì TÍNH từ đầu vào —
+    bột đậu từ giá đỗ, đường hoán từ giá đường; chỉ nguyên liệu MUA NGOÀI mới phải hỏi."""
+    g = gia_von_hien(item_code, kho)
+    if g > 0:
+        return g, set()
+    if not _la_btp(item_code):
+        return None, {item_code}
+    if item_code in seen or sau > 8:
+        return None, {item_code}
+    ra, vao = _cong_thuc(item_code)
+    if not ra or not vao:
+        return None, {item_code}        # BTP chưa từng làm, không BOM — đành hỏi
+    tong, thieu = 0.0, set()
+    for ma, so in vao:
+        g2, t2 = _gia(ma, None, seen | {item_code}, sau + 1)
+        if g2 is None:
+            thieu |= t2
+        else:
+            tong += so * g2
+    if thieu:
+        return None, thieu
+    return (tong / ra) if tong > 0 else None, (set() if tong > 0 else {item_code})
+
+
+def xet_gia_von(cap):
+    """{hoi: [...], tu_tinh: [{item, gia}]} cho các (item, kho) trong `cap`.
+
+    hoi     — nguyên liệu mua ngoài chưa có giá: người phải khai (D116).
+    tu_tinh — bán thành phẩm chưa có giá nhưng tính được từ đầu vào (D118): ghi
+              thẳng, không hỏi ai (ghi_gia_tu_tinh).
+    """
+    hoi, tu_tinh, da = {}, [], set()
     for item_code, kho in sorted(cap):
         if item_code in da or co_gia_von(item_code, kho):
             continue
         da.add(item_code)
-        i = frappe.db.get_value("Item", item_code, ["item_name", "stock_uom",
-                                                     "last_purchase_rate", "standard_rate"],
+        g, thieu = _gia(item_code, kho, set(), 0)
+        if g:
+            tu_tinh.append({"item": item_code, "gia": flt(g, 2)})
+        for ma in thieu:
+            hoi.setdefault(ma, None)
+    ds = []
+    for ma in sorted(hoi):
+        i = frappe.db.get_value("Item", ma, ["item_name", "stock_uom",
+                                             "last_purchase_rate", "standard_rate"],
                                 as_dict=True) or frappe._dict()
-        ra.append({"item": item_code, "ten": i.item_name or item_code, "dvt": i.stock_uom or "",
+        ds.append({"item": ma, "ten": i.item_name or ma, "dvt": i.stock_uom or "",
                    "goi_y": flt(i.last_purchase_rate) or flt(i.standard_rate) or None})
-    return ra
+    return {"hoi": ds, "tu_tinh": tu_tinh}
+
+
+def thieu_gia_von(cap):
+    """Chỉ phần phải HỎI người (nguyên liệu mua ngoài) — xem xet_gia_von."""
+    return xet_gia_von(cap)["hoi"]
+
+
+def ghi_gia_tu_tinh(ds):
+    """Ghi Item.valuation_rate cho bán thành phẩm tính từ nguyên liệu (D118).
+    Chỉ là giá DỰ PHÒNG của ERPNext — lần sản xuất sau có giá thật thì giá thật thắng."""
+    for d in ds:
+        frappe.db.set_value("Item", d["item"], "valuation_rate", flt(d["gia"]))
+        frappe.clear_document_cache("Item", d["item"])
+        frappe.get_doc("Item", d["item"]).add_comment(
+            "Comment", _("Giá vốn {0} / đơn vị kho TỰ TÍNH từ giá nguyên liệu (BOM hoặc "
+                         "phiếu sản xuất gần nhất) — sx, lúc chốt.").format(d["gia"]))
 
 
 def bao_thieu_gia_von(ds, viec):

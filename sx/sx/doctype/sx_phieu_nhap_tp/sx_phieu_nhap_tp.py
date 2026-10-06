@@ -181,10 +181,13 @@ class SXPhieuNhapTP(Document):
                 can[(item_code, kho)] = can.get((item_code, kho), 0) + flt(so)
 
         # D116: mã chưa có giá vốn thì ERPNext văng tiếng Anh lúc submit phiếu kho.
-        from sx.api.mfg import bao_thieu_gia_von, thieu_gia_von
-        thieu_gia = thieu_gia_von(set(can))
-        if thieu_gia:
-            bao_thieu_gia_von(thieu_gia, _("duyệt nhập kho"))
+        # D118: bột bánh chưa có giá thì tự tính từ nguyên liệu, chỉ hỏi hàng mua ngoài.
+        from sx.api.mfg import bao_thieu_gia_von, ghi_gia_tu_tinh, xet_gia_von
+        gia = xet_gia_von(set(can))
+        if gia["hoi"]:
+            bao_thieu_gia_von(gia["hoi"], _("duyệt nhập kho"))
+        if gia["tu_tinh"]:
+            ghi_gia_tu_tinh(gia["tu_tinh"])
 
         thieu = []
         for (item_code, kho), so in sorted(can.items()):
