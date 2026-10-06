@@ -315,6 +315,19 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Hạn sử dụng (HSD) lô thành phẩm lúc nhập kho (D114)
+
+- Mỗi dòng phiếu nhập kho có ô **HSD** (dưới tên sản phẩm). Mặc định = **ngày phiếu +
+  "Shelf Life In Days"** của mã hàng (Item → tab Inventory); hiện chữ "· mặc định".
+  Bấm vào để sửa theo HSD in trên bao bì (có nút nhanh +3/+6/+9/+12 tháng).
+- Duyệt phiếu ghi vào lô ERPNext: `Batch.manufacturing_date` = ngày phiếu,
+  `Batch.expiry_date` = HSD của dòng. Xem / lọc cận date ở Desk → Batch.
+- Mã **chưa khai Shelf Life** mà thủ kho cũng chưa gõ HSD → **không duyệt được**, báo
+  rõ dòng nào. Cách gỡ lâu dài: khai Shelf Life In Days cho mã đó một lần.
+- HSD phải sau ngày nhập. Sửa số đếm, "Tải tất cả vào phiếu", "Huỷ & lập lại" đều giữ HSD.
+- Lô nhập TRƯỚC D114 không có HSD — nếu cần thì sửa tay trên Desk (Batch → Expiry Date).
+- Cần `bench --site site1.local migrate` (thêm cột `hsd` vào SX Phieu Nhap TP Item).
+
 ## Nhiều QC cùng ghi vào hộp (D113)
 
 - **Mỗi QC chỉ thấy và sửa dòng mình ghi**; tổng trên màn Ghi hộp và lịch tháng của QC

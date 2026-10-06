@@ -8,11 +8,12 @@
   "ten",
   "dvt",
   "so_lap",
-  "lap_uom",
   "so_dem",
-  "dem_uom",
   "lech",
-  "ghi_chu"
+  "hsd",
+  "ghi_chu",
+  "lap_uom",
+  "dem_uom"
  ],
  "fields": [
   {
@@ -65,6 +66,13 @@
    "in_list_view": 1,
    "columns": 2,
    "description": "Nhận − lập phiếu."
+  },
+  {
+   "fieldname": "hsd",
+   "fieldtype": "Date",
+   "label": "Hạn sử dụng",
+   "in_list_view": 1,
+   "description": "Ghi vào lô (Batch.expiry_date) lúc duyệt. Mặc định = ngày phiếu + Shelf Life In Days của mã hàng; sửa cho khớp HSD in trên bao bì."
   },
   {
    "fieldname": "ghi_chu",

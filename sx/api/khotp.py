@@ -44,7 +44,7 @@ def danh_muc_tp():
     sản phẩm nào" mà không nói vì sao là bế tắc không lối ra.
     """
     guard_card("nhapkhotp")
-    ds = items_tp()
+    ds = items_tp(fields=["name", "item_name", "stock_uom", "shelf_life_in_days"])
     # Một truy vấn cho cả danh mục, không gọi get_bom_active từng mã.
     co_bom_set = set(frappe.get_all(
         "BOM", filters={"is_active": 1, "is_default": 1, "docstatus": 1},
@@ -54,7 +54,9 @@ def danh_muc_tp():
          "uoms": _uom_cua(i.name, i.stock_uom),
          # D97: chưa có BOM vẫn chọn được — nhập tạm + ghi nợ. Cờ này để màn
          # hình nói ra NGAY lúc chọn, không đợi tới lúc duyệt.
-         "co_bom": i.name in co_bom_set}
+         "co_bom": i.name in co_bom_set,
+         # D114: số ngày hạn dùng — màn hình điền sẵn HSD = ngày phiếu + số này.
+         "han_dung": cint(i.get("shelf_life_in_days"))}
         for i in ds
     ]
     if rows:
@@ -184,7 +186,7 @@ def tao_phieu_nhap(rows=None, ngay=None, ghi_chu=None):
         ct = _ghi_json(r.get("chi_tiet"))
         if so > 0:
             doc.append("dong", {"item": r.get("item"), "so_lap": so, "so_dem": so,
-                                "lap_uom": ct, "dem_uom": ct})
+                                "lap_uom": ct, "dem_uom": ct, "hsd": r.get("hsd") or None})
     doc.flags.ignore_permissions = True
     doc.insert()
     return chi_tiet_phieu(doc.name)
@@ -200,6 +202,7 @@ def chi_tiet_phieu(name):
     vuot_dong = {}
     for r in doc.dong:
         vuot_dong.setdefault(r.item, r.idx)
+    from sx.sx.doctype.sx_phieu_nhap_tp.sx_phieu_nhap_tp import hsd_goi_y
     return {
         "name": doc.name, "ngay": str(doc.ngay), "docstatus": doc.docstatus,
         "trang_thai": doc.trang_thai, "kho_dich": doc.kho_dich,
@@ -221,6 +224,10 @@ def chi_tiet_phieu(name):
              "lap_uom": _doc_json(r.get("lap_uom")),
              "dem_uom": _doc_json(r.get("dem_uom")),
              "lech": flt(r.lech, 0), "ghi_chu": r.ghi_chu,
+             # D114: HSD thủ kho gõ (None = chưa gõ) và HSD mặc định theo Shelf
+             # Life — duyệt mà để trống thì lấy mặc định; cả hai None là bị chặn.
+             "hsd": str(r.get("hsd")) if r.get("hsd") else None,
+             "hsd_goi_y": hsd_goi_y(r.item, doc.ngay),
              # D97: dòng chưa có BOM vẫn duyệt được nhưng nhập tạm + ghi nợ.
              # Màn hình phải NÓI RA trước khi thủ kho bấm duyệt, không để họ
              # biết sau qua một dòng lạ trên sổ nợ.
@@ -260,6 +267,7 @@ def sua_phieu(name, rows, ghi_chu=None):
                      .format(name))
     co_uom = _co_chi_tiet_uom()
     cu = {r.item: (flt(r.so_lap), r.get("lap_uom")) for r in doc.dong}
+    hsd_cu = {r.item: r.get("hsd") for r in doc.dong}
     doc.set("dong", [])
     for r in (json.loads(rows) if isinstance(rows, str) else rows) or []:
         item = r.get("item")
@@ -269,7 +277,9 @@ def sua_phieu(name, rows, ghi_chu=None):
         lap_cu, lap_uom_cu = cu.get(item, (so_dem, None))
         so_lap = flt(r.get("so_lap")) if r.get("so_lap") is not None else lap_cu
         dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem,
-                "ghi_chu": r.get("ghi_chu")}
+                "ghi_chu": r.get("ghi_chu"),
+                # D114: không gửi `hsd` thì giữ HSD cũ; gửi rỗng = xoá (về mặc định).
+                "hsd": (r.get("hsd") or None) if "hsd" in r else hsd_cu.get(item)}
         if co_uom:
             # lap_uom cũ CHỈ giữ khi client không gửi so_lap. Gửi so_lap mới mà vẫn
             # giữ chi tiết cũ thì controller tính lại so_lap TỪ chi tiết cũ và nuốt
@@ -446,7 +456,7 @@ def _lap_lai_tu(doc):
     for r in doc.dong:
         moi.append("dong", {"item": r.item, "so_lap": flt(r.so_lap), "so_dem": flt(r.so_dem),
                             "lap_uom": r.get("lap_uom"), "dem_uom": r.get("dem_uom"),
-                            "ghi_chu": r.get("ghi_chu")})
+                            "ghi_chu": r.get("ghi_chu"), "hsd": r.get("hsd")})
     moi.flags.ignore_permissions = True
     moi.insert()
     return moi.name
@@ -660,6 +670,7 @@ def tai_tu_vao_hop(name, so_ngay=None):
         )
     co_uom = _co_chi_tiet_uom()
     cu = {r.item: flt(r.so_dem) for r in doc.dong}
+    hsd_cu = {r.item: r.get("hsd") for r in doc.dong}
     # Dòng KHÔNG có trong bảng chấm (hàng trả về, hàng làm bù thủ kho tự thêm) phải
     # sống sót qua lần tải: xoá sạch rồi chỉ dựng lại mã đã chấm là nuốt mất công
     # nhập tay của thủ kho, mà nuốt im lặng — bấm xong mới thấy dòng biến đâu mất.
@@ -673,7 +684,7 @@ def tai_tu_vao_hop(name, so_ngay=None):
         so_lap = float(int(flt(so) + 1e-9))
         # Giữ số thủ kho đã đếm nếu có, nhưng không vượt trần mới.
         so_dem = min(cu.get(item, so_lap), so_lap)
-        dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem}
+        dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem, "hsd": hsd_cu.get(item)}
         if co_uom:
             # Chia sẵn ra thùng + hộp: thủ kho đang đứng đếm thùng, đưa 255 hộp là
             # bắt họ chia nhẩm rồi gõ lại.
@@ -683,7 +694,7 @@ def tai_tu_vao_hop(name, so_ngay=None):
         doc.append("dong", dong)
     for r in giu:
         them = {"item": r.item, "so_lap": flt(r.so_lap), "so_dem": flt(r.so_dem),
-                "ghi_chu": r.get("ghi_chu")}
+                "ghi_chu": r.get("ghi_chu"), "hsd": r.get("hsd")}
         if co_uom:
             them["lap_uom"] = r.get("lap_uom")
             them["dem_uom"] = r.get("dem_uom")

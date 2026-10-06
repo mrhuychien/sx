@@ -84,6 +84,8 @@ frappe.throw = lambda m, e=None: (_ for _ in ()).throw((e or Loi)(str(m)))
 frappe.whitelist = lambda *a, **k: (lambda f: f)
 frappe.PermissionError = type("PermissionError", (Loi,), {})
 frappe.msgprint = lambda *a, **k: None
+# D114: mã hàng có Shelf Life — HSD tự điền, không chặn duyệt (test-hsd.py lo phần đó).
+frappe.get_cached_value = lambda dt, n, f=None: 180 if f == "shelf_life_in_days" else None
 frappe.session = types.SimpleNamespace(user="ql@x")
 frappe.get_roles = lambda u=None: list(VAI)
 frappe.get_all = lambda dt, filters=None, fields=None, order_by=None, **k: [
@@ -150,7 +152,7 @@ def _se(loai, **kw):
     return d
 
 
-mfg.tao_batch = lambda item, lo: lo
+mfg.tao_batch = lambda item, lo, **k: lo
 mfg.tao_wo = lambda *a, **k: _se("WO", item=a[1], qty=a[2])
 mfg.tao_se_manufacture = lambda wo, qty, batch, **k: _se("Manufacture", item=wo.item, qty=qty)
 mfg.tao_se_nhap_thang = lambda ct, item, qty, kho, batch, gia=0, **k: _se(

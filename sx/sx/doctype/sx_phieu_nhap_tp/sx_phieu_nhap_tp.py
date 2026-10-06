@@ -20,7 +20,7 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, getdate, now_datetime
+from frappe.utils import add_days, cint, flt, getdate, now_datetime
 
 
 def _tong_tu_uom(chi_tiet, mac_dinh):
@@ -34,6 +34,18 @@ def _tong_tu_uom(chi_tiet, mac_dinh):
     if not isinstance(ds, list) or not ds:
         return flt(mac_dinh)
     return flt(sum(flt(d.get("sl")) * flt(d.get("he_so") or 1) for d in ds))
+
+
+def hsd_goi_y(item, ngay):
+    """HSD mặc định = ngày nhập + "Shelf Life In Days" của mã hàng (D114).
+
+    None khi mã hàng chưa khai số ngày — KHÔNG bịa: thủ kho gõ tay theo bao bì,
+    hoặc quản lý khai Shelf Life trên Item một lần là các phiếu sau tự điền.
+    """
+    so_ngay = cint(frappe.get_cached_value("Item", item, "shelf_life_in_days"))
+    if so_ngay <= 0 or not ngay:
+        return None
+    return str(add_days(getdate(ngay), so_ngay))
 
 
 def _gia_von_tam(item, kho):
@@ -84,6 +96,10 @@ class SXPhieuNhapTP(Document):
             if flt(r.so_dem) < 0:
                 frappe.throw(_("Dòng {0}: số đếm không được âm.").format(r.idx))
             r.lech = flt(r.so_dem) - flt(r.so_lap)
+            if r.get("hsd") and getdate(r.hsd) <= getdate(self.ngay):
+                frappe.throw(_("Dòng {0} ({1}): HSD {2} không sau ngày nhập {3}.").format(
+                    r.idx, r.ten or r.item, frappe.utils.formatdate(r.hsd),
+                    frappe.utils.formatdate(self.ngay)))
             tong_dem += flt(r.so_dem)
             tong_lech += flt(r.lech)
         self.tong_dem = tong_dem
@@ -94,11 +110,37 @@ class SXPhieuNhapTP(Document):
     def before_submit(self):
         if not any(flt(r.so_dem) > 0 for r in self.dong):
             frappe.throw(_("Chưa có dòng nào đếm được số > 0 — không duyệt phiếu rỗng."))
+        self.kiem_hsd()
         self.kiem_tran_da_cham()
         self.kiem_ton_nguyen_lieu()
         self.nguoi_duyet = frappe.session.user
         self.duyet_luc = now_datetime()
         self.trang_thai = "Đã duyệt"
+
+    def kiem_hsd(self):
+        """Mọi dòng nhận > 0 phải có HSD trước khi thành lô trong kho (D114).
+
+        Để trống thì lấy mặc định theo Shelf Life của mã hàng — không lưu sẵn lúc
+        nháp, để đổi ngày phiếu thì mặc định đi theo. Mã chưa khai Shelf Life mà
+        thủ kho cũng chưa gõ → chặn, nói rõ hai cách gỡ. Lô vào kho không HSD thì
+        sau này không ai biết hộp nào sắp hết hạn.
+        """
+        thieu = []
+        for r in self.dong:
+            if flt(r.so_dem) <= 0 or r.get("hsd"):
+                continue
+            goi_y = hsd_goi_y(r.item, self.ngay)
+            if goi_y:
+                r.hsd = goi_y
+            else:
+                thieu.append(_("• Dòng {0}: {1}").format(r.idx, r.ten or r.item))
+        if thieu:
+            frappe.throw(
+                _("Chưa có hạn sử dụng cho:") + "<br>" + "<br>".join(thieu) + "<br><br>"
+                + _("Bấm vào ô HSD của dòng để nhập theo HSD in trên bao bì, hoặc nhờ "
+                    "quản lý khai \"Shelf Life In Days\" trên mã hàng (Item) để các phiếu "
+                    "sau tự điền."),
+                title=_("Thiếu HSD"))
 
     def kiem_tran_da_cham(self):
         """Phần nhận VƯỢT số đã chấm vào hộp → ghi nợ, KHÔNG chặn (D101).
@@ -191,7 +233,9 @@ class SXPhieuNhapTP(Document):
 
             # Mã lô sinh theo NGÀY NHẬN — truy xuất NGÀY × LOẠI (D3) vẫn nguyên,
             # không cần bám vào phiếu ngày sản xuất nào.
-            batch = tao_batch(r.item, sinh_ma_lo(r.item, self.ngay))
+            # D114: NSX = ngày nhập (lô sinh theo ngày nhận), HSD đã kiểm ở before_submit.
+            batch = tao_batch(r.item, sinh_ma_lo(r.item, self.ngay),
+                              nsx=self.ngay, hsd=r.get("hsd"))
 
             if not bom:
                 gia = _gia_von_tam(r.item, self.kho_dich)

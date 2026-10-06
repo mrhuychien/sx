@@ -245,4 +245,10 @@ python3 scripts/test-quyen.py > /tmp/sx-quyen.log 2>&1 \
   && tail -1 /tmp/sx-quyen.log \
   || { cat /tmp/sx-quyen.log; loi=1; }
 
+# D114: lô thành phẩm vào kho PHẢI có HSD. Hỏng thì im lặng — duyệt vẫn qua, lô
+# vẫn có số, chỉ là không ai biết hộp nào sắp hết hạn cho tới khi khách trả về.
+python3 scripts/test-hsd.py > /tmp/sx-hsd.log 2>&1 \
+  && tail -1 /tmp/sx-hsd.log \
+  || { cat /tmp/sx-hsd.log; loi=1; }
+
 exit $loi

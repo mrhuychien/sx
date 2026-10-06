@@ -41,8 +41,11 @@ def dam_bao_quan_ly_lo(item_code):
     return False
 
 
-def tao_batch(item_code, batch_id, ngay_sx=None):
+def tao_batch(item_code, batch_id, ngay_sx=None, nsx=None, hsd=None):
     """Batch tạo trước SE thành phẩm; batch_id đặt tay (D13).
+
+    `nsx` / `hsd` (D114) → Batch.manufacturing_date / expiry_date. Lô thành phẩm
+    PHẢI có HSD: không có thì báo cáo cận date, xuất FEFO và tem lô đều trống.
 
     Trả None khi Item không thể có lô (xem dam_bao_quan_ly_lo) — nơi gọi chuyển
     batch None vào phiếu kho là nhập không lô.
@@ -61,6 +64,16 @@ def tao_batch(item_code, batch_id, ngay_sx=None):
                     batch_id, cu, item_code
                 )
             )
+        if hsd:
+            # Lô dùng lại (huỷ phiếu rồi duyệt lại — sinh_ma_lo chỉ trả lô CHƯA
+            # DÙNG): HSD là của lần nhập này, không phải lần đã huỷ.
+            moi = {"expiry_date": hsd}
+            if nsx:
+                moi["manufacturing_date"] = nsx
+            cu_hsd, cu_nsx = frappe.db.get_value(
+                "Batch", batch_id, ["expiry_date", "manufacturing_date"])
+            if str(cu_hsd or "") != str(hsd) or (nsx and str(cu_nsx or "") != str(nsx)):
+                frappe.db.set_value("Batch", batch_id, moi)
         return batch_id
     batch = frappe.get_doc(
         {
@@ -70,6 +83,10 @@ def tao_batch(item_code, batch_id, ngay_sx=None):
             "custom_ngay_sx": ngay_sx,
         }
     )
+    if nsx:
+        batch.manufacturing_date = nsx
+    if hsd:
+        batch.expiry_date = hsd
     batch.flags.ignore_permissions = True
     batch.insert()
     return batch.name

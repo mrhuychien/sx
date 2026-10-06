@@ -60,7 +60,8 @@ async function moPhieuDaDuyet(name, call, refresh) {
       ? ` lúc ${esc(String(p.duyet_luc).slice(11, 16))}` : ''} · vào ${esc(p.kho_dich || '')}</div>
     <div class="sx-vh-list">${p.dong.map((x) => `
       <div class="sx-vh-row" style="cursor:default">
-        <div class="sx-vh-who"><div class="sx-vh-name">${esc(x.ten || x.item)}</div></div>
+        <div class="sx-vh-who"><div class="sx-vh-name">${esc(x.ten || x.item)}</div>
+          ${x.hsd ? `<div class="sx-vh-meta">HSD ${esc(veNgayDu(x.hsd))}</div>` : ''}</div>
         <span class="sx-nv-qty">${formatNumber(x.so_dem)} ${esc(x.dvt || '')}</span>
       </div>`).join('')}</div>
     <div class="sx-vh-footer"><span class="sx-field-label">Tổng</span>
@@ -287,6 +288,22 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   const chotSo = (tong, ct) => (ct && ct.length
     ? Math.max(0, tong) : Math.max(0, Math.round(tong)));
 
+  // D114: HSD của lô. Thủ kho gõ (x.hsd) > mặc định server (ngày phiếu + Shelf
+  // Life) > tự tính cho dòng vừa thêm trên máy. Cả ba trống = duyệt bị chặn.
+  const hsdMacDinh = (x) => x.hsd_goi_y || congNgay(p.ngay,
+    (danhMuc.find((d) => d.item === x.item) || {}).han_dung);
+  const hsdCua = (x) => x.hsd || hsdMacDinh(x);
+  function veHsd(x, i) {
+    const h = hsdCua(x);
+    if (!h) {
+      return `<button type="button" class="sx-nk-hsd sx-nk-hsd-thieu" data-hsd="${i}">
+        ⚠ Chưa có HSD — bấm để nhập</button>`;
+    }
+    return `<button type="button" class="sx-nk-hsd" data-hsd="${i}">
+      <span>HSD ${esc(veNgayDu(h))} ✎</span>${
+      x.hsd ? '' : '<span class="sx-nk-hsd-mac">mặc định</span>'}</button>`;
+  }
+
   function ve() {
     box.innerHTML = rows.length
       ? rows.map((x, i) => {
@@ -301,6 +318,7 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
               ? ` · phiếu ghi ${formatNumber(x.so_lap)}${
                 lech ? ` · lệch ${lech > 0 ? '+' : ''}${formatNumber(lech)}` : ''}`
               : ''}</div>
+            ${veHsd(x, i)}
           </div>
           <button type="button" class="sx-vh-sl${lech ? ' sx-cell-lech' : ''}"
             data-i="${i}">${formatNumber(soCua(x))}</button>
@@ -327,6 +345,13 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
           if (!laThuKho) { x.so_lap = x.so_dem; x.lap_uom = ct; }
           ve();
         },
+      }));
+    });
+    box.querySelectorAll('[data-hsd]').forEach((b) => {
+      const x = rows[Number(b.dataset.hsd)];
+      b.addEventListener('click', () => moHsd({
+        ten: x.ten || tenSP(x.item), ngay: p.ngay, hsd: x.hsd, macDinh: hsdMacDinh(x),
+        onOk: (v) => { x.hsd = v || null; ve(); },
       }));
     });
     box.querySelectorAll('[data-del]').forEach((b) => {
@@ -417,6 +442,7 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     rows: JSON.stringify(rows.map((x) => ({
       item: x.item, so_lap: x.so_lap, so_dem: x.so_dem,
       lap_uom: x.lap_uom || null, dem_uom: x.dem_uom || null,
+      hsd: x.hsd || null,
     }))),
   });
 
@@ -450,6 +476,13 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     btnDuyet.addEventListener('click', async () => {
       const tong = rows.reduce((a, x) => a + x.so_dem, 0);
       if (!tong) { toastErr('Chưa có dòng nào có số > 0.'); return; }
+      // D114: lô vào kho phải có HSD — chặn ngay trên máy, khỏi đi một vòng server.
+      const thieuHsd = rows.filter((x) => x.so_dem > 0 && !hsdCua(x));
+      if (thieuHsd.length) {
+        toastErr(`Chưa có HSD: ${thieuHsd.map((x) => x.ten || tenSP(x.item)).join(', ')}`
+          + ' — bấm ô "Chưa có HSD" của dòng để nhập theo bao bì.');
+        return;
+      }
       // Số đang sửa trên màn PHẢI lưu trước khi duyệt, không thì duyệt số cũ.
       let moi;
       try { moi = await luu(); } catch (e) { toastErr(e.message); return; }
@@ -531,6 +564,64 @@ function moChonSP(danhMuc, rows, cho, onPick) {
   oTim.addEventListener('input', ve);
   ve();
   return m;
+}
+
+// D114: cửa sổ nhập HSD. Ô ngày + nút nhanh theo tháng (HSD bánh thường tính
+// tròn tháng từ ngày sản xuất) + "Theo mặc định" để bỏ số gõ tay.
+function moHsd({ ten, ngay, hsd, macDinh, onOk }) {
+  const m = openModal({ kicker: `Hạn sử dụng · nhập ngày ${veNgayDu(ngay)}`, title: ten });
+  m.body.innerHTML = `
+    <div class="sx-muted">Ghi đúng HSD in trên bao bì. Ngày này thành hạn dùng của lô
+      trong kho.</div>
+    <input class="sx-textarea sx-nk-hsd-o" id="sx-hsd-o" type="date" min="${esc(congNgay(ngay, 1))}"
+      value="${esc(hsd || macDinh || '')}">
+    <div class="sx-nk-hsd-nhanh">${[3, 6, 9, 12].map((t) => `
+      <button type="button" class="sx-btn" data-thang="${t}">+${t} tháng</button>`).join('')}
+    </div>
+    ${macDinh ? `<div class="sx-muted">Mặc định theo mã hàng: <b>${esc(veNgayDu(macDinh))}</b></div>` : ''}
+    <div class="sx-warn-text" id="sx-hsd-loi" role="alert"></div>
+    <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-hsd-ok">LƯU HSD</button>
+    ${hsd && macDinh ? '<button type="button" class="sx-btn" id="sx-hsd-bo">Dùng mặc định</button>' : ''}
+  `;
+  const o = m.body.querySelector('#sx-hsd-o');
+  m.body.querySelectorAll('[data-thang]').forEach((b) => b.addEventListener('click', () => {
+    o.value = congThang(ngay, Number(b.dataset.thang));
+  }));
+  m.body.querySelector('#sx-hsd-ok').addEventListener('click', () => {
+    const v = o.value;
+    const loi = m.body.querySelector('#sx-hsd-loi');
+    if (!v) { loi.textContent = 'Chọn một ngày.'; return; }
+    if (v <= ngay) { loi.textContent = 'HSD phải sau ngày nhập.'; return; }
+    m.close();
+    onOk(v);
+  });
+  const bo = m.body.querySelector('#sx-hsd-bo');
+  if (bo) bo.addEventListener('click', () => { m.close(); onOk(null); });
+  return m;
+}
+
+// "2026-08-22" + n ngày -> ISO. Tính theo UTC để không lệch một ngày vì múi giờ.
+export function congNgay(iso, n) {
+  if (!iso || !(Number(n) > 0)) return null;
+  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + Number(n));
+  return d.toISOString().slice(0, 10);
+}
+
+// + n tháng; ngày 31 sang tháng không có 31 thì lùi về cuối tháng (31/08 + 6 = 28/02).
+export function congThang(iso, n) {
+  const [y, mo, dd] = String(iso).slice(0, 10).split('-').map(Number);
+  const tong = (mo - 1) + n;
+  const ny = y + Math.floor(tong / 12);
+  const nm = tong % 12;
+  const cuoi = new Date(Date.UTC(ny, nm + 1, 0)).getUTCDate();
+  return `${ny}-${String(nm + 1).padStart(2, '0')}-${String(Math.min(dd, cuoi)).padStart(2, '0')}`;
+}
+
+// "2027-02-28" -> "28/02/27"
+function veNgayDu(iso) {
+  const d = String(iso || '').slice(0, 10).split('-');
+  return d.length === 3 ? `${d[2]}/${d[1]}/${d[0].slice(2)}` : String(iso || '');
 }
 
 // "2026-08-22" -> "22/08" — người ở xưởng đọc ngày kiểu này, không đọc ISO
