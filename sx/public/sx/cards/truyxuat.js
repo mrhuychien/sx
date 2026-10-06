@@ -1,0 +1,308 @@
+// Card "Truy xuất nguồn gốc" trên màn Quản lý (D115).
+//
+// Vào bằng đúng thứ người cầm hộp có: quét mã vạch (hoặc chọn loại) + HSD in trên
+// hộp → lô. Hoặc gõ thẳng mã lô của bất cứ thứ gì (lô đỗ NCC, lô bột…).
+//
+// Một lô hiện 4 khối:
+//   ⬅ Nguồn gốc   — cây nguyên liệu tới tận lô NCC (nhà cung cấp, hoá đơn, QC tiếp nhận)
+//   🏭 Quá trình   — từng ngày: làm gì, ai vào hộp, lượt QC, sự cố
+//   ➡ Đi đâu       — bán cho ai / xuất khác / còn tồn; lô không phải TP thì đi xuôi
+//                    tới mọi lô TP làm ra từ nó
+//   👥 Khách       — danh sách gộp phải gọi khi THU HỒI
+// Bấm mã lô bất kỳ trong cây là truy tiếp lô đó.
+
+import { el, esc } from '/assets/sx/sx/lib/dom.js';
+import { formatNumber } from '/assets/sx/sx/lib/format.js';
+import { toastErr } from '/assets/sx/sx/components/toast.js';
+import { openModal } from '/assets/sx/sx/components/modal.js';
+import { moQuet } from '/assets/sx/sx/components/quet.js';
+
+// "2027-04-04" -> "04/04/27"
+export function ngayNgan(iso) {
+  const d = String(iso || '').slice(0, 10).split('-');
+  return d.length === 3 ? `${d[2]}/${d[1]}/${d[0].slice(2)}` : '';
+}
+
+const so = (n, dvt) => `${formatNumber(n, Number.isInteger(Number(n)) ? 0 : 2)}${dvt ? ` ${dvt}` : ''}`;
+
+export async function render({ container, call }) {
+  container.className = 'sx-card sx-tx';
+  const st = { item: null, ten: '', dm: null, lichSu: [] };
+
+  container.innerHTML = `
+    <div class="sx-tx-dau">🔎 Truy xuất nguồn gốc</div>
+    <div class="sx-muted">Quét mã vạch hộp (hoặc chọn sản phẩm) + nhập HSD in trên hộp.
+      Hoặc gõ thẳng mã lô.</div>
+    <div class="sx-tx-form">
+      <div class="sx-tx-hang">
+        <button type="button" class="sx-btn sx-tx-sp" id="tx-sp">Chọn sản phẩm…</button>
+        <button type="button" class="sx-btn sx-quet-nut" id="tx-quet">⌗ Quét</button>
+      </div>
+      <label class="sx-field-label" for="tx-hsd">HSD in trên hộp</label>
+      <input class="sx-textarea" id="tx-hsd" type="date">
+      <label class="sx-field-label" for="tx-q">hoặc mã lô</label>
+      <input class="sx-textarea" id="tx-q" type="search" autocomplete="off"
+        placeholder="VD: BB-TT-061026, R-021026…">
+      <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="tx-tra">TRA</button>
+    </div>
+    <div id="tx-kq"></div>`;
+  const $ = (s) => container.querySelector(s);
+  const kq = $('#tx-kq');
+  const nutSp = $('#tx-sp');
+
+  async function danhMuc() {
+    if (!st.dm) st.dm = await call('sx.api.truyxuat.danh_muc');
+    return st.dm;
+  }
+  function chonSp(item) {
+    const d = (st.dm.sp || []).find((x) => x.item === item);
+    st.item = item;
+    st.ten = d ? d.ten : item;
+    nutSp.textContent = st.item ? `📦 ${st.ten}` : 'Chọn sản phẩm…';
+    nutSp.classList.toggle('sx-tx-sp-co', !!st.item);
+  }
+
+  nutSp.addEventListener('click', async () => {
+    try { await danhMuc(); } catch (e) { toastErr(e.message); return; }
+    moChonSp(st.dm.sp || [], st.item, (item) => chonSp(item));
+  });
+  $('#tx-quet').addEventListener('click', async () => {
+    try { await danhMuc(); } catch (e) { toastErr(e.message); return; }
+    moQuet({
+      ma_quet: st.dm.ma_quet, loai: 'sp', kicker: 'Truy xuất', title: 'Quét mã vạch hộp',
+      onTim: (item) => { chonSp(item); $('#tx-hsd').focus(); },
+    });
+  });
+
+  $('#tx-tra').addEventListener('click', async (e) => {
+    const q = $('#tx-q').value.trim();
+    const hsd = $('#tx-hsd').value;
+    if (!q && !st.item && !hsd) { toastErr('Chọn sản phẩm, nhập HSD, hoặc gõ mã lô.'); return; }
+    e.currentTarget.disabled = true;
+    kq.innerHTML = '<div class="sx-muted">Đang tìm…</div>';
+    try {
+      const r = await call('sx.api.truyxuat.tim_lo', { item: q ? null : st.item, hsd: q ? null : (hsd || null), q: q || null });
+      if (r.lo.length === 1 && !r.gan_dung) moLo(r.lo[0].batch, true);
+      else veDanhSach(r, hsd);
+    } catch (err) {
+      kq.innerHTML = '';
+      toastErr(err.message);
+    } finally { e.target.disabled = false; }
+  });
+
+  function veDanhSach(r, hsd) {
+    kq.innerHTML = '';
+    if (!r.lo.length) {
+      kq.appendChild(el('div', 'sx-warn-text', hsd
+        ? `Không có lô nào HSD ${esc(ngayNgan(hsd))} (kể cả lệch ±7 ngày). Lô nhập trước khi có `
+          + 'ô HSD ở màn Nhập kho thì không mang HSD — thử gõ mã lô, hoặc bỏ HSD để xem các lô gần nhất.'
+        : 'Không tìm thấy lô nào.'));
+      return;
+    }
+    if (r.gan_dung) {
+      kq.appendChild(el('div', 'sx-warn-text',
+        `Không có lô đúng HSD ${esc(ngayNgan(hsd))}. Các lô HSD gần đó:`));
+    } else {
+      kq.appendChild(el('div', 'sx-field-label', `${r.lo.length} lô — bấm để xem`));
+    }
+    const ds = el('div', 'sx-vh-list');
+    r.lo.forEach((x) => {
+      const b = el('button', 'sx-vh-row sx-tx-lo');
+      b.type = 'button';
+      b.innerHTML = `<div class="sx-vh-who"><div class="sx-vh-name">${esc(x.batch)}</div>
+        <div class="sx-vh-meta">${esc(x.ten)}${x.nsx ? ` · NSX ${esc(ngayNgan(x.nsx))}` : ''}${
+          x.hsd ? ` · HSD ${esc(ngayNgan(x.hsd))}` : ''}</div></div>
+        <span class="sx-nv-qty">tồn ${esc(so(x.ton))}</span>`;
+      b.addEventListener('click', () => moLo(x.batch, true));
+      ds.appendChild(b);
+    });
+    kq.appendChild(ds);
+  }
+
+  async function moLo(batch, moi) {
+    if (moi) st.lichSu = [];
+    kq.innerHTML = '<div class="sx-muted">Đang truy…</div>';
+    let d;
+    try { d = await call('sx.api.truyxuat.lo', { batch }); } catch (e) {
+      kq.innerHTML = '';
+      toastErr(e.message);
+      return;
+    }
+    if (st.lichSu[st.lichSu.length - 1] !== batch) st.lichSu.push(batch);
+    veLo(kq, d, {
+      quayLai: st.lichSu.length > 1 ? () => { st.lichSu.pop(); moLo(st.lichSu.pop(), false); } : null,
+      mo: (b) => moLo(b, false),
+    });
+    kq.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+// ───────────────────────────── hồ sơ một lô ─────────────────────────────
+export function veLo(box, d, { quayLai, mo }) {
+  const l = d.lo;
+  const n = d.nhap_kho;
+  const b = d.ban || { ban: [], khac: [], ton: [], da_ban: 0, nhap: 0 };
+  box.innerHTML = `
+    ${quayLai ? '<button type="button" class="sx-btn sx-tx-lui" data-lui>‹ Lô trước</button>' : ''}
+    <div class="sx-tx-the">
+      <div class="sx-tx-the-lo">${esc(l.batch)}</div>
+      <div class="sx-tx-the-ten">${esc(l.ten)}</div>
+      <div class="sx-tx-the-ngay">
+        ${l.nsx ? `<span>NSX <b>${esc(ngayNgan(l.nsx))}</b></span>` : ''}
+        ${l.hsd ? `<span>HSD <b>${esc(ngayNgan(l.hsd))}</b></span>` : ''}
+        ${l.ngay_sx ? `<span>Làm ngày <b>${esc(ngayNgan(l.ngay_sx))}</b></span>` : ''}
+      </div>
+      ${n ? `<div class="sx-vh-meta">Nhập kho ${esc(ngayNgan(n.ngay))} · phiếu ${esc(n.phieu)} ·
+        duyệt ${esc(n.nguoi_duyet || '?')}</div>` : ''}
+      <div class="sx-tx-so">
+        <div><span class="sx-field-label">Nhập</span><b>${esc(so(b.nhap, l.dvt))}</b></div>
+        ${l.la_tp
+    ? `<div><span class="sx-field-label">Đã bán</span><b>${esc(so(b.da_ban, l.dvt))}</b></div>`
+    : `<div><span class="sx-field-label">Đã xuất</span><b>${esc(so(Math.max(0, b.nhap - l.ton), l.dvt))}</b></div>`}
+        <div><span class="sx-field-label">Còn tồn</span><b>${esc(so(l.ton, l.dvt))}</b></div>
+      </div>
+    </div>
+    ${(d.ghi_chu || []).map((g) => `<div class="sx-muted sx-tx-ghichu">ⓘ ${esc(g)}</div>`).join('')}
+    ${(d.su_co_lo || []).length ? khoi('⚠ Sự cố ghi theo lô này', d.su_co_lo.map(dongSuCo).join(''), true) : ''}
+    ${d.ncc ? khoi('🏭 Nhà cung cấp', dongNcc(d.ncc), true) : ''}
+    ${(d.nguon || []).length ? khoi('⬅ Nguồn gốc nguyên liệu', cay(d.nguon), true) : ''}
+    ${(d.qua_trinh || []).length ? khoi('🏭 Quá trình sản xuất', d.qua_trinh.map(ngay).join(''), true) : ''}
+    ${l.la_tp ? khoi('➡ Đi đâu', diDau(b, l.dvt), true) : ''}
+    ${d.xuoi ? khoi(`➡ Đã đi vào ${demTp(d.xuoi)} lô thành phẩm`, d.xuoi.length
+      ? cayXuoi(d.xuoi) : '<div class="sx-muted">Chưa dùng vào phiếu sản xuất nào.</div>', true) : ''}
+    ${khoi(`👥 Khách đã nhận (${(d.khach || []).length})`, khach(d.khach || []), !l.la_tp)}
+    ${(d.luu_mau || []).length ? khoi('🧪 Mẫu lưu', d.luu_mau.map(luuMau).join(''), false) : ''}
+  `;
+  const lui = box.querySelector('[data-lui]');
+  if (lui) lui.addEventListener('click', quayLai);
+  box.querySelectorAll('[data-lo]').forEach((x) => x.addEventListener('click', () => mo(x.dataset.lo)));
+}
+
+function khoi(tieuDe, than, mo) {
+  return `<details class="sx-tx-khoi"${mo ? ' open' : ''}><summary>${esc(tieuDe)}</summary>
+    <div class="sx-tx-than">${than}</div></details>`;
+}
+
+const nutLo = (b) => (b ? `<button type="button" class="sx-tx-ma" data-lo="${esc(b)}">${esc(b)}</button>` : '');
+
+function dongNcc(c) {
+  if (!c) return '<div class="sx-warn-text">Chưa rõ nhà cung cấp — lô không gắn hoá đơn mua nào.</div>';
+  const kl = c.ket_luan
+    ? `<span class="sx-tx-kl ${c.ket_luan === 'Đạt' ? 'sx-tx-kl-ok' : 'sx-tx-kl-loi'}">${esc(c.ket_luan)}</span>` : '';
+  return `<div class="sx-tx-ncc">🏭 <b>${esc(c.ten_ncc || c.ncc || '?')}</b> ${kl}
+    <div class="sx-vh-meta">${esc(c.chung_tu || '')}${c.ngay ? ` · ${esc(ngayNgan(c.ngay))}` : ''}${
+      c.lo_ncc ? ` · lô NCC ${esc(c.lo_ncc)}` : ''}${c.coa ? ` · COA ${esc(c.coa)}` : ''}</div></div>`;
+}
+
+function cay(ds) {
+  return `<ul class="sx-tx-cay">${ds.map((x) => {
+    const btp = String(x.nhom || '').startsWith('BTP');
+    return `<li><div class="sx-tx-nut">${btp ? '🥣' : '🧂'} <b>${esc(x.ten)}</b>
+        <span class="sx-tx-sl">${esc(so(x.so, x.dvt))}</span>
+        <div class="sx-vh-meta">${x.batch ? nutLo(x.batch) : '<i>không quản lý lô</i>'}${
+          x.lap ? ' · <i>đã có ở nhánh trên</i>' : ''}${
+          x.ngay_sx ? ` · làm ${esc(ngayNgan(x.ngay_sx))}` : ''}${
+          x.rang ? ` · rang ${esc(ngayNgan(x.rang.ngay))} (${esc(x.rang.loai_dau || '')})` : ''}${
+          !btp && x.hsd ? ` · HSD ${esc(ngayNgan(x.hsd))}` : ''}</div>
+        ${x.batch && !btp ? dongNcc(x.ncc) : ''}</div>
+      ${(x.con || []).length ? cay(x.con) : ''}</li>`;
+  }).join('')}</ul>`;
+}
+
+function ngay(g) {
+  const qc = g.qc.length
+    ? g.qc.map((v) => `<div class="sx-tx-qc">QC ${esc(v.luot || '')} · ${v.nop ? 'đã nộp' : 'nháp'}${
+      v.duyet ? ' · đã xem xét' : ''}${v.khong_dat.length
+      ? ` · <b class="sx-tx-kl-loi">Không đạt: ${esc(v.khong_dat.join(', '))}</b>` : ' · ✓ đạt hết'}</div>`).join('')
+    : '<div class="sx-muted">Không có lượt kiểm QC ngày này.</div>';
+  const vh = g.vao_hop.length
+    ? `<div class="sx-tx-vh">📦 Vào hộp: ${g.vao_hop.map((v) => `${esc(v.ten)} ${formatNumber(v.so_hop)}`).join(' · ')}</div>`
+    : '';
+  return `<div class="sx-tx-ngay"><div class="sx-tx-ngay-dau"><b>${esc(ngayNgan(g.ngay))}</b>
+      <span>${esc(g.viec.join(' · '))}</span></div>
+    ${vh}${qc}${g.su_co.map(dongSuCo).join('')}</div>`;
+}
+
+function dongSuCo(s) {
+  return `<div class="sx-tx-suco">⚠ ${esc(s.name)}${s.muc_do ? ` · ${esc(s.muc_do)}` : ''}${
+    s.trang_thai ? ` · ${esc(s.trang_thai)}` : ''}${s.ngay ? ` · ${esc(ngayNgan(s.ngay))}` : ''}
+    <div class="sx-vh-meta">${esc(s.mo_ta || '')}</div></div>`;
+}
+
+const MUC_DICH = {
+  'Material Issue': 'Xuất dùng / huỷ', 'Material Transfer': 'Chuyển kho',
+  'Manufacture': 'Đưa vào sản xuất', 'Repack': 'Đóng gói lại',
+  'Material Transfer for Manufacture': 'Chuyển đi sản xuất',
+};
+
+function diDau(b, dvt) {
+  const ban = b.ban.length
+    ? b.ban.map((x) => `<div class="sx-vh-row"><div class="sx-vh-who">
+        <div class="sx-vh-name">${esc(x.ten_khach || '?')}${x.tra_lai ? ' <i>(trả lại)</i>' : ''}</div>
+        <div class="sx-vh-meta">${esc(x.chung_tu)} · ${esc(ngayNgan(x.ngay))}</div></div>
+        <span class="sx-nv-qty">${x.tra_lai ? '↩ ' : ''}${esc(so(Math.abs(x.so), dvt))}</span></div>`).join('')
+    : '<div class="sx-muted">Chưa bán (chưa có phiếu giao / hoá đơn bán nào ghi lô này).</div>';
+  const khac = b.khac.map((x) => `<div class="sx-vh-row"><div class="sx-vh-who">
+      <div class="sx-vh-name">${esc(MUC_DICH[x.muc_dich] || x.muc_dich || x.loai)}</div>
+      <div class="sx-vh-meta">${esc(x.chung_tu)} · ${esc(ngayNgan(x.ngay))} · từ ${esc(x.kho)}</div></div>
+      <span class="sx-nv-qty">${esc(so(x.so, dvt))}</span></div>`).join('');
+  const ton = b.ton.map((t) => `${esc(t.kho)}: <b>${esc(so(t.so, dvt))}</b>`).join(' · ');
+  return `<div class="sx-vh-list">${ban}${khac}</div>
+    ${ton ? `<div class="sx-vh-meta">Còn tồn — ${ton}</div>` : ''}`;
+}
+
+function demTp(ds) {
+  let k = 0;
+  (function di(x) { (x || []).forEach((n) => { if (n.la_tp && !n.lap) k += 1; di(n.con); }); }(ds));
+  return k;
+}
+
+function cayXuoi(ds) {
+  return `<ul class="sx-tx-cay">${ds.map((x) => `<li><div class="sx-tx-nut">${x.la_tp ? '📦' : '🥣'}
+      <b>${esc(x.ten)}</b> <span class="sx-tx-sl">dùng ${esc(so(x.dung))}</span>
+      <div class="sx-vh-meta">${nutLo(x.batch)}${x.nsx ? ` · ${esc(ngayNgan(x.nsx))}` : ''}${
+        x.hsd && x.la_tp ? ` · HSD ${esc(ngayNgan(x.hsd))}` : ''}${x.bu ? ' · <i>trừ bù (nợ BOM)</i>' : ''}${
+        x.lap ? ' · <i>đã có ở nhánh trên</i>' : ''}</div>
+      ${x.ban ? `<div class="sx-vh-meta">→ bán ${esc(so(x.ban.da_ban))}${x.ban.ban.length
+        ? ` cho ${esc([...new Set(x.ban.ban.map((y) => y.ten_khach))].join(', '))}` : ''}</div>` : ''}
+    </div>${(x.con || []).length ? cayXuoi(x.con) : ''}</li>`).join('')}</ul>`;
+}
+
+function khach(ds) {
+  if (!ds.length) return '<div class="sx-muted">Chưa khách nào nhận hàng từ lô này.</div>';
+  return `<div class="sx-vh-list">${ds.map((k) => `<div class="sx-vh-row"><div class="sx-vh-who">
+      <div class="sx-vh-name">${esc(k.ten_khach || k.khach || '?')}</div>
+      <div class="sx-vh-meta">${k.lan_cuoi ? `lần cuối ${esc(ngayNgan(k.lan_cuoi))}` : ''}${
+        k.lo.length ? ` · lô ${esc(k.lo.join(', '))}` : ''}</div></div>
+      <span class="sx-nv-qty">${esc(so(k.so))}</span></div>`).join('')}</div>`;
+}
+
+function luuMau(m) {
+  return `<div class="sx-vh-row"><div class="sx-vh-who"><div class="sx-vh-name">${esc(m.name)}
+      ${m.co_anh ? '📷' : ''} <span class="sx-muted">khớp theo ${esc(m.khop)}</span></div>
+    <div class="sx-vh-meta">lấy ${esc(ngayNgan(m.ngay_lay))}${m.lo ? ` · ghi "${esc(m.lo)}"` : ''}${
+      m.vi_tri ? ` · ${esc(m.vi_tri)}` : ''} · ${esc(m.trang_thai || '')}</div></div>
+    <span class="sx-nv-qty">${esc(so(m.so_luong, m.dvt))}</span></div>`;
+}
+
+function moChonSp(ds, dangChon, onChon) {
+  const m = openModal({ kicker: 'Truy xuất', title: 'Chọn sản phẩm' });
+  m.body.innerHTML = `<input class="sx-textarea" type="search" id="tx-loc" autocomplete="off"
+      placeholder="Tìm trong ${ds.length} sản phẩm…"><div id="tx-ds"></div>`;
+  const o = m.body.querySelector('#tx-loc');
+  const box = m.body.querySelector('#tx-ds');
+  function ve() {
+    const q = o.value.toLowerCase().trim();
+    const khop = ds.filter((d) => !q || d.ten.toLowerCase().includes(q) || d.item.toLowerCase().includes(q));
+    box.innerHTML = khop.length ? `<div class="sx-vh-list">${khop.map((d) => `
+      <button type="button" class="sx-nv-row${d.item === dangChon ? ' sx-nv-row-xong' : ''}"
+        data-item="${esc(d.item)}" style="min-height:var(--sx-tap-lg)">
+        <span class="sx-nv-ten">${esc(d.ten)}</span></button>`).join('')}</div>`
+      : '<div class="sx-muted">Không tìm thấy.</div>';
+    box.querySelectorAll('[data-item]').forEach((b) => b.addEventListener('click', () => {
+      m.close(); onChon(b.dataset.item);
+    }));
+  }
+  o.addEventListener('input', ve);
+  ve();
+}

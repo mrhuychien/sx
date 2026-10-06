@@ -251,4 +251,10 @@ python3 scripts/test-hsd.py > /tmp/sx-hsd.log 2>&1 \
   && tail -1 /tmp/sx-hsd.log \
   || { cat /tmp/sx-hsd.log; loi=1; }
 
+# D115: truy xuất hỏng là hỏng IM LẶNG — cây vẫn đẹp, chỉ thiếu đúng nhánh / đúng
+# khách cần gọi lúc thu hồi.
+python3 scripts/test-truyxuat.py > /tmp/sx-tx.log 2>&1 \
+  && tail -1 /tmp/sx-tx.log \
+  || { cat /tmp/sx-tx.log; loi=1; }
+
 exit $loi

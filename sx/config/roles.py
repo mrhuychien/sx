@@ -115,8 +115,9 @@ VIEW_CARDS = {
     # qcnhac đứng ĐẦU: việc QC đang treo phải đập vào mắt trước cả nút chốt ngày.
     # nogia (D99): sổ nợ đơn giá vào hộp — lương khoán đang 0 đồng chờ khai giá.
     # phieuluong (D110): xem nhanh phiếu lương tháng — gập sẵn, sau thẻ chốt ngày.
-    "quanly": ["qcnhac", "nobom", "nogia", "novaohop", "chotngay", "phieuluong",
-               "luutrinhbtp", "nguoidung"],
+    # truyxuat (D115): truy xuất nguồn gốc 2 chiều — thay ô "nhập mã batch" cũ.
+    "quanly": ["qcnhac", "nobom", "nogia", "novaohop", "chotngay", "truyxuat",
+               "phieuluong", "luutrinhbtp", "nguoidung"],
 }
 
 # card nào role nào được GỌI API (chốt bảo mật thật — không phải ẩn tab)
@@ -151,6 +152,9 @@ CARD_ROLES = {
     # Lịch tháng (D108): ai vào được tab nào thì xem được lịch tab đó. Chỉ đọc.
     # Phiếu lương (D110): lương của người khác — chỉ quản lý.
     "phieuluong": [QUAN_LY],
+    # Truy xuất (D115): đọc xuyên mọi chứng từ (mua, sản xuất, bán, lương người
+    # vào hộp) — chỉ quản lý.
+    "truyxuat": [QUAN_LY],
     "lichvaohop": [VAO_HOP],
     "lichghiso": [GHI_SO],
     "lichnhapkho": [VAO_HOP, THU_KHO, QUAN_LY],

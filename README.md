@@ -315,6 +315,36 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Truy xuất nguồn gốc 2 chiều (D115) — thẻ "Truy xuất" ở màn Quản lý
+
+**Tìm lô:** quét mã vạch hộp (hoặc chọn sản phẩm) + nhập **HSD in trên hộp** → ra lô.
+HSD lệch (in sai 1 ngày) thì gợi ý các lô HSD ±7 ngày. Hoặc gõ mã lô (đủ hoặc một phần)
+của bất kỳ thứ gì: lô TP, lô bột, lô đỗ / đường NCC. Bấm mã lô bất kỳ trong kết quả là
+truy tiếp lô đó.
+
+**Một lô thành phẩm hiện:**
+- ⬅ **Nguồn gốc nguyên liệu**: bột bánh → bột nền (ngày rang, loại đỗ) → đỗ vỡ → đỗ ủ →
+  lô đỗ NCC, đường, …; mỗi lô mua về kèm **nhà cung cấp, hoá đơn, lô NCC, kết luận tiếp
+  nhận (BM.07.03)**. Theo đúng lô ghi trên phiếu kho (FIFO lúc sinh phiếu).
+- 🏭 **Quá trình**: từng ngày (rang, làm bột, vào hộp, nhập kho) — ai vào hộp bao nhiêu
+  hộp, lượt QC và mục **Không đạt**, sự cố.
+- ➡ **Đi đâu**: bán cho ai (Delivery Note / Sales Invoice, có trả lại), xuất khác, còn tồn.
+- 👥 **Khách đã nhận**, 🧪 **mẫu lưu**, ⚠ sự cố ghi theo lô.
+
+**Một lô nguyên liệu / bán thành phẩm** (thu hồi): đi xuôi tới MỌI lô thành phẩm làm từ
+nó, rồi gộp danh sách khách đã nhận — đây là danh sách phải gọi khi thu hồi.
+
+**Giới hạn — màn hình nói ra, không giấu:**
+- Thành phẩm không gắn bảng vào hộp nào → người vào hộp khớp **theo ngày**: các ngày đóng
+  mã đó từ lần nhập kho trước (tối đa 7 ngày) tới ngày nhập lô.
+- Lô nhập lúc **chưa có BOM** (sổ nợ BOM): nguyên liệu trừ bù FIFO ở ngày hạch toán, không
+  phải đúng lô bột đã dùng.
+- Phần "bán cho ai" chỉ có khi bán bằng Delivery Note / Sales Invoice trên ERPNext **có
+  chọn lô**. Lô mua phải nhập bằng Purchase Invoice/Receipt có lô (README mục cài đặt).
+- Lô TP nhập trước D114 không có HSD → tìm bằng mã lô.
+
+Ô "nhập mã batch TP" cũ ở màn Quản lý đã thay bằng thẻ này. Không cần migrate.
+
 ## Hạn sử dụng (HSD) lô thành phẩm lúc nhập kho (D114)
 
 - Mỗi dòng phiếu nhập kho có ô **HSD** (dưới tên sản phẩm). Mặc định = **ngày phiếu +

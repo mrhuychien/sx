@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-82';
+const BUILD = 'sx-83';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -42,6 +42,7 @@ const CARD_PATHS = {
   phieuluong: '/assets/sx/sx/cards/phieuluong.js',
   lichghiso: '/assets/sx/sx/cards/lichghiso.js',
   lichnhapkho: '/assets/sx/sx/cards/lichnhapkho.js',
+  truyxuat: '/assets/sx/sx/cards/truyxuat.js',
 };
 const VIEW_META = {
   ghiso: { label: 'Ghi số', icon: '📋' },
