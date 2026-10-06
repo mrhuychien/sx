@@ -83,6 +83,15 @@ function veNua(box, n, ctx) {
   if (btn.dataset.act === 'chot') {
     btn.addEventListener('click', async () => {
       const ng = await ensureNgay();
+      // D116: mã nguyên liệu chưa có giá vốn → khai giá TRƯỚC, khỏi chốt rồi mới
+      // văng lỗi tiếng Anh của ERPNext giữa chừng.
+      if (n.ma === 'ghiso') {
+        const thieu = await layThieuGia(call, ng.name);
+        if (thieu.length) { moKhaiGia(thieu, call, () => hoiChot(ng)); return; }
+      }
+      hoiChot(ng);
+    });
+    const hoiChot = (ng) => {
       confirm2Step({
         title: `Chốt ${n.ten} — ${ng.ngay || ''}`,
         message: n.canhBao,
@@ -93,10 +102,14 @@ function veNua(box, n, ctx) {
             if (r.canh_bao && r.canh_bao.length) return showCanhBao(n, r, refresh);
             toast(`Đã chốt ${n.ten}.`);
             refresh();
-          } catch (e) { toastErr(e.message); throw e; }
+          } catch (e) {
+            const thieu = n.ma === 'ghiso' ? await layThieuGia(call, ng.name) : [];
+            if (thieu.length) { moKhaiGia(thieu, call, () => hoiChot(ng)); return; }
+            toastErr(e.message); throw e;
+          }
         },
       });
-    });
+    };
     return;
   }
 
@@ -122,6 +135,48 @@ function veNua(box, n, ctx) {
       },
     });
   });
+}
+
+async function layThieuGia(call, ngaySx) {
+  try { return (await call('sx.api.chot.thieu_gia_von_ngay', { ngay_sx: ngaySx })) || []; } catch (e) { return []; }
+}
+
+// D116: khai giá vốn cho mã chưa từng có giá (vani, màu… chưa nhập mua có đơn giá).
+// Ghi vào Item.valuation_rate — chỉ là giá DỰ PHÒNG của ERPNext: nhập mua có giá
+// lần sau thì giá thật thay chỗ nó.
+export function moKhaiGia(ds, call, xong) {
+  const m = openModal({ kicker: 'Chốt Ghi sổ', title: 'Khai giá vốn' });
+  m.body.innerHTML = `
+    <div class="sx-modal-msg">${ds.length} mã nguyên liệu chưa có giá vốn (chưa nhập mua có đơn
+      giá) nên ERPNext không trừ kho được. Nhập giá mua ước tính cho mỗi đơn vị kho — chỉ
+      cần một lần; nhập mua có giá sau này sẽ thay giá này.</div>
+    ${ds.map((d, i) => `<label class="sx-kgv">
+      <span class="sx-kgv-ten">${esc(d.ten)} <span class="sx-muted">${esc(d.item)}</span></span>
+      <span class="sx-kgv-o"><input class="sx-textarea" type="number" inputmode="decimal" min="0"
+        step="any" data-i="${i}" value="${d.goi_y ? esc(String(d.goi_y)) : ''}"
+        placeholder="đ"><span>đ / ${esc(d.dvt || 'đơn vị')}</span></span>
+      ${d.goi_y ? '<span class="sx-muted">điền sẵn theo giá mua / giá chuẩn trên mã hàng</span>' : ''}
+    </label>`).join('')}
+    <div class="sx-warn-text" id="sx-kgv-loi" role="alert"></div>
+    <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-kgv-ok">LƯU GIÁ &amp; CHỐT TIẾP</button>`;
+  const ok = m.body.querySelector('#sx-kgv-ok');
+  ok.addEventListener('click', async () => {
+    const rows = ds.map((d, i) => ({ item: d.item,
+      gia: Number(m.body.querySelector(`[data-i="${i}"]`).value) }));
+    const thieu = rows.filter((r) => !(r.gia > 0));
+    if (thieu.length) {
+      m.body.querySelector('#sx-kgv-loi').textContent = `Còn ${thieu.length} mã chưa nhập giá.`;
+      return;
+    }
+    ok.disabled = true;
+    try {
+      await call('sx.api.chot.khai_gia_von', { rows: JSON.stringify(rows) });
+      m.close();
+      toast(`Đã khai giá vốn ${rows.length} mã.`);
+      xong();
+    } catch (e) { ok.disabled = false; toastErr(e.message); }
+  });
+  return m;
 }
 
 function huyCaNgay({ boot, call, refresh }) {

@@ -257,4 +257,10 @@ python3 scripts/test-truyxuat.py > /tmp/sx-tx.log 2>&1 \
   && tail -1 /tmp/sx-tx.log \
   || { cat /tmp/sx-tx.log; loi=1; }
 
+# D116: mã chưa có giá vốn — báo hết một lần bằng tiếng Việt TRƯỚC khi sinh phiếu
+# kho, khai giá chỉ cho mã đang thiếu.
+python3 scripts/test-giavon.py > /tmp/sx-gv.log 2>&1 \
+  && tail -1 /tmp/sx-gv.log \
+  || { cat /tmp/sx-gv.log; loi=1; }
+
 exit $loi

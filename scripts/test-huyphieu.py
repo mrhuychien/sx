@@ -147,6 +147,8 @@ ut.nhom_tp = lambda: []
 ut.cho_phep_ton_am = lambda: TON_AM[0]
 sys.modules["sx.utils"] = ut
 mfg = types.ModuleType("sx.api.mfg")
+mfg.thieu_gia_von = lambda cap: []   # D116: giá vốn kiểm ở test-giavon.py
+mfg.bao_thieu_gia_von = lambda ds, viec: None
 mfg.cancel_doc = lambda dt, n, log=None: HUY_CT.append(n)
 sys.modules["sx.api.mfg"] = mfg
 

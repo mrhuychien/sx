@@ -103,6 +103,10 @@ def chot_ghiso(ngay_sx):
     _kiem_chua_chot(doc, "ghiso")
     _validate_chung(doc)
     _kiem_ton_kho(doc, get_settings())
+    thieu_gia = _thieu_gia_von_ngay(doc, get_settings())
+    if thieu_gia:
+        from sx.api.mfg import bao_thieu_gia_von
+        bao_thieu_gia_von(thieu_gia, _("chốt Ghi sổ"))
 
     buoc = _("tầng 2 (nấu + trộn theo báo mẻ)")
     try:
@@ -285,6 +289,67 @@ def _nhu_cau_bom(bom_name, qty_fg):
     return nhu_cau
 
 
+def _nhu_cau_ngay(doc, settings):
+    """{(item, kho nguồn): số cần} cộng dồn mọi dòng báo mẻ của ngày."""
+    can = {}
+    for row in doc.bao_me:
+        bom = get_bom_active(row.item_btp)
+        if not bom:
+            frappe.throw(_("BTP {0} chưa có BOM active").format(row.item_btp))
+        for item_code, so in _nhu_cau_bom(bom, flt(row.tong_kg)).items():
+            k = (item_code, _kho_nguon(item_code, settings))
+            can[k] = can.get(k, 0) + flt(so)
+    return can
+
+
+def _thieu_gia_von_ngay(doc, settings):
+    """Mã nguyên liệu của ngày chưa có giá vốn (D116). BTP làm ra trong CÙNG lần
+    chốt (đường hoán → bột bánh) được giá từ chính phiếu sinh ra nó — bỏ qua."""
+    from sx.api.mfg import thieu_gia_von
+
+    lam_ra = {r.item_btp for r in doc.bao_me}
+    return thieu_gia_von({k for k in _nhu_cau_ngay(doc, settings) if k[0] not in lam_ra})
+
+
+@frappe.whitelist()
+def thieu_gia_von_ngay(ngay_sx):
+    """Cho thẻ Chốt ngày: danh sách mã cần khai giá trước khi chốt Ghi sổ."""
+    guard_card("chotngay")
+    doc = frappe.get_doc("SX Ngay San Xuat", ngay_sx)
+    return _thieu_gia_von_ngay(doc, get_settings())
+
+
+@frappe.whitelist()
+def khai_gia_von(rows):
+    """Ghi Item.valuation_rate cho mã chưa có giá vốn — dự phòng của ERPNext (D116).
+
+    CHỈ ghi cho mã đang THIẾU giá (co_gia_von = False): mã đã có giá vốn thật thì
+    giá này không bao giờ được dùng, ghi vào chỉ gây hiểu nhầm. Ghi kèm comment trên
+    Item để sau này còn biết ai khai, khai bao nhiêu.
+    """
+    guard_card("chotngay")
+    from sx.api.mfg import co_gia_von
+
+    settings = get_settings()
+    rows = json.loads(rows) if isinstance(rows, str) else (rows or [])
+    da = []
+    for r in rows:
+        item, gia = r.get("item"), flt(r.get("gia"))
+        if not item or not frappe.db.exists("Item", item):
+            continue
+        if gia <= 0:
+            frappe.throw(_("Giá vốn của {0} phải lớn hơn 0.").format(item))
+        if co_gia_von(item, _kho_nguon(item, settings)):
+            continue
+        frappe.db.set_value("Item", item, "valuation_rate", gia)
+        frappe.clear_document_cache("Item", item)
+        frappe.get_doc("Item", item).add_comment(
+            "Comment", _("Khai giá vốn {0} / đơn vị kho từ thẻ Chốt ngày (sx) — mã chưa có "
+                         "giá vốn nào nên ERPNext không trừ kho được.").format(gia))
+        da.append(item)
+    return {"da_khai": da}
+
+
 def _kiem_ton_kho(doc, settings):
     """Kiểm đủ tồn nguyên liệu TRƯỚC khi sinh chứng từ tầng 2 (chốt Ghi sổ).
 
@@ -308,12 +373,8 @@ def _kiem_ton_kho(doc, settings):
     def _check(item_code, kho, can):
         can_tong[(item_code, kho)] = can_tong.get((item_code, kho), 0) + flt(can)
 
-    for row in doc.bao_me:
-        bom = get_bom_active(row.item_btp)
-        if not bom:
-            frappe.throw(_("BTP {0} chưa có BOM active").format(row.item_btp))
-        for item_code, can in _nhu_cau_bom(bom, flt(row.tong_kg)).items():
-            _check(item_code, _kho_nguon(item_code, settings), can)
+    for (item_code, kho), can in _nhu_cau_ngay(doc, settings).items():
+        _check(item_code, kho, can)
 
     thieu = []
     thieu_bot_nen = False

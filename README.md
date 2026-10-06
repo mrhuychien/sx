@@ -315,6 +315,19 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Mã nguyên liệu chưa có giá vốn (D116)
+
+Lỗi ERPNext "Valuation Rate for the Item …, is required to do accounting entries" xảy ra
+khi một mã (hay gặp: vani, màu, phụ gia) **chưa từng nhập mua có đơn giá** và Item cũng
+chưa khai Valuation Rate — thường vì kho cho tồn âm nên dùng trước khi nhập.
+
+- Bấm **CHỐT GHI SỔ**: nếu có mã như vậy, hiện cửa sổ **Khai giá vốn** liệt kê hết các mã,
+  nhập giá ước tính mỗi đơn vị kho (điền sẵn theo giá mua / giá chuẩn trên Item nếu có) →
+  **LƯU GIÁ & CHỐT TIẾP**. Giá ghi vào `Item.valuation_rate` (có comment lưu vết), chỉ
+  cho mã đang thiếu; nhập mua có giá sau này sẽ thay giá này.
+- Duyệt nhập kho TP gặp mã thiếu giá (bao bì…) thì báo rõ tên mã, nhờ quản lý khai.
+- Trên Desk: Item → ô **Valuation Rate**. Tốt nhất vẫn là nhập mua (Purchase Invoice) có giá.
+
 ## Truy xuất nguồn gốc 2 chiều (D115) — thẻ "Truy xuất" ở màn Quản lý
 
 **Tìm lô:** quét mã vạch hộp (hoặc chọn sản phẩm) + nhập **HSD in trên hộp** → ra lô.

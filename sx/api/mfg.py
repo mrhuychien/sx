@@ -92,6 +92,58 @@ def tao_batch(item_code, batch_id, ngay_sx=None, nsx=None, hsd=None):
     return batch.name
 
 
+def co_gia_von(item_code, kho):
+    """ERPNext có tìm ra giá vốn để XUẤT mã này không (D116).
+
+    Đi đúng thứ tự dự phòng của ERPNext (stock_ledger.get_valuation_rate): giá vốn
+    đang chạy ở kho → giá của bất kỳ lần nhập nào → Item.valuation_rate → giá mua
+    trong Item Price. Hết cả bốn thì submit phiếu kho văng "Valuation Rate for the
+    Item … is required" — tiếng Anh, từng mã một, và giữa chừng lần chốt.
+    Hay gặp ở mã phụ gia (vani, màu…) chưa từng nhập mua có giá mà kho cho tồn âm.
+    """
+    if flt(frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": kho},
+                               "valuation_rate")) > 0:
+        return True
+    if flt(frappe.get_cached_value("Item", item_code, "valuation_rate")) > 0:
+        return True
+    if frappe.db.exists("Stock Ledger Entry", {"item_code": item_code, "is_cancelled": 0,
+                                               "valuation_rate": (">", 0)}):
+        return True
+    return flt(frappe.db.get_value("Item Price", {"item_code": item_code, "buying": 1},
+                                   "price_list_rate")) > 0
+
+
+def thieu_gia_von(cap):
+    """[{item, ten, dvt, goi_y}] những mã trong `cap` = {(item, kho)} chưa có giá vốn.
+
+    `goi_y` = giá mua gần nhất / giá chuẩn trên Item nếu có — chỉ để điền sẵn, người
+    khai vẫn phải xác nhận. Không bao giờ tự lấy làm giá.
+    """
+    ra, da = [], set()
+    for item_code, kho in sorted(cap):
+        if item_code in da or co_gia_von(item_code, kho):
+            continue
+        da.add(item_code)
+        i = frappe.db.get_value("Item", item_code, ["item_name", "stock_uom",
+                                                     "last_purchase_rate", "standard_rate"],
+                                as_dict=True) or frappe._dict()
+        ra.append({"item": item_code, "ten": i.item_name or item_code, "dvt": i.stock_uom or "",
+                   "goi_y": flt(i.last_purchase_rate) or flt(i.standard_rate) or None})
+    return ra
+
+
+def bao_thieu_gia_von(ds, viec):
+    """Câu báo lỗi đọc được, liệt kê HẾT các mã một lần (ERPNext báo từng mã một)."""
+    frappe.throw(
+        _("Chưa {0} được: {1} mã chưa có giá vốn nên ERPNext không trừ kho được:").format(
+            viec, len(ds)) + "<br>"
+        + "<br>".join(f"• {d['ten']} ({d['item']})" for d in ds) + "<br><br>"
+        + _("Cách sửa (một lần cho mỗi mã): quản lý bấm KHAI GIÁ VỐN ở thẻ Chốt ngày, "
+            "hoặc trên Desk mở Item → ô Valuation Rate → nhập giá mỗi {0}. Tốt nhất là "
+            "nhập mua (Purchase Invoice) có đơn giá.").format(_("đơn vị kho")),
+        title=_("Thiếu giá vốn"))
+
+
 def tao_wo(company, item_code, qty, bom_no, source_wh, fg_wh, ngay_sx=None, planned_date=None):
     """Work Order skip_transfer=1, use_multi_level_bom=0 (chặn explode BOM đa tầng)."""
     wo = frappe.get_doc(

@@ -180,6 +180,12 @@ class SXPhieuNhapTP(Document):
                 kho = kho_nguon_rm(item_code, settings)
                 can[(item_code, kho)] = can.get((item_code, kho), 0) + flt(so)
 
+        # D116: mã chưa có giá vốn thì ERPNext văng tiếng Anh lúc submit phiếu kho.
+        from sx.api.mfg import bao_thieu_gia_von, thieu_gia_von
+        thieu_gia = thieu_gia_von(set(can))
+        if thieu_gia:
+            bao_thieu_gia_von(thieu_gia, _("duyệt nhập kho"))
+
         thieu = []
         for (item_code, kho), so in sorted(can.items()):
             ton = flt(frappe.db.get_value(

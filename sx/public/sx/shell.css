@@ -1954,3 +1954,11 @@ b.sx-tx-kl-loi { background: none; }
 .sx-tx-ngay-dau { display: flex; gap: var(--sx-s2); flex-wrap: wrap; align-items: baseline; }
 .sx-tx-ngay-dau span { color: var(--sx-text-2); }
 .sx-tx-suco { padding: var(--sx-s2); border-radius: var(--sx-radius-sm); background: var(--sx-warning-soft); color: var(--sx-warning-text); font-size: var(--sx-f-sm); }
+
+
+/* ══════════════════ KHAI GIÁ VỐN (D116) ══════════════════ */
+.sx-kgv { display: flex; flex-direction: column; gap: 4px; padding: var(--sx-s2) 0; border-top: 1px solid var(--sx-line); }
+.sx-kgv-ten { font-weight: 700; }
+.sx-kgv-o { display: flex; align-items: center; gap: var(--sx-s2); }
+.sx-kgv-o .sx-textarea { flex: 1; min-width: 0; box-sizing: border-box; }
+.sx-kgv-o > span { white-space: nowrap; color: var(--sx-text-2); }

@@ -144,6 +144,8 @@ chot._nhu_cau_bom = lambda bom, qty: {k: v * float(qty) for k, v in DINH_MUC[bom
 sys.modules["sx.api.chot"] = chot
 
 mfg = types.ModuleType("sx.api.mfg")
+mfg.thieu_gia_von = lambda cap: []   # D116: giá vốn kiểm ở test-giavon.py
+mfg.bao_thieu_gia_von = lambda ds, viec: None
 
 
 def _se(loai, **kw):

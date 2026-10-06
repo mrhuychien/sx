@@ -215,6 +215,8 @@ for ten in ("cach_lam_cua", "dat_ten_hien_thi", "get_dau_items", "topo_rank_by_b
 sys.modules["sx.utils"] = ut
 
 mfg = types.ModuleType("sx.api.mfg")
+mfg.thieu_gia_von = lambda cap: []   # D116: giá vốn kiểm ở test-giavon.py
+mfg.bao_thieu_gia_von = lambda ds, viec: None
 SE = []
 mfg.tao_batch = lambda item, lo, **k: lo
 mfg.tao_wo = lambda *a, **k: Doc(name=f"WO-{len(SE)}", item=a[1])
