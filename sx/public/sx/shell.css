@@ -2074,3 +2074,11 @@ b.sx-tx-kl-loi { background: none; }
 .sx-lc-dong-1 span { color: var(--sx-warning-text); font-weight: 700; }
 .sx-lc-dong-3 span { color: var(--sx-danger-text); font-weight: 700; }
 .sx-lc-loi { flex-basis: 100%; color: var(--sx-danger-text); font-size: var(--sx-f-xs); white-space: pre-line; }
+
+/* D124 — bàn số Vào hộp Tết: tab THÙNG/HỘP + HSD trên cùng một màn */
+.sx-tet-pad { gap: var(--sx-s2); }
+.sx-tet-pad .sx-np-chip i { font-style: normal; font-weight: 500; opacity: .7; }
+.sx-tet-hsd { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--sx-s1) var(--sx-s2); }
+.sx-tet-hsd .sx-textarea { min-height: 44px; margin: 0; }
+.sx-tet-hsd-nhanh { grid-column: 1 / -1; display: flex; gap: var(--sx-s1); flex-wrap: wrap; }
+.sx-tet-hsd-nhanh .sx-np-chip { min-height: 36px; padding: 0 var(--sx-s2); }

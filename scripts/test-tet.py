@@ -41,6 +41,9 @@ PHIEU = {}      # name -> Doc phiếu nhập
 NGAY = {}       # name -> D(ngay, chot_vaohop, docstatus)
 VAI = {"SX QC Tet"}
 SHELF = {"TP-SEN": 180, "TP-TT": 0}
+NHOM = {"TP-SEN": "Hộp quà Tết", "TP-TT": "Hàng Tết", "TP-THUONG": "Bánh thường"}
+CAY = {"Hàng Tết": (10, 13), "Hộp quà Tết": (11, 12), "Bánh thường": (20, 21)}   # Hộp quà Tết ⊂ Hàng Tết
+CAU_HINH = {"nhom_tet": []}
 
 
 class Doc(D):
@@ -106,6 +109,8 @@ def get_doc(dt, n=None):
 
 
 def get_value(dt, f, field=None, **k):
+    if dt == "Item Group":
+        return CAY[f]
     if dt == "SX Ngay San Xuat":
         return next((n for n, x in NGAY.items() if x.ngay == f["ngay"] and x.docstatus < 2), None)
     if dt == "SX Bang Vao Hop":
@@ -122,6 +127,11 @@ def exists(dt, f=None):
 
 
 def get_all(dt, filters=None, fields=None, pluck=None, **k):
+    if dt == "Item Group":
+        if "item_group_name" in filters:
+            return [g for g in CAY if "Tết" in g]
+        lo, hi = filters["lft"][1], filters["rgt"][1]
+        return [g for g, (l, r) in CAY.items() if l > lo and r < hi]
     if dt == "SX Phieu Nhap TP":
         ra = [D(name=p.name, ngay=p.ngay, docstatus=p.docstatus, tong_dem=p.tong_dem,
                 nguoi_lap=p.nguoi_lap, nguon=p.nguon) for p in PHIEU.values()
@@ -156,9 +166,10 @@ sys.modules["frappe.utils"] = fu
 for g in ("sx", "sx.api", "sx.config", "sx.sx", "sx.sx.doctype", "sx.sx.doctype.sx_phieu_nhap_tp"):
     m = types.ModuleType(g); m.__path__ = []; sys.modules[g] = m
 ut = types.ModuleType("sx.utils")
-ut.get_settings = lambda: D(kho_tp="Kho TP")
-ut.items_tp = lambda fields=None, **k: [D(name=i, item_name={"TP-SEN": "Bánh sen", "TP-TT": "Bánh TT"}[i],
-                                          stock_uom="Hộp", shelf_life_in_days=SHELF[i]) for i in SHELF]
+ut.get_settings = lambda: D(kho_tp="Kho TP", nhom_tet=[D(item_group=g) for g in CAU_HINH["nhom_tet"]])
+TEN = {"TP-SEN": "Bánh sen", "TP-TT": "Bánh TT", "TP-THUONG": "Bánh thường"}
+ut.items_tp = lambda fields=None, **k: [D(name=i, item_name=TEN[i], item_group=NHOM[i], stock_uom="Hộp",
+                                          shelf_life_in_days=SHELF.get(i, 0)) for i in TEN]
 sys.modules["sx.utils"] = ut
 kh = types.ModuleType("sx.api.khotp")
 kh._ghi_json = lambda v: json.dumps(v) if v else None
@@ -250,6 +261,7 @@ print("\n-- dòng sai: chặn TRƯỚC khi ghi gì --")
 lam_sach()
 for ten, rows in (
         ("mã không phải thành phẩm", [{"item": "BOT", "so": 5}]),
+        ("thành phẩm thường, không phải hàng Tết", [{"item": "TP-THUONG", "so": 5, "hsd": "2027-06-01"}]),
         ("số hộp lẻ", [{"item": "TP-SEN", "so": 2.5}]),
         ("mã chưa khai Shelf Life mà không nhập HSD", [{"item": "TP-TT", "so": 5}]),
         ("HSD không sau ngày nhập", [{"item": "TP-SEN", "so": 5, "hsd": "2027-01-20"}]),
@@ -301,6 +313,30 @@ kiem("trạng thái hiện đúng", T.gan_day()[0]["trang_thai"] == "Đã nhập
 PHIEU["PN-X"] = PhieuDoc(name="PN-X", docstatus=0, nguon=None, dong=[], nguoi_lap="tet1@x")
 _, e = thu(lambda: T.xoa("PN-X"))
 kiem("phiếu thường (không phải Tết) → không xoá ở màn này", e is not None and "Tết" in str(e), e)
+
+print("\n-- chỉ bày HÀNG TẾT (D124) --")
+lam_sach()
+dm = T.danh_muc()
+kiem("tự nhận nhóm tên chứa 'Tết' (cả nhóm con) — mã thường không lên",
+     [r["item"] for r in dm["rows"]] == ["TP-SEN", "TP-TT"] and not dm["chua_co_nhom"], dm["rows"])
+CAU_HINH["nhom_tet"] = ["Hộp quà Tết"]
+kiem("SX Settings → Nhóm Hàng Tết được ưu tiên", [r["item"] for r in T.danh_muc()["rows"]] == ["TP-SEN"])
+CAU_HINH["nhom_tet"] = ["Hàng Tết"]
+kiem("chọn nhóm cha thì lấy luôn nhóm con", [r["item"] for r in T.danh_muc()["rows"]] == ["TP-SEN", "TP-TT"])
+CAU_HINH["nhom_tet"] = []
+cu = dict(CAY)
+for g in [g for g in CAY if "Tết" in g]:
+    CAY.pop(g)
+dm = T.danh_muc()
+kiem("chưa có nhóm Tết nào → bày mọi TP + cờ nhắc cấu hình",
+     len(dm["rows"]) == 3 and dm["chua_co_nhom"])
+CAY.update(cu)
+kiem("mã quét vẫn đủ (quét nhầm mã thường thì báo 'không phải hàng Tết')", dm["ma_quet"]["sp"] == {"893": "TP-SEN"})
+js = open("sx/public/sx/cards/vaohoptet.js", encoding="utf-8").read()
+kiem("chọn mã → vào thẳng bàn số Tết (không qua cửa sổ số lượng / HSD riêng)",
+     "moNhapTet({ s: sp(item)" in js and "openSoLuong" not in js and "moHsd" not in js)
+kiem("bàn số có tab đơn vị + ô HSD + kiểm HSD sau ngày nhập",
+     "data-tab" in js and 'id="tp-hsd"' in js and "h <= ngay" in js)
 
 print("\n-- quyền + dây nối --")
 VAI.clear(); VAI.add("SX Vao Hop")

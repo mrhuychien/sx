@@ -29,21 +29,55 @@ NGUON = "Tết"
 CARD = "vaohoptet"
 
 
+def _bung(goc):
+    """Nhóm + mọi nhóm con (cây nested set)."""
+    ra = set(goc)
+    for g in goc:
+        try:
+            lft, rgt = frappe.db.get_value("Item Group", g, ["lft", "rgt"])
+            ra.update(frappe.get_all("Item Group", filters={"lft": (">", lft), "rgt": ("<", rgt)},
+                                     pluck="name"))
+        except Exception:
+            pass   # cây hỏng -> vẫn dùng đúng nhóm đã chọn
+    return ra
+
+
+def nhom_tet():
+    """Item Group là HÀNG TẾT, đã bung nhánh con. SX Settings → "Nhóm Hàng Tết";
+    để trống thì tự nhận nhóm có tên chứa "Tết" (đa số xưởng đặt sẵn "Hàng Tết")."""
+    goc = [r.item_group for r in (get_settings().get("nhom_tet") or []) if r.item_group]
+    if not goc:
+        goc = frappe.get_all("Item Group", filters={"item_group_name": ("like", "%Tết%")},
+                             pluck="name")
+    return _bung(goc) if goc else set()
+
+
+def hang_tet(fields):
+    """Thành phẩm Tết. Chưa có nhóm Tết nào thì trả MỌI thành phẩm + cờ để màn hình
+    nhắc cấu hình — thà thấy dư còn hơn QC Tết đứng nhìn danh sách rỗng."""
+    nhom = nhom_tet()
+    ds = items_tp(list(dict.fromkeys(list(fields) + ["item_group"])))
+    if not nhom:
+        return ds, False
+    return [i for i in ds if i.get("item_group") in nhom], True
+
+
 @frappe.whitelist()
 def danh_muc():
-    """Thành phẩm chọn được: tên, ĐVT kho, các đơn vị đếm (thùng/hộp), số ngày hạn
+    """Hàng Tết chọn được: tên, ĐVT kho, các đơn vị đếm (thùng/hộp), số ngày hạn
     dùng (điền sẵn HSD) + bảng mã vạch → mã hàng để quét."""
     guard_card(CARD)
     from sx.api.khotp import _nap_uom, _uom_cua
     from sx.api.portal import _ma_quet
 
-    ds = items_tp(["name", "item_name", "stock_uom", "shelf_life_in_days"])
+    ds, co_nhom = hang_tet(["name", "item_name", "stock_uom", "shelf_life_in_days"])
     _nap_uom([i.name for i in ds])
     return {
         "rows": [{"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or "",
                   "uoms": _uom_cua(i.name, i.stock_uom),
                   "han_dung": cint(i.get("shelf_life_in_days"))} for i in ds],
-        "ma_quet": {"sp": _ma_quet([])["sp"]},
+        "ma_quet": {"sp": _ma_quet([])["sp"]},   # đủ mọi TP: quét nhầm mã thường thì báo rõ
+        "chua_co_nhom": not co_nhom,
     }
 
 
@@ -77,7 +111,7 @@ def luu(rows, ngay=None, ghi_chu=None):
         frappe.throw(_("SX Settings chưa cấu hình Kho TP."))
     ngay = getdate(ngay or nowdate())
     rows = json.loads(rows) if isinstance(rows, str) else (rows or [])
-    tp = {i.name: i for i in items_tp(["name", "item_name"])}
+    tp = {i.name: i for i in hang_tet(["name", "item_name"])[0]}
 
     dong, loi = [], []
     for i, r in enumerate(rows, 1):
@@ -86,7 +120,7 @@ def luu(rows, ngay=None, ghi_chu=None):
         if not item:
             continue
         if item not in tp:
-            loi.append(_("Dòng {0}: {1} không phải thành phẩm.").format(i, item))
+            loi.append(_("Dòng {0}: {1} không phải hàng Tết.").format(i, item))
             continue
         ten = tp[item].item_name or item
         if so <= 0:

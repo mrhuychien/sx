@@ -357,6 +357,12 @@ vào được tab này.
   Hàng Tết đang chờ duyệt không hiện lại ở "vừa vào hộp, chưa nhập kho".
 - Cần `bench --site site1.local migrate` (thêm cột `nguon` cho phiếu nhập + tạo role).
 
+**D124 — chỉ hàng Tết, một bàn số.** Danh sách chọn/quét chỉ bày mã thuộc *SX Settings →
+Nhóm Hàng Tết* (kể cả nhóm con); để trống thì tự lấy Item Group có tên chứa "Tết"; không có
+nhóm nào thì bày mọi thành phẩm kèm dòng nhắc. Chọn mã là vào thẳng bàn số: tab THÙNG /
+HỘP (mỗi tab một số, tổng tự cộng), ô HSD điền sẵn theo Shelf Life với nút +3/+6/+9/+12
+tháng — bấm LƯU một lần là xong dòng. Server cũng chặn mã không phải hàng Tết.
+
 ## Tốc độ tải trang (D120)
 
 - **Trình duyệt:** các thẻ trên một màn tải SONG SONG (trước: nối đuôi, 8 thẻ = 8 lần
