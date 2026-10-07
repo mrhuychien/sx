@@ -9,6 +9,35 @@ import frappe
 from frappe import _
 from frappe.utils import cint, flt
 
+CONG_TAC_LO = "enable_serial_and_batch_no_for_item"
+
+
+def bat_lo_he_thong():
+    """Bật công tắc lô của ERPNext v16 (D126): Stock Settings → "Activate Serial / Batch
+    No for Item". Tắt thì MỌI phiếu kho có lô hỏng với câu "Please check the 'Activate
+    Serial and Batch No for Item' checkbox…" — mà app này quản lý bột / thành phẩm theo
+    lô từ D5. Patch của ERPNext chỉ bật khi site ĐÃ có Batch lúc nâng cấp, nên site
+    dựng mới (chưa có lô nào) đứng ở trạng thái tắt.
+
+    Gọi lúc migrate và trước mỗi lần tạo lô / ghi kho có lô; nhớ theo request.
+    """
+    try:
+        from sx.utils import nho
+
+        m = nho("bat_lo")
+        if "x" in m:
+            return
+        m["x"] = 1
+        if not frappe.get_meta("Stock Settings").has_field(CONG_TAC_LO):
+            return      # ERPNext cũ chưa có công tắc này
+        if cint(frappe.db.get_single_value("Stock Settings", CONG_TAC_LO)):
+            return
+        frappe.db.set_single_value("Stock Settings", CONG_TAC_LO, 1)
+        frappe.db.set_default(CONG_TAC_LO, 1)
+    except Exception:
+        # Không bật được thì để phiếu kho tự báo lỗi gốc — đừng chặn thêm ở đây.
+        pass
+
 
 def dam_bao_quan_ly_lo(item_code):
     """Item có quản lý lô chưa; chưa thì bật nếu còn bật được (D103).
@@ -22,6 +51,7 @@ def dam_bao_quan_ly_lo(item_code):
         False, nơi gọi nhập KHÔNG có lô, và nói rõ ra để người quản lý biết mã
         này mất truy xuất theo lô.
     """
+    bat_lo_he_thong()
     if frappe.get_cached_value("Item", item_code, "has_batch_no"):
         return True
     co_gd = frappe.db.exists("Stock Ledger Entry",
@@ -452,6 +482,7 @@ def _gan_batch_fifo(se):
     """
     from erpnext.stock.doctype.batch.batch import get_batch_qty
 
+    bat_lo_he_thong()
     them = []
     for row in list(se.items):
         if row.get("is_finished_item") or not row.s_warehouse:
@@ -484,10 +515,12 @@ def _gan_batch_fifo(se):
                 "Batch", {"item": row.item_code}, "name", order_by="creation desc"
             )
             if not lo_am:
+                ten = frappe.get_cached_value("Item", row.item_code, "item_name") or row.item_code
                 frappe.throw(
-                    _("{0} chưa có lô nào trong hệ thống nên không ghi âm được. "
-                      "Nhập một phiếu nhập kho (hoặc Stock Reconciliation) có lô cho "
-                      "item này trước.").format(row.item_code)
+                    _("{0} chưa có lô nào trong kho (chưa từng nhập / làm ra lần nào) nên "
+                      "chưa trừ được. Bột nền: ghi xuất đỗ → rang → nghiền ra bột ở màn Rang "
+                      "đỗ; hàng mua: nhập mua có lô (hoặc Stock Reconciliation tồn đầu). Xong "
+                      "bấm Thử lại.").format(ten)
                 )
             if phan and phan[-1][0] == lo_am:
                 phan[-1] = (lo_am, phan[-1][1] + con_lai)

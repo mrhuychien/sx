@@ -301,6 +301,26 @@ SLE_GIA.add("DAU-XANH")
 kiem("có giá đỗ → ngày làm bột đậu không hỏi gì",
      C._thieu_gia_von_ngay(NGAY2, ut.get_settings()) == [])
 
+print("\n-- D126: công tắc lô của ERPNext v16 --")
+SS = {"enable_serial_and_batch_no_for_item": 0}
+GHI = []
+frappe.get_meta = lambda dt: types.SimpleNamespace(has_field=lambda f: f in SS)
+frappe.db.get_single_value = lambda dt, f: SS.get(f)
+frappe.db.set_single_value = lambda dt, f, v: (SS.__setitem__(f, v), GHI.append(f))
+frappe.db.set_default = lambda k, v: None
+M.bat_lo_he_thong()
+kiem("công tắc đang tắt → tự bật (khỏi lỗi 'Activate Serial and Batch No')",
+     SS["enable_serial_and_batch_no_for_item"] == 1 and len(GHI) == 1)
+M.bat_lo_he_thong()
+kiem("đã bật thì thôi, không ghi lại", len(GHI) == 1)
+SS.clear()
+M.bat_lo_he_thong()
+kiem("ERPNext cũ không có công tắc → không đụng gì", len(GHI) == 1)
+src = open("sx/api/mfg.py", encoding="utf-8").read()
+hk = open("sx/hooks.py", encoding="utf-8").read()
+kiem("gọi trước khi tạo lô / gán lô, và mỗi lần migrate",
+     src.count("    bat_lo_he_thong()") >= 2 and "sx.api.mfg.bat_lo_he_thong" in hk.split("after_migrate", 1)[1].split("\n")[0])
+
 print()
 if hong:
     print(f"GIAVON-HỎNG ({hong})")

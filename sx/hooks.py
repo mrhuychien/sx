@@ -37,8 +37,8 @@ doc_events = {
 scheduler_events = {"cron": {"*/5 * * * *": ["sx.api.dongbo.chay_tat_ca"]}}
 
 # Tạo role còn thiếu — chỉ TẠO, không sửa role đã có (D105).
-after_install = "sx.setup.dam_bao_role"
-after_migrate = ["sx.setup.dam_bao_role"]
+after_install = ["sx.setup.dam_bao_role", "sx.api.mfg.bat_lo_he_thong"]
+after_migrate = ["sx.setup.dam_bao_role", "sx.api.mfg.bat_lo_he_thong"]
 
 # ═══ Fixtures ═══
 fixtures = [
