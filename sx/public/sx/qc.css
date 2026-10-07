@@ -164,8 +164,10 @@ button.sx-qc-oso-khung:disabled { cursor: default; opacity: .7; }
 .sx-qc-tag-han { background: var(--sx-danger); color: #fff; }
 
 /* ── thanh đáy cố định ─────────────────────────────────────────────────── */
+/* Dính NGAY TRÊN thanh điều hướng (fixed, z 1000) chứ không dính đáy màn: bottom 0 thì
+   nút HOÀN TẤT LƯỢT nằm lọt dưới thanh tab, không bấm được (D125). */
 .sx-qc-day {
-  position: sticky; bottom: 0; z-index: 5;
+  position: sticky; bottom: calc(var(--sx-bottom-h) + env(safe-area-inset-bottom)); z-index: 5;
   display: flex; align-items: center; gap: var(--sx-s3);
   padding: var(--sx-s2) var(--sx-s3) var(--sx-s3);
   background: var(--sx-surface); border-top: 1px solid var(--sx-line);
