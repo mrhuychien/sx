@@ -1,0 +1,43 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-08 14:00:00.000000",
+ "description": "Đợt huỷ mẫu lưu hằng tháng (W07): QC đề xuất các mẫu đã hết hạn lưu, Trưởng Ban ISO xác nhận rồi mới huỷ. In biên bản kẹp hồ sơ.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["naming_series", "thang", "trang_thai", "column_break_1", "lap_boi", "lap_luc",
+                 "column_break_2", "xac_nhan_boi", "xac_nhan_luc", "section_ds", "ds", "section_ghi_chu", "ghi_chu"],
+ "fields": [
+  {"fieldname": "naming_series", "fieldtype": "Select", "label": "Số", "options": "HM-.YYYY.-.###", "default": "HM-.YYYY.-.###", "reqd": 1},
+  {"fieldname": "thang", "fieldtype": "Data", "label": "Tháng", "reqd": 1, "in_list_view": 1, "description": "MM/YYYY"},
+  {"fieldname": "trang_thai", "fieldtype": "Select", "label": "Trạng thái", "options": "Chờ xác nhận\nĐã huỷ\nTrả lại", "default": "Chờ xác nhận", "reqd": 1, "in_list_view": 1, "in_standard_filter": 1},
+  {"fieldname": "column_break_1", "fieldtype": "Column Break"},
+  {"fieldname": "lap_boi", "fieldtype": "Link", "label": "QC đề xuất", "options": "User", "read_only": 1},
+  {"fieldname": "lap_luc", "fieldtype": "Datetime", "label": "Đề xuất lúc", "read_only": 1},
+  {"fieldname": "column_break_2", "fieldtype": "Column Break"},
+  {"fieldname": "xac_nhan_boi", "fieldtype": "Link", "label": "Ban ISO xác nhận", "options": "User", "read_only": 1},
+  {"fieldname": "xac_nhan_luc", "fieldtype": "Datetime", "label": "Xác nhận lúc", "read_only": 1},
+  {"fieldname": "section_ds", "fieldtype": "Section Break", "label": "Mẫu trong đợt"},
+  {"fieldname": "ds", "fieldtype": "Table", "label": "Mẫu", "options": "SX QC Dot Huy Mau Item", "read_only": 1},
+  {"fieldname": "section_ghi_chu", "fieldtype": "Section Break"},
+  {"fieldname": "ghi_chu", "fieldtype": "Small Text", "label": "Ghi chú / lý do trả lại"}
+ ],
+ "links": [],
+ "modified": "2026-10-08 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Dot Huy Mau",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1, "print": 1},
+  {"role": "ISO Manager", "read": 1, "write": 1, "report": 1, "export": 1, "print": 1},
+  {"role": "SX QC", "read": 1, "create": 1, "report": 1, "print": 1},
+  {"role": "SX QC Packing", "read": 1, "create": 1, "report": 1, "print": 1},
+  {"role": "Production Manager", "read": 1, "report": 1},
+  {"role": "SX Quan Ly", "read": 1, "report": 1, "print": 1}
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "title_field": "thang",
+ "track_changes": 1
+}

@@ -35,7 +35,8 @@
   "column_break_tn",
   "nhom_can_coa",
   "section_luu_mau",
-  "luu_mau_so_ngay"
+  "luu_mau_so_ngay",
+  "luu_mau_so_thang"
  ],
  "fields": [
   {
@@ -227,12 +228,20 @@
   {
    "fieldname": "luu_mau_so_ngay",
    "fieldtype": "Int",
-   "label": "Lưu mẫu bao nhiêu ngày (mặc định)",
-   "description": "Hạn lưu gợi ý = ngày lấy mẫu + số ngày này; QC sửa được từng mẫu. Bỏ trống = 180."
+   "label": "Lưu mẫu bao nhiêu ngày (cũ — không dùng từ D133)",
+   "description": "Hạn lưu gợi ý = ngày lấy mẫu + số ngày này; QC sửa được từng mẫu. Bỏ trống = 180.",
+   "hidden": 1
+  },
+  {
+   "fieldname": "luu_mau_so_thang",
+   "fieldtype": "Int",
+   "label": "Lưu mẫu bao nhiêu tháng (tính từ NSX)",
+   "default": "12",
+   "description": "W07: 1 năm từ NSX. Mẫu không gắn lô thì tính từ ngày lấy mẫu."
   }
  ],
  "links": [],
- "modified": "2026-10-08 10:00:00.000000",
+ "modified": "2026-10-08 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

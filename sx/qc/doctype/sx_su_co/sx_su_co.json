@@ -26,6 +26,7 @@
   "section_mo_ta",
   "mo_ta",
   "lo_anh_huong",
+  "lo_tp",
   "so_luong",
   "section_xu_ly",
   "xu_ly_ngay",
@@ -198,6 +199,14 @@
    "description": "HSD / ngày nghiền / vị"
   },
   {
+   "fieldname": "lo_tp",
+   "fieldtype": "Link",
+   "label": "Lô thành phẩm",
+   "options": "Batch",
+   "search_index": 1,
+   "description": "Lô thành phẩm của sự cố / khiếu nại — mẫu lưu của lô này được GIỮ (không huỷ) tới khi phiếu đóng."
+  },
+  {
    "fieldname": "so_luong",
    "fieldtype": "Data",
    "label": "Số lượng"
@@ -265,7 +274,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 11:00:00.000000",
+ "modified": "2026-10-08 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX Su Co",

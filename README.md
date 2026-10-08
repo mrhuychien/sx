@@ -315,6 +315,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Lưu mẫu 1 năm từ NSX, gắn lô, giữ mẫu sự cố, huỷ tháng có Ban ISO (D133 — W07)
+
+- **Hạn lưu = NSX + 12 tháng** (SX QC Setting → "Lưu mẫu bao nhiêu tháng"; ô số ngày cũ
+  180 không còn dùng). Mẫu không gắn lô thì tính từ ngày lấy. Patch `d133_luu_mau_mot_nam`
+  nâng hạn của mẫu **đang lưu** lên ngày lấy + 12 tháng (không rút ngắn hạn nào).
+- **Gắn mẫu với lô**: form *Lấy mẫu* — chọn sản phẩm rồi bấm lô theo **HSD** in trên hộp
+  (mã lô ẩn, như W05); NSX / HSD lấy từ lô, hạn lưu tự tính. Lô không có trong hệ thống
+  thì ghi tay HSD như cũ.
+- **Giữ mẫu**: mẫu của lô có phiếu sự cố / khiếu nại **đang mở** tự được giữ — phiếu gắn
+  đúng lô (ô mới *Lô thành phẩm* trên SX Su Co) hoặc ô "lô ảnh hưởng" ghi HSD / mã lô
+  (05/04/2027, 05/04/27, 05.04.2027…). Ngoài ra bấm **🔒 GIỮ LẠI** (bắt buộc lý do) cho khiếu
+  nại / điều tra chưa có phiếu. Mẫu đang giữ không vào đợt huỷ, không huỷ được (cả Desk).
+- **Huỷ hằng tháng có Ban ISO xác nhận**: QC **không huỷ lẻ** nữa — bấm **ĐỀ XUẤT HUỶ n MẪU
+  ĐẾN HẠN** → đợt `SX QC Dot Huy Mau` (mẫu chuyển *Chờ huỷ*, vẫn trong tủ, vẫn lấy ra được
+  nếu có khiếu nại). Trưởng Ban ISO **XÁC NHẬN ĐÃ HUỶ** (mẫu → Đã huỷ; mẫu vừa bị giữ tự
+  trả về tủ) hoặc **TRẢ LẠI** (bắt buộc lý do). **🖨 BIÊN BẢN** in A4 có cột kết quả từng
+  mẫu + chỗ ký. Ban ISO vẫn huỷ lẻ được một mẫu (hỏng, mốc — trước hạn thì bắt lý do).
+- Nhắc việc QC: mẫu đến hạn chưa đề xuất, đợt chờ Ban ISO xác nhận.
+
 ## Truy xuất: cân bằng lô, diễn tập, bán phải chọn lô, bột nền quá hạn (D132 — W06)
 
 - **Bảng cân bằng lô** (thẻ lô trong Truy xuất): sản xuất / nhập = đã bán (trừ trả lại) +

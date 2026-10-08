@@ -1,0 +1,30 @@
+{
+ "actions": [],
+ "creation": "2026-10-08 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["luu_mau", "ten_san_pham", "lo_hsd", "so_luong", "dvt", "ngay_lay", "han_luu", "vi_tri", "ket_qua"],
+ "fields": [
+  {"fieldname": "luu_mau", "fieldtype": "Link", "label": "Mẫu", "options": "SX QC Luu Mau", "in_list_view": 1, "reqd": 1},
+  {"fieldname": "ten_san_pham", "fieldtype": "Data", "label": "Sản phẩm", "in_list_view": 1},
+  {"fieldname": "lo_hsd", "fieldtype": "Data", "label": "Lô / HSD", "in_list_view": 1},
+  {"fieldname": "so_luong", "fieldtype": "Float", "label": "Số lượng", "in_list_view": 1},
+  {"fieldname": "dvt", "fieldtype": "Data", "label": "Đơn vị"},
+  {"fieldname": "ngay_lay", "fieldtype": "Date", "label": "Ngày lấy", "in_list_view": 1},
+  {"fieldname": "han_luu", "fieldtype": "Date", "label": "Lưu đến", "in_list_view": 1},
+  {"fieldname": "vi_tri", "fieldtype": "Data", "label": "Vị trí"},
+  {"fieldname": "ket_qua", "fieldtype": "Data", "label": "Kết quả", "read_only": 1, "in_list_view": 1,
+   "description": "Ghi lúc Ban ISO xác nhận: Đã huỷ / Giữ lại (lô có sự cố, bấm giữ) / Đã lấy ra / Trả lại."}
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-08 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Dot Huy Mau Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

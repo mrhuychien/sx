@@ -1,13 +1,17 @@
-// #/qc/luumau — tủ lưu mẫu (D100).
+// #/qc/luumau — tủ lưu mẫu (D100, W07/D133).
 //
 // Tủ mẫu có giá trị đúng một lúc: khi khách khiếu nại lô X, mẫu lô X phải còn
 // đó và tìm ra ngay. Nên màn này làm ba việc, theo thứ tự hay cần:
 //   1. Mẫu ĐẾN HẠN HUỶ đứng đầu, viền đỏ — không ai phải nhớ đi dọn tủ.
 //   2. Tìm theo tên / lô / vị trí — khiếu nại tới là gõ lô vào là thấy.
-//   3. Lấy mẫu mới: sản phẩm + vị trí hay dùng hiện sẵn thành nút bấm.
+//   3. Lấy mẫu mới: sản phẩm + vị trí hay dùng hiện sẵn thành nút bấm, chọn LÔ
+//      theo HSD in trên hộp → hạn lưu tự tính NSX + 12 tháng (W07).
 //
-// Huỷ đúng hạn: một bước xác nhận. Huỷ sớm hoặc lấy ra: bắt buộc lý do — mẫu
-// biến mất mà không ai ghi vì sao thì tủ mẫu chỉ còn là cái tủ.
+// Huỷ (W07): QC KHÔNG huỷ lẻ — bấm ĐỀ XUẤT HUỶ gom mọi mẫu đến hạn thành một đợt
+// tháng, Trưởng Ban ISO xác nhận thì mẫu mới thành "Đã huỷ" và in biên bản. Mẫu
+// đang bị GIỮ (lô có sự cố / khiếu nại mở, hoặc bấm Giữ lại) không vào đợt huỷ.
+// Lấy ra: bắt buộc lý do — mẫu biến mất mà không ai ghi vì sao thì tủ mẫu chỉ
+// còn là cái tủ.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
@@ -124,10 +128,37 @@ export async function render(api) {
     container.appendChild(lay);
   }
 
-  container.appendChild(segment(
-    [{ v: 'Đang lưu', ten: `Đang lưu${dl.so_den_han ? ` · ${dl.so_den_han} đến hạn` : ''}` },
+  // Đợt huỷ chờ Ban ISO đứng trên cùng: chừng nào chưa xác nhận thì mẫu còn nằm
+  // trong tủ ở trạng thái Chờ huỷ, và QC chưa đề xuất được đợt mới.
+  (dl.dot_cho || []).forEach((d) => container.appendChild(veDot(d, dl, api)));
+  if (dl.duoc_ghi && dl.so_den_han && !(dl.dot_cho || []).length) {
+    const dx = el('button', 'sx-btn sx-btn-warn sx-btn-big sx-lm-dexuat',
+      `ĐỀ XUẤT HUỶ ${dl.so_den_han} MẪU ĐẾN HẠN`);
+    dx.type = 'button';
+    dx.addEventListener('click', () => confirm2Step({
+      title: 'Đề xuất đợt huỷ mẫu',
+      message: `Gom ${dl.so_den_han} mẫu đã hết hạn lưu (mẫu đang GIỮ không tính) thành một đợt `
+        + 'huỷ tháng. Mẫu chuyển "Chờ huỷ" và vẫn nằm trong tủ cho tới khi Trưởng Ban ISO xác nhận.',
+      confirmLabel: 'ĐỀ XUẤT HUỶ',
+      onConfirm: async () => {
+        try {
+          const r = await api.call('sx.api.qc.de_xuat_huy', {});
+          toast(`Đã đề xuất đợt ${r.name} · ${r.so_mau} mẫu — chờ Ban ISO`);
+          st.tab = 'Chờ huỷ';
+          render(api);
+        } catch (e) { toastErr(e.message); throw e; }
+      },
+    }));
+    container.appendChild(dx);
+  }
+
+  const seg = segment(
+    [{ v: 'Đang lưu', ten: `Đang lưu${dl.so_den_han ? `\n${dl.so_den_han} đến hạn` : ''}` },
+      { v: 'Chờ huỷ', ten: 'Chờ huỷ' },
       { v: 'Đã lấy ra', ten: 'Đã lấy ra' }, { v: 'Đã huỷ', ten: 'Đã huỷ' }],
-    st.tab, (v) => { st.tab = v; render(api); }));
+    st.tab, (v) => { st.tab = v; render(api); });
+  seg.classList.add('sx-lm-seg');      // 4 tab: số đến hạn xuống dòng riêng, không gãy 3 dòng
+  container.appendChild(seg);
 
   const tim = el('input', 'sx-textarea sx-qc-lm-tim');
   tim.type = 'search';
@@ -144,14 +175,94 @@ export async function render(api) {
   container.appendChild(ds);
   if (!dl.danh_sach.length) {
     ds.appendChild(khungTrong(st.q ? 'Không có mẫu nào khớp.'
-      : (st.tab === 'Đang lưu' ? 'Tủ mẫu đang trống.' : 'Chưa có mẫu nào.')));
+      : ({ 'Đang lưu': 'Tủ mẫu đang trống.', 'Chờ huỷ': 'Không có mẫu nào chờ huỷ.' }[st.tab]
+        || 'Chưa có mẫu nào.')));
   }
   dl.danh_sach.forEach((x) => ds.appendChild(veThe(x, dl, api)));
   if (st.q) setTimeout(() => { tim.focus(); tim.setSelectionRange(tim.value.length, tim.value.length); }, 0);
 }
 
+/** Thẻ một đợt huỷ chờ xác nhận. Ban ISO: XÁC NHẬN / TRẢ LẠI; ai cũng in được
+ *  biên bản (bản nháp trước khi ký, bản chính sau khi xác nhận). */
+function veDot(d, dl, api) {
+  const the = el('div', 'sx-qc-sc sx-qc-sc-cho sx-lm-dot');
+  the.appendChild(el('div', 'sx-qc-sc-ten',
+    `Đợt huỷ ${esc(d.name)} · tháng ${esc(d.thang || '')} · ${d.so_mau} mẫu`));
+  the.appendChild(el('div', 'sx-qc-goiy',
+    `${esc(d.lap_boi || '')} đề xuất ${esc(ngayVN(String(d.lap_luc || '').slice(0, 10)))} — `
+    + 'chờ Trưởng Ban ISO xác nhận. Mẫu vẫn trong tủ (tab Chờ huỷ).'));
+  const nut = el('div', 'sx-qc-lm-nut');
+  const inBb = el('button', 'sx-btn sx-btn-ghost', '🖨 BIÊN BẢN');
+  inBb.type = 'button';
+  inBb.addEventListener('click', () => inBienBan(d.name, api));
+  nut.appendChild(inBb);
+  if (dl.duoc_huy) {
+    const tra = el('button', 'sx-btn sx-btn-ghost', 'TRẢ LẠI');
+    tra.type = 'button';
+    tra.addEventListener('click', () => moTraLai(d, api));
+    nut.appendChild(tra);
+    const ok = el('button', 'sx-btn sx-btn-primary', 'XÁC NHẬN ĐÃ HUỶ');
+    ok.type = 'button';
+    ok.addEventListener('click', () => confirm2Step({
+      title: `Xác nhận đợt huỷ ${d.name}`,
+      message: `${d.so_mau} mẫu đã huỷ thật (đã bỏ khỏi tủ). Mẫu nào vừa bị GIỮ (lô có sự cố / `
+        + 'khiếu nại, bấm Giữ lại) sau lúc đề xuất sẽ tự trả về Đang lưu.',
+      confirmLabel: 'XÁC NHẬN ĐÃ HUỶ',
+      onConfirm: async () => {
+        try {
+          const r = await api.call('sx.api.qc.xac_nhan_huy', { dot: d.name, dong_y: 1 });
+          toast(`Đã huỷ ${r.da_huy} mẫu${r.giu_lai ? ` · ${r.giu_lai} mẫu đang giữ, trả về tủ` : ''}`);
+          st.tab = 'Đã huỷ';
+          render(api);
+        } catch (e) { toastErr(e.message); throw e; }
+      },
+    }));
+    nut.appendChild(ok);
+  }
+  the.appendChild(nut);
+  return the;
+}
+
+function moTraLai(d, api) {
+  const m = openModal({ kicker: 'Trả lại đợt huỷ', title: `${d.name} · ${d.so_mau} mẫu` });
+  m.body.appendChild(el('div', 'sx-modal-msg',
+    'Mọi mẫu trong đợt về lại Đang lưu. Ghi lý do để QC biết sửa gì trước khi đề xuất lại.'));
+  const ta = el('textarea', 'sx-textarea');
+  ta.rows = 3;
+  ta.placeholder = 'Lý do (bắt buộc)';
+  m.body.appendChild(ta);
+  const ok = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'TRẢ LẠI');
+  ok.type = 'button';
+  ok.addEventListener('click', async () => {
+    if (!ta.value.trim()) { toastErr('Phải ghi lý do.'); return; }
+    ok.disabled = true;
+    try {
+      await api.call('sx.api.qc.xac_nhan_huy', { dot: d.name, dong_y: 0, ly_do: ta.value.trim() });
+      toast('Đã trả lại đợt huỷ');
+      m.close();
+      st.tab = 'Đang lưu';
+      render(api);
+    } catch (e) { ok.disabled = false; toastErr(e.message); }
+  });
+  m.body.appendChild(ok);
+}
+
+// Cửa sổ mới, tự khai charset (about:blank không thừa kế) — cùng cách in tờ BM.08.01.
+async function inBienBan(dot, api) {
+  try {
+    const html = await api.call('sx.api.qc.in_bien_ban_huy', { dot });
+    const w = window.open('', '_blank');
+    if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+    w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+      + `<title>Biên bản huỷ mẫu — ${esc(dot)}</title></head><body>${html}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 250);
+  } catch (e) { toastErr(e.message); }
+}
+
 function veThe(x, dl, api) {
-  const lop = x.trang_thai !== 'Đang lưu' ? 'dong' : (x.den_han ? 'mo' : 'luu');
+  const lop = { 'Đang lưu': x.den_han && !x.giu ? 'mo' : 'luu', 'Chờ huỷ': 'cho' }[x.trang_thai] || 'dong';
   const the = el('div', `sx-qc-sc sx-qc-sc-${lop}`);
   const dau = el('div', 'sx-lm-dau');
   if (x.anh) {
@@ -162,39 +273,32 @@ function veThe(x, dl, api) {
     tb.addEventListener('click', () => xemAnh(x, api));
     dau.appendChild(tb);
   }
+  const lo = x.lo || (x.hsd ? `HSD ${ngayVN(x.hsd)}` : '');
   dau.appendChild(el('div', 'sx-qc-sc-ten',
-    `${esc(x.ten_san_pham || x.san_pham)}${x.lo ? ` · <span class="sx-qc-lm-lo">${esc(x.lo)}</span>` : ''}`));
+    `${esc(x.ten_san_pham || x.san_pham)}${lo ? ` · <span class="sx-qc-lm-lo">${esc(lo)}</span>` : ''}`));
   the.appendChild(dau);
   const meta = el('div', 'sx-qc-sc-meta');
   meta.appendChild(chip(`${x.so_luong} ${x.dvt || ''}`.trim()));
   if (x.vi_tri) meta.appendChild(chip(`📍 ${x.vi_tri}`));
-  meta.appendChild(el('span', null, `lấy ${esc(ngayVN(x.ngay_lay))} · lưu đến ${esc(ngayVN(x.han_luu))}`));
-  if (x.den_han) meta.appendChild(chip('đến hạn huỷ', 'han'));
+  meta.appendChild(el('span', null, `${x.nsx ? `NSX ${esc(ngayVN(x.nsx))} · ` : ''}`
+    + `lấy ${esc(ngayVN(x.ngay_lay))} · lưu đến ${esc(ngayVN(x.han_luu))}`));
+  if (x.giu) meta.appendChild(chip('🔒 đang giữ', 'giu'));
+  else if (x.den_han) meta.appendChild(chip('đến hạn huỷ', 'han'));
   else if (x.trang_thai === 'Đang lưu' && x.con_ngay <= 14) meta.appendChild(chip(`còn ${x.con_ngay} ngày`));
   the.appendChild(meta);
-  if (x.trang_thai !== 'Đang lưu') {
+  if (x.giu) the.appendChild(el('div', 'sx-qc-goiy sx-lm-giu', esc(x.giu)));
+  if (x.trang_thai === 'Chờ huỷ') {
+    the.appendChild(el('div', 'sx-qc-goiy',
+      `Trong đợt huỷ ${esc(x.dot_huy || '')} — chờ Ban ISO xác nhận.${x.giu ? ' Mẫu đang giữ sẽ trả về tủ.' : ''}`));
+  } else if (x.trang_thai !== 'Đang lưu') {
     the.appendChild(el('div', 'sx-qc-goiy',
       `${esc(x.trang_thai)} ${esc(ngayVN((x.xu_ly_luc || '').slice(0, 10)))}`
       + `${x.ly_do ? ` — ${esc(x.ly_do)}` : ''}`));
   }
+  if (!['Đang lưu', 'Chờ huỷ'].includes(x.trang_thai)) return the;
+
+  const nut = el('div', 'sx-qc-lm-nut');
   if (x.trang_thai === 'Đang lưu' && dl.duoc_ghi) {
-    const nut = el('div', 'sx-qc-lm-nut');
-    const huy = el('button', `sx-btn ${x.den_han ? 'sx-btn-primary' : 'sx-btn-ghost'}`, 'HUỶ MẪU');
-    huy.type = 'button';
-    huy.addEventListener('click', () => (x.den_han
-      ? confirm2Step({
-        title: `Huỷ mẫu ${x.ten_san_pham}`,
-        message: `Lô ${x.lo || '(không ghi lô)'} — đã hết hạn lưu ${ngayVN(x.han_luu)}.`,
-        confirmLabel: 'ĐÃ HUỶ MẪU',
-        onConfirm: async () => {
-          try {
-            await api.call('sx.api.qc.xu_ly_luu_mau', { name: x.name, hanh_dong: 'huy' });
-            toast('Đã ghi huỷ mẫu');
-            render(api);
-          } catch (e) { toastErr(e.message); throw e; }
-        },
-      })
-      : moLyDo(x, 'huy', api)));
     const them = el('button', 'sx-btn sx-btn-ghost', '📷 + ẢNH');
     them.type = 'button';
     them.title = 'Chụp thêm ảnh cho mẫu này';
@@ -216,15 +320,87 @@ function veThe(x, dl, api) {
       }
     });
     nut.appendChild(them);
+  }
+  // Giữ lại: QC và Ban ISO đều bấm được. Mẫu giữ vì lô có sự cố thì không có nút
+  // bỏ giữ — đóng phiếu sự cố là tự thôi giữ.
+  if (dl.duoc_ghi || dl.duoc_huy) {
+    if (x.giu_lai) {
+      const bo = el('button', 'sx-btn sx-btn-ghost', 'BỎ GIỮ');
+      bo.type = 'button';
+      bo.addEventListener('click', () => confirm2Step({
+        title: `Bỏ giữ mẫu ${x.ten_san_pham}`,
+        message: 'Mẫu hết hạn lưu sẽ được đưa vào đợt huỷ tháng tới.',
+        confirmLabel: 'BỎ GIỮ',
+        onConfirm: async () => {
+          try {
+            await api.call('sx.api.qc.giu_mau', { name: x.name, giu: 0 });
+            toast('Đã bỏ giữ');
+            render(api);
+          } catch (e) { toastErr(e.message); throw e; }
+        },
+      }));
+      nut.appendChild(bo);
+    } else if (!x.giu) {
+      const giu = el('button', 'sx-btn sx-btn-ghost', '🔒 GIỮ LẠI');
+      giu.type = 'button';
+      giu.title = 'Không huỷ mẫu này: khiếu nại / điều tra chưa xong';
+      giu.addEventListener('click', () => moGiu(x, api));
+      nut.appendChild(giu);
+    }
+  }
+  if (dl.duoc_ghi) {
     const ra = el('button', 'sx-btn sx-btn-ghost', 'LẤY RA');
     ra.type = 'button';
     ra.title = 'Mang mẫu đi dùng: khiếu nại, gửi kiểm nghiệm…';
     ra.addEventListener('click', () => moLyDo(x, 'lay_ra', api));
     nut.appendChild(ra);
-    nut.appendChild(huy);
-    the.appendChild(nut);
   }
+  // Huỷ lẻ một mẫu: chỉ Ban ISO (mẫu hỏng, mốc…). QC đi đường đợt huỷ tháng.
+  if (x.trang_thai === 'Đang lưu' && dl.duoc_huy && !x.giu) {
+    const huy = el('button', `sx-btn ${x.den_han ? 'sx-btn-primary' : 'sx-btn-ghost'}`, 'HUỶ MẪU');
+    huy.type = 'button';
+    huy.addEventListener('click', () => (x.den_han
+      ? confirm2Step({
+        title: `Huỷ mẫu ${x.ten_san_pham}`,
+        message: `${lo || 'Không ghi lô'} — đã hết hạn lưu ${ngayVN(x.han_luu)}.`,
+        confirmLabel: 'ĐÃ HUỶ MẪU',
+        onConfirm: async () => {
+          try {
+            await api.call('sx.api.qc.xu_ly_luu_mau', { name: x.name, hanh_dong: 'huy' });
+            toast('Đã ghi huỷ mẫu');
+            render(api);
+          } catch (e) { toastErr(e.message); throw e; }
+        },
+      })
+      : moLyDo(x, 'huy', api)));
+    nut.appendChild(huy);
+  }
+  if (nut.children.length) the.appendChild(nut);
   return the;
+}
+
+function moGiu(x, api) {
+  const m = openModal({ kicker: 'Giữ lại mẫu', title: `${x.ten_san_pham}${x.lo ? ` · ${x.lo}` : ''}` });
+  m.body.appendChild(el('div', 'sx-modal-msg',
+    'Mẫu giữ lại không vào đợt huỷ dù hết hạn lưu. Ghi rõ vì sao: khiếu nại của ai, điều tra gì…'
+    + ' (Lô đã có phiếu sự cố đang mở thì app tự giữ, không cần bấm.)'));
+  const ta = el('textarea', 'sx-textarea');
+  ta.rows = 3;
+  ta.placeholder = 'Lý do giữ (bắt buộc)';
+  m.body.appendChild(ta);
+  const ok = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'GIỮ LẠI');
+  ok.type = 'button';
+  ok.addEventListener('click', async () => {
+    if (!ta.value.trim()) { toastErr('Phải ghi lý do.'); return; }
+    ok.disabled = true;
+    try {
+      await api.call('sx.api.qc.giu_mau', { name: x.name, giu: 1, ly_do: ta.value.trim() });
+      toast('Đã giữ lại mẫu');
+      m.close();
+      render(api);
+    } catch (e) { ok.disabled = false; toastErr(e.message); }
+  });
+  m.body.appendChild(ok);
 }
 
 function moLyDo(x, hanhDong, api) {
@@ -258,7 +434,12 @@ function moLyDo(x, hanhDong, api) {
 
 function moLayMau(dl, api) {
   const m = openModal({ kicker: 'Lưu mẫu', title: 'Lấy mẫu mới' });
-  const f = { san_pham: '', ten: '', dvt: 'hộp', lo: '', so_luong: 1, vi_tri: '', han_luu: dl.han_mac_dinh };
+  const han = el('input', 'sx-textarea');
+  han.type = 'date';
+  han.value = dl.han_mac_dinh;
+  // han_luu chỉ gửi khi người dùng TỰ sửa ngày — còn lại server tính NSX của lô + số
+  // tháng ở Setting (W07), máy QC không tự quyết hạn lưu.
+  const f = { san_pham: '', ten: '', dvt: 'hộp', lo: '', batch: '', so_luong: 1, vi_tri: '', han_luu: '' };
 
   // ── sản phẩm: nút gợi ý + ô tìm ─────────────────────────────────────
   m.body.appendChild(el('div', 'sx-field-label', 'Sản phẩm'));
@@ -269,9 +450,11 @@ function moLayMau(dl, api) {
   tim.placeholder = 'gõ 2 chữ để tìm…';
   const kq = el('div', 'sx-qc-vi');
   const chonSp = (x) => {
+    const doi = f.san_pham !== x.item;
     f.san_pham = x.item; f.ten = x.ten;
     if (x.dvt) { f.dvt = x.dvt; dvt.value = x.dvt; veSl(); }
     veChon();
+    if (doi) taiLo();
   };
   const nutSp = (x) => {
     const b = el('button', `sx-qc-vi-o${f.san_pham === x.item ? ' sx-qc-vi-on' : ''}`, esc(x.ten));
@@ -305,12 +488,53 @@ function moLayMau(dl, api) {
   m.body.appendChild(tim);
   m.body.appendChild(kq);
 
-  // ── lô, số lượng, vị trí, hạn ───────────────────────────────────────
-  m.body.appendChild(el('div', 'sx-field-label', 'Lô / HSD (như in trên bao bì)'));
+  // ── lô (W07): chọn theo HSD in trên hộp — mã lô ẩn như mọi chỗ khác (W05) ──
+  m.body.appendChild(el('div', 'sx-field-label', 'Lô — chọn theo HSD in trên hộp'));
+  const loBox = el('div', 'sx-qc-vi sx-lm-lo-chon');
+  const loGoiY = el('div', 'sx-qc-goiy');
   const lo = el('input', 'sx-textarea');
   lo.type = 'text';
-  lo.placeholder = 'VD: HSD 29/03/2027 hoặc số lô';
-  lo.addEventListener('input', () => { f.lo = lo.value; });
+  lo.placeholder = 'Lô không có trong danh sách: ghi HSD / số lô như in trên bao bì';
+  lo.addEventListener('input', () => {
+    // Gõ tay = lô ngoài hệ thống → bỏ lô đã chọn, hạn lưu tính từ ngày lấy.
+    f.lo = lo.value;
+    if (f.batch) { f.batch = ''; veLo(); datHan(dl.han_mac_dinh); }
+  });
+  let dsLo = [];
+  function datHan(v) {
+    if (f.han_luu) return;              // người dùng đã tự sửa ngày → không đè
+    han.value = v || dl.han_mac_dinh;
+  }
+  function veLo() {
+    loBox.innerHTML = '';
+    dsLo.forEach((b) => {
+      const o = el('button', `sx-qc-vi-o${f.batch === b.batch ? ' sx-qc-vi-on' : ''}`,
+        `HSD ${esc(ngayVN(b.hsd))}${b.nsx ? `<small> · NSX ${esc(ngayVN(b.nsx))}</small>` : ''}`);
+      o.type = 'button';
+      o.addEventListener('click', () => {
+        f.batch = f.batch === b.batch ? '' : b.batch;
+        f.lo = f.batch ? `HSD ${ngayVN(b.hsd)}` : '';
+        lo.value = f.lo;
+        datHan(f.batch ? b.han_luu : dl.han_mac_dinh);
+        veLo();
+      });
+      loBox.appendChild(o);
+    });
+    loGoiY.textContent = !f.san_pham ? 'Chọn sản phẩm trước.'
+      : (dsLo.length ? (f.batch ? 'Hạn lưu = NSX của lô + '
+        + `${dl.so_thang_luu} tháng.` : 'Bấm chọn lô của mẫu.')
+        : 'Sản phẩm này chưa có lô nào có HSD trong hệ thống — ghi tay bên dưới.');
+  }
+  async function taiLo() {
+    f.batch = ''; dsLo = []; veLo();
+    datHan(dl.han_mac_dinh);
+    try {
+      dsLo = await api.call('sx.api.qc.lo_cua_sp', { san_pham: f.san_pham });
+    } catch (e) { toastErr(e.message); }
+    veLo();
+  }
+  m.body.appendChild(loBox);
+  m.body.appendChild(loGoiY);
   m.body.appendChild(lo);
 
   const hang = el('div', 'sx-qc-lm-hang');
@@ -355,10 +579,8 @@ function moLayMau(dl, api) {
   m.body.appendChild(vtGoiY);
   m.body.appendChild(vt);
 
-  m.body.appendChild(el('div', 'sx-field-label', `Lưu đến ngày (mặc định ${dl.so_ngay_luu} ngày)`));
-  const han = el('input', 'sx-textarea');
-  han.type = 'date';
-  han.value = f.han_luu;
+  m.body.appendChild(el('div', 'sx-field-label',
+    `Lưu đến ngày (mặc định NSX + ${dl.so_thang_luu} tháng; không chọn lô thì tính từ hôm nay)`));
   han.addEventListener('change', () => { f.han_luu = han.value; });
   m.body.appendChild(han);
 
@@ -389,4 +611,5 @@ function moLayMau(dl, api) {
   });
   m.body.appendChild(ok);
   veChon();
+  veLo();
 }

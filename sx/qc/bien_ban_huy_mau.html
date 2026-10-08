@@ -1,0 +1,50 @@
+{#- Biên bản huỷ mẫu lưu — một đợt tháng (W07, D133). A4 đứng, kẹp hồ sơ lưu mẫu.
+    Chữ ký = tài khoản + giờ server ghi lúc đề xuất / xác nhận; ô ký tay để ký lại. -#}
+<style>
+  @page { size: A4 portrait; margin: 12mm 10mm; }
+  .bb { font: 11px/1.3 "Times New Roman", serif; color: #000; }
+  .bb h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
+  .bb .ma { text-align: center; font-size: 10px; margin-bottom: 8px; }
+  .bb table { width: 100%; border-collapse: collapse; }
+  .bb td, .bb th { border: 1px solid #000; padding: 2px 5px; vertical-align: top; }
+  .bb th { background: #eee; }
+  .bb .so { text-align: right; white-space: nowrap; }
+  .bb tr { break-inside: avoid; }
+  .bb .ky { margin-top: 18px; width: 100%; }
+  .bb .ky td { border: 0; text-align: center; height: 60px; }
+</style>
+<div class="bb">
+  <h1>BIÊN BẢN HUỶ MẪU LƯU</h1>
+  <div class="ma">Đợt <b>{{ d.name }}</b> &nbsp;·&nbsp; Tháng {{ d.thang }} &nbsp;·&nbsp; {{ d.trang_thai }}</div>
+  <table style="margin-bottom:6px">
+    <tr><th style="width:22%">QC đề xuất</th><td>{{ d.lap_boi or "—" }}
+      {%- if d.lap_luc %} ({{ frappe.utils.format_datetime(d.lap_luc, "dd/MM/yyyy HH:mm") }}){% endif %}</td></tr>
+    <tr><th>Ban ISO xác nhận</th><td>{{ d.xac_nhan_boi or "chưa xác nhận" }}
+      {%- if d.xac_nhan_luc %} ({{ frappe.utils.format_datetime(d.xac_nhan_luc, "dd/MM/yyyy HH:mm") }}){% endif %}</td></tr>
+  </table>
+  {%- set da_xn = d.trang_thai != "Chờ xác nhận" %}
+  <table>
+    <tr><th style="width:5%">#</th><th>Sản phẩm</th><th>Lô / HSD</th><th style="width:10%">Số lượng</th>
+        <th style="width:11%">Ngày lấy</th><th style="width:11%">Lưu đến</th><th>Vị trí</th>
+        {%- if da_xn %}<th style="width:20%">Kết quả</th>{% endif %}</tr>
+    {% for r in d.ds %}
+    <tr><td class="so">{{ loop.index }}</td><td>{{ r.ten_san_pham }}</td><td>{{ r.lo_hsd or "—" }}</td>
+        <td class="so">{{ r.so_luong|int if r.so_luong == r.so_luong|int else r.so_luong }} {{ r.dvt or "" }}</td>
+        <td>{{ frappe.utils.formatdate(r.ngay_lay, "dd/MM/yyyy") if r.ngay_lay else "" }}</td>
+        <td>{{ frappe.utils.formatdate(r.han_luu, "dd/MM/yyyy") if r.han_luu else "" }}</td>
+        <td>{{ r.vi_tri or "" }}</td>
+        {%- if da_xn %}<td>{{ r.ket_qua or "" }}</td>{% endif %}</tr>
+    {% endfor %}
+  </table>
+  <div style="margin-top:6px">
+    {%- if da_xn %}
+    Đề xuất <b>{{ d.ds|length }}</b> mẫu — đã huỷ <b>{{ d.ds|selectattr("ket_qua", "equalto", "Đã huỷ")|list|length }}</b> mẫu.
+    Mẫu ghi "Giữ lại" / "Trả lại" vẫn nằm trong tủ mẫu.
+    {%- else %}
+    Đề xuất huỷ <b>{{ d.ds|length }}</b> mẫu — <b>CHƯA</b> huỷ: chờ Trưởng Ban ISO xác nhận.
+    {%- endif %}
+    Mẫu của lô có sự cố / khiếu nại đang mở không được huỷ.
+    {%- if d.ghi_chu %}<br>Ghi chú: {{ d.ghi_chu }}{% endif %}</div>
+  <table class="ky"><tr><td><b>QC thực hiện huỷ</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Trưởng Ban ISO</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

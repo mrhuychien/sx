@@ -140,6 +140,17 @@ fu.getdate = lambda x=None: (x if isinstance(x, date) else
                              date.fromisoformat(str(x)[:10]) if x else HOM_NAY)
 fu.nowdate = lambda: str(HOM_NAY)
 fu.add_days = lambda d, n: fu.getdate(d) + timedelta(days=n)
+
+
+def _add_months(d, n):
+    import calendar
+    d = fu.getdate(d)
+    m = d.month - 1 + n
+    y, m = d.year + m // 12, m % 12 + 1
+    return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
+
+
+fu.add_months = _add_months
 fu.get_datetime = lambda x=None: x
 fu.get_time = lambda x=None: x
 fu.time_diff_in_seconds = lambda a, b: 0
@@ -171,6 +182,7 @@ nap("sx.qc.san_pham", "sx/qc/san_pham.py")
 SC = nap("sx.qc.su_co", "sx/qc/su_co.py")
 nap("sx.qc.xuat", "sx/qc/xuat.py")
 nap("sx.qc.nhac", "sx/qc/nhac.py")
+nap("sx.qc.giu_mau", "sx/qc/giu_mau.py")
 R = nap("sx.qc.doctype.sx_qc_round.sx_qc_round",
         "sx/qc/doctype/sx_qc_round/sx_qc_round.py")
 LMC = nap("sx.qc.doctype.sx_qc_luu_mau.sx_qc_luu_mau",
@@ -179,7 +191,7 @@ Q = nap("sx.api.qc", "sx/api/qc.py")
 P = nap("sx.patches.d100_qc_may_va_lac", "sx/patches/d100_qc_may_va_lac.py")
 
 
-class LMDoc(Doc):
+class LMDoc(LMC.SXQCLuuMau):      # có gan_lo() như controller thật
     def insert(self, **kw):
         LMC.SXQCLuuMau.validate(self)
         self["name"] = f"LM-{len(LM) + 1:04d}"
@@ -392,13 +404,16 @@ def tao(**kw):
 
 r = tao()
 x = LM[-1]
-kiem("hạn lưu mặc định = ngày lấy + 180 ngày",
-     x.han_luu == HOM_NAY + timedelta(days=180), str(x.han_luu))
+kiem("hạn lưu mặc định = ngày lấy + 12 tháng (W07; mẫu không gắn lô)",
+     x.han_luu == date(2027, 9, 29), str(x.han_luu))
 kiem("ghi tên sản phẩm, người lấy, trạng thái Đang lưu",
      (x.ten_san_pham, x.lay_boi, x.trang_thai) == ("Bánh đậu xanh sen", "qc@x", "Đang lưu"))
+CAI_DAT["luu_mau_so_thang"] = 6
+tao()
+kiem("số tháng lưu lấy từ SX QC Setting", LM[-1].han_luu == date(2027, 3, 29))
 CAI_DAT["luu_mau_so_ngay"] = 30
 tao()
-kiem("số ngày lưu lấy từ SX QC Setting", LM[-1].han_luu == HOM_NAY + timedelta(days=30))
+kiem("ô số NGÀY cũ không còn tác dụng", LM[-1].han_luu == date(2027, 3, 29))
 CAI_DAT.clear()
 kiem("số lượng 0 → chặn", "lớn hơn 0" in (thu(lambda: tao(so_luong=0)) or ""))
 kiem("hạn lưu trước ngày lấy → chặn",
@@ -409,17 +424,27 @@ n = LM[0].name
 kiem("lấy ra không lý do → chặn",
      "lý do" in (thu(lambda: Q.xu_ly_luu_mau(n, "lay_ra")) or ""))
 kiem("… và mẫu vẫn Đang lưu", LM[0].trang_thai == "Đang lưu")
-kiem("huỷ TRƯỚC hạn không lý do → chặn",
+loi = thu(lambda: Q.xu_ly_luu_mau(n, "huy", "mốc"))
+kiem("QC KHÔNG tự huỷ mẫu được (W07: Ban ISO xác nhận) — kể cả có lý do",
+     loi is not None and "Ban ISO" in loi and LM[0].trang_thai == "Đang lưu", loi or "")
+VAI.clear(); VAI.add("ISO Manager")
+kiem("Ban ISO huỷ TRƯỚC hạn không lý do → chặn",
      "lý do" in (thu(lambda: Q.xu_ly_luu_mau(n, "huy")) or ""))
-LM[0].trang_thai = "Đang lưu"
+kiem("… và mẫu vẫn Đang lưu", LM[0].trang_thai == "Đang lưu")
+kiem("Ban ISO KHÔNG lấy mẫu ra được (việc của QC)",
+     thu(lambda: Q.xu_ly_luu_mau(n, "lay_ra", "x")) is not None)
+VAI.clear(); VAI.add("SX QC")
 Q.xu_ly_luu_mau(n, "lay_ra", "khiếu nại KH Hà Nội")
 kiem("lấy ra có lý do → Đã lấy ra, ghi người + giờ",
      (LM[0].trang_thai, LM[0].xu_ly_boi) == ("Đã lấy ra", "qc@x"))
-kiem("xử lý lần hai → chặn", thu(lambda: Q.xu_ly_luu_mau(n, "huy", "x")) is not None)
+kiem("xử lý lần hai → chặn",
+     "đã ở trạng thái" in (thu(lambda: Q.xu_ly_luu_mau(n, "lay_ra", "x")) or ""))
 LM[1].han_luu = HOM_NAY
-kiem("hết hạn thì huỷ không cần lý do",
+VAI.clear(); VAI.add("ISO Manager")
+kiem("Ban ISO: hết hạn thì huỷ không cần lý do",
      thu(lambda: Q.xu_ly_luu_mau(LM[1].name, "huy")) is None
      and LM[1].trang_thai == "Đã huỷ")
+VAI.clear(); VAI.add("SX QC")
 kiem("thao tác lạ → chặn", thu(lambda: Q.xu_ly_luu_mau(LM[-1].name, "xoa")) is not None)
 LM.clear()
 tao(); tao()
@@ -507,12 +532,12 @@ kiem("ô đo nhiệt độ hàn không mặc định 0",
      not any(jd[f].get("default") for f in jd if f.startswith("b8_nhiet_han")))
 st_ = {f["fieldname"] for f in json.load(open(
     "sx/qc/doctype/sx_qc_setting/sx_qc_setting.json", encoding="utf-8"))["fields"]}
-kiem("SX QC Setting có ngưỡng hàn, vị có lạc, số ngày lưu mẫu",
-     {"han_nhiet_min", "han_nhiet_max", "bot_co_lac", "luu_mau_so_ngay"} <= st_)
+kiem("SX QC Setting có ngưỡng hàn, vị có lạc, số tháng lưu mẫu",
+     {"han_nhiet_min", "han_nhiet_max", "bot_co_lac", "luu_mau_so_thang"} <= st_)
 lmj = json.load(open("sx/qc/doctype/sx_qc_luu_mau/sx_qc_luu_mau.json", encoding="utf-8"))
 kiem("trạng thái lưu mẫu khớp controller",
      next(f for f in lmj["fields"] if f["fieldname"] == "trang_thai")["options"].split("\n")
-     == [LMC.DANG_LUU, LMC.DA_LAY_RA, LMC.DA_HUY])
+     == [LMC.DANG_LUU, LMC.CHO_HUY, LMC.DA_LAY_RA, LMC.DA_HUY])
 
 qcjs = open("sx/public/sx/views/qc.js", encoding="utf-8").read()
 kiem("có tab Lưu mẫu", "['luumau', 'Lưu mẫu']" in qcjs and "qc_luumau.js" in qcjs)

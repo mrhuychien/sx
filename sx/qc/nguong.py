@@ -20,7 +20,8 @@ MAC_DINH = {
     "ghi_muon_phut": 45,
     "su_co_qua_han_ngay": 7,
     "do_am_toi_da": 13.0,
-    "luu_mau_so_ngay": 180,
+    "luu_mau_so_ngay": 180,          # cũ (D100) — từ D133 dùng luu_mau_so_thang
+    "luu_mau_so_thang": 12,          # W07: lưu mẫu 1 năm tính từ NSX
     # W03 (D128): ngưỡng phần bột đã chốt theo tài liệu 08/10/2026 — trước đó là
     # "chờ thẩm định" (chưa đặt thì chỉ ghi số). Rang lạc 150–180 °C, 30–40 phút;
     # hàn túi 150–190 °C. Sửa được trong SX QC Setting; để trống = số ở đây.

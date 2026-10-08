@@ -311,4 +311,10 @@ python3 scripts/test-banlo.py > /tmp/sx-banlo.log 2>&1 \
   && tail -1 /tmp/sx-banlo.log \
   || { cat /tmp/sx-banlo.log; loi=1; }
 
+# D133 (W07): lưu mẫu. Hạn tính sai, mẫu lô đang khiếu nại lọt vào đợt huỷ, QC tự huỷ
+# được hay biên bản ghi "đã huỷ" cả mẫu đã lấy ra — đều im lặng tới đúng ngày cần mẫu.
+python3 scripts/test-luumau.py > /tmp/sx-luumau.log 2>&1 \
+  && tail -1 /tmp/sx-luumau.log \
+  || { cat /tmp/sx-luumau.log; loi=1; }
+
 exit $loi

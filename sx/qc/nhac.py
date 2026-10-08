@@ -44,13 +44,15 @@ def _m(muc_do, tieu_de, chi_tiet, route):
             "route": route}
 
 
-def tinh(hom_nay, luot, su_co, ng, bot_nen=None):
+def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
-    `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06)."""
+    `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
+    `luu_mau` = {"den_han": n, "lau_nhat": ngày, "dot_cho": [{name, thang, lap_luc}]} (W07)."""
     nay = _d(hom_nay)
     ra = []
     ra += _nhac_bot_nen(nay, bot_nen or [])
+    ra += _nhac_luu_mau(nay, luu_mau or {})
     ra += _nhac_su_co(nay, su_co, ng)
     ra += _nhac_luot_tuan(nay, luot)
     ra += _nhac_luot_thieu(nay, luot)
@@ -75,6 +77,23 @@ def _nhac_bot_nen(nay, ds):
     return [_m(CAO, f"{len(qua)} lô bột nền quá {BOT_NEN_TOI_DA_NGAY} ngày (theo sổ kho)",
                f"{ct}{'…' if len(qua) > 3 else ''}. Dùng trước hoặc xử lý theo mục 8 Kho bột; "
                f"báo mẻ chưa đồng bộ thì tồn trên sổ còn treo.", "#/qc")]
+
+
+def _nhac_luu_mau(nay, lm):
+    """Mẫu lưu đến hạn chưa vào đợt huỷ; đợt huỷ chờ Ban ISO (W07). Mức thường: để quá
+    hạn vài ngày không hại gì — chỉ là tủ mẫu đầy và hồ sơ huỷ tháng bị trễ."""
+    ra = []
+    if int(lm.get("den_han") or 0):
+        lau = (nay - _d(lm["lau_nhat"])).days if lm.get("lau_nhat") else 0
+        ra.append(_m(THUONG, f"{lm['den_han']} mẫu lưu đến hạn huỷ",
+                     f"Hết hạn lưu, cái lâu nhất quá {lau} ngày — bấm ĐỀ XUẤT HUỶ để gom vào "
+                     f"đợt huỷ tháng, Ban ISO xác nhận.", "#/qc/luumau"))
+    for d in lm.get("dot_cho") or []:
+        cho = (nay - _d(d["lap_luc"])).days if d.get("lap_luc") else 0
+        ra.append(_m(THUONG, f"Đợt huỷ mẫu {d['name']} chờ Ban ISO xác nhận",
+                     f"Tháng {d.get('thang') or ''}, đề xuất {cho} ngày trước — mẫu nằm ở "
+                     f"trạng thái Chờ huỷ cho tới khi xác nhận.", "#/qc/luumau"))
+    return ra
 
 
 def _nhac_su_co(nay, su_co, ng):

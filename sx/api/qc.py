@@ -519,7 +519,20 @@ def nhac(ngay=None):
     su_co = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở"},
                            fields=["name", "ngay", "trang_thai", "xu_ly_ngay",
                                    "muc_do"])
-    return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton())}
+    return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton(),
+                                             _luu_mau_nhac(d))}
+
+
+def _luu_mau_nhac(d):
+    """Số mẫu đến hạn chưa vào đợt huỷ + đợt chờ Ban ISO (W07). Lỗi (chưa migrate) → {}."""
+    try:
+        ds, _g = _den_han_huy(d)
+        return {"den_han": len(ds), "lau_nhat": str(ds[0].han_luu) if ds else None,
+                "dot_cho": [dict(x, lap_luc=str(x.lap_luc or "")[:10]) for x in frappe.get_all(
+                    DHM, filters={"trang_thai": "Chờ xác nhận"},
+                    fields=["name", "thang", "lap_luc"])]}
+    except Exception:
+        return {}
 
 
 # Nhóm hàng BỘT NỀN (đỗ nghiền, tầng 1) — đọc thẳng Item.custom_sx_nhom như NHOM_BOT.
@@ -930,10 +943,46 @@ def _in_gia_tri(m, v):
 # khi có khiếu nại thì ai cũng cần tra ra "mẫu lô này còn không, nằm ở đâu".
 
 LM = "SX QC Luu Mau"
+DHM = "SX QC Dot Huy Mau"
+
+
+def _han_luu(goc):
+    """Hạn lưu mặc định = NSX (hoặc ngày lấy) + số tháng ở Setting (W07: 12 tháng)."""
+    from frappe.utils import add_months
+
+    return add_months(getdate(goc), cint(nguong()["luu_mau_so_thang"]) or 12)
 
 
 def _han_mac_dinh(ngay_lay):
-    return add_days(getdate(ngay_lay), cint(nguong()["luu_mau_so_ngay"]))
+    # Giữ tên cũ cho nơi gọi trước D133 — giờ tính theo THÁNG.
+    return _han_luu(ngay_lay)
+
+
+def _duoc_huy():
+    """Huỷ mẫu là việc Ban ISO xác nhận (W07) — QC chỉ đề xuất đợt huỷ."""
+    return bool(_sieu() or ISO in _roles())
+
+
+def _giu(ds):
+    from sx.qc.giu_mau import ly_do_giu
+
+    return ly_do_giu([{"name": x.name, "batch": x.get("batch"), "hsd": x.get("hsd"),
+                       "giu_lai": x.get("giu_lai"), "ly_do_giu": x.get("ly_do_giu")}
+                      for x in ds])
+
+
+TRUONG_LM = ["name", "san_pham", "ten_san_pham", "lo", "so_luong", "dvt", "ngay_lay",
+             "han_luu", "vi_tri", "trang_thai", "lay_boi", "ly_do", "xu_ly_boi", "xu_ly_luc",
+             "anh", "batch", "nsx", "hsd", "giu_lai", "ly_do_giu", "dot_huy"]
+
+
+def _den_han_huy(hom_nay=None):
+    """Mẫu Đang lưu đã hết hạn lưu và KHÔNG bị giữ — thứ được đưa vào đợt huỷ."""
+    hom_nay = getdate(hom_nay or nowdate())
+    ds = frappe.get_all(LM, filters={"trang_thai": "Đang lưu", "han_luu": ("<=", hom_nay)},
+                        fields=TRUONG_LM, order_by="han_luu asc", limit=500)
+    giu = _giu(ds)
+    return [x for x in ds if x.name not in giu], giu
 
 
 @frappe.whitelist()
@@ -941,7 +990,8 @@ def list_luu_mau(q=None, trang_thai="Đang lưu", limit=200):
     """Mẫu theo trạng thái (mặc định đang lưu), mẫu đến hạn huỷ lên đầu.
 
     Kèm gợi ý cho form lấy mẫu: sản phẩm và vị trí dùng gần đây — lấy mẫu là việc
-    lặp lại hằng ngày với cùng vài sản phẩm, cùng vài ngăn tủ.
+    lặp lại hằng ngày với cùng vài sản phẩm, cùng vài ngăn tủ. W07: mẫu đang bị GIỮ
+    (lô có sự cố / khiếu nại mở, hoặc bấm Giữ lại) kèm lý do; các đợt huỷ chờ Ban ISO.
     """
     _guard_qc()
     loc = {}
@@ -952,17 +1002,15 @@ def list_luu_mau(q=None, trang_thai="Đang lưu", limit=200):
         k = f"%{q.strip()}%"
         or_loc = {"ten_san_pham": ("like", k), "san_pham": ("like", k),
                   "lo": ("like", k), "vi_tri": ("like", k)}
-    ds = frappe.get_all(
-        LM, filters=loc, or_filters=or_loc,
-        fields=["name", "san_pham", "ten_san_pham", "lo", "so_luong", "dvt",
-                "ngay_lay", "han_luu", "vi_tri", "trang_thai", "lay_boi", "ly_do",
-                "xu_ly_boi", "xu_ly_luc", "anh"],
-        order_by="han_luu asc, ngay_lay desc", limit=cint(limit) or 200)
+    ds = frappe.get_all(LM, filters=loc, or_filters=or_loc, fields=TRUONG_LM,
+                        order_by="han_luu asc, ngay_lay desc", limit=cint(limit) or 200)
     hom_nay = getdate(nowdate())
+    giu = _giu([x for x in ds if x.trang_thai in ("Đang lưu", "Chờ huỷ")])
     for x in ds:
         x["den_han"] = x.trang_thai == "Đang lưu" and getdate(x.han_luu) <= hom_nay
         x["con_ngay"] = (getdate(x.han_luu) - hom_nay).days
-        for k in ("ngay_lay", "han_luu", "xu_ly_luc"):
+        x["giu"] = giu.get(x.name)
+        for k in ("ngay_lay", "han_luu", "xu_ly_luc", "nsx", "hsd"):
             x[k] = str(x[k]) if x.get(k) else ""
     # Không cần sắp lại: đến hạn ⇔ han_luu ≤ hôm nay, nên han_luu tăng dần đã đưa
     # mẫu đến hạn lên đầu.
@@ -976,16 +1024,38 @@ def list_luu_mau(q=None, trang_thai="Đang lưu", limit=200):
                               "dvt": x.dvt or ""}
         if x.vi_tri and x.vi_tri not in vt:
             vt.append(x.vi_tri)
+    den_han, _g = _den_han_huy(hom_nay)
     return {
         "danh_sach": ds,
-        "so_den_han": frappe.db.count(LM, {"trang_thai": "Đang lưu",
-                                           "han_luu": ("<=", hom_nay)}),
+        "so_den_han": len(den_han),
         "goi_y_sp": list(sp.values())[:8],
         "goi_y_vi_tri": vt[:8],
-        "so_ngay_luu": cint(nguong()["luu_mau_so_ngay"]),
-        "han_mac_dinh": str(_han_mac_dinh(hom_nay)),
+        "so_thang_luu": cint(nguong()["luu_mau_so_thang"]) or 12,
+        "han_mac_dinh": str(_han_luu(hom_nay)),
         "duoc_ghi": bool(_sieu() or _roles() & GHI_DUOC),
+        "duoc_huy": _duoc_huy(),
+        "dot_cho": [dict(d, so_mau=cint(frappe.db.count(
+            "SX QC Dot Huy Mau Item", {"parent": d.name, "parenttype": DHM})))
+            for d in frappe.get_all(DHM, filters={"trang_thai": "Chờ xác nhận"},
+                                    fields=["name", "thang", "lap_boi", "lap_luc"],
+                                    order_by="creation asc")],
     }
+
+
+@frappe.whitelist()
+def lo_cua_sp(san_pham):
+    """Các lô của một sản phẩm để chọn khi lấy mẫu — hiện theo HSD (W05: ẩn mã lô),
+    lô mới nhất trước. Kèm NSX và hạn lưu mặc định (NSX + 12 tháng)."""
+    _guard_qc()
+    if not san_pham:
+        return []
+    ds = frappe.get_all("Batch", filters={"item": san_pham, "expiry_date": ("is", "set"),
+                                          "disabled": 0},
+                        fields=["name", "manufacturing_date", "expiry_date", "batch_qty"],
+                        order_by="expiry_date desc", limit=30)
+    return [{"batch": b.name, "hsd": str(b.expiry_date), "nsx": str(b.manufacturing_date or ""),
+             "ton": flt(b.batch_qty, 2),
+             "han_luu": str(_han_luu(b.manufacturing_date or nowdate()))} for b in ds]
 
 
 @frappe.whitelist()
@@ -1010,15 +1080,23 @@ def tao_luu_mau(payload):
     _guard_ghi()
     p = json.loads(payload) if isinstance(payload, str) else dict(payload or {})
     ngay_lay = getdate(p.get("ngay_lay") or nowdate())
+    batch = (p.get("batch") or "").strip() or None
+    nsx = frappe.db.get_value("Batch", batch, "manufacturing_date") if batch else None
+    hsd = frappe.db.get_value("Batch", batch, "expiry_date") if batch else None
+    lo = (p.get("lo") or "").strip()
+    if batch and not lo and hsd:
+        lo = _("HSD {0}").format(getdate(hsd).strftime("%d/%m/%Y"))   # tìm theo chữ vẫn ra
     doc = frappe.get_doc({
         "doctype": LM,
         "san_pham": p.get("san_pham"),
-        "lo": (p.get("lo") or "").strip(),
+        "batch": batch,
+        "lo": lo,
         "so_luong": flt(p.get("so_luong")),
         "dvt": (p.get("dvt") or "").strip() or "hộp",
         "vi_tri": (p.get("vi_tri") or "").strip(),
         "ngay_lay": ngay_lay,
-        "han_luu": getdate(p.get("han_luu")) if p.get("han_luu") else _han_mac_dinh(ngay_lay),
+        # W07: 1 năm (Setting) tính từ NSX của lô; không gắn lô thì từ ngày lấy.
+        "han_luu": getdate(p.get("han_luu")) if p.get("han_luu") else _han_luu(nsx or ngay_lay),
         "ghi_chu": (p.get("ghi_chu") or "").strip(),
         "trang_thai": "Đang lưu",
         "lay_boi": frappe.session.user,
@@ -1033,12 +1111,21 @@ def tao_luu_mau(payload):
 def xu_ly_luu_mau(name, hanh_dong, ly_do=None):
     """Kết thúc lưu một mẫu: `hanh_dong` = 'huy' (hết hạn / huỷ sớm có lý do) hoặc
     'lay_ra' (dùng cho khiếu nại / kiểm nghiệm — bắt buộc lý do)."""
-    _guard_ghi()
+    _guard_qc()
     moi = {"huy": "Đã huỷ", "lay_ra": "Đã lấy ra"}.get(hanh_dong)
     if not moi:
         frappe.throw(_("Thao tác không hợp lệ: {0}").format(hanh_dong))
+    if hanh_dong == "huy" and not _duoc_huy():
+        # W07: huỷ mẫu là việc Ban ISO xác nhận. QC gom mẫu đến hạn thành đợt huỷ tháng.
+        frappe.throw(_("Huỷ mẫu cần Trưởng Ban ISO xác nhận — mẫu đến hạn thì bấm ĐỀ XUẤT "
+                       "HUỶ để gom vào đợt huỷ tháng."), frappe.PermissionError)
+    if hanh_dong == "lay_ra":
+        _guard_ghi()
     doc = frappe.get_doc(LM, name)
-    if doc.trang_thai != "Đang lưu":
+    # Mẫu đã vào đợt huỷ (Chờ huỷ) vẫn LẤY RA được — khiếu nại tới đúng lúc đó thì mẫu
+    # phải đi được ngay, không đợi Ban ISO trả lại cả đợt. Huỷ thì chỉ từ Đang lưu.
+    duoc_tu = ("Đang lưu", "Chờ huỷ") if hanh_dong == "lay_ra" else ("Đang lưu",)
+    if doc.trang_thai not in duoc_tu:
         frappe.throw(_("Mẫu {0} đã ở trạng thái {1}.").format(name, doc.trang_thai))
     doc.trang_thai = moi
     doc.ly_do = (ly_do or "").strip() or doc.ly_do
@@ -1046,6 +1133,98 @@ def xu_ly_luu_mau(name, hanh_dong, ly_do=None):
     doc.xu_ly_luc = now_datetime()
     doc.save()            # validate chặn thiếu lý do — cùng luật cho cả Desk
     return {"name": name, "trang_thai": moi}
+
+
+@frappe.whitelist()
+def giu_mau(name, giu=1, ly_do=None):
+    """Bật / tắt "Giữ lại" một mẫu (W07) — khiếu nại / điều tra chưa có phiếu."""
+    if not _duoc_huy():
+        _guard_ghi()
+    doc = frappe.get_doc(LM, name)
+    doc.giu_lai = 1 if cint(giu) else 0
+    doc.ly_do_giu = (ly_do or "").strip() if cint(giu) else doc.ly_do_giu
+    doc.save()
+    return {"name": name, "giu_lai": doc.giu_lai}
+
+
+@frappe.whitelist()
+def de_xuat_huy(ghi_chu=None):
+    """QC gom MỌI mẫu đến hạn lưu (không bị giữ) thành một đợt huỷ tháng (W07).
+    Mẫu chuyển "Chờ huỷ" — chưa huỷ cho tới khi Ban ISO xác nhận."""
+    _guard_ghi()
+    if frappe.get_all(DHM, filters={"trang_thai": "Chờ xác nhận"}, limit=1):
+        frappe.throw(_("Còn đợt huỷ chờ Ban ISO xác nhận — xác nhận / trả lại đợt đó trước."))
+    ds, _g = _den_han_huy()
+    if not ds:
+        frappe.throw(_("Không có mẫu nào đến hạn huỷ (mẫu đang bị giữ không tính)."))
+    hom_nay = getdate(nowdate())
+    d = frappe.get_doc({"doctype": DHM, "thang": hom_nay.strftime("%m/%Y"),
+                        "trang_thai": "Chờ xác nhận", "lap_boi": frappe.session.user,
+                        "lap_luc": now_datetime(), "ghi_chu": (ghi_chu or "").strip()})
+    for x in ds:
+        d.append("ds", {"luu_mau": x.name, "ten_san_pham": x.ten_san_pham or x.san_pham,
+                        "lo_hsd": x.lo or (f"HSD {x.hsd}" if x.hsd else ""),
+                        "so_luong": x.so_luong, "dvt": x.dvt, "ngay_lay": x.ngay_lay,
+                        "han_luu": x.han_luu, "vi_tri": x.vi_tri})
+    d.insert(ignore_permissions=True)
+    for x in ds:
+        frappe.db.set_value(LM, x.name, {"trang_thai": "Chờ huỷ", "dot_huy": d.name})
+    return {"name": d.name, "so_mau": len(ds)}
+
+
+@frappe.whitelist()
+def xac_nhan_huy(dot, dong_y=1, ly_do=None):
+    """Trưởng Ban ISO xác nhận đợt huỷ (W07). Đồng ý → mẫu "Đã huỷ", trừ mẫu bị GIỮ
+    từ lúc đề xuất (lô vừa có sự cố / bấm giữ) — trả về Đang lưu và nói ra. Không đồng ý
+    (bắt buộc lý do) → mọi mẫu về Đang lưu. Mỗi dòng của đợt ghi lại kết quả cho biên bản."""
+    _guard_manager()
+    d = frappe.get_doc(DHM, dot)
+    if d.trang_thai != "Chờ xác nhận":
+        frappe.throw(_("Đợt {0} không còn chờ xác nhận (đang: {1}).").format(dot, d.trang_thai))
+    dong_y = cint(dong_y)
+    ly_do = (ly_do or "").strip()
+    if not dong_y and not ly_do:
+        frappe.throw(_("Trả lại đợt huỷ thì phải ghi lý do."))
+    ten = [r.luu_mau for r in d.ds]
+    mau = {x.name: x for x in (frappe.get_all(LM, filters={"name": ("in", ten)},
+                                              fields=TRUONG_LM) if ten else [])}
+    luc = now_datetime()
+    giu = _giu([x for x in mau.values() if x.trang_thai == "Chờ huỷ"]) if dong_y else {}
+    dem = {"Đã huỷ": 0, "Giữ lại": 0, "Trả lại": 0}
+    for r in d.ds:
+        x = mau.get(r.luu_mau)
+        if not x or x.trang_thai != "Chờ huỷ":
+            # Đã lấy ra giữa chừng (khiếu nại) — ghi đúng việc đã xảy ra với mẫu.
+            kq = x.trang_thai if x else _("Không còn bản ghi")
+        elif not dong_y or x.name in giu:
+            frappe.db.set_value(LM, x.name, {"trang_thai": "Đang lưu", "dot_huy": None})
+            kq = "Trả lại" if not dong_y else "Giữ lại"
+        else:
+            frappe.db.set_value(LM, x.name, {
+                "trang_thai": "Đã huỷ", "xu_ly_boi": frappe.session.user, "xu_ly_luc": luc,
+                "ly_do": _("Huỷ định kỳ — đợt {0} (tháng {1}), Ban ISO xác nhận").format(
+                    d.name, d.thang)})
+            kq = "Đã huỷ"
+        if kq in dem:
+            dem[kq] += 1
+        if x and x.name in giu:      # "Giữ lại: <lý do bấm giữ>" / "Giữ lại — lô có sự cố…"
+            kq = giu[x.name] if giu[x.name].startswith("Giữ lại") else f"Giữ lại — {giu[x.name]}"
+        frappe.db.set_value("SX QC Dot Huy Mau Item", r.name, "ket_qua", kq)
+    if ly_do:
+        ly_do = (_("Ban ISO: {0}") if dong_y else _("Ban ISO trả lại: {0}")).format(ly_do)
+    d.db_set({"trang_thai": "Đã huỷ" if dong_y else "Trả lại",
+              "xac_nhan_boi": frappe.session.user, "xac_nhan_luc": luc,
+              "ghi_chu": "\n".join(t for t in ((d.ghi_chu or "").strip(), ly_do) if t)})
+    return {"name": dot, "da_huy": dem["Đã huỷ"], "giu_lai": dem["Giữ lại"],
+            "tra_lai": dem["Trả lại"], "giu": giu}
+
+
+@frappe.whitelist()
+def in_bien_ban_huy(dot):
+    """HTML A4 — biên bản huỷ mẫu lưu của một đợt."""
+    _guard_qc()
+    d = frappe.get_doc(DHM, dot)
+    return frappe.render_template("sx/qc/bien_ban_huy_mau.html", {"d": d})
 
 
 # ─────────────────────────────────────────────────────── ảnh lưu mẫu (D109) ──

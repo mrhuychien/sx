@@ -374,3 +374,13 @@ button.sx-qc-tag-chon {
   border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; cursor: pointer; padding: 0;
 }
 .sx-lm-anh-lon { width: 100%; height: auto; border-radius: var(--sx-radius-sm); margin-bottom: var(--sx-s2); }
+
+/* ── D133 (W07): giữ mẫu, đợt huỷ tháng chờ Ban ISO ─────────────────────── */
+.sx-qc-sc-cho { border-left: 4px solid var(--sx-warning); }
+.sx-qc-tag-giu { background: var(--sx-warning-soft); color: var(--sx-warning-text); font-weight: 700; }
+.sx-lm-giu { color: var(--sx-warning-text); font-weight: 600; }
+.sx-lm-dot { background: var(--sx-warning-soft); margin-top: var(--sx-s2); }
+.sx-lm-dexuat { margin-top: var(--sx-s2); }
+.sx-lm-lo-chon small { font-weight: 400; color: var(--sx-text-3); }
+.sx-qc-lm-nut { flex-wrap: wrap; }
+.sx-lm-seg > button { white-space: pre-line; padding: 2px 4px; }

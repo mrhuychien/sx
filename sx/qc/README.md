@@ -135,9 +135,13 @@ cố của ô gốc. Ngưỡng nhiệt độ hàn: *SX QC Setting* — **chưa �
 không bịa sự cố (như rang lạc).
 
 **Lưu mẫu** (`SX QC Luu Mau`, tab *Lưu mẫu*). QC chế biến / đóng gói lấy mẫu và xử
-lý; Ban ISO, QLSX xem. Hạn lưu mặc định = ngày lấy + *SX QC Setting → Lưu mẫu bao nhiêu
-ngày* (trống = 180 — **con số tạm, Ban ISO cần chốt**). Lấy mẫu ra (khiếu nại, kiểm
-nghiệm) và huỷ **trước hạn** bắt buộc lý do; hết hạn thì huỷ một bước.
+lý; Ban ISO, QLSX xem. Lấy mẫu ra (khiếu nại, kiểm nghiệm) bắt buộc lý do.
+**Từ D133 (W07):** hạn lưu = **NSX của lô + 12 tháng** (*SX QC Setting → Lưu mẫu bao
+nhiêu tháng*; ô số ngày cũ ẩn), mẫu gắn lô chọn theo HSD, mẫu của lô có sự cố / khiếu nại
+đang mở (hoặc bấm *Giữ lại*) được giữ (`sx/qc/giu_mau.py`), và **huỷ đi theo đợt tháng**:
+QC đề xuất (`SX QC Dot Huy Mau`, mẫu *Chờ huỷ*) → Trưởng Ban ISO xác nhận / trả lại →
+biên bản `bien_ban_huy_mau.html`. QC không còn nút huỷ lẻ; Ban ISO huỷ lẻ được (trước hạn
+bắt lý do).
 
 **Ảnh lưu mẫu (D109).** Form *Lấy mẫu* có **📷 CHỤP ẢNH** (mở thẳng camera sau) và
 **🖼 Ảnh có sẵn**, tối đa 4 ảnh một lần, 8 ảnh một mẫu. Ảnh được **nén ngay trên máy**
