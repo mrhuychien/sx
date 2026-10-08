@@ -1,0 +1,98 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:ten",
+ "creation": "2026-10-08 11:00:00.000000",
+ "description": "Danh mục công đoạn cho phiếu sự cố (W04). Tên theo QT.08 / KH.HACCP — bánh 16, bột 11 công đoạn. Đổi tên bằng Rename (bấm vào tên ở đầu form): mọi phiếu sự cố cũ tự đổi theo.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ten",
+  "day_chuyen",
+  "thu_tu",
+  "column_break_1",
+  "ma",
+  "ngung",
+  "section_ten_cu",
+  "ten_cu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên công đoạn",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "description": "Đúng tên trong QT.08 / KH.HACCP, có số thứ tự đầu (vd \"3 Rang đỗ\"). Muốn đổi tên công đoạn đã có thì dùng Rename, không sửa ô này."
+  },
+  {
+   "fieldname": "day_chuyen",
+   "fieldtype": "Select",
+   "label": "Dây chuyền",
+   "options": "Bánh\nBột\nChung",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "thu_tu",
+   "fieldtype": "Int",
+   "label": "Thứ tự",
+   "in_list_view": 1,
+   "description": "Thứ tự trong dây chuyền — danh sách chọn công đoạn xếp theo số này."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã nối vòng kiểm",
+   "set_only_once": 1,
+   "unique": 1,
+   "description": "Vòng kiểm tìm công đoạn theo mã này để gắn sự cố tự sinh. Công đoạn thêm mới không cần mã."
+  },
+  {
+   "default": "0",
+   "fieldname": "ngung",
+   "fieldtype": "Check",
+   "label": "Không dùng nữa",
+   "description": "Ẩn khỏi danh sách chọn khi ghi sự cố mới. Phiếu cũ vẫn giữ."
+  },
+  {
+   "fieldname": "section_ten_cu",
+   "fieldtype": "Section Break",
+   "label": "Lịch sử tên",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "ten_cu",
+   "fieldtype": "Small Text",
+   "label": "Tên cũ",
+   "read_only": 1,
+   "description": "Mỗi lần đổi tên ghi một dòng: tên cũ → tên mới, ai, lúc nào."
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-08 11:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Cong Doan",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1},
+  {"role": "ISO Manager", "read": 1, "write": 1, "create": 1, "report": 1, "export": 1},
+  {"role": "SX Quan Ly", "read": 1, "write": 1, "create": 1, "report": 1, "export": 1},
+  {"role": "SX QC", "read": 1, "report": 1},
+  {"role": "SX QC Packing", "read": 1, "report": 1},
+  {"role": "Production Manager", "read": 1, "report": 1},
+  {"role": "SX Ghi So", "read": 1}
+ ],
+ "sort_field": "thu_tu",
+ "sort_order": "ASC",
+ "title_field": "ten",
+ "track_changes": 1
+}

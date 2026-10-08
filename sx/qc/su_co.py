@@ -163,6 +163,22 @@ def canh_bao(doc):
     return ra
 
 
+def ten_cong_doan(ten_goc):
+    """Tên HIỆN TẠI của công đoạn mà mục kiểm trỏ tới (W04, D130).
+
+    Mục kiểm khai công đoạn bằng tên gốc trong muc.py; Ban ISO có thể đã đổi tên
+    trong SX QC Cong Doan cho khớp QT.08. Tra qua MÃ: tên gốc → mã → tên đang dùng.
+    Chưa có danh mục (chưa migrate) / không tìm thấy thì giữ tên gốc.
+    """
+    ma = M.MA_CONG_DOAN.get(ten_goc)
+    if not ma:
+        return ten_goc
+    try:
+        return frappe.db.get_value("SX QC Cong Doan", {"ma": ma}, "name") or ten_goc
+    except Exception:
+        return ten_goc
+
+
 def tao_tu_vong_kiem(doc):
     """Sinh phiếu sự cố cho mọi chỗ lệch, gắn hai chiều với lượt.
 
@@ -173,7 +189,10 @@ def tao_tu_vong_kiem(doc):
     chừng thì transaction cuộn lại, không để lại phiếu sự cố mồ côi.
     """
     doc.set("su_co", [])
+    ten_cd = {}
     for key, cong_doan, loai, muc_do, mo_ta in phat_hien(doc):
+        if cong_doan not in ten_cd:
+            ten_cd[cong_doan] = ten_cong_doan(cong_doan)
         m = M.THEO_F.get(key)
         sc = frappe.get_doc({
             "doctype": "SX Su Co",
@@ -181,7 +200,7 @@ def tao_tu_vong_kiem(doc):
             "nguon": "Vòng kiểm QC",
             "qc_round": doc.name,
             "muc": f'{m["so"]} {m["nhan"]}' if m else key,
-            "cong_doan": cong_doan,
+            "cong_doan": ten_cd[cong_doan],
             "loai": loai,
             # Mã oPRP cụ thể (W03): sự cố oPRP phải gắn đúng oPRP nào của KH.HACCP.
             "oprp": (m.get("oprp") or "") if (m and loai == "oPRP") else "",

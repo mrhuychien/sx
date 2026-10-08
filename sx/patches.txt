@@ -9,3 +9,4 @@ sx.patches.d100_qc_may_va_lac
 sx.patches.d113_vao_hop_nguoi_ghi
 sx.patches.d123_bo_chot
 sx.patches.d127_san_pham_cong_bo
+sx.patches.d130_cong_doan

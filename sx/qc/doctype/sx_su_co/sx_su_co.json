@@ -109,10 +109,11 @@
   },
   {
    "fieldname": "cong_doan",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "label": "Công đoạn",
-   "options": "\n1 Tiếp nhận, ngâm đỗ\n2 Luộc\n3 Rang\n4 Sàng cát\n5 Ủ\n6 Vỡ đỗ, nam châm\n7 Nghiền\n8 Kho bột\n9 Trộn\n10 Ủ sau trộn\n11 Ép khuôn\n12 Cân, khối lượng tịnh\n13 Hàn túi\n14 Nhãn, HSD\n15 Đóng thùng\n16 Lưu kho thành phẩm\nPRP\nBột: tiếp nhận\nBột: nhặt lạc\nBột: rang lạc\nBột: xay đường\nBột: trộn\nBột: đóng túi\nBột: đóng thùng",
-   "in_list_view": 1
+   "options": "SX QC Cong Doan",
+   "in_list_view": 1,
+   "description": "Danh mục ở SX QC Cong Doan (W04) — đổi tên công đoạn ở đó thì phiếu cũ đổi theo."
   },
   {
    "fieldname": "loai",
@@ -264,7 +265,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 10:00:00.000000",
+ "modified": "2026-10-08 11:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX Su Co",

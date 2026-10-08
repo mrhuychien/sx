@@ -190,10 +190,8 @@ qua cả hộp.
 
 ## Chỗ còn phải hỏi Ban ISO
 
-- **Tên 6 công đoạn** trong `muc.py: CONG_DOAN` có ghi `# cần xác nhận tên`
-  (1, 5, 9, 11, 15, 16). Mười công đoạn còn lại là những cái spec ghim theo số
-  trong luật map tự động nên chắc chắn đúng; sáu cái kia chỉ hiện khi người ta
-  tự chọn tay trên phiếu sự cố.
+- **Tên công đoạn** theo QT.08 / KH.HACCP (bánh 16, bột 11): từ D130 Ban ISO tự sửa
+  trong danh mục *SX QC Cong Doan* — xem mục D130 dưới.
 - ~~Ngưỡng rang lạc chờ thẩm định~~ — đã chốt ở W03 (D128), xem mục dưới.
 - ~~Mục "5 Ủ"~~ — đã thêm ở D129 (W01) với chữ **vải ủ**; phần còn chờ (chất vải,
   tần suất giặt, số tấm, giờ ủ tối đa) xem mục D129 dưới.
@@ -233,6 +231,19 @@ phiếu giấy để chép). Gửi ảnh / chữ phiếu giấy là sửa trong 
 
 Mã máy thật (`MA_MAY`): mới có máy nghiền M1/M2. Máy rang M3 và 3 máy gói bột chờ
 Cơ điện (C10) — điền vào `MA_MAY` là nhãn đổi theo, field giữ nguyên.
+
+## Danh mục công đoạn (D130 — W04)
+
+DocType **SX QC Cong Doan** (Desk): tên, dây chuyền (Bánh / Bột / Chung), thứ tự, mã nối
+vòng kiểm, "Không dùng nữa". Ô *Công đoạn* trên phiếu sự cố là Link tới danh mục này.
+
+- `bench migrate` tạo sẵn 24 công đoạn đang dùng (bánh 16, PRP, bột 7) đúng tên cũ — phiếu
+  cũ vẫn trỏ đúng. Giá trị lạ trên phiếu cũ cũng được tạo (dây chuyền Chung).
+- **Đổi tên cho khớp QT.08 / KH.HACCP: dùng Rename** (bấm tên ở đầu form trên Desk).
+  Frappe đổi luôn trên **mọi phiếu sự cố cũ**; danh mục ghi lịch sử tên cũ → mới.
+- **Bột còn thiếu 4 công đoạn** (bột 11 theo QT.08): thêm mới trên Desk, không cần mã.
+- Vòng kiểm gắn công đoạn theo **mã** (đặt một lần), nên đổi tên không làm sự cố tự sinh
+  trỏ sai. Công đoạn tắt "Không dùng nữa" thì không hiện khi ghi sự cố mới.
 
 ## Hai chỗ khai trùng, có test canh
 

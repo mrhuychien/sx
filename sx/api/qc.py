@@ -550,6 +550,22 @@ def _dong_su_co(ds):
     return ds
 
 
+def _ds_cong_doan():
+    """Công đoạn chọn được khi ghi sự cố — danh mục SX QC Cong Doan (W04), bỏ
+    công đoạn đã ngừng; bánh trước, bột sau, PRP cuối, theo thứ tự trong dây chuyền.
+    Chưa có danh mục (chưa migrate) thì dùng bảng gốc trong muc.py."""
+    try:
+        ds = frappe.get_all("SX QC Cong Doan", filters={"ngung": 0},
+                            fields=["name", "day_chuyen", "thu_tu"])
+    except Exception:
+        ds = []
+    if not ds:
+        return list(M.CONG_DOAN)
+    hang = {"Bánh": 0, "Bột": 1, "Chung": 2}
+    ds.sort(key=lambda x: (hang.get(x.day_chuyen, 3), cint(x.thu_tu), x.name))
+    return [x.name for x in ds]
+
+
 @frappe.whitelist()
 def list_incidents(trang_thai=None, tu=None, den=None, loai=None, cong_doan=None):
     _guard_qc()
@@ -571,7 +587,7 @@ def list_incidents(trang_thai=None, tu=None, den=None, loai=None, cong_doan=None
         order_by="ngay desc, creation desc")
     return {"danh_sach": _dong_su_co(ds),
             "duoc_dong": bool(_sieu() or ISO in _roles()),
-            "cong_doan": M.CONG_DOAN, "loai": list(M.LOAI_SU_CO),
+            "cong_doan": _ds_cong_doan(), "loai": list(M.LOAI_SU_CO),
             "quyet_dinh_sp": list(M.QUYET_DINH_SP)}
 
 

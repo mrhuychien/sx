@@ -292,4 +292,11 @@ python3 scripts/test-qcv2.py > /tmp/sx-qcv2.log 2>&1 \
   && tail -1 /tmp/sx-qcv2.log \
   || { cat /tmp/sx-qcv2.log; loi=1; }
 
+# D130 (W04): công đoạn thành danh mục, đổi tên lan sang phiếu cũ. Thiếu một tên đang
+# có trên phiếu cũ là phiếu đó không lưu lại được; vòng kiểm sinh sự cố tên cũ là lỗi
+# giữa lúc QC hoàn tất lượt.
+python3 scripts/test-congdoan.py > /tmp/sx-congdoan.log 2>&1 \
+  && tail -1 /tmp/sx-congdoan.log \
+  || { cat /tmp/sx-congdoan.log; loi=1; }
+
 exit $loi

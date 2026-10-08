@@ -48,36 +48,42 @@ DAU_NGAY_HOAC_TUAN = (DAU_SANG, TUAN)
 DOI_TEN_CU = {"Đầu ca": DAU_SANG, "Giữa ca": TRUA, "Cuối ca": CUOI_CHIEU}
 
 # ── Công đoạn (cho phiếu sự cố) ───────────────────────────────────────────
-# 10 công đoạn mà spec ghim theo SỐ trong luật map tự động (2,3,4,6,7,8,10,12,
-# 13,14) là chắc chắn. Sáu cái còn lại chỉ dùng khi người ta tự chọn tay —
-# TÊN của chúng cần Ban ISO xác nhận lại theo HD.08.01, đánh dấu ở đây để
-# không ai tưởng đã chốt.
-CONG_DOAN = [
-    "1 Tiếp nhận, ngâm đỗ",      # cần xác nhận tên
-    "2 Luộc",
-    "3 Rang",
-    "4 Sàng cát",
-    "5 Ủ",                       # cần xác nhận tên
-    "6 Vỡ đỗ, nam châm",
-    "7 Nghiền",
-    "8 Kho bột",
-    "9 Trộn",                    # cần xác nhận tên
-    "10 Ủ sau trộn",
-    "11 Ép khuôn",               # cần xác nhận tên
-    "12 Cân, khối lượng tịnh",
-    "13 Hàn túi",
-    "14 Nhãn, HSD",
-    "15 Đóng thùng",             # cần xác nhận tên
-    "16 Lưu kho thành phẩm",     # cần xác nhận tên
-    "PRP",
-    "Bột: tiếp nhận",
-    "Bột: nhặt lạc",
-    "Bột: rang lạc",
-    "Bột: xay đường",
-    "Bột: trộn",
-    "Bột: đóng túi",
-    "Bột: đóng thùng",
+# Từ D130 (W04) danh mục công đoạn là DocType "SX QC Cong Doan" — Ban ISO sửa tên
+# cho khớp QT.08 / KH.HACCP (bánh 16, bột 11), thêm công đoạn còn thiếu. Đổi tên
+# bằng Rename trên Desk: Frappe cập nhật luôn mọi phiếu sự cố cũ trỏ tới nó.
+#
+# Bảng dưới là BẢN GỐC để tạo sẵn (patch d130) và để vòng kiểm biết mục nào thuộc
+# công đoạn nào: mục kiểm trỏ tới công đoạn bằng TÊN GỐC (cột 2); lúc sinh sự cố,
+# tên gốc → MÃ (cột 1) → tên HIỆN TẠI trong DocType. Đổi tên không làm vòng kiểm lạc.
+# (mã, tên gốc, dây chuyền, thứ tự)
+CONG_DOAN_GOC = [
+    ("1", "1 Tiếp nhận, ngâm đỗ", "Bánh", 1),
+    ("2", "2 Luộc", "Bánh", 2),
+    ("3", "3 Rang", "Bánh", 3),
+    ("4", "4 Sàng cát", "Bánh", 4),
+    ("5", "5 Ủ", "Bánh", 5),
+    ("6", "6 Vỡ đỗ, nam châm", "Bánh", 6),
+    ("7", "7 Nghiền", "Bánh", 7),
+    ("8", "8 Kho bột", "Bánh", 8),
+    ("9", "9 Trộn", "Bánh", 9),
+    ("10", "10 Ủ sau trộn", "Bánh", 10),
+    ("11", "11 Ép khuôn", "Bánh", 11),
+    ("12", "12 Cân, khối lượng tịnh", "Bánh", 12),
+    ("13", "13 Hàn túi", "Bánh", 13),
+    ("14", "14 Nhãn, HSD", "Bánh", 14),
+    ("15", "15 Đóng thùng", "Bánh", 15),
+    ("16", "16 Lưu kho thành phẩm", "Bánh", 16),
+    ("PRP", "PRP", "Chung", 0),
+    ("bot-tiep-nhan", "Bột: tiếp nhận", "Bột", 1),
+    ("bot-nhat-lac", "Bột: nhặt lạc", "Bột", 2),
+    ("bot-rang-lac", "Bột: rang lạc", "Bột", 3),
+    ("bot-xay-duong", "Bột: xay đường", "Bột", 4),
+    ("bot-tron", "Bột: trộn", "Bột", 5),
+    ("bot-dong-tui", "Bột: đóng túi", "Bột", 6),
+    ("bot-dong-thung", "Bột: đóng thùng", "Bột", 7),
 ]
+CONG_DOAN = [t[1] for t in CONG_DOAN_GOC]
+MA_CONG_DOAN = {t[1]: t[0] for t in CONG_DOAN_GOC}
 
 LOAI_SU_CO = ("oPRP", "PRP", "Dị ứng", "Hiệu chỉnh hồ sơ", "Khác")
 MUC_DO = ("Thường", "Cao")
