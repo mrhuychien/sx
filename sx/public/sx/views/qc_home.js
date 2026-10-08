@@ -98,6 +98,14 @@ export async function render({ container, call, st }) {
   // cùng một nội dung trên một màn thì người đọc phải dừng lại kiểm xem chúng
   // có khác nhau không — mà chúng thì không.
 
+  // W15 (D140): động vật gây hại ghi theo TRẠM, lúc thấy — không gắn vào lượt nào. Thường
+  // QC quét tem ở trạm (camera mở thẳng phiếu); nút này cho lúc gõ mã / xem tuần / in sổ.
+  const dv = el('button', 'sx-btn sx-btn-ghost', '🐀 Động vật gây hại — ghi theo trạm, in BM.PRP');
+  dv.type = 'button';
+  dv.style.cssText = 'width:100%';
+  dv.addEventListener('click', () => { window.location.hash = '#/qc/dvgh'; });
+  container.appendChild(dv);
+
   // Nhập lại từ bản giấy = mở một ngày cũ. Viết hẳn ra thành câu, vì cái nút 📅
   // trên đầu màn không tự nói được nó dùng để làm việc đó.
   const giay = el('button', 'sx-btn sx-btn-ghost', 'Nhập lại từ bản giấy (chọn ngày cũ)');

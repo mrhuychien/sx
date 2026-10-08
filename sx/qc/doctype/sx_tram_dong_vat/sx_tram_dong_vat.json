@@ -1,0 +1,115 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:ma",
+ "creation": "2026-10-08 21:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ma",
+  "loai",
+  "khu",
+  "column_break_1",
+  "vi_tri",
+  "ngung",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã trạm",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "description": "R01–R21: bẫy chuột; C01–C19: bẫy / đèn côn trùng (thêm trạm thì R22…, C20…). Mã in trên tem QR dán tại trạm; không đổi sau khi tạo — bỏ trạm thì tích Ngừng dùng.",
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "loai",
+   "fieldtype": "Select",
+   "label": "Loại trạm",
+   "options": "Bẫy chuột\nBẫy côn trùng",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "khu",
+   "fieldtype": "Data",
+   "label": "Khu",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Nhắc gọi dịch vụ xét THEO KHU: cùng khu có dấu hiệu hai tuần liền. Chưa khai thì mỗi trạm tự là một khu."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vi_tri",
+   "fieldtype": "Data",
+   "label": "Vị trí đặt",
+   "in_list_view": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "ngung",
+   "fieldtype": "Check",
+   "label": "Ngừng dùng"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-08 21:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX Tram Dong Vat",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "ma",
+ "sort_order": "ASC",
+ "title_field": "ma"
+}

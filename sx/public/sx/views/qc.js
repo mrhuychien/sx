@@ -20,6 +20,9 @@ const MAN = {
   khieunai: '/assets/sx/sx/views/qc_khieunai.js',
   // W06 (D132): Ban ISO diễn tập truy xuất ngay trong màn QC.
   truyxuat: '/assets/sx/sx/views/qc_truyxuat.js',
+  // W15 (D140): động vật gây hại theo trạm — nút ở cuối Hôm nay; #/qc/dvgh/R05 là URL trên
+  // tem QR tại trạm.
+  dvgh: '/assets/sx/sx/views/qc_dvgh.js',
 };
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
@@ -30,7 +33,7 @@ function tachRoute() {
   const h = (window.location.hash || '#/qc').split('?')[0];
   const phan = h.replace('#/qc', '').split('/').filter(Boolean);
   if (!phan.length) return { man: 'home', tham_so: null };
-  if (phan[0] === 'round') return { man: 'round', tham_so: phan[1] || null };
+  if (phan[0] === 'round' || phan[0] === 'dvgh') return { man: phan[0], tham_so: phan[1] || null };
   return { man: MAN[phan[0]] ? phan[0] : 'home', tham_so: null };
 }
 
@@ -78,7 +81,7 @@ function veTab(dang, api) {
     const a = el('a', 'sx-qc-tab', ten);
     a.href = ma === 'home' ? '#/qc' : `#/qc/${ma}`;
     const on = ma === dang || (ma === 'incidents' && dang === 'khieunai')
-      || (ma === 'xuatxuong' && dang === 'luumau');
+      || (ma === 'xuatxuong' && dang === 'luumau') || (ma === 'home' && dang === 'dvgh');
     a.className = `sx-qc-tab${on ? ' sx-qc-seg-on' : ''}`;
     box.appendChild(a);
   });

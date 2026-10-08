@@ -44,12 +44,13 @@ def _m(muc_do, tieu_de, chi_tiet, route):
             "route": route}
 
 
-def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None):
+def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
     `luu_mau` = {"den_han": n, "lau_nhat": ngày, "dot_cho": [{name, thang, lap_luc}]} (W07).
-    `xuat_xuong` = {"cho_duyet": n, "lau_nhat": ngày gửi} — phiếu BM.08.04 chờ duyệt (W08)."""
+    `xuat_xuong` = {"cho_duyet": n, "lau_nhat": ngày gửi} — phiếu BM.08.04 chờ duyệt (W08).
+    `dong_vat` = {"co_du_lieu": bool, "khu_hai_tuan": [{khu, tram, tuan}]} — W15 (D140)."""
     nay = _d(hom_nay)
     ra = []
     ra += _nhac_bot_nen(nay, bot_nen or [])
@@ -59,7 +60,11 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None):
     ra += _nhac_luot_tuan(nay, luot)
     ra += _nhac_luot_thieu(nay, luot)
     ra += _nhac_xem_xet(nay, luot)
-    ra += _nhac_bay(luot)
+    ra += _nhac_dong_vat(dong_vat or {})
+    # Nhắc cũ theo số trạm có dấu hiệu ở lượt tuần (T2, không biết khu) — chỉ còn dùng khi
+    # nhà máy CHƯA ghi dấu hiệu theo trạm (W15); có dữ liệu trạm thì nhắc theo khu thay.
+    if not (dong_vat or {}).get("co_du_lieu"):
+        ra += _nhac_bay(luot)
     ra += _nhac_nguong(luot, ng)
     return sorted(ra, key=lambda x: 0 if x["muc_do"] == CAO else 1)
 
@@ -227,6 +232,14 @@ def _nhac_bay(luot):
                    f"Lặp lại nghĩa là xử lý tuần trước không ăn — gọi đơn vị "
                    f"diệt côn trùng.", "#/qc/history")]
     return []
+
+
+def _nhac_dong_vat(dv):
+    """Cùng KHU có dấu hiệu động vật gây hại hai tuần liền → gọi đơn vị dịch vụ (W15)."""
+    return [_m(CAO, f"{k['khu']}: động vật gây hại hai tuần liền",
+               f"Trạm {', '.join(k['tram'])} — tuần {_d(k['tuan'][0]).strftime('%d/%m')} và tuần "
+               f"{_d(k['tuan'][1]).strftime('%d/%m')}. Xử lý tại chỗ không ăn — gọi đơn vị dịch vụ.",
+               "#/qc/dvgh") for k in dv.get("khu_hai_tuan") or []]
 
 
 def _nhac_nguong(luot, ng):

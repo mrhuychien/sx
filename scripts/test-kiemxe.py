@@ -140,6 +140,7 @@ K = nap("sx.qc.kiem_xe", "sx/qc/kiem_xe.py")
 T = nap("sx.qc.tiep_nhan", "sx/qc/tiep_nhan.py")
 for t in ("san_pham", "su_co", "xuat", "nhac"):
     nap(f"sx.qc.{t}", f"sx/qc/{t}.py")
+nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
 nap("sx.api.qc", "sx/api/qc.py")
 A = nap("sx.api.qc_kiemxe", "sx/api/qc_kiemxe.py")
 

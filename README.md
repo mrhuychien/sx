@@ -315,6 +315,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Động vật gây hại theo trạm, BM.PRP.03 / BM.PRP.01 (D140 — W15)
+
+- Danh mục **trạm** `SX Tram Dong Vat`: patch tạo sẵn **R01–R21** (bẫy chuột) và **C01–C19** (bẫy /
+  đèn côn trùng). **Ban ISO khai khu + vị trí** từng trạm trên Desk theo sơ đồ đặt trạm (chưa khai
+  khu thì mỗi trạm tự là một khu). Thêm trạm: R22…, C20…; bỏ trạm: tích *Ngừng dùng*.
+- Màn QC → Hôm nay → **🐀 Động vật gây hại**: **QUÉT TEM TRẠM** (camera) hoặc **gõ mã** (`r5` = R05)
+  → chọn loại dấu hiệu, số lượng, xử lý tại chỗ, ngày (ghi bù từ giấy được). Chỉ ghi **khi thấy**
+  dấu hiệu — tuần nào trạm không có dòng nào thì trên sổ là "Không". Ghi nhầm: người ghi xoá được
+  trong ngày, Ban ISO xoá lúc nào cũng được.
+- **🖨 IN TEM QR TRẠM**: tem chứa URL `…/sx#/qc/dvgh/R05` — giơ camera điện thoại là mở thẳng phiếu
+  của trạm đó (quét trong app cũng nhận). In 100%, quét thử một tem trước khi dán.
+- **Nhắc gọi dịch vụ**: cùng **khu** có dấu hiệu **hai tuần liền** (tuần từ thứ Hai) → dòng đỏ trong
+  hộp nhắc màn Hôm nay + đầu màn 🐀. Sáng thứ Hai chưa ai ghi thì cặp hai tuần vừa qua vẫn được
+  nhắc. Đã ghi theo trạm thì nhắc cũ theo số trạm ở lượt tuần (T2) tự tắt. App chưa từng có nhắc
+  "phun định kỳ" — không có gì để bỏ.
+- **🖨 IN BM.PRP.03** (một tuần: từng trạm Có / Không, ngày, loại, xử lý, chỗ ký) và **🖨 IN BM.PRP.01**
+  (tháng: lưới trạm × tuần, mọi chuỗi ≥ 2 tuần liền theo khu). Nút ‹ › trên đầu màn đổi tuần /
+  tháng cần in.
+
 ## Kiểm xe BM.09.01 trên hoá đơn bán trừ kho và chuyến nhận nguyên liệu (D139 — W14)
 
 - Mục **Kiểm tra phương tiện vận chuyển** trên **Sales Invoice** (bán trừ kho — nhà máy không dùng

@@ -52,9 +52,12 @@ export function coCamera() {
 /**
  * Mở cửa sổ quét, camera bật ngay.
  *   loai: 'nv' | 'sp' — tra trong bảng nào của boot.ma_quet
+ *   tra(maGoc) → giá trị | undefined — tra bằng hàm thay cho bảng (D140: tem trạm động
+ *     vật gây hại chứa cả URL để camera điện thoại mở thẳng app; bảng tra khớp nguyên
+ *     chuỗi thì URL in từ máy chủ khác tên miền sẽ trượt).
  *   onTim(giaTri, maGoc)
  */
-export function moQuet({ ma_quet, loai, title = 'Quét mã', kicker = '', onTim }) {
+export function moQuet({ ma_quet, loai, tra, title = 'Quét mã', kicker = '', onTim }) {
   const bang = (ma_quet && ma_quet[loai]) || {};
   let dungLai = () => {};
   const m = openModal({ title, kicker, onClose: () => dungLai() });
@@ -77,7 +80,7 @@ export function moQuet({ ma_quet, loai, title = 'Quét mã', kicker = '', onTim 
   function nhan(ma) {
     const key = String(ma || '').trim();
     if (!key || xong) return false;
-    const gt = traBang(bang, key);
+    const gt = tra ? tra(key) : traBang(bang, key);
     if (!gt) {
       // Mã lạ phải NÓI RÕ: im lặng thì người ta quét đi quét lại một thẻ hỏng mà
       // không hiểu vì sao không ăn.

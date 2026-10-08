@@ -353,4 +353,10 @@ python3 scripts/test-kiemxe.py > /tmp/sx-kiemxe.log 2>&1 \
   && tail -1 /tmp/sx-kiemxe.log \
   || { cat /tmp/sx-kiemxe.log; loi=1; }
 
+# D140 (W15): động vật gây hại theo trạm. Khu dấu hiệu hai tuần liền không ai nhắc, chuỗi
+# giữa tháng rơi khỏi BM.PRP.01, mã quét ở máy lệch mã ở server — đều im lặng.
+python3 scripts/test-dongvat.py > /tmp/sx-dongvat.log 2>&1 \
+  && tail -1 /tmp/sx-dongvat.log \
+  || { cat /tmp/sx-dongvat.log; loi=1; }
+
 exit $loi

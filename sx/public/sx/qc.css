@@ -411,3 +411,23 @@ button.sx-qc-tag-chon {
 .sx-xx-muc { border-top: 1px solid var(--sx-line); padding: var(--sx-s2) 0; }
 .sx-xx-muc-ten { font-size: var(--sx-f-sm); margin-bottom: 4px; }
 .sx-xx-gc { margin-top: 4px; min-height: 36px; }
+
+/* ── D140 (W15): động vật gây hại theo trạm ─────────────────────────────── */
+.sx-dv-tuan { align-items: center; gap: var(--sx-s2); }
+.sx-dv-tuan > .sx-btn { flex: none; min-width: 44px; font-size: var(--sx-f-lg, 20px); }
+.sx-dv-tuan-ten { flex: 1; min-width: 0; text-align: center; }
+.sx-dv-go { display: flex; gap: var(--sx-s2); }
+.sx-dv-go .sx-textarea { flex: 1; min-width: 0; box-sizing: border-box; text-transform: uppercase; }
+.sx-dv-go .sx-textarea::placeholder { text-transform: none; }
+.sx-dv-khu { font-weight: 700; font-size: var(--sx-f-sm); margin-top: var(--sx-s2); }
+.sx-dv-nhom .sx-dv-khu { margin: 0 0 var(--sx-s2); }
+.sx-dv-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: var(--sx-s2); }
+.sx-dv-tram {
+  min-height: var(--sx-tap); padding: 4px 2px; font: inherit; font-weight: 800;
+  border: 1px solid var(--sx-line); border-radius: var(--sx-radius-sm);
+  background: var(--sx-surface); color: var(--sx-text); cursor: pointer;
+}
+.sx-dv-tram small { display: block; font-size: 10px; font-weight: 500; color: var(--sx-text-3); }
+.sx-dv-tram-co { background: var(--sx-danger-soft); border-color: var(--sx-danger); color: var(--sx-danger-text); }
+.sx-dv-tram-co small { color: var(--sx-danger-text); font-weight: 700; }
+.sx-dv-tram:disabled { cursor: default; opacity: 1; }

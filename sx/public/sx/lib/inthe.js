@@ -128,3 +128,33 @@ export function moTrangInThe(ds) {
 </body></html>`;
   return moTrang(html);
 }
+
+/**
+ * Tem QR dán tại trạm động vật gây hại (W15, D140). ds = [{ma, loai, khu, vi_tri, url}].
+ *
+ * QR chứa URL chứ không chỉ mã trạm: QC chưa mở app, giơ camera điện thoại lên là vào
+ * thẳng phiếu ghi dấu hiệu của trạm đó. Quét trong app cũng nhận (mã cuối URL). Mã trạm
+ * in TO bên dưới — tem bẩn, quét không ăn thì gõ mã.
+ */
+export function moTrangInTram(ds) {
+  const the = ds.map((t) => `
+    <div class="the">
+      <div class="ma">${esc(t.ma)}</div>
+      <div class="loai">${esc(t.loai || '')}${t.khu ? ` · ${esc(t.khu)}` : ''}</div>
+      ${veQR(t.url, 3)}
+      <div class="nhac">Thấy dấu hiệu động vật gây hại → quét mã này, ghi vào app</div>
+    </div>`).join('');
+  return moTrang(`<!doctype html><html lang="vi"><head><meta charset="utf-8">
+<title>Tem trạm động vật gây hại</title><style>${KHUNG}
+ .the { width: 46mm; border: 1px solid #999; border-radius: 3mm; padding: 3mm;
+   text-align: center; page-break-inside: avoid; }
+ .ma { font-size: 22pt; font-weight: 800; letter-spacing: 2px; line-height: 1; }
+ .loai { font-size: 8pt; color: #444; margin: 1mm 0 1.5mm; white-space: nowrap;
+   overflow: hidden; text-overflow: ellipsis; }
+ .nhac { font-size: 7pt; color: #555; margin-top: 1.5mm; line-height: 1.25; }
+</style></head><body>
+<div class="huongdan">${ds.length} tem. In ở 100%, quét thử MỘT tem bằng camera điện thoại
+ trước khi cắt dán. Dán nơi khô, ngang tầm mắt; tem ướt / bẩn thì in lại tem đó.</div>
+<div class="luoi">${the}</div>
+</body></html>`);
+}

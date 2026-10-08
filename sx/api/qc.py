@@ -29,6 +29,7 @@ from frappe.utils import (
     nowdate,
 )
 
+from sx.qc import dong_vat as _dong_vat
 from sx.qc import muc as M
 from sx.qc import nhac as _nhac
 from sx.qc import xuat
@@ -521,7 +522,8 @@ def nhac(ngay=None):
                            fields=["name", "ngay", "trang_thai", "xu_ly_ngay",
                                    "muc_do"])
     return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton(),
-                                             _luu_mau_nhac(d), _xuat_xuong_nhac())}
+                                             _luu_mau_nhac(d), _xuat_xuong_nhac(),
+                                             _dong_vat.nhac(d))}
 
 
 def _xuat_xuong_nhac():

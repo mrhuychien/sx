@@ -171,6 +171,7 @@ R = nap("sx.qc.doctype.sx_qc_round.sx_qc_round",
         "sx/qc/doctype/sx_qc_round/sx_qc_round.py")
 LMC = nap("sx.qc.doctype.sx_qc_luu_mau.sx_qc_luu_mau",
           "sx/qc/doctype/sx_qc_luu_mau/sx_qc_luu_mau.py")
+nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 
 

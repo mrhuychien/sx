@@ -228,7 +228,8 @@ for ten_mod, ten_file in [("sx.qc.muc", "sx/qc/muc.py"),
                           ("sx.qc.san_pham", "sx/qc/san_pham.py"),
                           ("sx.qc.su_co", "sx/qc/su_co.py"),
                           ("sx.qc.xuat", "sx/qc/xuat.py"),
-                          ("sx.qc.nhac", "sx/qc/nhac.py")]:
+                          ("sx.qc.nhac", "sx/qc/nhac.py"),
+                          ("sx.qc.dong_vat", "sx/qc/dong_vat.py")]:
     sp2 = importlib.util.spec_from_file_location(ten_mod, ten_file)
     mod2 = importlib.util.module_from_spec(sp2)
     sys.modules[ten_mod] = mod2

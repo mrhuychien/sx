@@ -14,3 +14,4 @@ sx.patches.d133_luu_mau_mot_nam
 sx.patches.d134_su_co_lo
 sx.patches.d136_kho_tra_ve
 sx.patches.d137_xuat_xuong
+sx.patches.d140_tram_dong_vat

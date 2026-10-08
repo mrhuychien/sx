@@ -144,6 +144,7 @@ nap("sx.qc.san_pham", "sx/qc/san_pham.py")
 nap("sx.qc.su_co", "sx/qc/su_co.py")
 nap("sx.qc.xuat", "sx/qc/xuat.py")
 nap("sx.qc.nhac", "sx/qc/nhac.py")
+nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 # chi_tiet_round đọc cả trăm thứ không liên quan tới bài này — thay bằng bản gọn.
 Q.chi_tiet_round = lambda name: {"name": name, "co_san_xuat_bot": next(
