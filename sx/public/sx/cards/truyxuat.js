@@ -396,9 +396,14 @@ function dongNcc(c) {
   if (!c) return '<div class="sx-warn-text">Chưa rõ nhà cung cấp — lô không gắn hoá đơn mua nào.</div>';
   const kl = c.ket_luan
     ? `<span class="sx-tx-kl ${c.ket_luan === 'Đạt' ? 'sx-tx-kl-ok' : 'sx-tx-kl-loi'}">${esc(c.ket_luan)}</span>` : '';
-  return `<div class="sx-tx-ncc">🏭 <b>${esc(c.ten_ncc || c.ncc || '?')}</b> ${kl}
+  // W09 (D138): NCC đã duyệt BM.07.02 chưa; W10: giấy tờ lô app ghi lúc tiếp nhận.
+  const duyet = c.ncc_duyet === undefined ? ''
+    : `<span class="sx-tx-kl ${c.ncc_duyet ? 'sx-tx-kl-ok' : 'sx-tx-kl-loi'}">${
+      c.ncc_duyet ? 'NCC đã duyệt' : 'NCC CHƯA duyệt'}</span>`;
+  return `<div class="sx-tx-ncc">🏭 <b>${esc(c.ten_ncc || c.ncc || '?')}</b> ${kl} ${duyet}
     <div class="sx-vh-meta">${esc(c.chung_tu || '')}${c.ngay ? ` · ${esc(ngayNgan(c.ngay))}` : ''}${
-      c.lo_ncc ? ` · lô NCC ${esc(c.lo_ncc)}` : ''}${c.coa ? ` · COA ${esc(c.coa)}` : ''}</div></div>`;
+      c.lo_ncc ? ` · lô NCC ${esc(c.lo_ncc)}` : ''}${c.coa ? ` · COA ${esc(c.coa)}` : ''}</div>${
+      c.giay_to ? `<div class="sx-vh-meta">📄 ${esc(c.giay_to)}</div>` : ''}</div>`;
 }
 
 function cay(ds) {

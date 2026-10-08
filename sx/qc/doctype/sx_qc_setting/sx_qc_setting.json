@@ -34,6 +34,7 @@
   "do_am_toi_da",
   "column_break_tn",
   "nhom_can_coa",
+  "nhom_can_aflatoxin",
   "section_luu_mau",
   "luu_mau_so_ngay",
   "luu_mau_so_thang",
@@ -224,6 +225,13 @@
    "description": "Dừa sấy / sữa bột / phụ liệu bột… Khai bằng NHÓM HÀNG thật trên site, không viết cứng trong code. Nhóm con của nhóm đã khai cũng tính."
   },
   {
+   "fieldname": "nhom_can_aflatoxin",
+   "fieldtype": "Table MultiSelect",
+   "label": "Nhóm hàng phải có kết quả aflatoxin khi tiếp nhận",
+   "options": "SX QC Nhom COA",
+   "description": "W10: lạc, đỗ… Lô thuộc nhóm này (kể cả nhóm con) mà ô Aflatoxin không phải 'Có' → tự chuyển Cách ly. Để trống = chưa áp luật."
+  },
+  {
    "fieldname": "section_luu_mau",
    "fieldtype": "Section Break",
    "label": "Lưu mẫu"
@@ -263,7 +271,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 19:00:00.000000",
+ "modified": "2026-10-08 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

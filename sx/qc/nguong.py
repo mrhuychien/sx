@@ -93,6 +93,8 @@ def nguong():
     # thì luật COA KHÔNG chạy. Không đoán bừa vài tên nhóm: đoán sai thì hoặc
     # chặn nhầm hàng tốt, hoặc cho qua đúng thứ cần chặn.
     ra["nhom_can_coa"] = [r.item_group for r in (s.get("nhom_can_coa") or [])] if s else []
+    # W10: cùng luật "rỗng = chưa khai = không chạy" — không đoán nhóm nào cần aflatoxin.
+    ra["nhom_can_aflatoxin"] = [r.item_group for r in (s.get("nhom_can_aflatoxin") or [])] if s else []
     # Mỗi dòng một mã / tên hàng. Rỗng = mặc định ở trên — không để rỗng thành
     # "không vị nào có lạc": thế là B1/B2/B7 lặng lẽ biến khỏi mọi lượt.
     khai = [x.strip() for x in str((s.get("bot_co_lac") if s else "") or "").split("\n")

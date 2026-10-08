@@ -24,12 +24,19 @@ doc_events = {
         "on_submit": "sx.api.tang1.on_submit_nhap_bot",
         "on_cancel": "sx.api.tang1.on_cancel_nhap_bot",
     },
-    # BM.07.03 — kiểm nguyên liệu đầu vào. Gắn vào Purchase Invoice chứ không
-    # Purchase Receipt: kho nguyên liệu nhập thẳng bằng hoá đơn mua.
-    "Purchase Invoice": {
-        "validate": "sx.qc.tiep_nhan.validate",
+    # BM.07.03 — kiểm nguyên liệu đầu vào. W10 (D138): chuyển sang phiếu nhập mua
+    # (Purchase Receipt); hoá đơn mua có trừ kho (đường cũ) vẫn kiểm như trước.
+    # W09 (D138): mua của NCC chưa duyệt BM.07.02 → chỉ cảnh báo.
+    "Purchase Receipt": {
+        "validate": ["sx.qc.tiep_nhan.validate", "sx.qc.ncc.canh_bao_mua"],
         "on_submit": "sx.qc.tiep_nhan.on_submit",
     },
+    "Purchase Invoice": {
+        "validate": ["sx.qc.tiep_nhan.validate", "sx.qc.ncc.canh_bao_mua"],
+        "on_submit": "sx.qc.tiep_nhan.on_submit",
+    },
+    "Purchase Order": {"validate": "sx.qc.ncc.canh_bao_mua"},
+    "Supplier": {"validate": "sx.qc.ncc.validate_supplier"},
     # W13 (D135): sổ khiếu nại BM.11.01 trên Issue — tự tìm lô theo (sản phẩm, HSD),
     # đóng / mở lại chỉ Ban ISO hoặc người được giao (chặn cả Desk).
     "Issue": {"validate": "sx.qc.khieu_nai.validate"},

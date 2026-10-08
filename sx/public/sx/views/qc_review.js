@@ -156,6 +156,24 @@ export async function render(api) {
   });
   ho_so.appendChild(nutIn);
 
+  // W09 (D138): danh sách nhà cung cấp được duyệt BM.07.02 — in từ dữ liệu Supplier.
+  const nutNcc = el('button', 'sx-btn sx-btn-ghost', '🖨 NCC ĐƯỢC DUYỆT (BM.07.02)');
+  nutNcc.type = 'button';
+  nutNcc.addEventListener('click', async () => {
+    nutNcc.disabled = true;
+    try {
+      const html = await call('sx.api.qc_ncc.in_ds_ncc');
+      const w = window.open('', '_blank');
+      if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+      w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+        + `<title>BM.07.02 — NCC được duyệt</title></head><body>${html}</body></html>`);
+      w.document.close();
+      w.focus();
+      setTimeout(() => w.print(), 400);
+    } catch (e) { toastErr(e.message); } finally { nutNcc.disabled = false; }
+  });
+  ho_so.appendChild(nutNcc);
+
   [['luot', 'vòng kiểm'], ['su_co', 'sự cố']].forEach(([loai, ten]) => {
     const b = el('button', 'sx-btn sx-btn-ghost', `⬇ CSV ${ten}`);
     b.type = 'button';

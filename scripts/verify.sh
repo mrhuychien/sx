@@ -341,4 +341,10 @@ python3 scripts/test-xuatxuong.py > /tmp/sx-xuatxuong.log 2>&1 \
   && tail -1 /tmp/sx-xuatxuong.log \
   || { cat /tmp/sx-xuatxuong.log; loi=1; }
 
+# D138 (W09, W10): NCC được duyệt + tiếp nhận trên phiếu nhập mua. Tự duyệt NCC, chặn
+# nhầm mua hàng, lô nhập khẩu không COA "Đạt", lô cách ly nhập chung kho — đều im lặng.
+python3 scripts/test-ncc.py > /tmp/sx-ncc.log 2>&1 \
+  && tail -1 /tmp/sx-ncc.log \
+  || { cat /tmp/sx-ncc.log; loi=1; }
+
 exit $loi

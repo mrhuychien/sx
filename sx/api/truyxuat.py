@@ -315,8 +315,9 @@ class _Ctx:
                                         ["supplier", "supplier_name"], as_dict=True) or {}
                 ra = {"ncc": v.get("supplier"), "ten_ncc": v.get("supplier_name") or v.get("supplier"),
                       "loai_ct": m["loai"], "chung_tu": m["chung_tu"], "ngay": m["ngay"]}
-                if m["loai"] == "Purchase Invoice":
-                    ra.update(_qc_tiep_nhan(m["chung_tu"], batch))
+                if m["loai"] in ("Purchase Invoice", "Purchase Receipt"):
+                    ra.update(_qc_tiep_nhan(m["chung_tu"], batch, m["loai"]))
+                ra.update(_ncc_duyet(v.get("supplier")))
                 break
         if not ra:
             # Lô tạo tay / nhập tồn đầu: Batch có thể vẫn ghi NCC + chứng từ gốc.
@@ -382,20 +383,32 @@ class _Ctx:
         return sorted(ra.values(), key=lambda x: (x.get("nsx") or "", x["batch"]))
 
 
-def _qc_tiep_nhan(pi, batch):
-    """Kết luận tiếp nhận của DÒNG hoá đơn chứa lô (BM.07.03, sx/qc/tiep_nhan)."""
+def _ncc_duyet(supplier):
+    """NCC đã duyệt BM.07.02 chưa (W09) — cho khối Nhà cung cấp trên thẻ lô."""
+    from sx.qc.ncc import thong_tin
+
+    t = thong_tin(supplier)
+    return {"ncc_duyet": t.get("duyet"), "ncc_loai": t.get("loai") or ""} if t else {}
+
+
+def _qc_tiep_nhan(pi, batch, dt="Purchase Invoice"):
+    """Kết luận tiếp nhận của DÒNG chứng từ mua chứa lô (BM.07.03, sx/qc/tiep_nhan) —
+    hoá đơn mua (đường cũ) hoặc phiếu nhập mua (W10, D138)."""
     cot = ["item_code", "batch_no", "custom_ncc_lo", "custom_ket_luan", "custom_coa_vi_sinh"]
     try:
-        dong = frappe.get_all("Purchase Invoice Item", filters={"parent": pi}, fields=cot)
+        dong = frappe.get_all(f"{dt} Item", filters={"parent": pi}, fields=cot + ["custom_giay_to"])
     except Exception:
-        return {}   # site chưa có field QC tiếp nhận
+        try:
+            dong = frappe.get_all(f"{dt} Item", filters={"parent": pi}, fields=cot)
+        except Exception:
+            return {}   # site chưa có field QC tiếp nhận
     item = frappe.db.get_value("Batch", batch, "item")
     r = next((d for d in dong if d.batch_no == batch), None) \
         or next((d for d in dong if d.item_code == item), None)
     if not r:
         return {}
     return {"lo_ncc": r.custom_ncc_lo, "ket_luan": r.custom_ket_luan,
-            "coa": r.custom_coa_vi_sinh}
+            "coa": r.custom_coa_vi_sinh, "giay_to": r.get("custom_giay_to") or ""}
 
 
 # ═══════════════════════════════ sổ cái lô ═══════════════════════════════

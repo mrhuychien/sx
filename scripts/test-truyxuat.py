@@ -281,6 +281,12 @@ TH_LO = {}          # W26 (D136): trạng thái thu hồi — module thật có 
 th = types.ModuleType("sx.api.thuhoi")
 th.thong_tin = lambda b: TH_LO.get(b, {"dang": False, "duoc": False})
 sys.modules["sx.api.thuhoi"] = th
+NCC_DUYET = {}      # W09 (D138): NCC đã duyệt BM.07.02 — module thật có test riêng (test-ncc)
+_qc = types.ModuleType("sx.qc"); _qc.__path__ = []
+sys.modules["sx.qc"] = _qc
+_ncc = types.ModuleType("sx.qc.ncc")
+_ncc.thong_tin = lambda s: NCC_DUYET.get(s, {})
+sys.modules["sx.qc.ncc"] = _ncc
 
 
 def nap(ten, p):
@@ -408,6 +414,11 @@ kiem("mẫu lưu: khớp theo HSD ghi tay + theo ngày; mã khác / ngày khác 
 print("\n-- xuôi từ lô đỗ NCC (thu hồi) --")
 d = T.lo("DX-NCC1")
 kiem("lô NCC: hiện nhà cung cấp", d["ncc"] and d["ncc"]["ten_ncc"] == "NCC An Phát")
+kiem("lô NCC: chưa có dữ liệu duyệt NCC → không bịa cờ duyệt", "ncc_duyet" not in d["ncc"])
+NCC_DUYET[d["ncc"]["ncc"]] = {"duyet": True, "loai": "Nguyên liệu thực phẩm"}
+d = T.lo("DX-NCC1")
+kiem("lô NCC: NCC đã duyệt BM.07.02 hiện trên thẻ lô (W09)",
+     d["ncc"]["ncc_duyet"] is True and d["ncc"]["ncc_loai"] == "Nguyên liệu thực phẩm")
 x = phang(d["xuoi"])
 tp = sorted(n["batch"] for n in x if n.get("la_tp"))
 kiem("tới MỌI lô TP làm từ nó, kể cả lô trừ bù nợ BOM", tp == ["NB-1", "SEN-061026", "SEN-071026"], tp)

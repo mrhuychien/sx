@@ -67,6 +67,15 @@ frappe.utils = types.ModuleType("frappe.utils")
 frappe.utils.flt = lambda v, p=None: (round(float(v or 0), p) if p is not None
                                       else float(v or 0))
 frappe.utils.cint = lambda v: int(float(v or 0))
+# D138 (W10): tiep_nhan dùng thêm getdate / nowdate (luật giấy tờ) — test riêng ở test-ncc.
+from datetime import date as _date  # noqa: E402
+
+frappe.utils.getdate = lambda x=None: (x if isinstance(x, _date) else
+                                       _date.fromisoformat(str(x)[:10]) if x else _date(2026, 10, 8))
+frappe.utils.nowdate = lambda: "2026-10-08"
+frappe.utils.now_datetime = lambda: "2026-10-08 10:00:00"
+frappe.session = types.SimpleNamespace(user="kho@x")
+frappe.get_roles = lambda u=None: []
 sys.modules["frappe"] = frappe
 sys.modules["frappe.utils"] = frappe.utils
 
@@ -85,6 +94,8 @@ def nap(ten, duong):
 
 
 NG = nap("sx.qc.nguong", "sx/qc/nguong.py")
+nap("sx.qc.quyen", "sx/qc/quyen.py")
+nap("sx.qc.ncc", "sx/qc/ncc.py")
 T = nap("sx.qc.tiep_nhan", "sx/qc/tiep_nhan.py")
 
 hong = 0

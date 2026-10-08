@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "creation": "2026-10-08 20:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["loai_ho_so", "so_hieu", "ngay_cap", "het_han", "tep", "ghi_chu"],
+ "fields": [
+  {"fieldname": "loai_ho_so", "fieldtype": "Select", "label": "Loại hồ sơ", "reqd": 1, "in_list_view": 1,
+   "columns": 3,
+   "options": "Đăng ký kinh doanh\nGiấy chứng nhận cơ sở đủ điều kiện ATTP\nChứng nhận HACCP / ISO 22000\nBản công bố sản phẩm\nPhiếu kiểm nghiệm sản phẩm (năm)\nPhiếu kiểm nghiệm bao bì (năm)\nHợp đồng / đơn hàng\nKhác"},
+  {"fieldname": "so_hieu", "fieldtype": "Data", "label": "Số hiệu", "in_list_view": 1, "columns": 2},
+  {"fieldname": "ngay_cap", "fieldtype": "Date", "label": "Ngày cấp", "in_list_view": 1, "columns": 1},
+  {"fieldname": "het_han", "fieldtype": "Date", "label": "Hết hạn", "in_list_view": 1, "columns": 1,
+   "description": "Phiếu kiểm nghiệm năm: thường 1 năm từ ngày cấp. Để trống = không có hạn."},
+  {"fieldname": "tep", "fieldtype": "Attach", "label": "Bản chụp", "in_list_view": 1, "columns": 2},
+  {"fieldname": "ghi_chu", "fieldtype": "Data", "label": "Ghi chú"}
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-08 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX Ho So NCC",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

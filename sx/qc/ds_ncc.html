@@ -1,0 +1,39 @@
+{#- Danh sách nhà cung cấp được duyệt BM.07.02 (W09, D138). A4 ngang. -#}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .ncc { font: 11px/1.3 "Times New Roman", serif; color: #000; }
+  .ncc h1 { font-size: 15px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .ncc .ma { text-align: center; font-size: 10px; margin-bottom: 8px; }
+  .ncc table { width: 100%; border-collapse: collapse; }
+  .ncc td, .ncc th { border: 1px solid #000; padding: 3px 5px; vertical-align: top; }
+  .ncc th { background: #eee; }
+  .ncc tr { break-inside: avoid; }
+  .ncc .khong { font-weight: bold; }
+  .ncc .ky { margin-top: 14px; width: 100%; }
+  .ncc .ky td { border: 0; text-align: center; height: 56px; }
+</style>
+<div class="ncc">
+  <h1>Danh sách nhà cung cấp được duyệt</h1>
+  <div class="ma">BM.07.02 &nbsp;·&nbsp; Lập ngày {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }} &nbsp;·&nbsp;
+    {{ ds|selectattr("duyet")|list|length }} / {{ ds|length }} nhà cung cấp đã duyệt</div>
+  <table>
+    <tr><th style="width:3%">#</th><th style="width:22%">Nhà cung cấp</th><th style="width:15%">Loại</th>
+      <th style="width:8%">Nguồn</th><th style="width:10%">Trạng thái</th><th style="width:12%">Ngày duyệt / người</th>
+      <th style="width:14%">Phiếu kiểm nghiệm năm</th><th>Hồ sơ còn thiếu / hết hạn</th></tr>
+    {% for r in ds %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ r.ten }}{% if r.ten != r.ncc %}<br><small>{{ r.ncc }}</small>{% endif %}</td>
+      <td>{{ r.loai }}</td>
+      <td>{{ r.nguon or "—" }}</td>
+      <td{% if not r.duyet %} class="khong"{% endif %}>{{ "Đã duyệt" if r.duyet else "CHƯA duyệt" }}</td>
+      <td>{{ frappe.utils.formatdate(r.ngay_duyet, "dd/MM/yyyy") if r.ngay_duyet else "—" }}{% if r.duyet_boi %}<br><small>{{ r.duyet_boi }}</small>{% endif %}</td>
+      <td>{{ r.pkn or ("không yêu cầu" if r.loai in ("Cát rang", "Bao bì ngoài", "Dịch vụ / khác") else "—") }}</td>
+      <td>{{ r.thieu|join("; ") if r.thieu else "Đủ" }}</td>
+    </tr>
+    {% endfor %}
+    {% if not ds %}<tr><td colspan="8" style="text-align:center">Chưa có nhà cung cấp nào được phân loại (Supplier → Duyệt NCC).</td></tr>{% endif %}
+  </table>
+  <table class="ky"><tr><td><b>Người lập</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Trưởng Ban ISO</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

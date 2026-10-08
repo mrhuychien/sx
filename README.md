@@ -315,6 +315,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhà cung cấp được duyệt BM.07.02, tiếp nhận nguyên liệu trên phiếu nhập mua (D138 — W09, W10)
+
+- **Supplier** (Desk) có mục *Duyệt nhà cung cấp*: **loại NCC** (nguyên liệu thực phẩm, phụ gia /
+  hương liệu, bao bì tiếp xúc thực phẩm, bao bì ngoài, **cát rang**, dịch vụ), **nguồn** (trong nước /
+  nhập khẩu), bảng **hồ sơ** (`SX Ho So NCC`: loại giấy, số, hết hạn, bản chụp) và ô **Đã duyệt**.
+- **Bộ hồ sơ theo loại** (`sx/qc/ncc.py`, `HO_SO_CAN` — bản tạm, chờ bản BM.07.02): thực phẩm /
+  phụ gia = ĐKKD + giấy ATTP (hoặc HACCP / ISO 22000) + công bố; bao bì tiếp xúc = ĐKKD + phiếu kiểm
+  nghiệm bao bì; bao bì ngoài = ĐKKD; **cát rang = hợp đồng hoặc đơn hàng + ĐKKD**; dịch vụ: không.
+- Tích **Đã duyệt**: chỉ Ban ISO / người được giao, và chỉ khi hồ sơ đủ + còn hạn (chặn cả Desk).
+  Mua của NCC chưa duyệt / chưa phân loại / hồ sơ hết hạn: đơn mua, phiếu nhập mua, hoá đơn mua
+  **chỉ cảnh báo, không chặn**. Màn QC → Xem xét → **🖨 NCC ĐƯỢC DUYỆT (BM.07.02)**.
+- **Tiếp nhận BM.07.03 chuyển sang phiếu nhập mua** (Purchase Receipt có đủ ô QC như hoá đơn mua;
+  hoá đơn mua có trừ kho vẫn kiểm như cũ). Luật giấy tờ theo NCC, ghi vào ô *Giấy tờ lô*:
+  **nhập khẩu** → COA từng lô; **trong nước** → phiếu kiểm nghiệm năm của NCC còn hạn (hoặc COA lô);
+  thiếu → **ép Cách ly**. **Aflatoxin**: nhóm hàng khai ở *SX QC Setting → Nhóm hàng phải có kết
+  quả aflatoxin* (trống = chưa áp). **Cát rang**: không đòi giấy tờ thực phẩm.
+- Lô **Không đạt / Cách ly → tự nhập Kho cách ly** (SX Settings). NCC loại thực phẩm thì **mọi dòng**
+  phải có kết luận tiếp nhận mới duyệt được phiếu (NCC chưa phân loại: chưa bắt, để chuyển tiếp).
+  Phiếu sự cố lô không đạt gắn đúng lô NCC. Truy xuất: thẻ lô hiện NCC đã duyệt chưa + giấy tờ lô.
+
 ## Kiểm tra xuất xưởng theo lô BM.08.04 (D137 — W08)
 
 - DocType **SX Kiem Tra Xuat Xuong**: một phiếu = một lô thành phẩm = (sản phẩm, HSD). Màn QC →
