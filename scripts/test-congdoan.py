@@ -108,6 +108,7 @@ def nap(ten, p):
 
 M = nap("sx.qc.muc", "sx/qc/muc.py")
 nap("sx.qc.nguong", "sx/qc/nguong.py")
+nap("sx.qc.quyen", "sx/qc/quyen.py")
 frappe.get_cached_doc = lambda dt: D()
 SC = nap("sx.qc.su_co", "sx/qc/su_co.py")
 P = nap("sx.patches.d130_cong_doan", "sx/patches/d130_cong_doan.py")

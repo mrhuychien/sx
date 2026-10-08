@@ -29,6 +29,7 @@ LM = []            # SX QC Luu Mau
 DOT = []           # SX QC Dot Huy Mau
 DOT_ITEM = []      # SX QC Dot Huy Mau Item (dòng con — đọc qua DOT[i]["ds"])
 SU_CO = []         # SX Su Co
+SU_CO_LO = []      # SX Su Co Lo — bảng Lô liên quan của phiếu sự cố (W11, D134)
 BATCH = [
     {"name": "SEN-HSD270405", "item": "TP-SEN", "manufacturing_date": date(2026, 7, 5),
      "expiry_date": date(2027, 4, 5), "batch_qty": 120, "disabled": 0},
@@ -49,7 +50,7 @@ ITEM = [{"name": "TP-SEN", "item_name": "Bánh đậu xanh sen"},
 CAI_DAT = {}
 VAI = {"SX QC"}
 NGUOI = {"u": "qc@x"}
-LO_TP_CO_COT = {"v": True}     # False = site chưa migrate cột lo_tp trên SX Su Co
+DA_MIGRATE = {"v": True}     # False = site chưa migrate D134 (chưa có cờ diễn tập / bảng lô)
 
 
 class Loi(Exception):
@@ -71,7 +72,8 @@ class Doc(dict):
 
 def _bang(dt):
     return {"SX QC Luu Mau": LM, "SX QC Dot Huy Mau": DOT, "SX QC Dot Huy Mau Item": DOT_ITEM,
-            "SX Su Co": SU_CO, "Batch": BATCH, "Item": ITEM}.get(dt, [])
+            "SX Su Co": SU_CO, "SX Su Co Lo": SU_CO_LO, "Batch": BATCH,
+            "Item": ITEM}.get(dt, [])
 
 
 def _so(x):
@@ -99,8 +101,8 @@ def _khop(h, f):
 
 def get_all(dt, filters=None, fields=None, pluck=None, limit=None, order_by=None,
             or_filters=None, **k):
-    if dt == "SX Su Co" and fields and "lo_tp" in fields and not LO_TP_CO_COT["v"]:
-        raise Loi("Unknown column 'lo_tp'")
+    if not DA_MIGRATE["v"] and (dt == "SX Su Co Lo" or (dt == "SX Su Co" and "dien_tap" in (filters or {}))):
+        raise Loi("Unknown column 'dien_tap' / bảng SX Su Co Lo chưa có")
     ra = [Doc(h) for h in _bang(dt) if _khop(h, filters)]
     if or_filters:
         ra = [h for h in ra if any(_khop(h, {kk: vv}) for kk, vv in or_filters.items())]
@@ -264,6 +266,7 @@ def nap(ten, p):
 
 nap("sx.qc.muc", "sx/qc/muc.py")
 NG = nap("sx.qc.nguong", "sx/qc/nguong.py")
+nap("sx.qc.quyen", "sx/qc/quyen.py")
 nap("sx.qc.san_pham", "sx/qc/san_pham.py")
 nap("sx.qc.su_co", "sx/qc/su_co.py")
 nap("sx.qc.xuat", "sx/qc/xuat.py")
@@ -350,27 +353,34 @@ print("\n-- giữ mẫu: hàm thuần ly_do_giu --")
 M1 = {"name": "A", "batch": "SEN-HSD270405", "hsd": date(2027, 4, 5)}
 M2 = {"name": "B", "batch": None, "hsd": None, "giu_lai": 1, "ly_do_giu": "KH Hà Nội báo mốc"}
 M3 = {"name": "C", "batch": None, "hsd": None}
-sc = lambda **k: {"name": "SC-1", "lo_tp": None, "lo_anh_huong": "", **k}  # noqa: E731
+sc = lambda **k: {"name": "SC-1", "lo": [], "lo_anh_huong": "", **k}  # noqa: E731
 kiem("bấm Giữ lại → giữ, kèm lý do", GM.ly_do_giu([M2], [])["B"] == "Giữ lại: KH Hà Nội báo mốc")
-kiem("phiếu sự cố gắn đúng lô (lo_tp) → giữ, nêu phiếu",
-     "SC-1" in GM.ly_do_giu([M1], [sc(lo_tp="SEN-HSD270405")]).get("A", ""))
+kiem("phiếu sự cố gắn đúng lô (bảng Lô liên quan) → giữ, nêu phiếu",
+     "SC-1" in GM.ly_do_giu([M1], [sc(lo=["SEN-HSD270301", "SEN-HSD270405"])]).get("A", ""))
 for chu in ("HSD 05/04/2027 vị sen", "hsd 05/04/27", "lô 05.04.2027", "05-04-2027", "2027-04-05",
             "lô SEN-HSD270405"):
     kiem(f"ô 'lô ảnh hưởng' ghi '{chu}' → giữ", "A" in GM.ly_do_giu([M1], [sc(lo_anh_huong=chu)]))
 kiem("HSD khác → KHÔNG giữ", GM.ly_do_giu([M1], [sc(lo_anh_huong="HSD 06/04/2027")]) == {})
-kiem("lô khác (lo_tp) → KHÔNG giữ", GM.ly_do_giu([M1], [sc(lo_tp="SEN-HSD270301")]) == {})
+kiem("lô khác (bảng lô) → KHÔNG giữ", GM.ly_do_giu([M1], [sc(lo=["SEN-HSD270301"])]) == {})
 kiem("mẫu không lô / không HSD: phiếu sự cố không khớp được → không giữ",
      GM.ly_do_giu([M3], [sc(lo_anh_huong="HSD 05/04/2027")]) == {})
 kiem("không có phiếu nào mở → không giữ", GM.ly_do_giu([M1], []) == {})
-SU_CO[:] = [{"name": "SC-9", "trang_thai": "Đóng", "lo_tp": "SEN-HSD270405", "lo_anh_huong": ""}]
+SU_CO[:] = [{"name": "SC-9", "trang_thai": "Đóng", "dien_tap": 0, "lo_anh_huong": ""}]
+SU_CO_LO[:] = [{"parent": "SC-9", "parenttype": "SX Su Co", "batch": "SEN-HSD270405"}]
 kiem("phiếu ĐÃ ĐÓNG không giữ mẫu nữa (đọc từ DB)", GM.ly_do_giu([M1]) == {})
-SU_CO[:] = [{"name": "SC-2", "trang_thai": "Mở", "lo_tp": None,
+SU_CO[:] = [{"name": "SC-2", "trang_thai": "Mở", "dien_tap": 0,
              "lo_anh_huong": "HSD 05/04/2027", "nguon": "Khiếu nại"}]
-LO_TP_CO_COT["v"] = False
-kiem("site chưa migrate cột lo_tp → vẫn khớp theo chữ, không vỡ",
+DA_MIGRATE["v"] = False
+kiem("site chưa migrate D134 → vẫn khớp theo chữ, không vỡ",
      "SC-2" in GM.ly_do_giu([M1]).get("A", ""))
-LO_TP_CO_COT["v"] = True
-SU_CO.clear()
+DA_MIGRATE["v"] = True
+SU_CO[:] = [{"name": "SC-3", "trang_thai": "Mở", "dien_tap": 1, "lo_anh_huong": "HSD 05/04/2027",
+             "nguon": "Phát hiện khác"}]
+SU_CO_LO[:] = [{"parent": "SC-3", "parenttype": "SX Su Co", "batch": "SEN-HSD270405"}]
+kiem("phiếu DIỄN TẬP (kể cả gắn đúng lô) → KHÔNG giữ mẫu", GM.ly_do_giu([M1]) == {})
+SU_CO[0]["dien_tap"] = 0
+kiem("… cùng phiếu đó không diễn tập → giữ (đọc bảng lô từ DB)", "SC-3" in GM.ly_do_giu([M1]).get("A", ""))
+SU_CO.clear(); SU_CO_LO.clear()
 
 print("\n-- giữ mẫu qua API --")
 LM.clear()
@@ -383,8 +393,9 @@ kiem("giữ không lý do → chặn", loi and "lý do" in loi, loi or "")
 kiem("… và mẫu không bị đánh dấu giữ", not lm(c).get("giu_lai"))
 Q.giu_mau(c, 1, "Khiếu nại đại lý Nam Định 03/10")
 kiem("giữ có lý do → giu_lai = 1", lm(c)["giu_lai"] == 1 and "Nam Định" in lm(c)["ly_do_giu"])
-SU_CO[:] = [{"name": "SC-7", "trang_thai": "Mở", "lo_tp": "SEN-HSD270405", "lo_anh_huong": "",
+SU_CO[:] = [{"name": "SC-7", "trang_thai": "Mở", "dien_tap": 0, "lo_anh_huong": "",
              "nguon": "Khiếu nại"}]
+SU_CO_LO[:] = [{"parent": "SC-7", "parenttype": "SX Su Co", "batch": "SEN-HSD270405"}]
 kq = Q.list_luu_mau()
 theo = {x["name"]: x for x in kq["danh_sach"]}
 kiem("list: mẫu của lô có khiếu nại mở → kèm lý do giữ", "SC-7" in (theo[a]["giu"] or ""))
@@ -448,7 +459,7 @@ for n in (b, LM_THEM, LM_RA):
 Q.de_xuat_huy()
 dot = DOT[-1]
 kiem("đợt mới gồm 3 mẫu", len(dot["ds"]) == 3)
-SU_CO.append({"name": "SC-8", "trang_thai": "Mở", "lo_tp": None,
+SU_CO.append({"name": "SC-8", "trang_thai": "Mở", "dien_tap": 0,
               "lo_anh_huong": "HSD 01/03/2027 — đại lý báo chua", "nguon": "Khiếu nại"})
 Q.xu_ly_luu_mau(LM_RA, "lay_ra", "gửi kiểm nghiệm Quatest 3")
 kiem("mẫu Chờ huỷ vẫn LẤY RA được (khiếu nại tới giữa chừng)", lm(LM_RA)["trang_thai"] == "Đã lấy ra")
@@ -472,7 +483,7 @@ loi = thu(lambda: Q.xac_nhan_huy(dot["name"]))
 kiem("xác nhận lần hai → chặn", loi and "không còn chờ" in loi, loi or "")
 
 print("\n-- huỷ thật + trả lại --")
-SU_CO.clear()
+SU_CO.clear(); SU_CO_LO.clear()
 vai("SX QC")
 Q.de_xuat_huy()
 dot = DOT[-1]
@@ -542,12 +553,12 @@ LM.clear()
 tao(ngay_lay="2025-06-01", han_luu="2026-10-01")
 n = Q._luu_mau_nhac(HOM_NAY)
 kiem("API: đếm mẫu đến hạn cho nhắc", (n["den_han"], n["lau_nhat"]) == (1, "2026-10-01"), n)
-LO_TP_CO_COT["v"] = False
+DA_MIGRATE["v"] = False
 _cu = frappe.get_all
 frappe.get_all = lambda *a, **k: (_ for _ in ()).throw(Loi("bảng chưa có"))
 kiem("API nhắc: lỗi (chưa migrate) → {} chứ không vỡ màn QC", Q._luu_mau_nhac(HOM_NAY) == {})
 frappe.get_all = _cu
-LO_TP_CO_COT["v"] = True
+DA_MIGRATE["v"] = True
 
 # ═══ 7. Patch d133 ════════════════════════════════════════════════════════
 print("\n-- patch d133: nâng hạn mẫu đang lưu lên 12 tháng --")
@@ -594,8 +605,8 @@ quyen = {p["role"]: p for p in dhj["permissions"]}
 kiem("Đợt huỷ trên Desk: Ban ISO sửa được, QC chỉ tạo / đọc (không tự đổi trạng thái)",
      quyen["ISO Manager"].get("write") and not quyen["SX QC"].get("write"))
 scj = truong("sx/qc/doctype/sx_su_co/sx_su_co.json")
-kiem("Sự cố có ô Lô thành phẩm (Link Batch) — phiếu gắn lô thì giữ đúng mẫu",
-     scj["lo_tp"]["options"] == "Batch")
+kiem("Sự cố có bảng Lô liên quan (W11) — phiếu gắn lô thì giữ đúng mẫu; bỏ ô lo_tp cũ",
+     scj["ds_lo"]["options"] == "SX Su Co Lo" and "lo_tp" not in scj)
 stj = truong("sx/qc/doctype/sx_qc_setting/sx_qc_setting.json")
 kiem("Setting: số tháng lưu mặc định 12; ô số ngày cũ ẩn",
      stj["luu_mau_so_thang"].get("default") == "12" and stj["luu_mau_so_ngay"].get("hidden")

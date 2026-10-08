@@ -384,3 +384,16 @@ button.sx-qc-tag-chon {
 .sx-lm-lo-chon small { font-weight: 400; color: var(--sx-text-3); }
 .sx-qc-lm-nut { flex-wrap: wrap; }
 .sx-lm-seg > button { white-space: pre-line; padding: 2px 4px; }
+
+/* ── D134 (W11): phiếu sự cố gắn lô, diễn tập ───────────────────────────── */
+.sx-qc-tag-dt { background: #6d28d9; color: #fff; }
+.sx-sc-dt { font-weight: 700; color: #6d28d9; margin-bottom: var(--sx-s2); }
+.sx-sc-lo { margin: var(--sx-s1, 4px) 0 var(--sx-s2); }
+.sx-sc-lo-o { display: inline-flex; align-items: center; gap: 4px; }
+.sx-sc-lo-bo {
+  border: 0; background: transparent; cursor: pointer; padding: 0 2px;
+  font-size: 12px; color: var(--sx-text-3); min-height: 0;
+}
+.sx-sc-lo-dong b { color: var(--sx-text); }
+.sx-sc-check { display: flex; align-items: center; gap: var(--sx-s2); margin: var(--sx-s2) 0; }
+.sx-sc-check input { width: 20px; height: 20px; }

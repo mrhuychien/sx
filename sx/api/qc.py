@@ -33,6 +33,7 @@ from sx.qc import muc as M
 from sx.qc import nhac as _nhac
 from sx.qc import xuat
 from sx.qc.nguong import nguong
+from sx.qc.quyen import duoc_dong_su_co
 from sx.qc.san_pham import co_di_ung
 from sx.qc.su_co import canh_bao, phat_hien
 
@@ -603,6 +604,50 @@ def _ds_cong_doan():
     return [x.name for x in ds]
 
 
+SU_CO_LO = "SX Su Co Lo"
+
+
+def _vn(d):
+    d = str(d)[:10]
+    return f"{d[8:10]}/{d[5:7]}/{d[:4]}" if len(d) == 10 else d
+
+
+def _nhan_lo(hsd, batch):
+    """Lô hiện cho người đọc: có HSD → "HSD dd/mm/yyyy" (W05 — người cầm hộp chỉ có
+    HSD, mã lô thành phẩm ẩn); lô không HSD (nguyên liệu, bán thành phẩm) → mã lô."""
+    return _("HSD {0}").format(_vn(hsd)) if hsd else batch
+
+
+def _lo_cua_su_co(ten):
+    """{phiếu: [{batch, item, ten, hsd, so_luong, nhan}]} — bảng Lô liên quan (W11)."""
+    if not ten:
+        return {}
+    try:
+        ds = frappe.get_all(SU_CO_LO, filters={"parenttype": "SX Su Co", "parent": ("in", list(ten))},
+                            fields=["parent", "batch", "item", "ten", "hsd", "so_luong"],
+                            order_by="idx asc")
+    except Exception:            # chưa migrate D134
+        return {}
+    ra = {}
+    for r in ds:
+        ra.setdefault(r.parent, []).append({
+            "batch": r.batch, "item": r.item, "ten": r.ten or r.item, "so_luong": r.so_luong or "",
+            "hsd": str(r.hsd) if r.hsd else "", "nhan": _nhan_lo(r.hsd, r.batch)})
+    return ra
+
+
+def _dong_lo_vao(doc, ds_lo):
+    """Thay bảng Lô liên quan bằng `ds_lo` = [mã lô | {batch, so_luong, ghi_chu}]."""
+    if isinstance(ds_lo, str):
+        ds_lo = json.loads(ds_lo or "[]")
+    doc.set("ds_lo", [])
+    for x in ds_lo or []:
+        x = {"batch": x} if isinstance(x, str) else dict(x)
+        if (x.get("batch") or "").strip():
+            doc.append("ds_lo", {"batch": x["batch"].strip(), "so_luong": x.get("so_luong") or "",
+                                 "ghi_chu": x.get("ghi_chu") or ""})
+
+
 @frappe.whitelist()
 def list_incidents(trang_thai=None, tu=None, den=None, loai=None, cong_doan=None):
     _guard_qc()
@@ -620,61 +665,157 @@ def list_incidents(trang_thai=None, tu=None, den=None, loai=None, cong_doan=None
                 "loai", "oprp", "muc_do", "mo_ta", "trang_thai", "xu_ly_ngay",
                 "quyet_dinh_sp", "nguoi_xu_ly", "dong_boi", "dong_ngay",
                 "lo_anh_huong", "so_luong", "nguyen_nhan", "hanh_dong_khac_phuc",
-                "car_so"],
+                "car_so", "dien_tap"],
         order_by="ngay desc, creation desc")
+    lo = _lo_cua_su_co([s.name for s in ds])
+    for s in ds:
+        s["ds_lo"] = lo.get(s.name, [])
+        s["dien_tap"] = cint(s.get("dien_tap"))
     return {"danh_sach": _dong_su_co(ds),
-            "duoc_dong": bool(_sieu() or ISO in _roles()),
+            "duoc_dong": duoc_dong_su_co(),
             "cong_doan": _ds_cong_doan(), "loai": list(M.LOAI_SU_CO),
+            "nguon_tay": list(M.NGUON_TAY),
             "quyet_dinh_sp": list(M.QUYET_DINH_SP)}
 
 
 @frappe.whitelist()
+def tim_lo(q=None, san_pham=None):
+    """Lô để gắn vào phiếu sự cố (W11): theo sản phẩm (mã / tên), theo HSD gõ dạng
+    dd/mm/yyyy, hoặc theo mã lô. Lô mới nhất trước, tối đa 30. Lô thành phẩm hiện
+    bằng HSD (W05); lô nguyên liệu hiện mã lô (thường là số lô NCC)."""
+    _guard_qc()
+    q = (q or "").strip()
+    loc = {"disabled": 0}
+    if san_pham:
+        loc["item"] = san_pham
+    elif q:
+        hsd = _doc_hsd(q)
+        if hsd:
+            loc["expiry_date"] = hsd
+        else:
+            items = frappe.get_all("Item", or_filters={"name": ("like", f"%{q}%"),
+                                                       "item_name": ("like", f"%{q}%")},
+                                   filters={"has_batch_no": 1}, pluck="name", limit=20)
+            ten = frappe.get_all("Batch", filters={"name": ("like", f"%{q}%"), "disabled": 0},
+                                 pluck="name", limit=30)
+            if not items and not ten:
+                return []
+            ra = []
+            if ten:
+                ra += frappe.get_all("Batch", filters={"name": ("in", ten)},
+                                     fields=["name", "item", "item_name", "expiry_date",
+                                             "manufacturing_date", "batch_qty"],
+                                     order_by="creation desc", limit=30)
+            if items:
+                ra += frappe.get_all("Batch", filters={"item": ("in", items), "disabled": 0},
+                                     fields=["name", "item", "item_name", "expiry_date",
+                                             "manufacturing_date", "batch_qty"],
+                                     order_by="creation desc", limit=30)
+            return _hang_lo(ra)
+    else:
+        return []
+    return _hang_lo(frappe.get_all(
+        "Batch", filters=loc,
+        fields=["name", "item", "item_name", "expiry_date", "manufacturing_date", "batch_qty"],
+        order_by="creation desc", limit=30))
+
+
+def _doc_hsd(q):
+    """"05/04/2027", "5/4/27", "05.04.2027", "2027-04-05" → date; không phải ngày → None."""
+    import re
+    from datetime import date
+
+    m = re.fullmatch(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})", q)
+    try:
+        if m:
+            d, t, n = (int(x) for x in m.groups())
+            return date(n + 2000 if n < 100 else n, t, d)
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", q):
+            return getdate(q)
+    except ValueError:
+        return None
+    return None
+
+
+def _hang_lo(ds):
+    ra, da = [], set()
+    for b in ds:
+        if b.name in da:
+            continue
+        da.add(b.name)
+        ra.append({"batch": b.name, "item": b.item, "ten": b.item_name or b.item,
+                   "hsd": str(b.expiry_date) if b.expiry_date else "",
+                   "nsx": str(b.manufacturing_date) if b.manufacturing_date else "",
+                   "ton": flt(b.batch_qty, 2), "nhan": _nhan_lo(b.expiry_date, b.name)})
+    return ra[:30]
+
+
+@frappe.whitelist()
 def add_incident(payload):
-    """Sự cố phát hiện ngoài vòng kiểm (nguồn 'Phát hiện khác')."""
+    """Sự cố phát hiện ngoài vòng kiểm. Nguồn chọn trong M.NGUON_TAY (W11) — mặc
+    định 'Phát hiện khác'; gắn được lô liên quan và cờ diễn tập."""
     _guard_qc()
     if isinstance(payload, str):
         payload = json.loads(payload)
+    nguon = payload.get("nguon") or "Phát hiện khác"
+    if nguon not in M.NGUON_TAY:
+        frappe.throw(_("Nguồn sự cố không hợp lệ: {0}").format(nguon))
     cho_phep = {"ngay", "cong_doan", "loai", "muc_do", "mo_ta",
                 "lo_anh_huong", "so_luong", "xu_ly_ngay", "nguyen_nhan"}
     doc = frappe.get_doc(dict(
         {k: v for k, v in payload.items() if k in cho_phep},
         doctype="SX Su Co",
-        nguon=payload.get("nguon") or "Phát hiện khác",
+        nguon=nguon,
+        dien_tap=1 if cint(payload.get("dien_tap")) else 0,
         trang_thai="Mở",
         ngay=payload.get("ngay") or nowdate(),
     ))
+    _dong_lo_vao(doc, payload.get("ds_lo") or [])
     doc.insert()
     return doc.name
 
 
 @frappe.whitelist()
 def update_incident(name, payload):
-    """Ghi xử lý / nguyên nhân / hành động. KHÔNG đổi được trạng thái ở đây."""
+    """Ghi xử lý / nguyên nhân / hành động / lô liên quan. KHÔNG đổi được trạng thái
+    ở đây; cờ diễn tập chỉ người được đóng phiếu mới đổi (controller chặn)."""
     _guard_qc()
     if isinstance(payload, str):
         payload = json.loads(payload)
     doc = frappe.get_doc("SX Su Co", name)
-    if doc.trang_thai == "Đóng" and not (_sieu() or ISO in _roles()):
+    if doc.trang_thai == "Đóng" and not duoc_dong_su_co():
         frappe.throw(_("Phiếu đã đóng — nhờ Ban ISO mở lại nếu cần sửa."),
                      frappe.PermissionError)
-    # trang_thai KHÔNG nằm trong danh sách này: đóng phiếu đi cửa close_incident,
-    # nơi có _guard_manager. Cho nó vào đây là mở cửa hậu cho chính người ghi.
+    # trang_thai KHÔNG nằm trong danh sách này: đóng phiếu đi cửa close_incident.
+    # Cho nó vào đây là mở cửa hậu cho chính người ghi.
     cho_phep = {"xu_ly_ngay", "nguyen_nhan", "hanh_dong_khac_phuc",
                 "lo_anh_huong", "so_luong", "cong_doan", "loai", "muc_do",
                 "quyet_dinh_sp", "car_so"}
     for k, v in payload.items():
         if k in cho_phep:
             doc.set(k, v)
+    if "ds_lo" in payload:
+        _dong_lo_vao(doc, payload["ds_lo"])
+    if "dien_tap" in payload:
+        doc.dien_tap = 1 if cint(payload["dien_tap"]) else 0
     if not doc.nguoi_xu_ly:
         doc.nguoi_xu_ly = frappe.session.user
     doc.save()
     return {"name": doc.name}
 
 
+def _guard_dong():
+    """Đóng / mở lại phiếu sự cố: vào được QC VÀ là Ban ISO / người được giao (W11)."""
+    _guard_qc()
+    if not duoc_dong_su_co():
+        frappe.throw(_("Chỉ Trưởng Ban ISO hoặc người được giao mới đóng / mở lại được "
+                       "phiếu sự cố — người ghi không tự duyệt."), frappe.PermissionError)
+
+
 @frappe.whitelist()
 def close_incident(name, quyet_dinh_sp=None, car_so=None):
-    """Đóng phiếu sự cố — chỉ Ban ISO, và chỉ khi đã ghi đủ xử lý."""
-    _guard_manager()
+    """Đóng phiếu sự cố — Ban ISO / người được giao (W11), và chỉ khi đã ghi đủ xử lý."""
+    _guard_dong()
     doc = frappe.get_doc("SX Su Co", name)
     if quyet_dinh_sp:
         doc.quyet_dinh_sp = quyet_dinh_sp
@@ -687,8 +828,8 @@ def close_incident(name, quyet_dinh_sp=None, car_so=None):
 
 @frappe.whitelist()
 def reopen_incident(name, ly_do=None):
-    """Mở lại phiếu đã đóng — chỉ Ban ISO, và ghi lý do vào hành động khắc phục."""
-    _guard_manager()
+    """Mở lại phiếu đã đóng — Ban ISO / người được giao, ghi lý do vào hành động khắc phục."""
+    _guard_dong()
     doc = frappe.get_doc("SX Su Co", name)
     doc.trang_thai = "Mở"
     if ly_do:
@@ -733,9 +874,11 @@ def dashboard(tu=None, den=None):
                 "thung_bot_qua_han", "t2_so_bay_dau_hieu", "reviewed_on",
                 "finished_at"],
         order_by="ngay, finished_at")
-    su_co = frappe.get_all(
+    # Phiếu diễn tập (W11) không phải sự cố thật: không vào số liệu, chỉ đếm riêng.
+    tat_ca = frappe.get_all(
         "SX Su Co", filters={"ngay": ("between", [tu, den])},
-        fields=["name", "ngay", "cong_doan", "loai", "muc_do", "trang_thai"])
+        fields=["name", "ngay", "cong_doan", "loai", "muc_do", "trang_thai", "dien_tap"])
+    su_co = [x for x in tat_ca if not cint(x.get("dien_tap"))]
 
     so_ngay = (getdate(den) - getdate(tu)).days + 1
     can_co = so_ngay * len(M.LUOT_TRONG_NGAY)   # 3 lượt mỗi ngày (D95)
@@ -756,6 +899,7 @@ def dashboard(tu=None, den=None):
         "su_co_qua_han": sum(
             1 for s in su_co if s["trang_thai"] == "Mở"
             and hom_nay > add_days(getdate(s["ngay"]), han)),
+        "so_dien_tap": len(tat_ca) - len(su_co),
         "theo_cong_doan": _dem(su_co, "cong_doan"),
         "theo_loai": _dem(su_co, "loai"),
         "chuoi_rang": [{"ngay": str(r["ngay"]), "luot": r["luot"],

@@ -87,7 +87,16 @@ MA_CONG_DOAN = {t[1]: t[0] for t in CONG_DOAN_GOC}
 
 LOAI_SU_CO = ("oPRP", "PRP", "Dị ứng", "Hiệu chỉnh hồ sơ", "Khác")
 MUC_DO = ("Thường", "Cao")
-NGUON = ("Vòng kiểm QC", "Tiếp nhận NL", "Khiếu nại", "Phát hiện khác")
+NGUON = ("Vòng kiểm QC", "Tiếp nhận NL", "Khiếu nại", "Kiểm tra xuất xưởng",
+         "Hàng trả về", "Kiểm xe", "Động vật gây hại", "Thiết bị đo",
+         "Kết quả kiểm nghiệm", "Nhật ký cát", "Đánh giá nội bộ", "Phát hiện khác",
+         "Nhật ký chuyền")
+# Nguồn CHỌN TAY khi lập phiếu trên màn QC (W11, D134). "Vòng kiểm QC", "Tiếp nhận
+# NL", "Nhật ký chuyền" do hệ thống tự gắn khi sinh phiếu — chọn tay thì phiếu mang
+# nguồn đó mà không có vòng kiểm / hoá đơn / phiếu ngày nào đứng sau, sổ nói dối.
+NGUON_TAY = ("Phát hiện khác", "Khiếu nại", "Kiểm tra xuất xưởng", "Hàng trả về",
+             "Kiểm xe", "Động vật gây hại", "Thiết bị đo", "Kết quả kiểm nghiệm",
+             "Nhật ký cát", "Đánh giá nội bộ")
 QUYET_DINH_SP = ("Dùng lại sau xử lý", "Rework (BM.15.01)",
                  "Chuyển mục đích khác", "Loại bỏ", "Không ảnh hưởng sản phẩm")
 

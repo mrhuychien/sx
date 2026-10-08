@@ -36,7 +36,9 @@
   "nhom_can_coa",
   "section_luu_mau",
   "luu_mau_so_ngay",
-  "luu_mau_so_thang"
+  "luu_mau_so_thang",
+  "section_quyen",
+  "nguoi_dong_su_co"
  ],
  "fields": [
   {
@@ -238,10 +240,22 @@
    "label": "Lưu mẫu bao nhiêu tháng (tính từ NSX)",
    "default": "12",
    "description": "W07: 1 năm từ NSX. Mẫu không gắn lô thì tính từ ngày lấy mẫu."
+  },
+  {
+   "fieldname": "section_quyen",
+   "fieldtype": "Section Break",
+   "label": "Người được giao duyệt"
+  },
+  {
+   "fieldname": "nguoi_dong_su_co",
+   "fieldtype": "Table MultiSelect",
+   "label": "Được đóng / mở lại phiếu sự cố (ngoài Ban ISO)",
+   "options": "SX QC Nguoi Duoc Giao",
+   "description": "W11: mặc định chỉ Trưởng Ban ISO (role ISO Manager) đóng được phiếu sự cố. Thêm người được giao ở đây. Áp cho cả màn QC lẫn Desk."
   }
  ],
  "links": [],
- "modified": "2026-10-08 14:00:00.000000",
+ "modified": "2026-10-08 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

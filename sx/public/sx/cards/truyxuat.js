@@ -361,7 +361,8 @@ function ngay(g) {
 }
 
 function dongSuCo(s) {
-  return `<div class="sx-tx-suco">⚠ ${esc(s.name)}${s.muc_do ? ` · ${esc(s.muc_do)}` : ''}${
+  return `<div class="sx-tx-suco">⚠ ${esc(s.name)}${s.dien_tap ? ' · DIỄN TẬP' : ''}${
+    s.nguon ? ` · ${esc(s.nguon)}` : ''}${s.muc_do ? ` · ${esc(s.muc_do)}` : ''}${
     s.trang_thai ? ` · ${esc(s.trang_thai)}` : ''}${s.ngay ? ` · ${esc(ngayNgan(s.ngay))}` : ''}
     <div class="sx-vh-meta">${esc(s.mo_ta || '')}</div></div>`;
 }

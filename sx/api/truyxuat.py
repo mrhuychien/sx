@@ -818,13 +818,25 @@ def _cong_ngay(d, n):
 
 
 def _su_co_theo_lo(batch):
-    """Sự cố ghi thẳng tên lô (tiếp nhận NL Không đạt, khiếu nại khách…)."""
+    """Sự cố của lô: gắn ở bảng Lô liên quan (W11), hoặc ghi tên lô trong ô "lô ảnh
+    hưởng" (tiếp nhận NL Không đạt, phiếu cũ trước D134…). Phiếu diễn tập có cờ."""
+    truong = ["name", "ngay", "nguon", "muc_do", "trang_thai", "mo_ta"]
     try:
-        return [{"name": r.name, "ngay": _d(r.ngay), "nguon": r.nguon, "muc_do": r.muc_do,
-                 "trang_thai": r.trang_thai, "mo_ta": (r.mo_ta or "")[:160]}
-                for r in frappe.get_all(
-                    "SX Su Co", filters={"lo_anh_huong": ("like", f"%{batch}%")},
-                    fields=["name", "ngay", "nguon", "muc_do", "trang_thai", "mo_ta"],
-                    order_by="ngay desc", limit=20)]
+        ds = frappe.get_all("SX Su Co", filters={"lo_anh_huong": ("like", f"%{batch}%")},
+                            fields=truong + ["dien_tap"], order_by="ngay desc", limit=20)
+        gan = frappe.get_all("SX Su Co Lo", filters={"parenttype": "SX Su Co", "batch": batch},
+                             pluck="parent", limit=50)
+        co = {r.name for r in ds}
+        if set(gan) - co:
+            ds += frappe.get_all("SX Su Co", filters={"name": ("in", list(set(gan) - co))},
+                                 fields=truong + ["dien_tap"], order_by="ngay desc")
     except Exception:
-        return []
+        try:
+            ds = frappe.get_all("SX Su Co", filters={"lo_anh_huong": ("like", f"%{batch}%")},
+                                fields=truong, order_by="ngay desc", limit=20)
+        except Exception:
+            return []
+    ds.sort(key=lambda r: str(r.ngay or ""), reverse=True)
+    return [{"name": r.name, "ngay": _d(r.ngay), "nguon": r.nguon, "muc_do": r.muc_do,
+             "trang_thai": r.trang_thai, "mo_ta": (r.mo_ta or "")[:160],
+             "dien_tap": cint(r.get("dien_tap"))} for r in ds[:20]]

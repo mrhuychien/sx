@@ -11,3 +11,4 @@ sx.patches.d123_bo_chot
 sx.patches.d127_san_pham_cong_bo
 sx.patches.d130_cong_doan
 sx.patches.d133_luu_mau_mot_nam
+sx.patches.d134_su_co_lo

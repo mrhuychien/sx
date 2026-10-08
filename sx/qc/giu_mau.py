@@ -2,9 +2,10 @@
 
 Hai lý do giữ:
   · người dùng bấm "Giữ lại" (khiếu nại / điều tra chưa có phiếu) — ghi lý do;
-  · lô của mẫu có phiếu sự cố / khiếu nại ĐANG MỞ: phiếu gắn đúng lô (`lo_tp`), hoặc ô
-    "lô ảnh hưởng" ghi mã lô / HSD của lô đó. Khớp theo chữ là CỐ Ý rộng tay: giữ nhầm
-    một mẫu thêm vài tuần không hại gì, huỷ nhầm mẫu đang cần cho khiếu nại thì hết đường.
+  · lô của mẫu có phiếu sự cố / khiếu nại ĐANG MỞ: phiếu gắn đúng lô (bảng Lô liên quan
+    `SX Su Co Lo`, W11), hoặc ô "lô ảnh hưởng" ghi mã lô / HSD của lô đó. Khớp theo chữ
+    là CỐ Ý rộng tay: giữ nhầm một mẫu thêm vài tuần không hại gì, huỷ nhầm mẫu đang
+    cần cho khiếu nại thì hết đường. Phiếu DIỄN TẬP không giữ mẫu.
 
 Hàm thuần nhất có thể; chỉ đọc SX Su Co. Không import gì ngoài frappe (ranh giới module).
 """
@@ -42,15 +43,34 @@ def ly_do_giu(ds_mau, su_co_mo=None):
     if not con:
         return ra
     if su_co_mo is None:
-        try:
-            su_co_mo = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở"},
-                                      fields=["name", "lo_tp", "lo_anh_huong", "nguon"])
-        except Exception:
-            su_co_mo = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở"},
-                                      fields=["name", "lo_anh_huong", "nguon"])
+        su_co_mo = su_co_dang_mo()
     for m in con:
         khop = [s["name"] for s in su_co_mo
-                if (m.get("batch") and s.get("lo_tp") == m["batch"]) or _khop_chu(s.get("lo_anh_huong"), m)]
+                if (m.get("batch") and m["batch"] in (s.get("lo") or ()))
+                or _khop_chu(s.get("lo_anh_huong"), m)]
         if khop:
             ra[m["name"]] = _("Lô có sự cố / khiếu nại đang mở: {0}").format(", ".join(khop[:3]))
     return ra
+
+
+def su_co_dang_mo():
+    """Phiếu sự cố đang mở, KHÔNG diễn tập: [{name, lo_anh_huong, nguon, lo: [mã lô]}].
+    Site chưa migrate D134 (chưa có cờ diễn tập / bảng lô) thì đọc phần có được."""
+    try:
+        ds = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở", "dien_tap": 0},
+                            fields=["name", "lo_anh_huong", "nguon"])
+    except Exception:
+        ds = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở"},
+                            fields=["name", "lo_anh_huong", "nguon"])
+    if not ds:
+        return []
+    try:
+        dong = frappe.get_all("SX Su Co Lo", filters={"parenttype": "SX Su Co",
+                                                      "parent": ("in", [x["name"] for x in ds])},
+                              fields=["parent", "batch"])
+    except Exception:
+        dong = []
+    lo = {}
+    for r in dong:
+        lo.setdefault(r["parent"], []).append(r["batch"])
+    return [dict(x, lo=lo.get(x["name"], [])) for x in ds]

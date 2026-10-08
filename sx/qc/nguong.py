@@ -102,6 +102,8 @@ def nguong():
     # của sản phẩm tự công bố (W28); danh sách này chỉ để bổ sung.
     ra["bot_co_sua"] = [x.strip() for x in str((s.get("bot_co_sua") if s else "") or "")
                         .split("\n") if x.strip()]
+    # Người được Trưởng Ban ISO giao việc duyệt (W11): rỗng = chỉ role ISO Manager.
+    ra["nguoi_dong_su_co"] = [r.user for r in (s.get("nguoi_dong_su_co") or []) if r.user] if s else []
     ra["cho_phep_bo_qua_luot_khi_khong_san_xuat"] = int(
         (s.get("cho_phep_bo_qua_luot_khi_khong_san_xuat") if s else 1) or 0)
 

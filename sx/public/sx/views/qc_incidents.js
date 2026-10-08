@@ -4,15 +4,18 @@
 // MỞ không bị quên. Phiếu quá hạn có viền đỏ và chữ "quá hạn" — không dựa vào
 // việc ai đó chịu khó đọc ngày trên từng dòng.
 //
-// Nút "Đóng" chỉ hiện với Ban ISO, nhưng đó chỉ là chuyện đỡ rối mắt: chốt thật
-// nằm ở _guard_manager trong sx/api/qc.py.
+// Nút "Đóng" chỉ hiện với Ban ISO / người được giao, nhưng đó chỉ là chuyện đỡ rối
+// mắt: chốt thật nằm ở sx/qc/quyen.py (API lẫn controller — cả đường Desk, W11).
+//
+// W11 (D134): phiếu gắn LÔ LIÊN QUAN (tìm theo tên, HSD hoặc mã lô; lô thành phẩm
+// hiện bằng HSD), chọn NGUỒN khi lập tay, cờ DIỄN TẬP (không tính vào số liệu).
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal } from '/assets/sx/sx/components/modal.js';
 import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
 
-const st = { tab: 'Mở', cong_doan: '', loai: '' };
+const st = { tab: 'Mở', cong_doan: '', loai: '', dien_tap: false };
 
 export async function render(api) {
   const { container, call } = api;
@@ -35,6 +38,11 @@ export async function render(api) {
     return b;
   };
   dl.loai.forEach((l) => loc.appendChild(nutLoc(l, 'loai', l)));
+  const nutDt = el('button', 'sx-qc-tag', 'Diễn tập');
+  nutDt.type = 'button';
+  nutDt.style.cursor = 'pointer';
+  nutDt.addEventListener('click', () => { st.dien_tap = !st.dien_tap; ve(); });
+  loc.appendChild(nutDt);
   container.appendChild(loc);
 
   const ds = el('div', 'sx-qc-than');
@@ -42,10 +50,12 @@ export async function render(api) {
 
   function ve() {
     loc.querySelectorAll('button').forEach((b) => {
-      b.className = `sx-qc-tag${st.loai === b.textContent ? ' sx-qc-tag-chon' : ''}`;
+      const chon = b === nutDt ? st.dien_tap : st.loai === b.textContent;
+      b.className = `sx-qc-tag${chon ? ' sx-qc-tag-chon' : ''}`;
     });
     ds.innerHTML = '';
-    const loc_ds = dl.danh_sach.filter((s) => !st.loai || s.loai === st.loai);
+    const loc_ds = dl.danh_sach.filter((s) => (!st.loai || s.loai === st.loai)
+      && (!st.dien_tap || s.dien_tap));
     if (!loc_ds.length) {
       ds.appendChild(khungTrong(st.tab === 'Mở'
         ? 'Không có sự cố nào đang mở.'
@@ -67,7 +77,9 @@ function veThe(s, dl, api) {
   the.appendChild(el('div', 'sx-qc-sc-ten', esc(s.mo_ta)));
   const meta = el('div', 'sx-qc-sc-meta');
   meta.appendChild(chip(s.name));
+  if (s.dien_tap) meta.appendChild(chip('DIỄN TẬP', 'dt'));
   meta.appendChild(el('span', null, esc(s.ngay)));
+  if (s.nguon && s.nguon !== 'Vòng kiểm QC') meta.appendChild(chip(s.nguon));
   if (s.cong_doan) meta.appendChild(chip(s.cong_doan));
   if (s.loai) {
     meta.appendChild(chip(s.loai === 'oPRP' && s.oprp ? s.oprp : s.loai,
@@ -76,6 +88,10 @@ function veThe(s, dl, api) {
   if (s.muc_do === 'Cao') meta.appendChild(chip('mức CAO', 'cao'));
   if (s.qua_han) meta.appendChild(chip('quá hạn', 'han'));
   the.appendChild(meta);
+  if ((s.ds_lo || []).length) {
+    the.appendChild(el('div', 'sx-qc-goiy sx-sc-lo-dong',
+      `Lô: ${s.ds_lo.map((x) => `<b>${esc(x.nhan)}</b> ${esc(x.ten || '')}`).join(' · ')}`));
+  }
   if (s.xu_ly_ngay) {
     the.appendChild(el('div', 'sx-qc-goiy', `Xử lý ngay: ${esc(s.xu_ly_ngay)}`));
   } else if (s.trang_thai === 'Mở') {
@@ -113,19 +129,91 @@ function chonBox(body, nhan, lua, gt) {
   return s;
 }
 
+/** Khối "Lô liên quan": lô đã gắn (bỏ được) + ô tìm lô theo tên / HSD / mã lô.
+ *  Trả {node, lay: () => [{batch, so_luong}]}. */
+function khoiLo(body, api, dau) {
+  const ds = (dau || []).map((x) => ({ ...x }));
+  body.appendChild(el('div', 'sx-qc-goiy', 'Lô liên quan (thành phẩm theo HSD, nguyên liệu theo mã lô)'));
+  const daGan = el('div', 'sx-qc-chips sx-sc-lo');
+  const tim = el('input', 'sx-textarea');
+  tim.type = 'search';
+  tim.placeholder = 'Gõ tên sản phẩm, HSD (05/04/2027) hoặc mã lô…';
+  const kq = el('div', 'sx-qc-vi');
+  const ve = () => {
+    daGan.innerHTML = '';
+    if (!ds.length) daGan.appendChild(el('span', 'sx-muted', 'Chưa gắn lô nào.'));
+    ds.forEach((x, i) => {
+      const c = el('span', 'sx-qc-tag sx-sc-lo-o', `${esc(x.nhan || x.batch)} ${esc(x.ten || '')}`);
+      const bo = el('button', 'sx-sc-lo-bo', '✕');
+      bo.type = 'button';
+      bo.setAttribute('aria-label', `Bỏ lô ${x.nhan || x.batch}`);
+      bo.addEventListener('click', () => { ds.splice(i, 1); ve(); });
+      c.appendChild(bo);
+      daGan.appendChild(c);
+    });
+  };
+  let hen = null;
+  tim.addEventListener('input', () => {
+    clearTimeout(hen);
+    hen = setTimeout(async () => {
+      kq.innerHTML = '';
+      const q = tim.value.trim();
+      if (q.length < 2) return;
+      try {
+        const r = await api.call('sx.api.qc.tim_lo', { q });
+        if (!r.length) kq.appendChild(el('div', 'sx-muted', 'Không thấy lô nào.'));
+        r.forEach((x) => {
+          const b = el('button', 'sx-qc-vi-o',
+            `${esc(x.nhan)} · ${esc(x.ten)}<small> · tồn ${esc(String(x.ton))}</small>`);
+          b.type = 'button';
+          b.disabled = ds.some((y) => y.batch === x.batch);
+          b.addEventListener('click', () => {
+            if (!ds.some((y) => y.batch === x.batch)) ds.push(x);
+            b.disabled = true;
+            ve();
+          });
+          kq.appendChild(b);
+        });
+      } catch (e) { toastErr(e.message); }
+    }, 300);
+  });
+  body.appendChild(daGan);
+  body.appendChild(tim);
+  body.appendChild(kq);
+  ve();
+  return { lay: () => ds.map((x) => ({ batch: x.batch, so_luong: x.so_luong || '' })) };
+}
+
+function oCheck(body, nhan, gt) {
+  const nhanEl = el('label', 'sx-sc-check');
+  const c = el('input');
+  c.type = 'checkbox';
+  c.checked = !!gt;
+  nhanEl.appendChild(c);
+  nhanEl.appendChild(el('span', null, esc(nhan)));
+  body.appendChild(nhanEl);
+  return c;
+}
+
 function moChiTiet(s, dl, api) {
   const m = openModal({ kicker: s.name, title: s.mo_ta || 'Phiếu sự cố' });
+  if (s.dien_tap) m.body.appendChild(el('div', 'sx-sc-dt', 'PHIẾU DIỄN TẬP — không tính vào số liệu sự cố'));
   const xl = o(m.body, 'Xử lý ngay (bắt buộc trước khi đóng)', s.xu_ly_ngay, 'ta');
-  const lo = o(m.body, 'Lô ảnh hưởng', s.lo_anh_huong);
+  const kLo = khoiLo(m.body, api, s.ds_lo);
+  const lo = o(m.body, 'Ghi chú lô (ngày nghiền, vị…)', s.lo_anh_huong);
   const nn = o(m.body, 'Nguyên nhân', s.nguyen_nhan, 'ta');
   const hd = o(m.body, 'Hành động khắc phục', s.hanh_dong_khac_phuc, 'ta');
   const qd = chonBox(m.body, 'Quyết định với sản phẩm (bắt buộc trước khi đóng)',
     dl.quyet_dinh_sp, s.quyet_dinh_sp);
   const car = o(m.body, 'Số CAR (BM.01.07)', s.car_so);
+  // Cờ diễn tập đổi được sau khi lập: chỉ người được đóng phiếu (controller chặn
+  // người khác) — QC đổi được là giấu được một sự cố thật khỏi số liệu.
+  const dt = dl.duoc_dong ? oCheck(m.body, 'Phiếu diễn tập (không tính vào số liệu)', s.dien_tap) : null;
 
   const goi = () => ({
     xu_ly_ngay: xl.value, lo_anh_huong: lo.value, nguyen_nhan: nn.value,
     hanh_dong_khac_phuc: hd.value, quyet_dinh_sp: qd.value, car_so: car.value,
+    ds_lo: kLo.lay(), ...(dt ? { dien_tap: dt.checked ? 1 : 0 } : {}),
   });
 
   const luu = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'LƯU');
@@ -168,13 +256,16 @@ function moChiTiet(s, dl, api) {
 }
 
 function moThem(dl, api) {
-  const m = openModal({ kicker: 'PHÁT HIỆN KHÁC', title: 'Lập phiếu sự cố' });
+  const m = openModal({ kicker: 'PHIẾU SỰ CỐ BM.08.02', title: 'Lập phiếu sự cố' });
   const mo = o(m.body, 'Mô tả (bắt buộc)', '', 'ta');
+  const nguon = chonBox(m.body, 'Nguồn phát hiện', dl.nguon_tay || ['Phát hiện khác'], 'Phát hiện khác');
   const cd = chonBox(m.body, 'Công đoạn', dl.cong_doan, '');
   const loai = chonBox(m.body, 'Loại', dl.loai, 'Khác');
   const mucdo = chonBox(m.body, 'Mức độ', ['Thường', 'Cao'], 'Thường');
-  const lo = o(m.body, 'Lô ảnh hưởng', '');
+  const kLo = khoiLo(m.body, api, []);
+  const lo = o(m.body, 'Ghi chú lô (ngày nghiền, vị…)', '');
   const xl = o(m.body, 'Xử lý ngay', '', 'ta');
+  const dt = oCheck(m.body, 'Phiếu DIỄN TẬP (truy xuất, thu hồi, ứng phó — không tính vào số liệu)', false);
   const luu = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'LẬP PHIẾU');
   luu.type = 'button';
   luu.addEventListener('click', async () => {
@@ -183,8 +274,9 @@ function moThem(dl, api) {
     try {
       await api.call('sx.api.qc.add_incident', {
         payload: JSON.stringify({
-          mo_ta: mo.value, cong_doan: cd.value, loai: loai.value,
-          muc_do: mucdo.value, lo_anh_huong: lo.value, xu_ly_ngay: xl.value,
+          mo_ta: mo.value, nguon: nguon.value || 'Phát hiện khác', cong_doan: cd.value,
+          loai: loai.value, muc_do: mucdo.value, lo_anh_huong: lo.value, xu_ly_ngay: xl.value,
+          ds_lo: kLo.lay(), dien_tap: dt.checked ? 1 : 0,
         }),
       });
       toast('Đã lập phiếu');

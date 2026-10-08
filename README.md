@@ -315,6 +315,24 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Phiếu sự cố BM.08.02: gắn lô, diễn tập, nguồn mới, quyền đóng (D134 — W11)
+
+- **Lô liên quan**: bảng `ds_lo` (`SX Su Co Lo`) thay ô "Lô thành phẩm" một lô của D133 (patch
+  `d134_su_co_lo` chép sang). Màn QC → Sự cố: gõ tên sản phẩm, **HSD** (05/04/2027, 5/4/27)
+  hoặc mã lô để gắn; lô thành phẩm hiện bằng HSD, lô nguyên liệu bằng mã lô. Ô "lô ảnh
+  hưởng" cũ thành ghi chú tự do. Phiếu đang mở → mẫu lưu của các lô này được giữ (W07);
+  thẻ lô trong Truy xuất liệt kê phiếu gắn lô.
+- **Cờ Diễn tập**: phiếu lập để diễn tập vẫn xử lý / đóng như thật nhưng không vào số liệu
+  (dashboard đếm riêng `so_dien_tap`), không giữ mẫu. QC tích lúc lập; sau đó chỉ người được
+  đóng phiếu đổi được (bật cờ cho phiếu thật = giấu sự cố).
+- **Nguồn mới** (chọn tay khi lập): Khiếu nại, Kiểm tra xuất xưởng, Hàng trả về, Kiểm xe, Động
+  vật gây hại, Thiết bị đo, Kết quả kiểm nghiệm, Nhật ký cát, Đánh giá nội bộ, Phát hiện khác.
+  "Vòng kiểm QC", "Tiếp nhận NL", "Nhật ký chuyền" chỉ hệ thống gắn.
+- **Chỉ người có quyền mới đóng / mở lại** — chặn ở controller nên cả **Desk**: Trưởng Ban ISO,
+  quản trị, hoặc người được giao ở *SX QC Setting → Được đóng / mở lại phiếu sự cố*. Trước đây
+  trên Desk ai có quyền ghi (QC, QLSX, tổ Ghi sổ) đổi Trạng thái = Đóng là xong.
+- Mẫu in BM.08.02 và CSV sự cố có lô liên quan + dấu diễn tập.
+
 ## Lưu mẫu 1 năm từ NSX, gắn lô, giữ mẫu sự cố, huỷ tháng có Ban ISO (D133 — W07)
 
 - **Hạn lưu = NSX + 12 tháng** (SX QC Setting → "Lưu mẫu bao nhiêu tháng"; ô số ngày cũ

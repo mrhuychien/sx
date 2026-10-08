@@ -139,6 +139,7 @@ def nap(ten, p):
 
 M = nap("sx.qc.muc", "sx/qc/muc.py")
 nap("sx.qc.nguong", "sx/qc/nguong.py")
+nap("sx.qc.quyen", "sx/qc/quyen.py")
 nap("sx.qc.san_pham", "sx/qc/san_pham.py")
 nap("sx.qc.su_co", "sx/qc/su_co.py")
 nap("sx.qc.xuat", "sx/qc/xuat.py")

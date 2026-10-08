@@ -23,13 +23,15 @@ COT_LUOT = ["Số phiếu", "Ngày", "Lượt", "Có bột", "Giờ hoàn tất"
             "Số phút", "Ghi muộn", "Nhập lại từ giấy", "QC chế biến",
             "QC đóng gói", "Đã chấm", "Phải chấm", "Xem xét lúc", "Ghi chú"]
 
-COT_SU_CO = ["Số phiếu", "Ngày", "Nguồn", "Vòng kiểm", "Mục", "Công đoạn",
-             "Loại", "Mã oPRP", "Mức độ", "Mô tả", "Lô ảnh hưởng", "Xử lý ngay",
-             "Nguyên nhân", "Hành động khắc phục", "Quyết định SP", "Số CAR",
+COT_SU_CO = ["Số phiếu", "Ngày", "Nguồn", "Diễn tập", "Vòng kiểm", "Mục", "Công đoạn",
+             "Loại", "Mã oPRP", "Mức độ", "Mô tả", "Lô ảnh hưởng", "Lô liên quan",
+             "Xử lý ngay", "Nguyên nhân", "Hành động khắc phục", "Quyết định SP", "Số CAR",
              "Trạng thái", "Đóng bởi", "Đóng lúc"]
 
-KHOA_SU_CO = ["name", "ngay", "nguon", "qc_round", "muc", "cong_doan",
-              "loai", "oprp", "muc_do", "mo_ta", "lo_anh_huong", "xu_ly_ngay",
+# "dien_tap" in 1 / "" (không phải 0 — ô 0 trên Excel trông như "chưa ghi"); "ds_lo"
+# in thành "HSD 05/04/2027 Bánh sen; LOT-NCC-12 Đỗ xanh" (W11).
+KHOA_SU_CO = ["name", "ngay", "nguon", "dien_tap", "qc_round", "muc", "cong_doan",
+              "loai", "oprp", "muc_do", "mo_ta", "lo_anh_huong", "ds_lo", "xu_ly_ngay",
               "nguyen_nhan", "hanh_dong_khac_phuc", "quyet_dinh_sp", "car_so",
               "trang_thai", "dong_boi", "dong_ngay"]
 
@@ -52,8 +54,18 @@ def dong_luot(doc, in_gia_tri, cint):
                for m in M.MUC])
 
 
+def _o_su_co(hang, k):
+    v = hang.get(k)
+    if k == "dien_tap":
+        return "1" if v and str(v) != "0" else ""
+    if k == "ds_lo":
+        return "; ".join(f'{x.get("nhan") or x.get("batch")} {x.get("ten") or ""}'.strip()
+                         for x in (v or []))
+    return v
+
+
 def dong_su_co(hang):
-    return [hang.get(k) for k in KHOA_SU_CO]
+    return [_o_su_co(hang, k) for k in KHOA_SU_CO]
 
 
 def thanh_csv(tieu_de, hang):

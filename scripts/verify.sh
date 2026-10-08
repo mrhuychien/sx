@@ -317,4 +317,10 @@ python3 scripts/test-luumau.py > /tmp/sx-luumau.log 2>&1 \
   && tail -1 /tmp/sx-luumau.log \
   || { cat /tmp/sx-luumau.log; loi=1; }
 
+# D134 (W11): phiếu sự cố. Desk tự đóng phiếu, bật cờ diễn tập cho phiếu thật, lô gắn
+# không điền HSD — đều là cửa hậu / lỗi im lặng.
+python3 scripts/test-sucolo.py > /tmp/sx-sucolo.log 2>&1 \
+  && tail -1 /tmp/sx-sucolo.log \
+  || { cat /tmp/sx-sucolo.log; loi=1; }
+
 exit $loi

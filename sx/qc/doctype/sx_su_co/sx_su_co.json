@@ -10,6 +10,7 @@
   "trang_thai",
   "column_break_head",
   "nguon",
+  "dien_tap",
   "qc_round",
   "muc",
   "section_phan_loai",
@@ -26,7 +27,7 @@
   "section_mo_ta",
   "mo_ta",
   "lo_anh_huong",
-  "lo_tp",
+  "ds_lo",
   "so_luong",
   "section_xu_ly",
   "xu_ly_ngay",
@@ -85,10 +86,17 @@
    "fieldname": "nguon",
    "fieldtype": "Select",
    "label": "Nguồn",
-   "options": "Vòng kiểm QC\nTiếp nhận NL\nKhiếu nại\nPhát hiện khác\nNhật ký chuyền",
+   "options": "Vòng kiểm QC\nTiếp nhận NL\nKhiếu nại\nKiểm tra xuất xưởng\nHàng trả về\nKiểm xe\nĐộng vật gây hại\nThiết bị đo\nKết quả kiểm nghiệm\nNhật ký cát\nĐánh giá nội bộ\nPhát hiện khác\nNhật ký chuyền",
    "default": "Vòng kiểm QC",
    "reqd": 1,
    "description": "Nhật ký chuyền = sự cố tổ Ghi sổ báo trong ca (hỏng máy, mất điện…), gộp vào đây từ D87."
+  },
+  {
+   "default": "0",
+   "fieldname": "dien_tap",
+   "fieldtype": "Check",
+   "label": "Diễn tập",
+   "description": "Phiếu lập để diễn tập (truy xuất, thu hồi, ứng phó). Vẫn phải xử lý và đóng như phiếu thật, nhưng không tính vào số liệu sự cố và không giữ mẫu lưu. Chỉ người được đóng phiếu mới đổi được cờ này sau khi lập."
   },
   {
    "fieldname": "qc_round",
@@ -196,15 +204,14 @@
    "fieldname": "lo_anh_huong",
    "fieldtype": "Data",
    "label": "Lô ảnh hưởng",
-   "description": "HSD / ngày nghiền / vị"
+   "description": "Ghi chữ tự do (ngày nghiền, vị…). Lô cụ thể thì gắn ở bảng Lô liên quan bên dưới."
   },
   {
-   "fieldname": "lo_tp",
-   "fieldtype": "Link",
-   "label": "Lô thành phẩm",
-   "options": "Batch",
-   "search_index": 1,
-   "description": "Lô thành phẩm của sự cố / khiếu nại — mẫu lưu của lô này được GIỮ (không huỷ) tới khi phiếu đóng."
+   "fieldname": "ds_lo",
+   "fieldtype": "Table",
+   "label": "Lô liên quan",
+   "options": "SX Su Co Lo",
+   "description": "W11: lô thành phẩm (theo HSD) / nguyên liệu của sự cố. Phiếu đang mở thì mẫu lưu của các lô này được GIỮ (không huỷ)."
   },
   {
    "fieldname": "so_luong",
@@ -274,7 +281,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 14:00:00.000000",
+ "modified": "2026-10-08 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX Su Co",
