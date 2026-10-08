@@ -519,7 +519,31 @@ def nhac(ngay=None):
     su_co = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở"},
                            fields=["name", "ngay", "trang_thai", "xu_ly_ngay",
                                    "muc_do"])
-    return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong())}
+    return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton())}
+
+
+# Nhóm hàng BỘT NỀN (đỗ nghiền, tầng 1) — đọc thẳng Item.custom_sx_nhom như NHOM_BOT.
+NHOM_BOT_NEN = "BTP-Bot"
+
+
+def _bot_nen_ton():
+    """Lô bột nền còn tồn trên sổ kho: [{batch, ten, ngay, ton, dvt}] (W06). Ngày = ngày
+    làm ra lô (manufacturing_date, không có thì ngày tạo lô). Site chưa có field nhóm
+    SX (module qc cài riêng) → [] — không nhắc gì."""
+    try:
+        if not frappe.get_meta("Item").has_field("custom_sx_nhom"):
+            return []
+        items = frappe.get_all("Item", filters={"custom_sx_nhom": NHOM_BOT_NEN}, pluck="name")
+        if not items:
+            return []
+        ds = frappe.get_all("Batch", filters={"item": ("in", items), "batch_qty": (">", 0)},
+                            fields=["name", "item_name", "manufacturing_date", "creation",
+                                    "batch_qty", "stock_uom"], limit=200)
+    except Exception:
+        return []
+    return [{"batch": b.name, "ten": b.item_name, "ton": flt(b.batch_qty, 2),
+             "dvt": b.stock_uom or "",
+             "ngay": str(getdate(b.manufacturing_date or b.creation))} for b in ds]
 
 
 @frappe.whitelist()

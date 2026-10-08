@@ -13,7 +13,7 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
-import { toastErr } from '/assets/sx/sx/components/toast.js';
+import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal } from '/assets/sx/sx/components/modal.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
 
@@ -31,6 +31,7 @@ export async function render({ container, call }) {
 
   container.innerHTML = `
     <div class="sx-tx-dau">🔎 Truy xuất nguồn gốc</div>
+    <div id="tx-dt"></div>
     <div class="sx-muted">Quét mã vạch hộp (hoặc chọn sản phẩm) + nhập HSD in trên hộp.
       Hoặc gõ thẳng mã lô.</div>
     <div class="sx-tx-form">
@@ -51,6 +52,9 @@ export async function render({ container, call }) {
   const $ = (s) => container.querySelector(s);
   const kq = $('#tx-kq');
   const nutSp = $('#tx-sp');
+  // W06 (D132): diễn tập truy xuất — đồng hồ chạy từ lúc bấm tới lúc kết thúc ở lô.
+  const dt = { dang: null, hen: null };
+  veDienTap();
 
   async function danhMuc() {
     if (!st.dm) st.dm = await call('sx.api.truyxuat.danh_muc');
@@ -124,6 +128,92 @@ export async function render({ container, call }) {
     kq.appendChild(ds);
   }
 
+  async function veDienTap() {
+    const box = $('#tx-dt');
+    if (dt.hen) { clearInterval(dt.hen); dt.hen = null; }
+    if (dt.dang === null) {
+      try { dt.dang = (await call('sx.api.truyxuat.dien_tap_dang')) || false; } catch (e) { dt.dang = false; }
+    }
+    if (!dt.dang) {
+      box.innerHTML = `<div class="sx-tx-dt-hang">
+        <button type="button" class="sx-btn" id="tx-dt-bd">⏱ DIỄN TẬP TRUY XUẤT</button>
+        <button type="button" class="sx-btn sx-btn-ghost" id="tx-dt-ds">Lần trước</button></div>`;
+      box.querySelector('#tx-dt-bd').addEventListener('click', batDauDienTap);
+      box.querySelector('#tx-dt-ds').addEventListener('click', moDsDienTap);
+      return;
+    }
+    const bd = new Date(String(dt.dang.bat_dau).replace(' ', 'T'));
+    box.innerHTML = `<div class="sx-tx-dt-chay" role="status">
+      <span>⏱ Đang diễn tập · <b id="tx-dt-gio">00:00</b></span>
+      <span class="sx-muted">tra tới lô cần truy rồi bấm KẾT THÚC trên thẻ lô</span>
+      <button type="button" class="sx-btn sx-btn-ghost" id="tx-dt-huy">Bỏ</button></div>`;
+    const gio = box.querySelector('#tx-dt-gio');
+    const dem = () => {
+      const g = Math.max(0, Math.floor((Date.now() - bd.getTime()) / 1000));
+      gio.textContent = `${String(Math.floor(g / 60)).padStart(2, '0')}:${String(g % 60).padStart(2, '0')}`;
+    };
+    dem();
+    dt.hen = setInterval(() => { if (!gio.isConnected) { clearInterval(dt.hen); return; } dem(); }, 1000);
+    box.querySelector('#tx-dt-huy').addEventListener('click', async () => {
+      try { await call('sx.api.truyxuat.dien_tap_huy', { name: dt.dang.name }); } catch (e) { toastErr(e.message); return; }
+      dt.dang = false; veDienTap(); toast('Đã bỏ lần diễn tập.');
+    });
+  }
+
+  async function batDauDienTap() {
+    try { dt.dang = await call('sx.api.truyxuat.dien_tap_bat_dau'); } catch (e) { toastErr(e.message); return; }
+    veDienTap();
+    toast('Bắt đầu bấm giờ — tra lô như khi có khiếu nại thật.');
+  }
+
+  function ketThucDienTap(batch, d) {
+    const m = openModal({ kicker: 'Kết thúc diễn tập', title: d.lo.la_tp && d.lo.hsd
+      ? `${d.lo.ten} · HSD ${ngayNgan(d.lo.hsd)}` : `${d.lo.ten} · ${d.lo.batch}` });
+    m.body.innerHTML = `
+      <div class="sx-muted">Đồng hồ dừng khi bấm LƯU. Có đếm thực tế tồn trong kho thì ghi
+        số đếm — cân bằng tính theo số đếm + mẫu lưu; để trống thì theo tồn sổ sách.</div>
+      <label class="sx-field-label" for="tx-dt-ton">Tồn đếm thực tế (${esc(d.lo.dvt || 'đơn vị kho')})</label>
+      <input class="sx-textarea" id="tx-dt-ton" type="number" inputmode="decimal" min="0" step="any"
+        placeholder="để trống = không đếm">
+      <label class="sx-field-label" for="tx-dt-gc">Ghi chú / nhận xét</label>
+      <textarea class="sx-textarea" id="tx-dt-gc" rows="2"></textarea>
+      <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="tx-dt-luu">LƯU & DỪNG ĐỒNG HỒ</button>`;
+    const nut = m.body.querySelector('#tx-dt-luu');
+    nut.addEventListener('click', async () => {
+      nut.disabled = true;
+      const ton = m.body.querySelector('#tx-dt-ton').value;
+      try {
+        const r = await call('sx.api.truyxuat.dien_tap_ket_thuc', {
+          name: dt.dang.name, batch, ton_thuc_te: ton === '' ? null : ton,
+          ghi_chu: m.body.querySelector('#tx-dt-gc').value,
+        });
+        m.close();
+        const ten = dt.dang.name;
+        dt.dang = false;
+        veDienTap();
+        const cb = r.can_bang || {};
+        toast(`Diễn tập ${ten}: ${r.so_phut} phút · cân bằng ${cb.pt ?? '—'}% `
+          + `${cb.dat ? '✓ đạt' : '✕ chưa đạt'}`);
+        inDienTap(ten, call);
+      } catch (e) { nut.disabled = false; toastErr(e.message); }
+    });
+  }
+
+  async function moDsDienTap() {
+    let ds = [];
+    try { ds = await call('sx.api.truyxuat.ds_dien_tap'); } catch (e) { toastErr(e.message); return; }
+    const m = openModal({ kicker: 'Truy xuất', title: 'Các lần diễn tập' });
+    m.body.innerHTML = ds.length ? `<div class="sx-vh-list">${ds.map((x) => `
+      <button type="button" class="sx-nv-row" data-dt="${esc(x.name)}"
+        style="flex-direction:row;align-items:center;justify-content:space-between;min-height:var(--sx-tap-lg)">
+        <span class="sx-nv-who"><span class="sx-nv-ten">${esc(x.ten_san_pham || x.name)}${
+          x.hsd ? ` · HSD ${esc(ngayNgan(x.hsd))}` : ''}</span>
+          <span class="sx-vh-meta">${esc(ngayNgan(x.ngay))} · ${x.so_phut} phút · ${esc(x.nguoi || '')}</span></span>
+        <span class="sx-nv-qty">${x.can_bang_pt}% ${x.dat ? '✓' : '✕'} 🖨</span></button>`).join('')}</div>`
+      : '<div class="sx-muted">Chưa có lần diễn tập nào.</div>';
+    m.body.querySelectorAll('[data-dt]').forEach((b) => b.addEventListener('click', () => inDienTap(b.dataset.dt, call)));
+  }
+
   async function moLo(batch, moi) {
     if (moi) st.lichSu = [];
     kq.innerHTML = '<div class="sx-muted">Đang truy…</div>';
@@ -137,13 +227,14 @@ export async function render({ container, call }) {
     veLo(kq, d, {
       quayLai: st.lichSu.length > 1 ? () => { st.lichSu.pop(); moLo(st.lichSu.pop(), false); } : null,
       mo: (b) => moLo(b, false),
+      ketThuc: dt.dang ? () => ketThucDienTap(batch, d) : null,
     });
     kq.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
 // ───────────────────────────── hồ sơ một lô ─────────────────────────────
-export function veLo(box, d, { quayLai, mo }) {
+export function veLo(box, d, { quayLai, mo, ketThuc }) {
   const l = d.lo;
   const n = d.nhap_kho;
   const b = d.ban || { ban: [], khac: [], ton: [], da_ban: 0, nhap: 0 };
@@ -169,7 +260,10 @@ export function veLo(box, d, { quayLai, mo }) {
         <div><span class="sx-field-label">Còn tồn</span><b>${esc(so(l.ton, l.dvt))}</b></div>
       </div>
     </div>
+    ${ketThuc ? '<button type="button" class="sx-btn sx-btn-primary sx-btn-big" data-ketthuc>⏹ KẾT THÚC DIỄN TẬP Ở LÔ NÀY</button>' : ''}
     ${(d.ghi_chu || []).map((g) => `<div class="sx-muted sx-tx-ghichu">ⓘ ${esc(g)}</div>`).join('')}
+    ${d.can_bang && d.can_bang.san_xuat ? khoi(`⚖ Cân bằng lô — ${d.can_bang.pt ?? '—'}% ${
+      d.can_bang.dat ? '✓' : '✕'}`, canBang(d.can_bang, l.dvt), !d.can_bang.dat) : ''}
     ${(d.su_co_lo || []).length ? khoi('⚠ Sự cố ghi theo lô này', d.su_co_lo.map(dongSuCo).join(''), true) : ''}
     ${d.ncc ? khoi('🏭 Nhà cung cấp', dongNcc(d.ncc), true) : ''}
     ${(d.nguon || []).length ? khoi('⬅ Nguồn gốc nguyên liệu', cay(d.nguon), true) : ''}
@@ -182,7 +276,41 @@ export function veLo(box, d, { quayLai, mo }) {
   `;
   const lui = box.querySelector('[data-lui]');
   if (lui) lui.addEventListener('click', quayLai);
+  const kt = box.querySelector('[data-ketthuc]');
+  if (kt) kt.addEventListener('click', ketThuc);
   box.querySelectorAll('[data-lo]').forEach((x) => x.addEventListener('click', () => mo(x.dataset.lo)));
+}
+
+// Bảng cân bằng lô (W06): sản xuất = bán + xuất khác + tồn (+ mẫu khi đếm thực tế).
+function canBang(c, dvt) {
+  const h = (ten, v, dam) => `<div class="sx-vh-row" style="cursor:default"><div class="sx-vh-who">
+    <div class="sx-vh-name">${dam ? `<b>${esc(ten)}</b>` : esc(ten)}</div></div>
+    <span class="sx-nv-qty">${esc(so(v, dvt))}</span></div>`;
+  return `<div class="sx-vh-list">
+    ${h('Sản xuất / nhập kho', c.san_xuat, true)}
+    ${h('Đã bán (trừ trả lại)', c.da_ban)}
+    ${h('Xuất khác (huỷ, dùng)', c.xuat_khac)}
+    ${c.ton_thuc_te !== null && c.ton_thuc_te !== undefined
+    ? h('Tồn đếm thực tế', c.ton_thuc_te) + h('Mẫu lưu đã lấy', c.mau_luu)
+    : h('Tồn sổ sách', c.ton_so_sach)}
+    ${h('Xác định được', c.tim_thay, true)}
+    ${h('Chênh lệch', c.chenh_lech)}</div>
+    <div class="${c.dat ? 'sx-muted' : 'sx-warn-text'}">Cân bằng ${c.pt ?? '—'}% — đạt khi ≥ ${c.nguong}%.${
+      c.mau_luu ? ` Mẫu lưu ${esc(so(c.mau_luu, dvt))} nằm trong tồn sổ (lấy mẫu không trừ kho).` : ''}</div>`;
+}
+
+// In phụ lục BM.02.04 — cửa sổ mới, tự khai charset (cửa sổ about:blank không thừa kế).
+async function inDienTap(name, call) {
+  try {
+    const html = await call('sx.api.truyxuat.in_dien_tap', { name });
+    const w = window.open('', '_blank');
+    if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+    w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+      + `<title>Phụ lục BM.02.04 — ${name}</title></head><body>${html}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 250);
+  } catch (e) { toastErr(e.message); }
 }
 
 function khoi(tieuDe, than, mo) {

@@ -26,9 +26,12 @@ phiếu sản xuất đã dùng nó tới tận lô TP, rồi tới khách — �
 "lô đỗ này có vấn đề, những hộp nào, ai đã mua".
 """
 
+import json
+import math
+
 import frappe
 from frappe import _
-from frappe.utils import add_days, cint, flt, getdate
+from frappe.utils import add_days, cint, flt, get_datetime, getdate, now_datetime, nowdate
 
 from sx.config.roles import guard_card
 from sx.utils import items_tp, la_lo_hsd
@@ -174,6 +177,7 @@ def lo(batch):
                 nguoc = ctx.nguyen_lieu_cua_se(no.se_bu, set([batch]), 1)
 
     so_cai = _so_cai(batch)
+    can_bang = _can_bang(batch, so_cai)
     xuoi = None if goc["la_tp"] else ctx.xuoi(batch, set(), 0)
     qua_trinh, cua_so = _qua_trinh(goc, nhap, nguoc)
     if goc["la_tp"] and cua_so and cua_so[0] == cua_so[1] and la_lo_hsd(batch):
@@ -202,6 +206,7 @@ def lo(batch):
         "ban": _ban(so_cai),
         "xuoi": xuoi,
         "khach": khach,
+        "can_bang": can_bang,
         "luu_mau": _luu_mau(goc, cua_so),
         "su_co_lo": _su_co_theo_lo(batch),
         "ghi_chu": ghi_chu,
@@ -469,6 +474,160 @@ def _khach_tong(so_cai, xuoi):
     di(xuoi)
     return sorted(({**g, "so": flt(g["so"], 3), "lo": sorted(x for x in g["lo"] if x)}
                    for g in gop.values()), key=lambda g: -g["so"])
+
+
+# ═══════════════════════════════ cân bằng lô (W06) ═══════════════════════════════
+
+DAT_CAN_BANG = 98.0
+CHUYEN_KHO = ("Material Transfer", "Material Transfer for Manufacture", "Send to Subcontractor")
+
+
+def _mau_cua_lo(batch):
+    """Tổng số lượng mẫu đã lấy từ lô (mẫu lưu gắn lô — W07). Mẫu lấy ra khỏi hộp
+    nhưng KHÔNG trừ kho, nên khi đếm thực tế phải cộng lại mới đủ."""
+    try:
+        if not frappe.get_meta("SX QC Luu Mau").has_field("batch"):
+            return 0.0
+        return flt(sum(flt(x.so_luong) for x in frappe.get_all(
+            "SX QC Luu Mau", filters={"batch": batch}, fields=["so_luong"])), 3)
+    except Exception:
+        return 0.0
+
+
+def _can_bang(batch, so_cai, ton_thuc_te=None):
+    """Bảng cân bằng lô (W06): sản xuất / nhập = đã bán + xuất khác + tồn (+ mẫu).
+
+    Chuyển kho không tính (ra kho này = vào kho kia). Không đếm thực tế thì lấy tồn
+    sổ sách — mẫu lưu đã nằm trong tồn sổ (lấy mẫu không trừ kho) nên không cộng
+    thêm. Có số đếm thực tế (diễn tập) thì: tìm thấy = bán + xuất khác + tồn đếm +
+    mẫu đã lấy. Đạt khi ≥ 98%.
+    """
+    se = [m["chung_tu"] for m in so_cai if m["loai"] == "Stock Entry"]
+    muc = {r.name: r.purpose for r in frappe.get_all(
+        "Stock Entry", filters={"name": ("in", se)}, fields=["name", "purpose"])} if se else {}
+    sx = ban = khac = 0.0
+    for m in so_cai:
+        if m["loai"] in BAN:
+            ban -= m["so"]                         # bán ghi âm; trả lại ghi dương → trừ
+        elif m["loai"] == "Stock Entry" and muc.get(m["chung_tu"]) in CHUYEN_KHO:
+            continue
+        elif m["so"] > 0:
+            sx += m["so"]
+        else:
+            khac -= m["so"]
+    ton = sum(m["so"] for m in so_cai)
+    mau = _mau_cua_lo(batch)
+    dem = ton_thuc_te not in (None, "")
+    tim = ban + khac + ((flt(ton_thuc_te) + mau) if dem else ton)
+    pt = round(tim * 100.0 / sx, 1) if sx > 1e-9 else None
+    return {"san_xuat": flt(sx, 3), "da_ban": flt(ban, 3), "xuat_khac": flt(khac, 3),
+            "ton_so_sach": flt(ton, 3), "mau_luu": mau,
+            "ton_thuc_te": flt(ton_thuc_te, 3) if dem else None,
+            "tim_thay": flt(tim, 3), "chenh_lech": flt(sx - tim, 3), "pt": pt,
+            "dat": bool(pt is not None and pt >= DAT_CAN_BANG), "nguong": DAT_CAN_BANG}
+
+
+# ═══════════════════════════════ diễn tập truy xuất (W06) ═══════════════════════════════
+
+DT = "SX Dien Tap Truy Xuat"
+MAU_IN = "sx/sx/doctype/sx_dien_tap_truy_xuat/dien_tap.html"
+
+
+def _dien_tap_dang():
+    r = frappe.get_all(DT, filters={"nguoi": frappe.session.user, "ket_thuc": ("is", "not set")},
+                       fields=["name", "bat_dau"], order_by="creation desc", limit=1)
+    return {"name": r[0].name, "bat_dau": str(r[0].bat_dau)} if r else None
+
+
+@frappe.whitelist()
+def dien_tap_dang():
+    """Lần diễn tập đang chạy của người này (tải lại trang không mất đồng hồ)."""
+    guard_card("truyxuat")
+    return _dien_tap_dang()
+
+
+@frappe.whitelist()
+def dien_tap_bat_dau():
+    """Bấm giờ: giờ bắt đầu do SERVER ghi — đồng hồ máy không chỉnh được kết quả."""
+    guard_card("truyxuat")
+    dang = _dien_tap_dang()
+    if dang:
+        return dang
+    d = frappe.get_doc({"doctype": DT, "ngay": nowdate(), "nguoi": frappe.session.user,
+                        "bat_dau": now_datetime()})
+    d.insert(ignore_permissions=True)
+    return {"name": d.name, "bat_dau": str(d.bat_dau)}
+
+
+@frappe.whitelist()
+def dien_tap_huy(name):
+    """Bỏ lần diễn tập CHƯA kết thúc (bấm nhầm). Đã kết thúc là hồ sơ — không xoá ở đây."""
+    guard_card("truyxuat")
+    d = frappe.get_doc(DT, name)
+    if d.ket_thuc:
+        frappe.throw(_("Diễn tập {0} đã kết thúc — là hồ sơ, không bỏ được.").format(name))
+    d.delete(ignore_permissions=True)
+    return {"ok": 1}
+
+
+def _dem_ncc(cay):
+    n = 0
+    for x in cay or []:
+        if x.get("batch") and not str(x.get("nhom") or "").startswith("BTP") and not x.get("con"):
+            n += 1
+        n += _dem_ncc(x.get("con"))
+    return n
+
+
+@frappe.whitelist()
+def dien_tap_ket_thuc(name, batch, ton_thuc_te=None, ghi_chu=None):
+    """Dừng đồng hồ ở lô vừa truy: ghi thời gian, bảng cân bằng (kèm tồn đếm thực
+    tế nếu có), ảnh chụp kết quả truy để in phụ lục BM.02.04."""
+    guard_card("truyxuat")
+    d = frappe.get_doc(DT, name)
+    if d.ket_thuc:
+        frappe.throw(_("Diễn tập {0} đã kết thúc lúc {1}.").format(name, d.ket_thuc))
+    kq = lo(batch)
+    cb = _can_bang(batch, _so_cai(batch), ton_thuc_te)
+    l = kq["lo"]
+    xong = now_datetime()
+    giay = (get_datetime(xong) - get_datetime(d.bat_dau)).total_seconds()
+    d.update({
+        "ket_thuc": xong, "so_phut": max(1, int(math.ceil(giay / 60.0))),
+        "lo": batch, "item": l["item"], "ten_san_pham": l["ten"],
+        "nsx": l.get("nsx"), "hsd": l.get("hsd"),
+        "san_xuat": cb["san_xuat"], "da_ban": cb["da_ban"], "xuat_khac": cb["xuat_khac"],
+        "ton_so_sach": cb["ton_so_sach"], "mau_luu": cb["mau_luu"],
+        "ton_thuc_te": cb["ton_thuc_te"], "tim_thay": cb["tim_thay"],
+        "chenh_lech": cb["chenh_lech"], "can_bang_pt": cb["pt"] or 0, "dat": 1 if cb["dat"] else 0,
+        "so_khach": len(kq.get("khach") or []), "so_ncc": _dem_ncc(kq.get("nguon")),
+        "so_ngay_sx": len(kq.get("qua_trinh") or []),
+        "ghi_chu": (ghi_chu or "").strip() or d.ghi_chu,
+        "ket_qua": json.dumps({k: kq.get(k) for k in ("lo", "nhap_kho", "nguon", "qua_trinh",
+                                                      "khach", "ghi_chu", "can_bang")},
+                              ensure_ascii=False, default=str),
+    })
+    d.save(ignore_permissions=True)
+    return {"name": d.name, "so_phut": d.so_phut, "can_bang": cb}
+
+
+@frappe.whitelist()
+def in_dien_tap(name):
+    """HTML tờ A4 — phụ lục BM.02.04 (kết quả diễn tập truy xuất)."""
+    guard_card("truyxuat")
+    d = frappe.get_doc(DT, name)
+    kq = json.loads(d.ket_qua or "{}")
+    return frappe.render_template(MAU_IN, {"d": d, "kq": kq, "nguong": DAT_CAN_BANG})
+
+
+@frappe.whitelist()
+def ds_dien_tap(limit=10):
+    """Các lần diễn tập gần đây (để in lại)."""
+    guard_card("truyxuat")
+    return [dict(x, ngay=str(x.ngay)) for x in frappe.get_all(
+        DT, filters={"ket_thuc": ("is", "set")},
+        fields=["name", "ngay", "ten_san_pham", "hsd", "so_phut", "can_bang_pt", "dat", "nguoi"],
+        order_by="creation desc", limit=cint(limit) or 10)]
 
 
 # ═══════════════════════════════ phiếu nhập + quá trình ═══════════════════════════════

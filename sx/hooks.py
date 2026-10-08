@@ -30,6 +30,9 @@ doc_events = {
         "validate": "sx.qc.tiep_nhan.validate",
         "on_submit": "sx.qc.tiep_nhan.on_submit",
     },
+    # W06 (D132): bán trừ kho thành phẩm phải chọn đúng lô (HSD) — truy xuất xuôi.
+    "Sales Invoice": {"before_submit": "sx.api.banhang.kiem_lo_ban"},
+    "Delivery Note": {"before_submit": "sx.api.banhang.kiem_lo_ban"},
 }
 
 # D123: lưới an toàn của đồng bộ ngầm — ngày còn dấu "cần đồng bộ" (job nền lỡ,

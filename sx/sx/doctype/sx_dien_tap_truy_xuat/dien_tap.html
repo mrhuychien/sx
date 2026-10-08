@@ -1,0 +1,94 @@
+{#- Phụ lục BM.02.04 — kết quả diễn tập truy xuất (W06, D132). Một trang A4 đứng,
+    kẹp sau biên bản diễn tập giấy. Mọi số liệu là ẢNH CHỤP lúc bấm kết thúc (ket_qua),
+    không phải tra lại lúc in: in lại tháng sau vẫn đúng như hôm diễn tập. -#}
+<style>
+  @page { size: A4 portrait; margin: 12mm 10mm; }
+  .dt { font: 11px/1.3 "Times New Roman", serif; color: #000; }
+  .dt h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
+  .dt .ma { text-align: center; font-size: 10px; margin-bottom: 8px; }
+  .dt h2 { font-size: 12px; margin: 10px 0 3px; }
+  .dt table { width: 100%; border-collapse: collapse; }
+  .dt td, .dt th { border: 1px solid #000; padding: 2px 5px; vertical-align: top; }
+  .dt th { background: #eee; text-align: left; }
+  .dt .so { text-align: right; white-space: nowrap; }
+  .dt .dat { font-weight: bold; }
+  .dt .ky { margin-top: 18px; width: 100%; }
+  .dt .ky td { border: 0; text-align: center; height: 60px; }
+  .dt tr { break-inside: avoid; }
+</style>
+{%- set cb = kq.get("can_bang") or {} -%}
+{%- set l = kq.get("lo") or {} -%}
+<div class="dt">
+  <h1>KẾT QUẢ DIỄN TẬP TRUY XUẤT NGUỒN GỐC</h1>
+  <div class="ma">Phụ lục BM.02.04 &nbsp;·&nbsp; Số: <b>{{ d.name }}</b>
+    &nbsp;·&nbsp; Ngày {{ frappe.utils.formatdate(d.ngay, "dd/MM/yyyy") }}</div>
+
+  <table>
+    <tr><th style="width:24%">Sản phẩm</th><td>{{ d.ten_san_pham or "—" }}</td>
+        <th style="width:14%">HSD</th><td>{{ frappe.utils.formatdate(d.hsd, "dd/MM/yyyy") if d.hsd else "—" }}</td></tr>
+    <tr><th>NSX</th><td>{{ frappe.utils.formatdate(d.nsx, "dd/MM/yyyy") if d.nsx else "—" }}</td>
+        <th>Người diễn tập</th><td>{{ d.nguoi or "—" }}</td></tr>
+    <tr><th>Bắt đầu — kết thúc</th>
+        <td>{{ frappe.utils.format_datetime(d.bat_dau, "HH:mm") if d.bat_dau else "—" }} —
+            {{ frappe.utils.format_datetime(d.ket_thuc, "HH:mm dd/MM/yyyy") if d.ket_thuc else "—" }}</td>
+        <th>Thời gian</th><td class="dat">{{ d.so_phut or 0 }} phút</td></tr>
+  </table>
+
+  <h2>1. Cân bằng lô (đạt ≥ {{ nguong }}%)</h2>
+  <table>
+    <tr><th>Sản xuất / nhập kho</th><td class="so">{{ d.san_xuat }}</td>
+        <th>Đã bán (trừ trả lại)</th><td class="so">{{ d.da_ban }}</td></tr>
+    <tr><th>Xuất khác (huỷ, dùng)</th><td class="so">{{ d.xuat_khac }}</td>
+        <th>Tồn sổ sách</th><td class="so">{{ d.ton_so_sach }}</td></tr>
+    <tr><th>Tồn đếm thực tế</th><td class="so">{{ d.ton_thuc_te if d.ton_thuc_te is not none and cb.get("ton_thuc_te") is not none else "không đếm" }}</td>
+        <th>Mẫu lưu đã lấy</th><td class="so">{{ d.mau_luu }}</td></tr>
+    <tr><th>Đã xác định được</th><td class="so">{{ d.tim_thay }}</td>
+        <th>Chênh lệch</th><td class="so">{{ d.chenh_lech }}</td></tr>
+    <tr><th>Tỷ lệ cân bằng</th><td class="so dat">{{ d.can_bang_pt }}%</td>
+        <th>Kết luận</th><td class="dat">{{ "ĐẠT" if d.dat else "KHÔNG ĐẠT" }}</td></tr>
+  </table>
+
+  <h2>2. Truy ngược — nguyên liệu và nhà cung cấp</h2>
+  {%- macro cay(ds, cap) -%}
+    {%- for x in ds -%}
+    <tr><td style="padding-left:{{ 5 + cap * 14 }}px">{{ x.get("ten") }}</td>
+        <td>{{ ("HSD " ~ frappe.utils.formatdate(x.get("hsd"), "dd/MM/yyyy")) if x.get("la_tp") and x.get("hsd") else (x.get("batch") or "không quản lý lô") }}</td>
+        <td>{% if x.get("ncc") %}{{ x.ncc.get("ten_ncc") or x.ncc.get("ncc") or "" }}{% if x.ncc.get("lo_ncc") %} · lô NCC {{ x.ncc.get("lo_ncc") }}{% endif %}{% if x.ncc.get("ket_luan") %} · {{ x.ncc.get("ket_luan") }}{% endif %}{% endif %}</td>
+        <td class="so">{{ x.get("so") }} {{ x.get("dvt") or "" }}</td></tr>
+    {{ cay(x.get("con") or [], cap + 1) }}
+    {%- endfor -%}
+  {%- endmacro -%}
+  {% if kq.get("nguon") %}
+  <table><tr><th>Nguyên liệu / bán thành phẩm</th><th>Lô</th><th>Nhà cung cấp · tiếp nhận</th><th>Số dùng</th></tr>
+    {{ cay(kq.get("nguon"), 0) }}</table>
+  {% else %}<div>Không có phiếu sản xuất nào sinh ra lô này (xem ghi chú).</div>{% endif %}
+
+  <h2>3. Quá trình sản xuất</h2>
+  {% if kq.get("qua_trinh") %}
+  <table><tr><th style="width:14%">Ngày</th><th>Việc</th><th>QC</th><th>Sự cố</th></tr>
+    {% for g in kq.get("qua_trinh") %}
+    <tr><td>{{ frappe.utils.formatdate(g.ngay, "dd/MM/yyyy") }}</td>
+        <td>{{ (g.get("viec") or [])|join(", ") }}{% if g.get("vao_hop") %} — vào hộp: {% for v in g.vao_hop %}{{ v.ten }} {{ v.so_hop }}{{ ", " if not loop.last }}{% endfor %}{% endif %}</td>
+        <td>{% for v in g.get("qc") or [] %}{{ v.get("luot") }}{% if v.get("khong_dat") %} (KĐ: {{ v.khong_dat|join(", ") }}){% endif %}{{ "; " if not loop.last }}{% endfor %}</td>
+        <td>{% for sc in g.get("su_co") or [] %}{{ sc.name }}{{ ", " if not loop.last }}{% endfor %}</td></tr>
+    {% endfor %}</table>
+  {% else %}<div>—</div>{% endif %}
+
+  <h2>4. Truy xuôi — khách đã nhận</h2>
+  {% if kq.get("khach") %}
+  <table><tr><th>Khách hàng</th><th>Lô</th><th>Lần cuối</th><th>Số lượng</th></tr>
+    {% for k in kq.get("khach") %}
+    <tr><td>{{ k.get("ten_khach") or k.get("khach") or "?" }}</td><td>{{ (k.get("lo") or [])|join(", ") }}</td>
+        <td>{{ frappe.utils.formatdate(k.lan_cuoi, "dd/MM/yyyy") if k.get("lan_cuoi") else "" }}</td>
+        <td class="so">{{ k.get("so") }}</td></tr>
+    {% endfor %}</table>
+  {% else %}<div>Chưa khách nào nhận hàng từ lô này.</div>{% endif %}
+
+  {% if kq.get("ghi_chu") or d.ghi_chu %}
+  <h2>Ghi chú</h2>
+  <div>{% for g in kq.get("ghi_chu") or [] %}· {{ g }}<br>{% endfor %}{{ d.ghi_chu or "" }}</div>
+  {% endif %}
+
+  <table class="ky"><tr><td><b>Người diễn tập</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Trưởng Ban ISO</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

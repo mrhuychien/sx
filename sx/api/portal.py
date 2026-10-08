@@ -208,6 +208,8 @@ def get_boot(ngay=None, phan=None):
     boot = {
         "user": frappe.session.user,
         "is_quan_ly": super_,
+        # D132: Trưởng Ban ISO (hoặc quản lý) — tab Xem xét / Truy xuất trong màn QC.
+        "la_iso": super_ or "ISO Manager" in roles,
         "views": allowed_views(roles),
         "viewCards": view_cards(roles),
         "landing": landing_view(roles),

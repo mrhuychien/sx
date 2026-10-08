@@ -315,6 +315,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Truy xuất: cân bằng lô, diễn tập, bán phải chọn lô, bột nền quá hạn (D132 — W06)
+
+- **Bảng cân bằng lô** (thẻ lô trong Truy xuất): sản xuất / nhập = đã bán (trừ trả lại) +
+  xuất khác + tồn. Chuyển kho không tính. **Đạt ≥ 98%**. Có đếm thực tế (diễn tập) thì
+  tính theo số đếm + mẫu lưu đã lấy (lấy mẫu không trừ kho).
+- **Diễn tập truy xuất** (BM.02.04): nút **⏱ DIỄN TẬP TRUY XUẤT** — đồng hồ chạy (giờ bắt đầu
+  do server ghi), tra như khi có khiếu nại thật, tới lô cần truy bấm **KẾT THÚC DIỄN TẬP Ở LÔ
+  NÀY**, ghi tồn đếm thực tế (nếu có) → lưu `SX Dien Tap Truy Xuat` (thời gian, cân bằng,
+  số khách / lô NCC, ảnh chụp kết quả) và mở **bản in A4 — Phụ lục BM.02.04**. "Lần trước"
+  để in lại. Ban ISO dùng ở màn QC → tab **Truy xuất** (mới; tab Xem xét cũng hiện cho Ban
+  ISO — trước đây chỉ quản lý thấy).
+- **Bán phải chọn lô**: hoá đơn bán trừ kho (Sales Invoice có Update Stock) / phiếu giao —
+  dòng thành phẩm có quản lý lô mà chưa chọn lô (HSD) thì **không submit được** (ERPNext tự
+  chọn lô FIFO = lô máy đoán). Mã thành phẩm không quản lý lô: chỉ cảnh báo. Tắt ở SX Settings
+  → "Bắt chọn lô khi bán thành phẩm". Trả hàng không xét.
+- **Nhắc bột nền quá 2 ngày** (hộp nhắc QC, mức cao): lô nhóm `BTP-Bot` còn tồn trên sổ kho
+  quá 2 ngày kể từ ngày làm ra lô.
+- Chưa làm (chờ W08 / W10): nối lô NCC với BM.07.03 trên phiếu nhập mua, hiện BM.08.04.
+
 ## Lô thành phẩm theo HSD (D131 — W05)
 
 - **Mỗi (sản phẩm, HSD) một lô.** Mã lô `{prefix}-HSD{DDMMYY}` — hai phiếu nhập cùng mã

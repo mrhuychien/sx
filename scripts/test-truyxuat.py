@@ -255,6 +255,9 @@ fu.flt = lambda v, p=None: round(float(v or 0), p) if p is not None else float(v
 fu.cint = lambda v: int(float(v or 0))
 fu.getdate = _gd
 fu.add_days = lambda d, n: _gd(d) + dt.timedelta(days=n)
+fu.get_datetime = lambda x=None: x if isinstance(x, dt.datetime) else dt.datetime.fromisoformat(str(x))
+fu.now_datetime = lambda: dt.datetime(2026, 10, 8, 9, 30)
+fu.nowdate = lambda: "2026-10-08"
 frappe.utils = fu
 sys.modules["frappe"] = frappe
 sys.modules["frappe.utils"] = fu
@@ -440,6 +443,109 @@ kiem("A→B→A dừng lại, không lô nào lặp trên một nhánh (ngược
 d = T.lo("DX-NCC1")
 kiem("… cả chiều xuôi", not lap(d["xuoi"], ("DX-NCC1",)))
 kiem("chỗ vòng được ĐÁNH DẤU (màn hình nói 'đã có ở trên')", any(x.get("lap") for x in phang(d["xuoi"])))
+
+print("\n-- W06: bảng cân bằng lô --")
+d = T.lo("SEN-061026")
+cb = d["can_bang"]
+kiem("sản xuất 400 = bán 140 (100 + 50 − 10 trả lại) + xuất khác 5 + tồn 255",
+     (cb["san_xuat"], cb["da_ban"], cb["xuat_khac"], cb["ton_so_sach"], cb["tim_thay"])
+     == (400, 140, 5, 255, 400), cb)
+kiem("theo sổ sách → 100%, đạt", cb["pt"] == 100.0 and cb["dat"])
+so_cai = T._so_cai("SEN-061026")
+T._mau_cua_lo = lambda b: 3.0
+c2 = T._can_bang("SEN-061026", so_cai, ton_thuc_te=250)
+kiem("đếm thực tế 250 + mẫu lưu 3 → xác định 398 / 400 = 99,5% (đạt ≥ 98)",
+     (c2["tim_thay"], c2["pt"], c2["dat"]) == (398, 99.5, True), c2)
+c3 = T._can_bang("SEN-061026", so_cai, ton_thuc_te=200)
+kiem("đếm thực tế 200 → 348 / 400 = 87% → KHÔNG đạt, chênh 52",
+     (c3["pt"], c3["dat"], c3["chenh_lech"]) == (87.0, False, 52), c3)
+c4 = T._can_bang("SEN-061026", so_cai)
+kiem("không đếm thì mẫu lưu KHÔNG cộng thêm (đã nằm trong tồn sổ)", c4["tim_thay"] == 400)
+BANG["Stock Entry"] = [D(name="SE-CK2", purpose="Material Transfer")]
+c5 = T._can_bang("X", [{"loai": "Stock Entry", "chung_tu": "SE-TP", "so": 100, "kho": "TP"},
+                       {"loai": "Stock Entry", "chung_tu": "SE-CK2", "so": -40, "kho": "TP"},
+                       {"loai": "Stock Entry", "chung_tu": "SE-CK2", "so": 40, "kho": "CH"}])
+kiem("chuyển kho không tính là sản xuất hay xuất khác", (c5["san_xuat"], c5["xuat_khac"]) == (100, 0), c5)
+T._mau_cua_lo = lambda b: 0.0
+
+print("\n-- W06: diễn tập truy xuất --")
+import datetime as _dtt  # noqa: E402
+import json  # noqa: E402
+DTAP = {}
+
+
+class DtDoc(D):
+    def insert(self, **k):
+        self["name"] = f"DT-{len(DTAP) + 1}"
+        DTAP[self["name"]] = self
+        return self
+
+    def save(self, **k):
+        DTAP[self["name"]] = self
+
+    def delete(self, **k):
+        DTAP.pop(self["name"], None)
+
+
+_ga = frappe.get_all
+frappe.get_all = lambda d, filters=None, **k: (
+    [D(x) for x in DTAP.values() if all(
+        (bool(x.get(a)) == (b[1] == "set")) if isinstance(b, tuple) and b[0] == "is" else x.get(a) == b
+        for a, b in (filters or {}).items())] if d == "SX Dien Tap Truy Xuat" else _ga(d, filters, **k))
+frappe.get_doc = lambda d, n=None: DtDoc(d) if isinstance(d, dict) else DTAP[n]
+GIO = [_dtt.datetime(2026, 10, 8, 9, 0)]
+fu.now_datetime = lambda: GIO[0]
+T.now_datetime = lambda: GIO[0]
+frappe.render_template = lambda t, ctx: f"{t}|{ctx['d']['name']}|{ctx['kq']['can_bang']['pt']}"
+r = T.dien_tap_bat_dau()
+kiem("bắt đầu: ghi giờ server, người diễn tập", DTAP[r["name"]]["bat_dau"] == GIO[0]
+     and DTAP[r["name"]]["nguoi"] == "ql@x")
+kiem("bấm lại khi đang chạy → trả đúng lần đang chạy, không đẻ lần thứ hai",
+     T.dien_tap_bat_dau()["name"] == r["name"] and len(DTAP) == 1)
+kiem("tải lại trang vẫn thấy lần đang chạy", (T.dien_tap_dang() or {}).get("name") == r["name"])
+GIO[0] = _dtt.datetime(2026, 10, 8, 9, 22, 10)
+kq = T.dien_tap_ket_thuc(r["name"], "SEN-061026", ton_thuc_te="250", ghi_chu="đếm kho TP")
+dd = DTAP[r["name"]]
+kiem("kết thúc: thời gian làm tròn lên phút (22 phút 10 giây → 23)", dd["so_phut"] == 23, dd["so_phut"])
+kiem("ghi lô, sản phẩm, HSD", (dd["lo"], dd["hsd"]) == ("SEN-061026", "2027-04-04"))
+kiem("ghi bảng cân bằng theo số đếm thực tế (140 + 5 + 250 = 395 / 400 = 98,8% đạt)",
+     (dd["ton_thuc_te"], dd["can_bang_pt"], dd["dat"]) == (250, 98.8, 1),
+     (dd["ton_thuc_te"], dd["can_bang_pt"], dd["dat"]))
+kiem("đếm khách, lô nguyên liệu NCC truy được", dd["so_khach"] >= 1 and dd["so_ncc"] >= 1,
+     (dd["so_khach"], dd["so_ncc"]))
+kiem("ảnh chụp kết quả lưu lại (in lại tháng sau vẫn đúng)",
+     json.loads(dd["ket_qua"])["lo"]["batch"] == "SEN-061026")
+_, loi = thu(lambda: T.dien_tap_ket_thuc(r["name"], "SEN-061026"))
+kiem("kết thúc lần hai → chặn (giữ đúng giờ lần đầu)", loi is not None)
+_, loi = thu(lambda: T.dien_tap_huy(r["name"]))
+kiem("lần đã kết thúc là hồ sơ — không bỏ được", loi is not None and r["name"] in DTAP)
+kiem("không còn lần nào đang chạy", T.dien_tap_dang() is None)
+kiem("in phụ lục BM.02.04 từ ảnh chụp", T.in_dien_tap(r["name"]).startswith(T.MAU_IN))
+r2 = T.dien_tap_bat_dau()
+T.dien_tap_huy(r2["name"])
+kiem("bỏ lần chưa kết thúc (bấm nhầm)", r2["name"] not in DTAP)
+VAI.clear(); VAI.add("ISO Manager")
+kiem("Ban ISO dùng được truy xuất / diễn tập", T.dien_tap_dang() is None)
+VAI.clear(); VAI.add("SX QC")
+_, loi = thu(lambda: T.dien_tap_bat_dau())
+kiem("QC thường không diễn tập được", loi is not None)
+VAI.clear(); VAI.add("SX Quan Ly")
+import jinja2  # noqa: E402
+html = jinja2.Environment(loader=jinja2.FileSystemLoader("."), autoescape=True).get_template(
+    T.MAU_IN).render(d=D(dd), kq=json.loads(dd["ket_qua"]), nguong=98.0,
+                     frappe=types.SimpleNamespace(utils=types.SimpleNamespace(
+                         formatdate=lambda x, f=None: str(x), format_datetime=lambda x, f=None: str(x))))
+kiem("mẫu in A4 dựng được: phụ lục BM.02.04, cân bằng, kết luận, khách",
+     "Phụ lục BM.02.04" in html and "Cân bằng lô" in html and "ĐẠT" in html and "Đại lý Hà" in html)
+tx = open("sx/public/sx/cards/truyxuat.js", encoding="utf-8").read()
+kiem("thẻ truy xuất: nút diễn tập, đồng hồ, kết thúc ở lô, in phụ lục",
+     "DIỄN TẬP TRUY XUẤT" in tx and "dien_tap_ket_thuc" in tx and "in_dien_tap" in tx
+     and "data-ketthuc" in tx)
+qj = open("sx/public/sx/views/qc.js", encoding="utf-8").read()
+kiem("màn QC: tab Truy xuất + Xem xét cho Ban ISO (la_iso)",
+     "truyxuat: '/assets/sx/sx/views/qc_truyxuat.js'" in qj and "api.boot.la_iso" in qj)
+pt = open("sx/api/portal.py", encoding="utf-8").read()
+kiem("boot có cờ la_iso", '"la_iso": super_ or "ISO Manager" in roles' in pt)
 
 print()
 if hong:

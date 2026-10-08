@@ -12,6 +12,7 @@
   "section_nhom_tp",
   "nhom_tp",
   "nhom_tet",
+  "chan_ban_thieu_lo",
   "kho_xuong",
   "section_vao_hop",
   "nguon_cong_khoan",
@@ -141,6 +142,13 @@
    "description": "Màn Vào hộp Tết chỉ bày các mã thành phẩm thuộc nhóm này (và nhóm con). Để trống thì tự lấy Item Group có tên chứa 'Tết'."
   },
   {
+   "fieldname": "chan_ban_thieu_lo",
+   "fieldtype": "Check",
+   "default": "1",
+   "label": "Bắt chọn lô khi bán thành phẩm",
+   "description": "Hoá đơn bán trừ kho / phiếu giao: dòng thành phẩm có quản lý lô mà chưa chọn lô (HSD) thì không submit được. Bỏ tích = để ERPNext tự chọn lô (có thể sai lô đã giao)."
+  },
+  {
    "fieldname": "section_luong",
    "fieldtype": "Section Break",
    "label": "Tham số tính lương khoán"
@@ -219,7 +227,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-07 09:00:00.000000",
+ "modified": "2026-10-08 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

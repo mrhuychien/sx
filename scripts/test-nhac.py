@@ -171,6 +171,29 @@ kiem("đặt ngưỡng rồi → im",
 kiem("chưa ai ghi nhiệt rang lạc → im (đừng nhắc việc chưa tồn tại)",
      not co(tinh(luot=ba_luot), "Ngưỡng rang lạc"))
 
+# ═══ 7b. Bột nền quá 2 ngày (W06, D132) ══════════════════════════════════
+print("\n-- bột nền còn tồn quá 2 ngày --")
+
+
+def bn(ngay, ton=100, batch="R-1"):
+    return {"batch": batch, "ten": "Bột đỗ xanh nền", "ngay": ngay, "ton": ton, "dvt": "kg"}
+
+
+kiem("không có lô bột nền nào → im", not co(N.tinh(T2, ba_luot, [], NG, []), "bột nền"))
+kiem("lô làm hôm kia (2 ngày) → CHƯA quá → im",
+     not co(N.tinh(T2, ba_luot, [], NG, [bn("2026-09-12")]), "bột nền"))
+ds = N.tinh(T2, ba_luot, [], NG, [bn("2026-09-11", 120, "R-1109"), bn("2026-09-13")])
+kiem("lô 3 ngày → nhắc mức CAO (giới hạn kho bột)",
+     co(ds, "bột nền") and co(ds, "bột nền")[0]["muc_do"] == N.CAO)
+kiem("nói rõ lô nào, mấy ngày, bao nhiêu",
+     "R-1109: 3 ngày, 120 kg" in co(ds, "bột nền")[0]["chi_tiet"], co(ds, "bột nền")[0]["chi_tiet"])
+kiem("chỉ đếm lô quá hạn (1 lô, không phải 2)", co(ds, "bột nền")[0]["tieu_de"].startswith("1 lô"))
+kiem("nói rõ là theo SỔ KHO", "sổ kho" in co(ds, "bột nền")[0]["tieu_de"])
+qsrc = open("sx/api/qc.py", encoding="utf-8").read()
+kiem("API nhắc truyền lô bột nền còn tồn (nhóm BTP-Bot, batch_qty > 0)",
+     "_bot_nen_ton()" in qsrc and 'NHOM_BOT_NEN = "BTP-Bot"' in qsrc
+     and '"batch_qty": (">", 0)' in qsrc)
+
 # ═══ 8. Thứ tự ═══════════════════════════════════════════════════════════
 print("\n-- mức cao đứng trước --")
 ds = tinh(hom_nay=T4, su_co=[sc("2026-09-01"), sc("2026-09-13", xu_ly_ngay="")])

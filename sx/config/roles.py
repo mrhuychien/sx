@@ -170,7 +170,8 @@ CARD_ROLES = {
     "phieuluong": [QUAN_LY],
     # Truy xuất (D115): đọc xuyên mọi chứng từ (mua, sản xuất, bán, lương người
     # vào hộp) — chỉ quản lý.
-    "truyxuat": [QUAN_LY],
+    # D132 (W06): Ban ISO diễn tập truy xuất (BM.02.04) — vào qua tab Truy xuất màn QC.
+    "truyxuat": [QUAN_LY, ISO],
     "lichvaohop": [VAO_HOP],
     "lichghiso": [GHI_SO],
     "lichnhapkho": [VAO_HOP, THU_KHO, QUAN_LY],

@@ -14,6 +14,8 @@ const MAN = {
   history: '/assets/sx/sx/views/qc_history.js',
   review: '/assets/sx/sx/views/qc_review.js',
   luumau: '/assets/sx/sx/views/qc_luumau.js',
+  // W06 (D132): Ban ISO diễn tập truy xuất ngay trong màn QC.
+  truyxuat: '/assets/sx/sx/views/qc_truyxuat.js',
 };
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
@@ -59,7 +61,12 @@ function veTab(dang, api) {
     ['history', 'Lịch sử']];
   // Tab "Xem xét" chỉ hiện với người duyệt. Ẩn nút KHÔNG phải là chốt quyền —
   // chốt thật nằm ở _guard_manager trong sx/api/qc.py; đây chỉ để đỡ rối mắt.
-  if (api.boot && api.boot.is_quan_ly) tabs.push(['review', 'Xem xét']);
+  // `la_iso` (D132): Trưởng Ban ISO hoặc quản lý — trước đây chỉ quản lý thấy tab
+  // này, Ban ISO (người xem xét thật) phải tự gõ địa chỉ.
+  if (api.boot && (api.boot.la_iso || api.boot.is_quan_ly)) {
+    tabs.push(['review', 'Xem xét']);
+    tabs.push(['truyxuat', 'Truy xuất']);
+  }
   const box = el('div', 'sx-qc-seg');
   tabs.forEach(([ma, ten]) => {
     const a = el('a', 'sx-qc-tab', ten);

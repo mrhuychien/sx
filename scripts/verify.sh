@@ -305,4 +305,10 @@ python3 scripts/test-lohsd.py > /tmp/sx-lohsd.log 2>&1 \
   && tail -1 /tmp/sx-lohsd.log \
   || { cat /tmp/sx-lohsd.log; loi=1; }
 
+# D132 (W06): bán trừ kho thành phẩm phải chọn đúng lô. ERPNext tự chọn lô khi bỏ
+# trống — hoá đơn vẫn qua, truy xuất xuôi gọi nhầm khách lúc thu hồi.
+python3 scripts/test-banlo.py > /tmp/sx-banlo.log 2>&1 \
+  && tail -1 /tmp/sx-banlo.log \
+  || { cat /tmp/sx-banlo.log; loi=1; }
+
 exit $loi

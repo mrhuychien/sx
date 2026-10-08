@@ -24,6 +24,8 @@ THUONG = "thuong"
 # "nhắc" mà là lịch sử — chỗ của nó là màn Xem xét, không phải hộp nhắc việc.
 SO_NGAY_SOI = 7
 NGAY_CHUA_XEM_XET = 14
+# Bột nền để quá chừng này ngày là vượt giới hạn kho bột (mục 8 BM.08.01, oPRP-3).
+BOT_NEN_TOI_DA_NGAY = 2
 
 
 def _d(x):
@@ -42,10 +44,13 @@ def _m(muc_do, tieu_de, chi_tiet, route):
             "route": route}
 
 
-def tinh(hom_nay, luot, su_co, ng):
-    """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước."""
+def tinh(hom_nay, luot, su_co, ng, bot_nen=None):
+    """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
+
+    `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06)."""
     nay = _d(hom_nay)
     ra = []
+    ra += _nhac_bot_nen(nay, bot_nen or [])
     ra += _nhac_su_co(nay, su_co, ng)
     ra += _nhac_luot_tuan(nay, luot)
     ra += _nhac_luot_thieu(nay, luot)
@@ -53,6 +58,23 @@ def tinh(hom_nay, luot, su_co, ng):
     ra += _nhac_bay(luot)
     ra += _nhac_nguong(luot, ng)
     return sorted(ra, key=lambda x: 0 if x["muc_do"] == CAO else 1)
+
+
+def _nhac_bot_nen(nay, ds):
+    """Lô bột nền còn tồn quá BOT_NEN_TOI_DA_NGAY ngày (W06) — mức CAO: đây là giới hạn
+    của kho bột, không phải việc nhắc cho có. Tính theo SỔ KHO (ngày làm ra lô): báo mẻ
+    chưa đồng bộ thì số tồn còn treo — nói rõ là "theo sổ kho"."""
+    qua = sorted(((nay - _d(x["ngay"])).days, x) for x in ds
+                 if x.get("ngay") and (nay - _d(x["ngay"])).days > BOT_NEN_TOI_DA_NGAY)
+    if not qua:
+        return []
+    qua.reverse()
+    ct = "; ".join(f'{x.get("ten") or x["batch"]} lô {x["batch"]}: {n} ngày, '
+                   f'{float(x.get("ton") or 0):g} {x.get("dvt") or ""}'.strip()
+                   for n, x in qua[:3])
+    return [_m(CAO, f"{len(qua)} lô bột nền quá {BOT_NEN_TOI_DA_NGAY} ngày (theo sổ kho)",
+               f"{ct}{'…' if len(qua) > 3 else ''}. Dùng trước hoặc xử lý theo mục 8 Kho bột; "
+               f"báo mẻ chưa đồng bộ thì tồn trên sổ còn treo.", "#/qc")]
 
 
 def _nhac_su_co(nay, su_co, ng):
