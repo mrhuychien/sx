@@ -277,6 +277,10 @@ KN_LO = {}          # W13 (D135): khiếu nại theo lô — module thật có t
 kn = types.ModuleType("sx.api.qc_khieunai")
 kn.theo_lo = lambda b: KN_LO.get(b, [])
 sys.modules["sx.api.qc_khieunai"] = kn
+TH_LO = {}          # W26 (D136): trạng thái thu hồi — module thật có test riêng (test-thuhoi)
+th = types.ModuleType("sx.api.thuhoi")
+th.thong_tin = lambda b: TH_LO.get(b, {"dang": False, "duoc": False})
+sys.modules["sx.api.thuhoi"] = th
 
 
 def nap(ten, p):
@@ -420,6 +424,8 @@ kiem("khách kèm lô TP đã nhận — nói bằng HSD, không bằng mã lô 
 print("\n-- sự cố theo lô + lô nhập tạm chưa BOM --")
 d = T.lo("DG-NCC")
 kiem("sự cố tiếp nhận ghi theo lô hiện ra", [s["name"] for s in d["su_co_lo"]] == ["SC-9"])
+TH_LO["DG-NCC"] = {"dang": True, "ly_do": "dị vật", "duoc": True}
+kiem("thẻ lô mang trạng thái thu hồi (W26)", T.lo("DG-NCC")["thu_hoi"]["dang"] is True)
 KN_LO["DG-NCC"] = [{"name": "ISS-2026-00001", "trang_thai": "Mở"}]
 kiem("khiếu nại khách hàng của lô hiện ra (W13)",
      [k["name"] for k in T.lo("DG-NCC")["khieu_nai_lo"]] == ["ISS-2026-00001"])

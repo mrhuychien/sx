@@ -95,9 +95,13 @@ kiem("tắt trong SX Settings → không chặn", thu(hd(("TP-SEN", 10, None, No
 SETTING.clear()
 kiem("site chưa migrate (chưa có ô) → mặc định BẬT", thu(hd(("TP-SEN", 10, None, None))) is not None)
 hk = open("sx/hooks.py", encoding="utf-8").read()
-kiem("móc vào before_submit của Sales Invoice và Delivery Note",
-     '"Sales Invoice": {"before_submit": "sx.api.banhang.kiem_lo_ban"}' in hk
-     and '"Delivery Note": {"before_submit": "sx.api.banhang.kiem_lo_ban"}' in hk)
+import re  # noqa: E402
+
+for dt_ in ("Sales Invoice", "Delivery Note"):
+    k_ = re.search(r'"%s": \{(.*?)\}' % dt_, hk, re.S)
+    kiem(f"móc kiem_lo_ban vào before_submit của {dt_}",
+         k_ is not None and re.search(r'"before_submit": \[?[^\]]*"sx\.api\.banhang\.kiem_lo_ban"',
+                                      k_.group(1)) is not None)
 
 print()
 if hong:

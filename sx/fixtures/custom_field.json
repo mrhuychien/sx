@@ -449,5 +449,82 @@
   "name": "Issue-custom_dong_luc_kn",
   "translatable": 0,
   "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Batch",
+  "fieldname": "custom_section_thu_hoi",
+  "fieldtype": "Section Break",
+  "insert_after": "custom_ngay_sx",
+  "label": "Thu hồi (W26)",
+  "module": "SX",
+  "name": "Batch-custom_section_thu_hoi",
+  "translatable": 0,
+  "collapsible": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Batch",
+  "fieldname": "custom_thu_hoi",
+  "fieldtype": "Check",
+  "insert_after": "custom_section_thu_hoi",
+  "label": "Đang thu hồi — khoá xuất",
+  "module": "SX",
+  "name": "Batch-custom_thu_hoi",
+  "translatable": 0,
+  "default": "0",
+  "in_standard_filter": 1,
+  "in_list_view": 1,
+  "description": "Bật: mọi chứng từ bán / xuất lô này bị chặn (trừ chuyển vào kho hàng trả về / kho cách ly và xuất huỷ). Chỉ Ban ISO / người được giao bật, gỡ — bấm trên thẻ lô ở Truy xuất."
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Batch",
+  "fieldname": "custom_ly_do_thu_hoi",
+  "fieldtype": "Small Text",
+  "insert_after": "custom_thu_hoi",
+  "label": "Lý do thu hồi",
+  "module": "SX",
+  "name": "Batch-custom_ly_do_thu_hoi",
+  "translatable": 0,
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Batch",
+  "fieldname": "custom_su_co_thu_hoi",
+  "fieldtype": "Link",
+  "insert_after": "custom_ly_do_thu_hoi",
+  "label": "Phiếu sự cố thu hồi",
+  "module": "SX",
+  "name": "Batch-custom_su_co_thu_hoi",
+  "translatable": 0,
+  "options": "SX Su Co",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Batch",
+  "fieldname": "custom_thu_hoi_boi",
+  "fieldtype": "Link",
+  "insert_after": "custom_su_co_thu_hoi",
+  "label": "Thu hồi bởi",
+  "module": "SX",
+  "name": "Batch-custom_thu_hoi_boi",
+  "translatable": 0,
+  "options": "User",
+  "read_only": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Batch",
+  "fieldname": "custom_thu_hoi_luc",
+  "fieldtype": "Datetime",
+  "insert_after": "custom_thu_hoi_boi",
+  "label": "Thu hồi lúc",
+  "module": "SX",
+  "name": "Batch-custom_thu_hoi_luc",
+  "translatable": 0,
+  "read_only": 1
  }
 ]

@@ -329,4 +329,10 @@ python3 scripts/test-khieunai.py > /tmp/sx-khieunai.log 2>&1 \
   && tail -1 /tmp/sx-khieunai.log \
   || { cat /tmp/sx-khieunai.log; loi=1; }
 
+# D136 (W26): hàng trả về + lô thu hồi. Lô thu hồi lọt qua bundle / qua lô ERPNext tự
+# chọn / qua Stock Entry, hay hàng trả về lẫn vào kho bán — đều im lặng.
+python3 scripts/test-thuhoi.py > /tmp/sx-thuhoi.log 2>&1 \
+  && tail -1 /tmp/sx-thuhoi.log \
+  || { cat /tmp/sx-thuhoi.log; loi=1; }
+
 exit $loi

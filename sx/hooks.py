@@ -34,8 +34,19 @@ doc_events = {
     # đóng / mở lại chỉ Ban ISO hoặc người được giao (chặn cả Desk).
     "Issue": {"validate": "sx.qc.khieu_nai.validate"},
     # W06 (D132): bán trừ kho thành phẩm phải chọn đúng lô (HSD) — truy xuất xuôi.
-    "Sales Invoice": {"before_submit": "sx.api.banhang.kiem_lo_ban"},
-    "Delivery Note": {"before_submit": "sx.api.banhang.kiem_lo_ban"},
+    # W26 (D136): hàng trả về nhập kho riêng; lô thu hồi bị khoá xuất — kiểm cả lúc
+    # on_submit vì lô do ERPNext tự chọn chỉ có bundle trong on_submit.
+    "Sales Invoice": {"validate": "sx.api.thuhoi.kho_tra_ve",
+                      "before_submit": ["sx.api.banhang.kiem_lo_ban", "sx.api.thuhoi.kiem_xuat"],
+                      "on_submit": "sx.api.thuhoi.kiem_xuat"},
+    "Delivery Note": {"validate": "sx.api.thuhoi.kho_tra_ve",
+                      "before_submit": ["sx.api.banhang.kiem_lo_ban", "sx.api.thuhoi.kiem_xuat"],
+                      "on_submit": "sx.api.thuhoi.kiem_xuat"},
+    "POS Invoice": {"before_submit": "sx.api.thuhoi.kiem_xuat",
+                    "on_submit": "sx.api.thuhoi.kiem_xuat"},
+    "Stock Entry": {"before_submit": "sx.api.thuhoi.kiem_xuat",
+                    "on_submit": "sx.api.thuhoi.kiem_xuat"},
+    "Batch": {"validate": "sx.api.thuhoi.kiem_sua_batch"},
 }
 
 # D123: lưới an toàn của đồng bộ ngầm — ngày còn dấu "cần đồng bộ" (job nền lỡ,

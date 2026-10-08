@@ -210,6 +210,7 @@ def lo(batch):
         "luu_mau": _luu_mau(goc, cua_so),
         "su_co_lo": _su_co_theo_lo(batch),
         "khieu_nai_lo": _khieu_nai_theo_lo(batch),
+        "thu_hoi": _thu_hoi(batch),
         "ghi_chu": ghi_chu,
     }
 
@@ -816,6 +817,13 @@ def _luu_mau(goc, cua_so):
 
 def _cong_ngay(d, n):
     return str(getdate(add_days(d, n)))
+
+
+def _thu_hoi(batch):
+    """Trạng thái thu hồi của lô + cờ người đang xem có được bật / gỡ không (W26)."""
+    from sx.api.thuhoi import thong_tin
+
+    return thong_tin(batch)
 
 
 def _khieu_nai_theo_lo(batch):

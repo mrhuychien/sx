@@ -32,6 +32,7 @@ export async function render({ container, call }) {
   container.innerHTML = `
     <div class="sx-tx-dau">🔎 Truy xuất nguồn gốc</div>
     <div id="tx-dt"></div>
+    <div id="tx-th"></div>
     <div class="sx-muted">Quét mã vạch hộp (hoặc chọn sản phẩm) + nhập HSD in trên hộp.
       Hoặc gõ thẳng mã lô.</div>
     <div class="sx-tx-form">
@@ -55,6 +56,28 @@ export async function render({ container, call }) {
   // W06 (D132): diễn tập truy xuất — đồng hồ chạy từ lúc bấm tới lúc kết thúc ở lô.
   const dt = { dang: null, hen: null };
   veDienTap();
+  veThuHoi();
+
+  // W26 (D136): lô đang thu hồi đứng đầu thẻ — bấm để mở hồ sơ lô (gọi khách, gỡ cờ).
+  async function veThuHoi() {
+    const box = $('#tx-th');
+    let ds = [];
+    try { ds = await call('sx.api.thuhoi.ds_thu_hoi'); } catch (e) { ds = []; }
+    box.innerHTML = '';
+    if (!ds.length) return;
+    box.appendChild(el('div', 'sx-tx-th-dau', `⛔ Lô đang thu hồi (${ds.length}) — khoá bán / xuất`));
+    const list = el('div', 'sx-vh-list');
+    ds.forEach((x) => {
+      const b = el('button', 'sx-vh-row sx-tx-lo sx-tx-th-lo');
+      b.type = 'button';
+      b.innerHTML = `<div class="sx-vh-who"><div class="sx-vh-name">${x.hsd ? `HSD ${esc(ngayNgan(x.hsd))}`
+        : esc(x.batch)} · ${esc(x.ten)}</div><div class="sx-vh-meta">${esc(x.ly_do)}${
+        x.luc ? ` · từ ${esc(ngayNgan(x.luc))}` : ''}</div></div><span class="sx-nv-qty">tồn ${esc(so(x.ton))}</span>`;
+      b.addEventListener('click', () => moLo(x.batch, true));
+      list.appendChild(b);
+    });
+    box.appendChild(list);
+  }
 
   async function danhMuc() {
     if (!st.dm) st.dm = await call('sx.api.truyxuat.danh_muc');
@@ -214,6 +237,43 @@ export async function render({ container, call }) {
     m.body.querySelectorAll('[data-dt]').forEach((b) => b.addEventListener('click', () => inDienTap(b.dataset.dt, call)));
   }
 
+  // Thu hồi / gỡ thu hồi một lô (W26) — Ban ISO / người được giao; server chốt quyền.
+  function moThuHoi(batch, d) {
+    const dang = d.thu_hoi.dang;
+    const ten = d.lo.la_tp && d.lo.hsd ? `${d.lo.ten} · HSD ${ngayNgan(d.lo.hsd)}` : `${d.lo.ten} · ${d.lo.batch}`;
+    const m = openModal({ kicker: dang ? 'Gỡ thu hồi' : 'THU HỒI LÔ', title: ten });
+    m.body.innerHTML = `
+      <div class="sx-modal-msg">${dang
+    ? 'Gỡ cờ: lô bán / xuất lại được. Chỉ gỡ khi đã xử lý xong hoặc thu hồi nhầm.'
+    : `Khoá NGAY mọi chứng từ bán / xuất lô này (trừ chuyển vào kho hàng trả về / cách ly, xuất huỷ).
+       Danh sách ${(d.khach || []).length} khách đã nhận lô ở khối 👥 bên dưới.`}</div>
+      <label class="sx-field-label" for="tx-th-ly">Lý do (bắt buộc)</label>
+      <textarea class="sx-textarea" id="tx-th-ly" rows="2"></textarea>
+      ${dang ? '' : `<label class="sx-field-label" for="tx-th-sc">Phiếu sự cố / khiếu nại liên quan</label>
+      <select class="sx-textarea" id="tx-th-sc"><option value="">— lập phiếu sự cố mới —</option>${
+  (d.su_co_lo || []).filter((x) => x.trang_thai === 'Mở').map((x) => `<option value="${esc(x.name)}">${
+    esc(x.name)} · ${esc((x.mo_ta || '').slice(0, 40))}</option>`).join('')}</select>`}
+      <button type="button" class="sx-btn ${dang ? 'sx-btn-primary' : 'sx-btn-danger'} sx-btn-big" id="tx-th-ok">${
+  dang ? 'GỠ THU HỒI' : '⛔ THU HỒI LÔ NÀY'}</button>`;
+    const ok = m.body.querySelector('#tx-th-ok');
+    ok.addEventListener('click', async () => {
+      const ly = m.body.querySelector('#tx-th-ly').value.trim();
+      if (!ly) { toastErr('Ghi lý do.'); return; }
+      ok.disabled = true;
+      try {
+        if (dang) await call('sx.api.thuhoi.go_thu_hoi', { batch, ly_do: ly });
+        else {
+          const r = await call('sx.api.thuhoi.thu_hoi_lo',
+            { batch, ly_do: ly, su_co: m.body.querySelector('#tx-th-sc').value || null });
+          toast(`Đã khoá xuất lô · phiếu sự cố ${r.su_co}`);
+        }
+        m.close();
+        veThuHoi();
+        moLo(batch, false);
+      } catch (e) { ok.disabled = false; toastErr(e.message); }
+    });
+  }
+
   async function moLo(batch, moi) {
     if (moi) st.lichSu = [];
     kq.innerHTML = '<div class="sx-muted">Đang truy…</div>';
@@ -228,13 +288,14 @@ export async function render({ container, call }) {
       quayLai: st.lichSu.length > 1 ? () => { st.lichSu.pop(); moLo(st.lichSu.pop(), false); } : null,
       mo: (b) => moLo(b, false),
       ketThuc: dt.dang ? () => ketThucDienTap(batch, d) : null,
+      thuHoi: d.thu_hoi && d.thu_hoi.duoc ? () => moThuHoi(batch, d) : null,
     });
     kq.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
 
 // ───────────────────────────── hồ sơ một lô ─────────────────────────────
-export function veLo(box, d, { quayLai, mo, ketThuc }) {
+export function veLo(box, d, { quayLai, mo, ketThuc, thuHoi }) {
   const l = d.lo;
   const n = d.nhap_kho;
   const b = d.ban || { ban: [], khac: [], ton: [], da_ban: 0, nhap: 0 };
@@ -260,7 +321,12 @@ export function veLo(box, d, { quayLai, mo, ketThuc }) {
         <div><span class="sx-field-label">Còn tồn</span><b>${esc(so(l.ton, l.dvt))}</b></div>
       </div>
     </div>
+    ${d.thu_hoi && d.thu_hoi.dang ? `<div class="sx-tx-th-bang" role="alert">⛔ LÔ ĐANG THU HỒI — khoá bán / xuất
+      <div class="sx-vh-meta">${esc((d.thu_hoi.ly_do || '').split('\n')[0])}${d.thu_hoi.su_co
+    ? ` · phiếu ${esc(d.thu_hoi.su_co)}` : ''}${d.thu_hoi.luc ? ` · ${esc(ngayNgan(d.thu_hoi.luc))}` : ''}</div></div>` : ''}
     ${ketThuc ? '<button type="button" class="sx-btn sx-btn-primary sx-btn-big" data-ketthuc>⏹ KẾT THÚC DIỄN TẬP Ở LÔ NÀY</button>' : ''}
+    ${thuHoi ? `<button type="button" class="sx-btn ${d.thu_hoi.dang ? 'sx-btn-ghost' : 'sx-btn-warn'}" data-thuhoi>${
+    d.thu_hoi.dang ? 'Gỡ thu hồi lô' : '⛔ Thu hồi lô này'}</button>` : ''}
     ${(d.ghi_chu || []).map((g) => `<div class="sx-muted sx-tx-ghichu">ⓘ ${esc(g)}</div>`).join('')}
     ${d.can_bang && d.can_bang.san_xuat ? khoi(`⚖ Cân bằng lô — ${d.can_bang.pt ?? '—'}% ${
       d.can_bang.dat ? '✓' : '✕'}`, canBang(d.can_bang, l.dvt), !d.can_bang.dat) : ''}
@@ -280,6 +346,8 @@ export function veLo(box, d, { quayLai, mo, ketThuc }) {
   if (lui) lui.addEventListener('click', quayLai);
   const kt = box.querySelector('[data-ketthuc]');
   if (kt) kt.addEventListener('click', ketThuc);
+  const th = box.querySelector('[data-thuhoi]');
+  if (th) th.addEventListener('click', thuHoi);
   box.querySelectorAll('[data-lo]').forEach((x) => x.addEventListener('click', () => mo(x.dataset.lo)));
 }
 

@@ -2097,3 +2097,12 @@ b.sx-tx-kl-loi { background: none; }
 }
 .sx-tx-dt-chay b { font-variant-numeric: tabular-nums; font-size: var(--sx-f-md); }
 .sx-tx-dt-chay .sx-btn { margin-left: auto; }
+
+/* ── D136 (W26): lô thu hồi trên thẻ Truy xuất ─────────────────────────── */
+.sx-tx-th-dau { font-weight: 700; color: var(--sx-danger-text, #b91c1c); margin: var(--sx-s2) 0 4px; }
+.sx-tx-th-lo { border-left: 4px solid var(--sx-danger); }
+.sx-tx-th-bang {
+  margin: var(--sx-s2) 0; padding: var(--sx-s2) var(--sx-s3); border-radius: var(--sx-radius-sm);
+  background: var(--sx-danger); color: #fff; font-weight: 700;
+}
+.sx-tx-th-bang .sx-vh-meta { color: #fff; opacity: .9; font-weight: 400; }

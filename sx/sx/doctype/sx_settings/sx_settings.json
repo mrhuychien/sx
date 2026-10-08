@@ -14,6 +14,8 @@
   "nhom_tet",
   "chan_ban_thieu_lo",
   "kho_xuong",
+  "kho_hang_tra_ve",
+  "kho_cach_ly",
   "section_vao_hop",
   "nguon_cong_khoan",
   "column_break_vh",
@@ -71,6 +73,20 @@
    "label": "Kho Xưởng sản xuất",
    "options": "Warehouse",
    "description": "Nơi giữ bán thành phẩm đang dở dang ngoài xưởng (đỗ ủ, đỗ vỡ). Bỏ trống thì dùng Kho BTP."
+  },
+  {
+   "fieldname": "kho_hang_tra_ve",
+   "fieldtype": "Link",
+   "label": "Kho hàng trả về",
+   "options": "Warehouse",
+   "description": "W26: phiếu trả hàng (có trừ kho) tự nhập vào đây, không lẫn vào kho bán. Bán thẳng từ kho này bị chặn — QC đánh giá rồi chuyển kho."
+  },
+  {
+   "fieldname": "kho_cach_ly",
+   "fieldtype": "Link",
+   "label": "Kho cách ly",
+   "options": "Warehouse",
+   "description": "Hàng chờ quyết định: lô nguyên liệu Không đạt / Cách ly (W10), lô thu hồi chuyển về (W26)."
   },
   {
    "fieldname": "section_vao_hop",
@@ -227,7 +243,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-08 13:00:00.000000",
+ "modified": "2026-10-08 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

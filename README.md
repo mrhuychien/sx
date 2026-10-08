@@ -315,6 +315,23 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Hàng trả về vào kho riêng, khoá xuất lô thu hồi (D136 — W26)
+
+- **SX Settings**: *Kho hàng trả về*, *Kho cách ly* (patch `d136_kho_tra_ve` tạo hai kho cạnh kho
+  thành phẩm nếu chưa khai; công ty đã có kho cùng tên thì dùng lại).
+- **Hàng trả về**: Sales Invoice trả hàng có trừ kho / Delivery Note trả hàng → mọi dòng hàng tồn
+  kho tự nhập *Kho hàng trả về* (báo cho người lập). **Bán thẳng từ kho trả về bị chặn** — QC
+  đánh giá rồi chuyển kho (Stock Entry) mới bán lại.
+- **Thu hồi lô**: thẻ lô trong Truy xuất → **⛔ Thu hồi lô này** (Ban ISO / quản lý / người được
+  giao, bắt buộc lý do; không chọn phiếu có sẵn thì tự lập phiếu sự cố mức Cao gắn lô). Batch có
+  cờ *Đang thu hồi*; đầu thẻ Truy xuất liệt kê các lô đang thu hồi, thẻ lô có dải đỏ.
+- **Khoá xuất**: Sales Invoice trừ kho, Delivery Note, POS Invoice chứa lô thu hồi → chặn (phiếu
+  trả hàng thì qua). Stock Entry: chỉ cho **chuyển vào kho trả về / kho cách ly** hoặc **xuất huỷ**
+  (Material Issue); đưa vào sản xuất, đóng gói lại, chuyển kho khác → chặn. Kiểm cả lô chọn qua
+  bundle và lô ERPNext **tự chọn** (kiểm lại ở on_submit, cuộn lại cả chứng từ).
+- **Gỡ thu hồi**: bắt buộc lý do, ghi nối lịch sử; trên Desk chỉ Ban ISO / người được giao đổi được
+  cờ (hook Batch.validate).
+
 ## Sổ khiếu nại khách hàng BM.11.01 trên Issue (D135 — W13)
 
 - Khiếu nại = **Issue** của ERPNext có tích *Là khiếu nại khách hàng* (custom field module QC:
