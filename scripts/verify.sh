@@ -347,4 +347,10 @@ python3 scripts/test-ncc.py > /tmp/sx-ncc.log 2>&1 \
   && tail -1 /tmp/sx-ncc.log \
   || { cat /tmp/sx-ncc.log; loi=1; }
 
+# D139 (W14): kiểm xe BM.09.01. Bán bằng xe không đạt, mục hỏng mà kết luận Đạt, xe nhận
+# hàng bẩn mà lô vẫn vào kho dùng — đều im lặng.
+python3 scripts/test-kiemxe.py > /tmp/sx-kiemxe.log 2>&1 \
+  && tail -1 /tmp/sx-kiemxe.log \
+  || { cat /tmp/sx-kiemxe.log; loi=1; }
+
 exit $loi

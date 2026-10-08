@@ -387,8 +387,11 @@ for dt in ("Sales Invoice", "Delivery Note", "POS Invoice", "Stock Entry"):
     khoi = re.search(r'"%s": \{(.*?)\}' % dt, hk, re.S)
     kiem(f"hook {dt}: kiem_xuat cả before_submit lẫn on_submit",
          khoi and khoi.group(1).count("sx.api.thuhoi.kiem_xuat") == 2)
-kiem("hook trả hàng (validate) cho Sales Invoice + Delivery Note",
-     hk.count('"validate": "sx.api.thuhoi.kho_tra_ve"') == 2)
+for dt in ("Sales Invoice", "Delivery Note"):
+    khoi = re.search(r'"%s": \{(.*?)\}' % dt, hk, re.S)
+    kiem(f"hook trả hàng (validate) cho {dt}",
+         khoi is not None and re.search(r'"validate": \[?[^\]]*"sx\.api\.thuhoi\.kho_tra_ve"',
+                                        khoi.group(1)) is not None)
 kiem("hook Batch.validate chặn gỡ cờ trên Desk", '"Batch": {"validate": "sx.api.thuhoi.kiem_sua_batch"}' in hk)
 kiem("W06 vẫn còn: bán phải chọn lô", hk.count("sx.api.banhang.kiem_lo_ban") == 2)
 js = open("sx/public/sx/cards/truyxuat.js", encoding="utf-8").read()

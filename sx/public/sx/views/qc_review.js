@@ -174,6 +174,24 @@ export async function render(api) {
   });
   ho_so.appendChild(nutNcc);
 
+  // W14 (D139): sổ kiểm xe BM.09.01 của tháng đang xem — gom từ hoá đơn bán + phiếu nhập mua.
+  const nutXe = el('button', 'sx-btn sx-btn-ghost', '🖨 KIỂM XE THÁNG (BM.09.01)');
+  nutXe.type = 'button';
+  nutXe.addEventListener('click', async () => {
+    nutXe.disabled = true;
+    try {
+      const html = await call('sx.api.qc_kiemxe.in_so_kiem_xe', { tu, den });
+      const w = window.open('', '_blank');
+      if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+      w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+        + `<title>BM.09.01 — ${tu} đến ${den}</title></head><body>${html}</body></html>`);
+      w.document.close();
+      w.focus();
+      setTimeout(() => w.print(), 400);
+    } catch (e) { toastErr(e.message); } finally { nutXe.disabled = false; }
+  });
+  ho_so.appendChild(nutXe);
+
   [['luot', 'vòng kiểm'], ['su_co', 'sự cố']].forEach(([loai, ten]) => {
     const b = el('button', 'sx-btn sx-btn-ghost', `⬇ CSV ${ten}`);
     b.type = 'button';

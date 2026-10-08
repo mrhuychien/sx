@@ -315,6 +315,19 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm xe BM.09.01 trên hoá đơn bán trừ kho và chuyến nhận nguyên liệu (D139 — W14)
+
+- Mục **Kiểm tra phương tiện vận chuyển** trên **Sales Invoice** (bán trừ kho — nhà máy không dùng
+  Delivery Note) và **Purchase Receipt** (chuyến nhận nguyên liệu): biển số, tài xế, 4 mục (thùng
+  sạch / khô / không mùi lạ; không chở chung hoá chất; không dấu hiệu côn trùng / động vật gây hại;
+  thùng kín / có bạt), kết luận, người kiểm (tự ghi).
+- Mục nào Không đạt → kết luận **tự Không đạt** (báo). Đủ 4 mục Đạt → tự Đạt.
+- **Bán**: chưa kiểm xe / thiếu biển số → không duyệt được hoá đơn; xe Không đạt → chặn ("không xếp
+  hàng lên xe này"). **Nhận nguyên liệu** (NCC thực phẩm, phụ gia, bao bì tiếp xúc thực phẩm): chưa
+  kiểm → không duyệt phiếu nhập; xe Không đạt → không chặn (hàng đã tới) mà **mọi dòng chuyển Cách
+  ly** → vào kho cách ly. Hoá đơn không trừ kho, phiếu trả hàng, NCC loại khác: không bắt.
+- Tắt ở *SX QC Setting → Bắt kiểm xe BM.09.01*. Màn QC → Xem xét → **🖨 KIỂM XE THÁNG (BM.09.01)**.
+
 ## Nhà cung cấp được duyệt BM.07.02, tiếp nhận nguyên liệu trên phiếu nhập mua (D138 — W09, W10)
 
 - **Supplier** (Desk) có mục *Duyệt nhà cung cấp*: **loại NCC** (nguyên liệu thực phẩm, phụ gia /

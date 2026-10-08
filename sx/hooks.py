@@ -27,8 +27,11 @@ doc_events = {
     # BM.07.03 — kiểm nguyên liệu đầu vào. W10 (D138): chuyển sang phiếu nhập mua
     # (Purchase Receipt); hoá đơn mua có trừ kho (đường cũ) vẫn kiểm như trước.
     # W09 (D138): mua của NCC chưa duyệt BM.07.02 → chỉ cảnh báo.
+    # W14 (D139): kiểm xe BM.09.01 — chạy TRƯỚC tiep_nhan: xe không đạt ép dòng Cách ly,
+    # tiep_nhan mới đưa dòng Cách ly vào kho cách ly.
     "Purchase Receipt": {
-        "validate": ["sx.qc.tiep_nhan.validate", "sx.qc.ncc.canh_bao_mua"],
+        "validate": ["sx.qc.kiem_xe.validate", "sx.qc.tiep_nhan.validate", "sx.qc.ncc.canh_bao_mua"],
+        "before_submit": "sx.qc.kiem_xe.before_submit",
         "on_submit": "sx.qc.tiep_nhan.on_submit",
     },
     "Purchase Invoice": {
@@ -44,9 +47,9 @@ doc_events = {
     # W26 (D136): hàng trả về nhập kho riêng; lô thu hồi bị khoá xuất — kiểm cả lúc
     # on_submit vì lô do ERPNext tự chọn chỉ có bundle trong on_submit.
     # W08 (D137): lô thành phẩm chưa duyệt kiểm tra xuất xưởng BM.08.04 → không bán.
-    "Sales Invoice": {"validate": "sx.api.thuhoi.kho_tra_ve",
+    "Sales Invoice": {"validate": ["sx.api.thuhoi.kho_tra_ve", "sx.qc.kiem_xe.validate"],
                       "before_submit": ["sx.api.banhang.kiem_lo_ban", "sx.api.thuhoi.kiem_xuat",
-                                        "sx.api.xuatxuong.kiem_ban"],
+                                        "sx.api.xuatxuong.kiem_ban", "sx.qc.kiem_xe.before_submit"],
                       "on_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"]},
     "Delivery Note": {"validate": "sx.api.thuhoi.kho_tra_ve",
                       "before_submit": ["sx.api.banhang.kiem_lo_ban", "sx.api.thuhoi.kiem_xuat",

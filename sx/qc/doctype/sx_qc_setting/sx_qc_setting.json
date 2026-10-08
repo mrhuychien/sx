@@ -35,6 +35,7 @@
   "column_break_tn",
   "nhom_can_coa",
   "nhom_can_aflatoxin",
+  "bat_buoc_kiem_xe",
   "section_luu_mau",
   "luu_mau_so_ngay",
   "luu_mau_so_thang",
@@ -230,6 +231,13 @@
    "label": "Nhóm hàng phải có kết quả aflatoxin khi tiếp nhận",
    "options": "SX QC Nhom COA",
    "description": "W10: lạc, đỗ… Lô thuộc nhóm này (kể cả nhóm con) mà ô Aflatoxin không phải 'Có' → tự chuyển Cách ly. Để trống = chưa áp luật."
+  },
+  {
+   "default": "1",
+   "fieldname": "bat_buoc_kiem_xe",
+   "fieldtype": "Check",
+   "label": "Bắt kiểm xe BM.09.01 (hoá đơn bán trừ kho, phiếu nhập NCC thực phẩm)",
+   "description": "W14: chưa kiểm xe thì không duyệt được chứng từ; xe Không đạt thì không bán, hàng nhận về chuyển Cách ly."
   },
   {
    "fieldname": "section_luu_mau",

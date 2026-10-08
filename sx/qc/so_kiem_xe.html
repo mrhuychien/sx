@@ -1,0 +1,41 @@
+{#- Sổ kiểm tra phương tiện vận chuyển BM.09.01 (W14, D139). A4 ngang. -#}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .kx { font: 10.5px/1.3 "Times New Roman", serif; color: #000; }
+  .kx h1 { font-size: 15px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .kx .ma { text-align: center; font-size: 10px; margin-bottom: 8px; }
+  .kx table { width: 100%; border-collapse: collapse; }
+  .kx td, .kx th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
+  .kx th { background: #eee; font-size: 10px; }
+  .kx tr { break-inside: avoid; }
+  .kx .kd { font-weight: bold; }
+  .kx .ky { margin-top: 14px; width: 100%; }
+  .kx .ky td { border: 0; text-align: center; height: 56px; }
+</style>
+<div class="kx">
+  <h1>Sổ kiểm tra phương tiện vận chuyển</h1>
+  <div class="ma">BM.09.01 &nbsp;·&nbsp; Từ {{ frappe.utils.formatdate(tu, "dd/MM/yyyy") }} đến
+    {{ frappe.utils.formatdate(den, "dd/MM/yyyy") }} &nbsp;·&nbsp; {{ ds|length }} chuyến</div>
+  <table>
+    <tr><th style="width:3%">#</th><th style="width:7%">Ngày</th><th style="width:8%">Chiều</th>
+      <th style="width:13%">Khách / NCC · chứng từ</th><th style="width:8%">Biển số</th><th style="width:9%">Tài xế</th>
+      {% for f, n in muc %}<th>{{ n }}</th>{% endfor %}
+      <th style="width:7%">Kết luận</th><th style="width:9%">Người kiểm</th></tr>
+    {% for r in ds %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ frappe.utils.formatdate(r.ngay, "dd/MM/yyyy") }}</td>
+      <td>{{ r.chieu }}</td>
+      <td>{{ r.doi_tac }}<br><small>{{ r.name }}</small></td>
+      <td>{{ r.custom_xe_bien_so or "" }}</td>
+      <td>{{ r.custom_xe_tai_xe or "" }}</td>
+      {% for f, n in muc %}<td{% if r[f] == "Không đạt" %} class="kd"{% endif %}>{{ r[f] or "—" }}</td>{% endfor %}
+      <td{% if r.custom_xe_ket_luan == "Không đạt" %} class="kd"{% endif %}>{{ r.custom_xe_ket_luan }}</td>
+      <td>{{ (r.custom_xe_nguoi_kiem or "").split("@")[0] }}</td>
+    </tr>
+    {% endfor %}
+    {% if not ds %}<tr><td colspan="{{ 8 + muc|length }}" style="text-align:center">Không có chuyến nào đã kiểm xe trong khoảng này.</td></tr>{% endif %}
+  </table>
+  <table class="ky"><tr><td><b>Người lập</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Trưởng Ban ISO</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>
