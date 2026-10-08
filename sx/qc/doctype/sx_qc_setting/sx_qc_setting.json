@@ -38,7 +38,8 @@
   "luu_mau_so_ngay",
   "luu_mau_so_thang",
   "section_quyen",
-  "nguoi_dong_su_co"
+  "nguoi_dong_su_co",
+  "nguoi_duyet_xuat_xuong"
  ],
  "fields": [
   {
@@ -252,10 +253,17 @@
    "label": "Được đóng / mở lại phiếu sự cố (ngoài Ban ISO)",
    "options": "SX QC Nguoi Duoc Giao",
    "description": "W11: mặc định chỉ Trưởng Ban ISO (role ISO Manager) đóng được phiếu sự cố. Thêm người được giao ở đây. Áp cho cả màn QC lẫn Desk."
+  },
+  {
+   "fieldname": "nguoi_duyet_xuat_xuong",
+   "fieldtype": "Table MultiSelect",
+   "label": "Được duyệt phiếu kiểm tra xuất xưởng BM.08.04 (ngoài Ban ISO)",
+   "options": "SX QC Nguoi Duoc Giao",
+   "description": "W08: người duyệt là Trưởng Ban ISO hoặc người được giao ở đây — và không phải QC đã kiểm lô đó."
   }
  ],
  "links": [],
- "modified": "2026-10-08 16:00:00.000000",
+ "modified": "2026-10-08 19:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

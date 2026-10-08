@@ -13,6 +13,8 @@
   "nhom_tp",
   "nhom_tet",
   "chan_ban_thieu_lo",
+  "chan_nhap_chua_xuat_xuong",
+  "xuat_xuong_tu_ngay",
   "kho_xuong",
   "kho_hang_tra_ve",
   "kho_cach_ly",
@@ -165,6 +167,19 @@
    "description": "Hoá đơn bán trừ kho / phiếu giao: dòng thành phẩm có quản lý lô mà chưa chọn lô (HSD) thì không submit được. Bỏ tích = để ERPNext tự chọn lô (có thể sai lô đã giao)."
   },
   {
+   "default": "1",
+   "fieldname": "chan_nhap_chua_xuat_xuong",
+   "fieldtype": "Check",
+   "label": "Chặn nhập kho / bán lô chưa duyệt xuất xưởng (BM.08.04)",
+   "description": "W08: thủ kho không duyệt được phiếu nhập kho có lô chưa được duyệt xuất xưởng; hoá đơn bán / phiếu giao lô đó bị chặn. Tắt chỉ khi khẩn cấp."
+  },
+  {
+   "fieldname": "xuat_xuong_tu_ngay",
+   "fieldtype": "Date",
+   "label": "Áp dụng BM.08.04 từ ngày",
+   "description": "Phiếu nhập kho trước ngày này và lô tạo trước ngày này (tồn cũ) không cần phiếu xuất xưởng. Patch D137 đặt bằng ngày cập nhật."
+  },
+  {
    "fieldname": "section_luong",
    "fieldtype": "Section Break",
    "label": "Tham số tính lương khoán"
@@ -243,7 +258,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-08 18:00:00.000000",
+ "modified": "2026-10-08 19:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

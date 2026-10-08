@@ -401,3 +401,13 @@ button.sx-qc-tag-chon {
 /* ── D135 (W13): tab Sự cố ↔ Khiếu nại KH ───────────────────────────────── */
 .sx-sc-tab { margin-bottom: var(--sx-s2); }
 .sx-sc-tab .sx-qc-tab { font-size: var(--sx-f-sm); }
+
+/* ── D137 (W08): kiểm tra xuất xưởng BM.08.04 ───────────────────────────── */
+.sx-xx-khoi { margin-top: var(--sx-s3); }
+.sx-xx-hoso {
+  white-space: pre-line; font-size: var(--sx-f-sm); background: var(--sx-surface-2);
+  border-radius: var(--sx-radius-sm); padding: var(--sx-s2) var(--sx-s3); margin-bottom: var(--sx-s2);
+}
+.sx-xx-muc { border-top: 1px solid var(--sx-line); padding: var(--sx-s2) 0; }
+.sx-xx-muc-ten { font-size: var(--sx-f-sm); margin-bottom: 4px; }
+.sx-xx-gc { margin-top: 4px; min-height: 36px; }

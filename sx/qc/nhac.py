@@ -44,15 +44,17 @@ def _m(muc_do, tieu_de, chi_tiet, route):
             "route": route}
 
 
-def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None):
+def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
-    `luu_mau` = {"den_han": n, "lau_nhat": ngày, "dot_cho": [{name, thang, lap_luc}]} (W07)."""
+    `luu_mau` = {"den_han": n, "lau_nhat": ngày, "dot_cho": [{name, thang, lap_luc}]} (W07).
+    `xuat_xuong` = {"cho_duyet": n, "lau_nhat": ngày gửi} — phiếu BM.08.04 chờ duyệt (W08)."""
     nay = _d(hom_nay)
     ra = []
     ra += _nhac_bot_nen(nay, bot_nen or [])
     ra += _nhac_luu_mau(nay, luu_mau or {})
+    ra += _nhac_xuat_xuong(nay, xuat_xuong or {})
     ra += _nhac_su_co(nay, su_co, ng)
     ra += _nhac_luot_tuan(nay, luot)
     ra += _nhac_luot_thieu(nay, luot)
@@ -94,6 +96,18 @@ def _nhac_luu_mau(nay, lm):
                      f"Tháng {d.get('thang') or ''}, đề xuất {cho} ngày trước — mẫu nằm ở "
                      f"trạng thái Chờ huỷ cho tới khi xác nhận.", "#/qc/luumau"))
     return ra
+
+
+def _nhac_xuat_xuong(nay, xx):
+    """Phiếu kiểm tra xuất xưởng chờ duyệt (W08). Lô chưa duyệt là hàng đứng ngoài kho —
+    chờ quá 1 ngày thì lên mức CAO."""
+    n = int(xx.get("cho_duyet") or 0)
+    if not n:
+        return []
+    cho = (nay - _d(xx["lau_nhat"])).days if xx.get("lau_nhat") else 0
+    return [_m(CAO if cho >= 1 else THUONG, f"{n} phiếu xuất xưởng BM.08.04 chờ duyệt",
+               f"Lô chưa duyệt thì chưa nhập kho, chưa bán được — phiếu lâu nhất chờ {cho} ngày. "
+               f"Trưởng Ban ISO / người được giao duyệt.", "#/qc/xuatxuong")]
 
 
 def _nhac_su_co(nay, su_co, ng):

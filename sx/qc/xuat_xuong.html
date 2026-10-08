@@ -1,0 +1,43 @@
+{#- Phiếu kiểm tra xuất xưởng BM.08.04 — một lô (W08, D137). A4 đứng.
+    Chữ ký = tài khoản + giờ server ghi lúc gửi duyệt / duyệt; ô ký tay để ký lại. -#}
+<style>
+  @page { size: A4 portrait; margin: 12mm 10mm; }
+  .xx { font: 12px/1.35 "Times New Roman", serif; color: #000; }
+  .xx h1 { font-size: 16px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .xx .ma { text-align: center; font-size: 11px; margin-bottom: 8px; }
+  .xx table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .xx td, .xx th { border: 1px solid #000; padding: 3px 6px; vertical-align: top; }
+  .xx th { background: #eee; text-align: left; }
+  .xx .kl { font-size: 14px; font-weight: bold; }
+  .xx .ky { width: 100%; margin-top: 16px; }
+  .xx .ky td { border: 0; text-align: center; height: 64px; }
+</style>
+<div class="xx">
+  <h1>Phiếu kiểm tra xuất xưởng</h1>
+  <div class="ma">BM.08.04 &nbsp;·&nbsp; Số: <b>{{ d.name }}</b> &nbsp;·&nbsp; {{ d.trang_thai }}</div>
+  <table>
+    <tr><th style="width:22%">Sản phẩm</th><td>{{ d.ten_san_pham or d.san_pham }}</td>
+        <th style="width:14%">HSD</th><td>{{ frappe.utils.formatdate(d.hsd, "dd/MM/yyyy") if d.hsd else "" }}</td></tr>
+    <tr><th>Số lượng lô</th><td>{{ (d.so_luong|round(2)) if d.so_luong else "—" }} {{ d.dvt or "" }}</td>
+        <th>NSX</th><td>{{ frappe.utils.formatdate(d.nsx, "dd/MM/yyyy") if d.nsx else "—" }}</td></tr>
+    <tr><th>Số mẫu đã kiểm</th><td>{{ d.so_mau or "—" }}</td><th>Lô</th><td>{{ "HSD " ~ frappe.utils.formatdate(d.hsd, "dd/MM/yyyy") if d.hsd else "—" }}</td></tr>
+    <tr><th>Hồ sơ lô</th><td colspan="3" style="white-space:pre-line">{{ d.ho_so or "—" }}</td></tr>
+  </table>
+  <table>
+    <tr><th style="width:6%">#</th><th>Nội dung kiểm</th><th style="width:14%">Kết quả</th><th style="width:28%">Ghi chú / số đo</th></tr>
+    {% for r in d.ds_muc %}
+    <tr><td>{{ r.ma }}</td><td>{{ r.noi_dung }}</td><td>{{ r.ket_qua or "" }}</td><td>{{ r.ghi_chu or "" }}</td></tr>
+    {% endfor %}
+  </table>
+  <table>
+    <tr><th style="width:22%">Kết luận</th><td class="kl">{{ d.ket_luan or "—" }}
+      {%- if d.ket_luan == "Đạt" and d.trang_thai == "Đã duyệt" %} — CHO XUẤT XƯỞNG{% endif %}</td></tr>
+    <tr><th>Ghi chú QC</th><td>{{ d.ghi_chu or "" }}</td></tr>
+    <tr><th>QC kiểm</th><td>{{ d.qc_kiem or "" }}{% if d.kiem_luc %} ({{ frappe.utils.format_datetime(d.kiem_luc, "dd/MM/yyyy HH:mm") }}){% endif %}</td></tr>
+    <tr><th>Người duyệt</th><td>{{ d.nguoi_duyet or "chưa duyệt" }}{% if d.duyet_luc %} ({{ frappe.utils.format_datetime(d.duyet_luc, "dd/MM/yyyy HH:mm") }}){% endif %}
+      {%- if d.y_kien_duyet %}<br>{{ d.y_kien_duyet }}{% endif %}</td></tr>
+    {% if d.su_co %}<tr><th>Phiếu sự cố</th><td>{{ d.su_co }}</td></tr>{% endif %}
+  </table>
+  <table class="ky"><tr><td><b>QC kiểm tra</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Trưởng Ban ISO / người được giao</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

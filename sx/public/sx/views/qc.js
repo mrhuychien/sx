@@ -14,6 +14,8 @@ const MAN = {
   history: '/assets/sx/sx/views/qc_history.js',
   review: '/assets/sx/sx/views/qc_review.js',
   luumau: '/assets/sx/sx/views/qc_luumau.js',
+  // W08 (D137): kiểm tra xuất xưởng BM.08.04 — tab Xuất xưởng, cùng chỗ với Lưu mẫu.
+  xuatxuong: '/assets/sx/sx/views/qc_xuatxuong.js',
   // W13 (D135): sổ khiếu nại BM.11.01 — nằm trong tab Sự cố (hai nút trên đầu).
   khieunai: '/assets/sx/sx/views/qc_khieunai.js',
   // W06 (D132): Ban ISO diễn tập truy xuất ngay trong màn QC.
@@ -59,7 +61,9 @@ export async function render(api) {
 }
 
 function veTab(dang, api) {
-  const tabs = [['home', 'Hôm nay'], ['incidents', 'Sự cố'], ['luumau', 'Lưu mẫu'],
+  // W08 (D137): tab "Lưu mẫu" thành "Xuất xưởng" — bên trong hai nút Kiểm xuất xưởng
+  // (BM.08.04) / Lưu mẫu. Thêm tab thứ năm là thanh tab gãy dòng trên điện thoại.
+  const tabs = [['home', 'Hôm nay'], ['incidents', 'Sự cố'], ['xuatxuong', 'Xuất xưởng'],
     ['history', 'Lịch sử']];
   // Tab "Xem xét" chỉ hiện với người duyệt. Ẩn nút KHÔNG phải là chốt quyền —
   // chốt thật nằm ở _guard_manager trong sx/api/qc.py; đây chỉ để đỡ rối mắt.
@@ -73,7 +77,8 @@ function veTab(dang, api) {
   tabs.forEach(([ma, ten]) => {
     const a = el('a', 'sx-qc-tab', ten);
     a.href = ma === 'home' ? '#/qc' : `#/qc/${ma}`;
-    const on = ma === dang || (ma === 'incidents' && dang === 'khieunai');
+    const on = ma === dang || (ma === 'incidents' && dang === 'khieunai')
+      || (ma === 'xuatxuong' && dang === 'luumau');
     a.className = `sx-qc-tab${on ? ' sx-qc-seg-on' : ''}`;
     box.appendChild(a);
   });

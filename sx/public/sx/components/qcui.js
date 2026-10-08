@@ -394,6 +394,18 @@ export function tabSuCo(dang) {
   return box;
 }
 
+/** Hai nút đầu tab Xuất xưởng (W08): kiểm xuất xưởng BM.08.04 ↔ tủ lưu mẫu. Cùng
+ *  một việc ở cùng một lúc — lô ra khỏi xưởng thì QC kiểm và lấy mẫu lưu. */
+export function tabLo(dang) {
+  const box = el('div', 'sx-qc-seg sx-sc-tab');
+  [['xuatxuong', 'Kiểm xuất xưởng'], ['luumau', 'Lưu mẫu']].forEach(([ma, ten]) => {
+    const a = el('a', `sx-qc-tab${ma === dang ? ' sx-qc-seg-on' : ''}`, esc(ten));
+    a.href = `#/qc/${ma}`;
+    box.appendChild(a);
+  });
+  return box;
+}
+
 export function khungTrong(text) {
   return el('div', 'sx-qc-trong-box', esc(text));
 }

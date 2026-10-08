@@ -118,6 +118,7 @@ class SXPhieuNhapTP(Document):
             frappe.throw(_("Chưa có dòng nào đếm được số > 0 — không duyệt phiếu rỗng."))
         self.kiem_hsd()
         self.kiem_trung_lo()
+        self.kiem_xuat_xuong()
         self.kiem_tran_da_cham()
         self.kiem_ton_nguyen_lieu()
         self.nguoi_duyet = frappe.session.user
@@ -164,6 +165,13 @@ class SXPhieuNhapTP(Document):
                                "Gộp hai dòng lại (xoá một dòng, sửa số dòng kia).").format(
                     thay[k], r.idx, r.ten or r.item, frappe.utils.formatdate(r.hsd)))
             thay[k] = r.idx
+
+    def kiem_xuat_xuong(self):
+        """Lô chưa được duyệt kiểm tra xuất xưởng BM.08.04 thì chưa nhập kho (W08, D137).
+        Sau kiem_hsd: HSD mặc định đã điền — lô là (mã, HSD) đúng như sẽ vào kho."""
+        from sx.api.xuatxuong import chan_nhap_kho
+
+        chan_nhap_kho(self)
 
     def kiem_tran_da_cham(self):
         """Phần nhận VƯỢT số đã chấm vào hộp → ghi nợ, KHÔNG chặn (D101).

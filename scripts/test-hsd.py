@@ -218,6 +218,13 @@ P.SXPhieuNhapTP.kiem_tran_da_cham = lambda self: None
 P.SXPhieuNhapTP.kiem_ton_nguyen_lieu = lambda self: None
 ch = types.ModuleType("sx.api.chot"); ch._kho_nguon = lambda i, s: "NVL"
 sys.modules["sx.api.chot"] = ch
+# D137 (W08): chốt BM.08.04 có test riêng (test-xuatxuong) — ở đây coi như tắt.
+_xx = types.ModuleType("sx.api.xuatxuong")
+_xx.chan_nhap_kho = lambda phieu: None
+_xx._bat = lambda s=None: False
+_xx.tu_ngay = lambda s=None: None
+_xx.trang_thai_cac_lo = lambda cap: {}
+sys.modules["sx.api.xuatxuong"] = _xx
 
 hong = 0
 

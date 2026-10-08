@@ -319,6 +319,14 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       x.hsd ? '' : '<span class="sx-nk-hsd-mac">mặc định</span>'}</button>`;
   }
 
+  // W08 (D137): lô đã duyệt kiểm tra xuất xưởng BM.08.04 chưa. Chỉ nói khi HSD trên
+  // máy còn khớp HSD server đã tra — sửa HSD thì trạng thái cũ không còn đúng lô.
+  function veXx(x) {
+    if (!x.xx || !x.xx_hsd || x.xx_hsd !== hsdCua(x)) return '';
+    return x.xx.duyet ? '<span class="sx-nk-xx sx-nk-xx-ok">✓ đã duyệt xuất xưởng</span>'
+      : `<span class="sx-nk-xx">⏳ BM.08.04: ${esc(x.xx.chu)} — chưa duyệt nhập được</span>`;
+  }
+
   function ve() {
     box.innerHTML = rows.length
       ? rows.map((x, i) => {
@@ -333,7 +341,7 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
               ? ` · phiếu ghi ${formatNumber(x.so_lap)}${
                 lech ? ` · lệch ${lech > 0 ? '+' : ''}${formatNumber(lech)}` : ''}`
               : ''}</div>
-            ${veHsd(x, i)}
+            ${veHsd(x, i)}${veXx(x)}
           </div>
           <button type="button" class="sx-vh-sl${lech ? ' sx-cell-lech' : ''}"
             data-i="${i}">${formatNumber(soCua(x))}</button>

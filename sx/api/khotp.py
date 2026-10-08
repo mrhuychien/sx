@@ -240,6 +240,16 @@ def chi_tiet_phieu(name):
         vuot_dong.setdefault(r.item, r.idx)
     nap_bom([r.item for r in doc.dong])                   # D120: một truy vấn BOM
     from sx.sx.doctype.sx_phieu_nhap_tp.sx_phieu_nhap_tp import hsd_goi_y
+    # W08 (D137): lô (mã, HSD) đã duyệt kiểm tra xuất xưởng chưa — nói TRƯỚC khi thủ
+    # kho bấm duyệt, không để biết qua câu báo lỗi.
+    xx_hsd = {r.idx: (str(r.hsd) if r.get("hsd") else hsd_goi_y(r.item, doc.ngay)) for r in doc.dong}
+    xx = {}
+    if doc.docstatus == 0:
+        from sx.api.xuatxuong import _bat, trang_thai_cac_lo, tu_ngay
+
+        tn = tu_ngay()
+        if _bat() and not (tn and getdate(doc.ngay) < tn):
+            xx = trang_thai_cac_lo([(r.item, xx_hsd[r.idx]) for r in doc.dong if xx_hsd[r.idx]])
     return {
         "name": doc.name, "ngay": str(doc.ngay), "docstatus": doc.docstatus,
         "trang_thai": doc.trang_thai, "kho_dich": doc.kho_dich,
@@ -270,6 +280,8 @@ def chi_tiet_phieu(name):
              # Màn hình phải NÓI RA trước khi thủ kho bấm duyệt, không để họ
              # biết sau qua một dòng lạ trên sổ nợ.
              "co_bom": bool(get_bom_active(r.item)),
+             "xx_hsd": str(xx_hsd[r.idx] or ""),
+             "xx": xx.get((r.item, str(getdate(xx_hsd[r.idx])))) if xx_hsd[r.idx] else None,
              "vuot": flt(vuot.get(r.item, 0), 0) if vuot_dong[r.item] == r.idx else 0}
             for r in doc.dong
         ],

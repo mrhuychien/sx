@@ -315,6 +315,28 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm tra xuất xưởng theo lô BM.08.04 (D137 — W08)
+
+- DocType **SX Kiem Tra Xuat Xuong**: một phiếu = một lô thành phẩm = (sản phẩm, HSD). Màn QC →
+  tab **Xuất xưởng** (thay tab Lưu mẫu; bên trong hai nút *Kiểm xuất xưởng* / *Lưu mẫu*).
+- **Lô chờ kiểm** = hàng đã vào hộp chưa nhập kho + dòng phiếu nhập kho nháp (gồm hộp Tết). QC
+  bấm **KIỂM BM.08.04** → phiếu tự tra hồ sơ lô (lượt BM.08.01 ngày NSX, sự cố mở, mẫu lưu) và
+  chấm sẵn mục 1 / 8 khi có căn cứ → chấm 8 mục (Đạt / Không đạt / KAD + ghi chú / số đo), số
+  mẫu, kết luận → **GỬI DUYỆT**.
+- **Duyệt / trả lại**: Trưởng Ban ISO hoặc người được giao (*SX QC Setting → Được duyệt phiếu kiểm
+  tra xuất xưởng*), **không phải QC đã kiểm lô đó** (kể cả khi người đó có role Ban ISO). Trả lại
+  bắt buộc ý kiến. Phiếu đã duyệt bị khoá. Duyệt **Không đạt** → tự lập phiếu sự cố (nguồn Kiểm
+  tra xuất xưởng, mức Cao); lô kiểm lại sau rework thì lập phiếu mới.
+- **Chặn nhập kho**: thủ kho không duyệt được phiếu nhập kho có lô chưa duyệt Đạt; màn nhập kho
+  báo trạng thái BM.08.04 từng dòng trước khi bấm duyệt. **Chặn bán**: hoá đơn trừ kho / phiếu
+  giao / POS lô thành phẩm chưa duyệt → chặn (kiểm cả lô ERPNext tự chọn).
+- **Tồn cũ không bị chặn**: *SX Settings → Áp dụng BM.08.04 từ ngày* (patch `d137_xuat_xuong` đặt
+  bằng ngày cập nhật) — phiếu nhập trước ngày đó, lô tạo trước ngày đó không cần phiếu. Tắt khẩn
+  cấp: *Chặn nhập kho / bán lô chưa duyệt xuất xưởng*.
+- Hộp nhắc QC: phiếu chờ duyệt (chờ từ hôm qua thì mức CAO). Mẫu in A4 BM.08.04 có chỗ ký.
+- **8 mục kiểm là tạm** (chưa có bản giấy BM.08.04): sửa chữ / thêm mục ở `sx/qc/xuat_xuong.py`
+  (`MUC`), phiếu cũ giữ nguyên mục đã ghi.
+
 ## Hàng trả về vào kho riêng, khoá xuất lô thu hồi (D136 — W26)
 
 - **SX Settings**: *Kho hàng trả về*, *Kho cách ly* (patch `d136_kho_tra_ve` tạo hai kho cạnh kho

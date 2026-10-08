@@ -542,7 +542,10 @@ kiem("trạng thái lưu mẫu khớp controller",
      == [LMC.DANG_LUU, LMC.CHO_HUY, LMC.DA_LAY_RA, LMC.DA_HUY])
 
 qcjs = open("sx/public/sx/views/qc.js", encoding="utf-8").read()
-kiem("có tab Lưu mẫu", "['luumau', 'Lưu mẫu']" in qcjs and "qc_luumau.js" in qcjs)
+# D137 (W08): tab "Lưu mẫu" nằm trong tab Xuất xưởng (hai nút Kiểm xuất xưởng / Lưu mẫu).
+kiem("vào được màn Lưu mẫu: route + nút trong tab Xuất xưởng",
+     "luumau: '/assets/sx/sx/views/qc_luumau.js'" in qcjs and "['xuatxuong', 'Xuất xưởng']" in qcjs
+     and "['luumau', 'Lưu mẫu']" in open("sx/public/sx/components/qcui.js", encoding="utf-8").read())
 lmjs = open("sx/public/sx/views/qc_luumau.js", encoding="utf-8").read()
 for m in sorted(set(re.findall(r"sx\.api\.qc\.(\w+)", lmjs))):
     kiem(f"màn Lưu mẫu gọi method có thật: {m}", callable(getattr(Q, m, None)))

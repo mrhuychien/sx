@@ -251,6 +251,13 @@ mfg.tao_se_nhap_thang = lambda *a, **k: Doc(name="SE-X")
 mfg.cancel_doc = lambda dt, n, log=None: None
 mfg.loai_phieu_kho = lambda *a: None
 sys.modules["sx.api.mfg"] = mfg
+# D137 (W08): chốt BM.08.04 có test riêng (test-xuatxuong) — ở đây coi như tắt.
+_xx = types.ModuleType("sx.api.xuatxuong")
+_xx.chan_nhap_kho = lambda phieu: None
+_xx._bat = lambda s=None: False
+_xx.tu_ngay = lambda s=None: None
+_xx.trang_thai_cac_lo = lambda cap: {}
+sys.modules["sx.api.xuatxuong"] = _xx
 
 
 def nap(ten, p):

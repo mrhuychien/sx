@@ -2106,3 +2106,7 @@ b.sx-tx-kl-loi { background: none; }
   background: var(--sx-danger); color: #fff; font-weight: 700;
 }
 .sx-tx-th-bang .sx-vh-meta { color: #fff; opacity: .9; font-weight: 400; }
+
+/* D137 (W08): trạng thái kiểm tra xuất xưởng trên dòng phiếu nhập kho */
+.sx-nk-xx { display: block; margin-top: 2px; font-size: var(--sx-f-xs); font-weight: 600; color: var(--sx-warning-text); }
+.sx-nk-xx-ok { color: var(--sx-success-text, #15803d); }

@@ -521,7 +521,18 @@ def nhac(ngay=None):
                            fields=["name", "ngay", "trang_thai", "xu_ly_ngay",
                                    "muc_do"])
     return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton(),
-                                             _luu_mau_nhac(d))}
+                                             _luu_mau_nhac(d), _xuat_xuong_nhac())}
+
+
+def _xuat_xuong_nhac():
+    """Phiếu BM.08.04 chờ duyệt (W08). Lỗi (chưa migrate) → {}."""
+    try:
+        ds = frappe.get_all("SX Kiem Tra Xuat Xuong", filters={"trang_thai": "Chờ duyệt"},
+                            fields=["kiem_luc"], order_by="kiem_luc asc")
+    except Exception:
+        return {}
+    return {"cho_duyet": len(ds),
+            "lau_nhat": str(ds[0].kiem_luc)[:10] if ds and ds[0].kiem_luc else None}
 
 
 def _luu_mau_nhac(d):

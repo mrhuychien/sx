@@ -28,3 +28,15 @@ def duoc_dong_su_co(user=None):
     if vai & SIEU or ISO in vai:
         return True
     return user in (nguong().get("nguoi_dong_su_co") or [])
+
+
+def duoc_duyet_xuat_xuong(user=None):
+    """Duyệt phiếu kiểm tra xuất xưởng BM.08.04 (W08): Trưởng Ban ISO hoặc người được giao.
+    KHÔNG gồm quản trị SX Quan Ly mặc định — tài liệu ghi đúng hai người; muốn thêm ai
+    thì giao ở SX QC Setting. Điều kiện "không phải QC đã kiểm lô" xét ở controller."""
+    user = user or frappe.session.user
+    if user == "Administrator":
+        return True
+    if ISO in _vai(user):
+        return True
+    return user in (nguong().get("nguoi_duyet_xuat_xuong") or [])

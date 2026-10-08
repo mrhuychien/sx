@@ -335,4 +335,10 @@ python3 scripts/test-thuhoi.py > /tmp/sx-thuhoi.log 2>&1 \
   && tail -1 /tmp/sx-thuhoi.log \
   || { cat /tmp/sx-thuhoi.log; loi=1; }
 
+# D137 (W08): kiểm tra xuất xưởng BM.08.04. Người kiểm tự duyệt, lô chưa duyệt vẫn nhập
+# kho / bán được, hay chặn nhầm cả kho tồn cũ — đều là cổng cuối mở toang hoặc đóng sập.
+python3 scripts/test-xuatxuong.py > /tmp/sx-xuatxuong.log 2>&1 \
+  && tail -1 /tmp/sx-xuatxuong.log \
+  || { cat /tmp/sx-xuatxuong.log; loi=1; }
+
 exit $loi

@@ -17,7 +17,7 @@ import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step, openModal } from '/assets/sx/sx/components/modal.js';
 import { openNumpad } from '/assets/sx/sx/components/numpad.js';
-import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
+import { chip, khungTrong, segment, tabLo } from '/assets/sx/sx/components/qcui.js';
 import { kb, nenAnh } from '/assets/sx/sx/lib/anh.js';
 
 const ANH_TOI_DA = 4;   // một lần chụp — khớp ANH_MOT_LAN ở sx/api/qc.py
@@ -120,6 +120,7 @@ export async function render(api) {
   container.innerHTML = '<div class="sx-boot-loading">Đang tải…</div>';
   const dl = await call('sx.api.qc.list_luu_mau', { trang_thai: st.tab, q: st.q || null });
   container.innerHTML = '';
+  container.appendChild(tabLo('luumau'));
 
   if (dl.duoc_ghi) {
     const lay = el('button', 'sx-btn sx-btn-primary sx-btn-big', '+ LẤY MẪU');
