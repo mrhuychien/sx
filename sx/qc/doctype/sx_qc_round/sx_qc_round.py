@@ -49,6 +49,10 @@ class SXQCRound(Document):
         self.started_at = now_datetime()
         if not self.qc_user:
             self.qc_user = frappe.session.user
+        # Bộ mục lúc MỞ phiếu (D129): đổi bản giấy sau này không chen mục mới vào
+        # phiếu đã ghi, không rút mục cũ khỏi nó.
+        if not cint(self.get("phien_ban")):
+            self.phien_ban = M.PHIEN_BAN
 
     def validate(self):
         self.kiem_trung()
@@ -73,26 +77,35 @@ class SXQCRound(Document):
         if not cint(self.co_san_xuat_bot):
             self.co_lac = 0
             self.can_thu_lac = 0
+            self.co_sua = 0
+            self.can_ve_sinh_sua = 0
             return
         chon = M.tach_chon(self.get("san_pham_bot"))
         ten = {r.name: r.item_name for r in frappe.get_all(
             "Item", filters={"name": ("in", chon)}, fields=["name", "item_name"])} \
             if chon else {}
+        ng = nguong()
         du = co_di_ung(chon)
-        self.co_lac = 1 if (M.co_lac_trong(chon, ten, nguong()["bot_co_lac"])
+        self.co_lac = 1 if (M.co_lac_trong(chon, ten, ng["bot_co_lac"])
                             or any(du.get(c, {}).get("lac") for c in chon)) else 0
+        # Sữa bột (D129): cờ "Có sữa bột" của sản phẩm tự công bố, hoặc danh sách
+        # "Vị bột có sữa" ở SX QC Setting (không có mặc định — không đoán vị nào).
+        self.co_sua = 1 if (M.co_lac_trong(chon, ten, ng.get("bot_co_sua") or [])
+                            or any(du.get(c, {}).get("sua") for c in chon)) else 0
         khac = frappe.get_all(
             "SX QC Round",
             filters={"ngay": self.ngay, "docstatus": ("<", 2),
                      "name": ("!=", self.name or "")},
-            fields=["luot", "co_lac"])
+            fields=["luot", "co_lac", "co_sua"])
         self.can_thu_lac = M.can_thu_lac(
             self.co_lac, self.luot, [(r.luot, r.co_lac) for r in khac])
+        self.can_ve_sinh_sua = M.can_ve_sinh_sua(
+            self.co_sua, self.luot, [(r.luot, r.get("co_sua")) for r in khac])
 
     def on_update(self):
-        """Lượt này vừa đổi cờ lạc → các lượt SAU trong ngày còn dở phải tính lại
-        B7: sáng thêm chè đậu đen thì lượt trưa đang mở phải hiện ô thử lạc."""
-        if not self.has_value_changed("co_lac"):
+        """Lượt này vừa đổi cờ lạc / sữa → các lượt SAU trong ngày còn dở phải tính
+        lại B7 / B7c: sáng thêm chè đậu đen thì lượt trưa đang mở phải hiện ô thử lạc."""
+        if not (self.has_value_changed("co_lac") or self.has_value_changed("co_sua")):
             return
         t = M.thu_tu_luot(self.luot)
         for r in frappe.get_all("SX QC Round",

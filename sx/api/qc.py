@@ -177,7 +177,8 @@ def get_today(ngay=None):
         "ma_tran": M.ma_tran(co_bot),
         "muc": M.MUC,
         "loai_bot": _loai_bot(),
-        "nhom_may": {n: {"ten": t[0], "toi_da": t[1], "truong": t[2]}
+        "nhom_may": {n: {"ten": t[0], "toi_da": t[1], "truong": t[2],
+                         "ma": list(M.MA_MAY.get(n, ()))}
                      for n, t in M.NHOM_MAY.items()},
         "buoc_tat_duoc": list(M.BUOC_TAT_DUOC),
         "buoc": [{"ma": a, "ten": b, "oprp": c, "ghi": e} for a, b, c, e in M.BUOC],
@@ -779,6 +780,7 @@ def _to_ngay(ngay, kem_style=True):
     co_bot = 1 if any(cint(r.co_san_xuat_bot) for r in rounds) else 0
 
     cot = [{"doc": r, "ap": {m["f"] for m in M.muc_ap_dung(r.luot, r)}} for r in rounds]
+    pb_ngay = {M.phien_ban(r.get("phien_ban")) for r in rounds} or {M.PHIEN_BAN}
     co_mat = set().union(*[c["ap"] for c in cot]) if cot else set()
     nhieu_may = {n for n in M.NHOM_MAY
                  if any(M.boi_canh(r)["may"][n] > 1 for r in rounds)}
@@ -787,9 +789,13 @@ def _to_ngay(ngay, kem_style=True):
         # Dòng in ra: mục dây chuyền bánh luôn in (tờ giống bản giấy), còn máy
         # 2/3, phần bột, phần lạc chỉ in khi có lượt nào trong ngày áp dụng —
         # in sẵn ba máy trống thì auditor tưởng ba máy chạy mà không ai kiểm.
+        # D129: mục không có trong bộ mục của BẤT KỲ lượt nào hôm đó (T11 đã bỏ, mục
+        # mới chưa có) thì không in — hàng trống của một mục không tồn tại là sai.
         muc_buoc = [m for m in M.MUC if m["buoc"] == ma
                     and (m["f"] in co_mat
-                         or (not m["bot"] and not m.get("lac") and m["may_so"] <= 1))]
+                         or (not m["bot"] and not m.get("lac") and not m.get("sua")
+                             and m["may_so"] <= 1
+                             and any(M.con_hieu_luc(m, pb) for pb in pb_ngay)))]
         if not muc_buoc:
             continue
         hang.append({"buoc": True, "ten": f"{ma}. {ten}"
@@ -797,7 +803,7 @@ def _to_ngay(ngay, kem_style=True):
         for m in muc_buoc:
             nhan = m["nhan"]
             if m["may_so"] == 1 and m["may"] in nhieu_may:
-                nhan += " — máy 1"
+                nhan += f' — {M.ten_may_so(m["may"], 1)}'
             hang.append({
                 "buoc": False, "so": m["so"], "nhan": nhan,
                 "o": [("" if m["f"] not in c["ap"]
@@ -849,9 +855,12 @@ def export_csv(tu=None, den=None, loai="luot"):
 
 
 def _in_csv(m, v):
-    """CSV có chỗ: in đủ tên các vị thay cho "2 vị" của tờ A4."""
+    """CSV có chỗ: in đủ tên các vị thay cho "2 vị" của tờ A4, đủ chữ cho mục
+    chuyển đổi thay cho "KCĐ"."""
     if m["kieu"] == "chon_bot":
         return "; ".join(M.tach_chon(v)) or "—"
+    if m["kieu"] == "chon_cd":
+        return v or "—"
     return _in_gia_tri(m, v)
 
 
@@ -862,6 +871,9 @@ def _in_gia_tri(m, v):
         return "—"
     if m["kieu"] == "chon":
         return "Đ" if v == M.DAT else ("K" if v == M.KHONG_DAT else "—")
+    if m["kieu"] == "chon_cd":
+        # Ô A4 hẹp: KCĐ = không có chuyển đổi (chú thích cuối tờ).
+        return {M.DAT: "Đ", M.KHONG_DAT: "K", M.B7_KHONG: "KCĐ"}.get(v, "—")
     if m["kieu"] == "chon_bot":
         # Ô trên tờ A4 chỉ rộng 34 px — in số vị, tên đầy đủ in ở dòng dưới bảng.
         n = len(M.tach_chon(v))

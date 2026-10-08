@@ -286,4 +286,10 @@ python3 scripts/test-congbo.py > /tmp/sx-congbo.log 2>&1 \
   && tail -1 /tmp/sx-congbo.log \
   || { cat /tmp/sx-congbo.log; loi=1; }
 
+# D129 (W01/W02): bộ mục bản 2. Phiếu cũ bị chen mục mới / mất mục cũ, hay dị vật
+# trên rây không thành sự cố — đều im lặng.
+python3 scripts/test-qcv2.py > /tmp/sx-qcv2.log 2>&1 \
+  && tail -1 /tmp/sx-qcv2.log \
+  || { cat /tmp/sx-qcv2.log; loi=1; }
+
 exit $loi

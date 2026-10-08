@@ -195,9 +195,8 @@ qua cả hộp.
   trong luật map tự động nên chắc chắn đúng; sáu cái kia chỉ hiện khi người ta
   tự chọn tay trên phiếu sự cố.
 - ~~Ngưỡng rang lạc chờ thẩm định~~ — đã chốt ở W03 (D128), xem mục dưới.
-- Bản thiết kế có mục **"5 Ủ — thùng, khăn sạch khô"** mà spec không có
-  fieldname. Chưa làm, vì bịa ra một field không có trên bản giấy BM.08.01 thì
-  tờ in ra sẽ lệch với tập hồ sơ cũ.
+- ~~Mục "5 Ủ"~~ — đã thêm ở D129 (W01) với chữ **vải ủ**; phần còn chờ (chất vải,
+  tần suất giặt, số tấm, giờ ủ tối đa) xem mục D129 dưới.
 
 ## Ngưỡng phần bột và mã oPRP (D128 — W03)
 
@@ -210,6 +209,30 @@ qua cả hộp.
   (hàn kín bao gói). Hai mã của phần bột là SUY theo cùng loại kiểm soát với bánh —
   Ban ISO đối chiếu KH.HACCP bột, khác thì sửa `OPRP_NHIET` / `OPRP_GOI` trong `muc.py`.
 - Tờ in BM.08.02, danh sách sự cố, CSV đều hiện mã oPRP.
+
+## Bộ mục bản 2 — BM.08.01 sửa đổi (D129 — W01, W02)
+
+Mỗi phiếu nhớ **phiên bản bộ mục** lúc mở (`phien_ban`; phiếu trước D129 để trống =
+bản 1). Mục có `tu` / `den` trong `muc.py`. Nhờ vậy phiếu cũ in / CSV y như lúc ghi:
+không chen mục mới thành ô "chưa kiểm", không mất số T11 đã ghi.
+
+Bản 2 so với bản 1:
+
+| Mục | Ở đâu | Ghi chú |
+|---|---|---|
+| **1e** Vệ sinh chuyển đổi trong ngày | phần A, **cả ba lượt** | Không có chuyển đổi / Đạt / Không đạt. Không đạt → sự cố **Dị ứng**, Thường |
+| **4b** Thùng, khay cát sạch | bước 4, lượt Đầu sáng / Tuần | mục 4 cũ thành **4a**. Không đạt → PRP |
+| **5** Thùng ủ, vải ủ sạch, khô | bước **5 Ủ** mới (tắt được) | chữ "vải ủ". **Chờ quyết định**: chất vải, giặt mỗi lần hay 1 tuần, số tấm, giờ ủ tối đa |
+| **7a/7b/7c** Rây kiểm RY-01 | bước 7, **theo máy nghiền M1 / M2** | 7a độ mịn Đ/K (field cũ), 7b số hạt thô (ô đếm), 7c có dị vật → sự cố oPRP **Cao**. Ngưỡng hạt thô ở Setting (ô chữ: trống = chưa có ngưỡng, chỉ cảnh báo; 0 = không cho hạt nào) |
+| **B5** | phần bột | nhãn ghi rõ túi 40 g **và hộp nhựa** |
+| **B7c** Vệ sinh chuyển đổi sau vị có sữa bột | phần bột | hiện khi lượt này / lượt trước làm vị có sữa bột (cờ của sản phẩm tự công bố W28, hoặc Setting "Vị bột có sữa bột"). Không đạt → Dị ứng |
+| ~~T11~~ Cân quả chuẩn | bỏ | sang quản lý thiết bị đo (W17) |
+
+**Chưa làm — cần bản giấy**: sửa nhãn **T1–T10** theo phiếu giấy (chưa có chữ trên
+phiếu giấy để chép). Gửi ảnh / chữ phiếu giấy là sửa trong `muc.py`, không đổi field.
+
+Mã máy thật (`MA_MAY`): mới có máy nghiền M1/M2. Máy rang M3 và 3 máy gói bột chờ
+Cơ điện (C10) — điền vào `MA_MAY` là nhãn đổi theo, field giữ nguyên.
 
 ## Hai chỗ khai trùng, có test canh
 

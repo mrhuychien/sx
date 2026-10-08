@@ -96,7 +96,7 @@ def _nhac_luot_tuan(nay, luot):
         return []
     if nay == t2:
         return [_m(THUONG, "Hôm nay là thứ Hai — chưa làm lượt tuần",
-                   "Lượt đầu sáng hôm nay ghi là lượt Tuần, có thêm 11 mục phần C.",
+                   "Lượt đầu sáng hôm nay ghi là lượt Tuần, có thêm các mục tuần (phần C).",
                    "#/qc")]
     return [_m(CAO, f"Tuần này chưa có lượt tuần nào",
                f"Thứ Hai ({t2.strftime('%d/%m')}) đã qua {(nay - t2).days} ngày. "

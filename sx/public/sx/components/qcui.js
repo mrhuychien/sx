@@ -32,11 +32,19 @@ export function trangThaiSo(f, v, ng) {
   }
   if (f === 'thung_bot_qua_han') return n > (g.thung_bot_max ?? 0) ? 'loi' : '';
   if (f === 't2_so_bay_dau_hieu') return n > 0 ? 'canh' : '';
-  if (f === 'b2_rang_lac_nhiet') {
-    return (g.rang_lac_nhiet_min && n < g.rang_lac_nhiet_min) ? 'loi' : '';
+  // W03 (D128): rang lạc có cả trần — quá nhiệt / quá giờ là cháy, cũng lệch oPRP.
+  if (f === 'b2_rang_lac_nhiet' || f === 'b2_rang_lac_phut') {
+    if (n === 0) return '';
+    const k = f === 'b2_rang_lac_nhiet' ? 'rang_lac_nhiet' : 'rang_lac_phut';
+    return ((g[`${k}_min`] && n < g[`${k}_min`])
+      || (g[`${k}_max`] && n > g[`${k}_max`])) ? 'loi' : '';
   }
-  if (f === 'b2_rang_lac_phut') {
-    return (g.rang_lac_phut_min && n < g.rang_lac_phut_min) ? 'loi' : '';
+  // W02 (D129): hạt thô trên rây — có ngưỡng thì vượt là lỗi, chưa có thì > 0 cảnh báo.
+  if (f === 'hat_tho') {
+    if (g.hat_tho_toi_da !== null && g.hat_tho_toi_da !== undefined) {
+      return n > g.hat_tho_toi_da ? 'loi' : '';
+    }
+    return n > 0 ? 'canh' : '';
   }
   if (f === 'b8_nhiet_han') {
     if (n === 0) return '';
@@ -74,6 +82,11 @@ function loiSo(f, v, ng) {
   }
   if (f === 'thung_bot_qua_han') return `✕ ${n} thùng quá hạn — sẽ tạo sự cố`;
   if (f === 't2_so_bay_dau_hieu') return `⚠ ${n} trạm có dấu hiệu — theo dõi tuần sau`;
+  if (f === 'hat_tho') {
+    return (g.hat_tho_toi_da !== null && g.hat_tho_toi_da !== undefined)
+      ? `✕ ${n} hạt thô — vượt ${g.hat_tho_toi_da}, sẽ tạo sự cố`
+      : `⚠ ${n} hạt thô — chưa có ngưỡng, báo tổ trưởng xem lưới rây`;
+  }
   return '✕ ngoài ngưỡng — sẽ tạo sự cố khi hoàn tất';
 }
 
@@ -127,11 +140,17 @@ function goiYNgan(f, v, ng) {
   }
   if (f === 'thung_bot_qua_han') return tt === 'loi' ? '✕ > 0' : '0 = đạt';
   if (f === 't2_so_bay_dau_hieu') return tt === 'canh' ? '⚠ có dấu hiệu' : '/ 12 trạm';
-  if (f === 'b2_rang_lac_nhiet') {
-    return g.rang_lac_nhiet_min ? `≥ ${g.rang_lac_nhiet_min} °C` : 'chưa có ngưỡng';
+  if (f === 'b2_rang_lac_nhiet' || f === 'b2_rang_lac_phut') {
+    const k = f === 'b2_rang_lac_nhiet' ? 'rang_lac_nhiet' : 'rang_lac_phut';
+    const dv = f === 'b2_rang_lac_nhiet' ? '°C' : 'phút';
+    const kh = `${g[`${k}_min`] ?? '…'}–${g[`${k}_max`] ?? '…'} ${dv}`;
+    return tt === 'loi' ? `✕ ngoài ${kh}` : kh;
   }
-  if (f === 'b2_rang_lac_phut') {
-    return g.rang_lac_phut_min ? `≥ ${g.rang_lac_phut_min} phút` : 'chưa có ngưỡng';
+  if (f === 'hat_tho') {
+    if (g.hat_tho_toi_da !== null && g.hat_tho_toi_da !== undefined) {
+      return tt === 'loi' ? `✕ > ${g.hat_tho_toi_da} hạt` : `≤ ${g.hat_tho_toi_da} hạt`;
+    }
+    return tt === 'canh' ? '⚠ có hạt thô' : '0 = không có';
   }
   if (f === 'b8_nhiet_han') {
     if (!g.han_nhiet_min && !g.han_nhiet_max) return 'chưa có ngưỡng';
@@ -153,9 +172,9 @@ function goiYNgan(f, v, ng) {
  * thì bấm nhanh hơn mở bàn số.
  */
 export function oSo(m, giaTri, onSet, ng, khoa) {
-  const dem = m.f === 'thung_bot_qua_han' || m.f === 't2_so_bay_dau_hieu';
   // Ô máy 2/3 dùng NGƯỠNG của ô gốc (rang_nhiet_do_m2 → rang_nhiet_do). D100.
   const goc = m.goc || m.f;
+  const dem = ['thung_bot_qua_han', 't2_so_bay_dau_hieu', 'hat_tho'].includes(goc);
   const thap = m.kieu === 'so';
   const wrap = el('div', 'sx-qc-oso');
   wrap.dataset.f = m.f;

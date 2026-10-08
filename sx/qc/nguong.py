@@ -34,7 +34,11 @@ MAC_DINH = {
 
 # Ngưỡng chờ thẩm định: không có mặc định, chưa đặt thì không sinh sự cố.
 # (Từ D128 rang lạc và nhiệt độ hàn đã có số — xem MAC_DINH.)
-CHO_THAM_DINH = ()
+CHO_THAM_DINH = (
+    # Rây kiểm RY-01 (W02, D129): số hạt thô tối đa trên rây — chưa ai đưa con số.
+    # Chưa đặt thì chỉ ghi số + cảnh báo khi có hạt thô, không tự sinh sự cố.
+    "hat_tho_toi_da",
+)
 
 # Vị bột có lạc (D100) khi SX QC Setting chưa khai gì. Đây là vị duy nhất đang
 # có lạc trong công thức (BOM chè đậu đen cốt dừa có Lạc).
@@ -78,7 +82,12 @@ def nguong():
     ra = {k: lay(k, v) for k, v in MAC_DINH.items()}
     for k in CHO_THAM_DINH:
         v = s.get(k) if s else None
-        ra[k] = int(v) if v else None
+        # Ô chữ (Data) chứ không Int: Int không để trống được, mà 0 hạt thô là một
+        # ngưỡng THẬT ("không cho hạt nào") — khác hẳn "chưa đặt".
+        try:
+            ra[k] = int(float(str(v).strip())) if str(v if v is not None else "").strip() else None
+        except ValueError:
+            ra[k] = None
     # Danh sách nhóm hàng bắt buộc có COA: RỖNG nghĩa là chưa khai, và chưa khai
     # thì luật COA KHÔNG chạy. Không đoán bừa vài tên nhóm: đoán sai thì hoặc
     # chặn nhầm hàng tốt, hoặc cho qua đúng thứ cần chặn.
@@ -88,6 +97,10 @@ def nguong():
     khai = [x.strip() for x in str((s.get("bot_co_lac") if s else "") or "").split("\n")
             if x.strip()]
     ra["bot_co_lac"] = khai or list(BOT_CO_LAC_MAC_DINH)
+    # Vị bột có sữa bột (D129): KHÔNG có mặc định — nguồn chính là cờ "Có sữa bột"
+    # của sản phẩm tự công bố (W28); danh sách này chỉ để bổ sung.
+    ra["bot_co_sua"] = [x.strip() for x in str((s.get("bot_co_sua") if s else "") or "")
+                        .split("\n") if x.strip()]
     ra["cho_phep_bo_qua_luot_khi_khong_san_xuat"] = int(
         (s.get("cho_phep_bo_qua_luot_khi_khong_san_xuat") if s else 1) or 0)
 

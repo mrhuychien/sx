@@ -267,8 +267,8 @@ kiem("máy 2 KHÔNG chạy thì số cũ trong ô đó không sinh sự cố",
 r = sc(so_may_rang=2, rang_vong_quay_m2=9)
 kiem("vòng quay máy 2 ngoài khoảng → sự cố", [x[0] for x in r] == ["rang_vong_quay_m2"])
 r = sc(so_may_nghien=2, do_min_dat_m2="Không đạt")
-kiem("máy nghiền 2 không đạt độ mịn → sự cố ghi máy 2",
-     len(r) == 1 and "máy 2" in r[0][4], str(r))
+kiem("máy nghiền 2 không đạt độ mịn → sự cố ghi mã máy M2 (W02)",
+     len(r) == 1 and "M2" in r[0][4], str(r))
 cb = SC.canh_bao(Doc({"luot": "Trưa", "so_may_rang": 3, "rang_nhiet_do_m3": 280}))
 kiem("máy 3 vượt trần vận hành → cảnh báo nói rõ máy 3",
      any("máy 3" in c for c in cb), str(cb))

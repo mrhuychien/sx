@@ -17,6 +17,8 @@ from sx.qc import muc  # noqa: E402
 KIEU = {
     "chon":     lambda m: {"fieldtype": "Select", "options": muc.TRI_STATE},
     "chon3":    lambda m: {"fieldtype": "Select", "options": muc.B7_OPTIONS},
+    # Mục chuyển đổi (D129): Không có chuyển đổi / Đạt / Không đạt, trống = chưa kiểm.
+    "chon_cd":  lambda m: {"fieldtype": "Select", "options": muc.CD_OPTIONS},
     "so":       lambda m: {"fieldtype": "Float", "precision": "1"},
     "nguyen":   lambda m: {"fieldtype": "Int", "default": "0"},
     "chu":      lambda m: {"fieldtype": "Data"},
@@ -61,6 +63,13 @@ fields = [
     f("co_lac", "Check", "Có làm vị có lạc", default="0", read_only=1),
     f("can_thu_lac", "Check", "Phải thử nhanh lạc (B7)", default="0", read_only=1,
       description="Lượt này hoặc một lượt trước trong ngày làm vị có lạc."),
+    # D129: sữa bột — cùng luật với lạc, cho ô B7c vệ sinh chuyển đổi.
+    f("co_sua", "Check", "Có làm vị có sữa bột", default="0", read_only=1),
+    f("can_ve_sinh_sua", "Check", "Phải vệ sinh chuyển đổi sữa (B7c)", default="0",
+      read_only=1, description="Lượt này hoặc một lượt trước trong ngày làm vị có sữa bột."),
+    # D129: bộ mục của bản giấy lúc MỞ phiếu (sx/qc/muc.py PHIEN_BAN). Trống = 1.
+    f("phien_ban", "Int", "Phiên bản bộ mục", read_only=1,
+      description="Bộ mục BM.08.01 lúc mở phiếu. Phiếu trước D129 để trống = bản 1."),
     f("qc_user", "Link", "QC chế biến", options="User", reqd=1),
     f("qc_goi_user", "Link", "QC đóng gói", options="User"),
     f("ngay_san_xuat", "Link", "Phiếu ngày sản xuất", options="SX Ngay San Xuat",

@@ -15,8 +15,10 @@
   "rang_lac_nhiet_max",
   "rang_lac_phut_min",
   "rang_lac_phut_max",
+  "hat_tho_toi_da",
   "section_bot",
   "bot_co_lac",
+  "bot_co_sua",
   "column_break_bot",
   "han_nhiet_min",
   "han_nhiet_max",
@@ -106,6 +108,12 @@
    "default": "40"
   },
   {
+   "fieldname": "hat_tho_toi_da",
+   "fieldtype": "Data",
+   "label": "Rây kiểm RY-01: số hạt thô tối đa",
+   "description": "Bỏ trống = chưa có ngưỡng: chỉ ghi số (có hạt thô thì cảnh báo), không tự sinh sự cố. Gõ số (0 = không cho hạt thô nào) thì vượt → phiếu sự cố oPRP-2."
+  },
+  {
    "fieldname": "section_bot",
    "fieldtype": "Section Break",
    "label": "Dây chuyền bột"
@@ -115,6 +123,12 @@
    "fieldtype": "Small Text",
    "label": "Vị bột có lạc",
    "description": "Mỗi dòng một mã hoặc tên hàng. Chọn vị này ở B0 thì mới hiện các mục về lạc (B1, B2, B7). Bỏ trống = Chè đậu đen cốt dừa."
+  },
+  {
+   "fieldname": "bot_co_sua",
+   "fieldtype": "Small Text",
+   "label": "Vị bột có sữa bột",
+   "description": "Mỗi dòng một mã / tên hàng — bổ sung cho cờ 'Có sữa bột' của sản phẩm tự công bố. Vị có sữa → lượt đó và các lượt sau trong ngày có ô B7c vệ sinh chuyển đổi."
   },
   {
    "fieldname": "column_break_bot",

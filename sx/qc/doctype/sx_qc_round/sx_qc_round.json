@@ -13,6 +13,9 @@
   "co_san_xuat_bot",
   "co_lac",
   "can_thu_lac",
+  "co_sua",
+  "can_ve_sinh_sua",
+  "phien_ban",
   "qc_user",
   "qc_goi_user",
   "ngay_san_xuat",
@@ -37,6 +40,7 @@
   "a2_cong_nhan",
   "a3_dong_vat",
   "a4_hoa_chat",
+  "a5_chuyen_doi",
   "section_buoc_2",
   "luoc_soi_du",
   "section_buoc_3",
@@ -49,13 +53,20 @@
   "rang_mau_dat",
   "section_buoc_4",
   "luoi_sang_nguyen_ven",
+  "thung_khay_cat_sach",
+  "section_buoc_5",
+  "u_thung_vai_sach",
   "section_buoc_6",
   "nam_cham_da_kiem",
   "nam_cham_vat",
   "nam_cham_mat_kim_loai",
   "section_buoc_7",
   "do_min_dat",
+  "hat_tho",
+  "di_vat_ray",
   "do_min_dat_m2",
+  "hat_tho_m2",
+  "di_vat_ray_m2",
   "section_buoc_8",
   "thung_bot_qua_han",
   "section_buoc_10",
@@ -95,6 +106,7 @@
   "b5_nhan_di_ung",
   "b7_chuyen_doi",
   "b7_gio",
+  "b7_ve_sinh_sua",
   "section_ghi_chu",
   "ghi_chu",
   "section_xem_xet",
@@ -165,6 +177,28 @@
    "default": "0",
    "read_only": 1,
    "description": "Lượt này hoặc một lượt trước trong ngày làm vị có lạc."
+  },
+  {
+   "fieldname": "co_sua",
+   "fieldtype": "Check",
+   "label": "Có làm vị có sữa bột",
+   "default": "0",
+   "read_only": 1
+  },
+  {
+   "fieldname": "can_ve_sinh_sua",
+   "fieldtype": "Check",
+   "label": "Phải vệ sinh chuyển đổi sữa (B7c)",
+   "default": "0",
+   "read_only": 1,
+   "description": "Lượt này hoặc một lượt trước trong ngày làm vị có sữa bột."
+  },
+  {
+   "fieldname": "phien_ban",
+   "fieldtype": "Int",
+   "label": "Phiên bản bộ mục",
+   "read_only": 1,
+   "description": "Bộ mục BM.08.01 lúc mở phiếu. Phiếu trước D129 để trống = bản 1."
   },
   {
    "fieldname": "qc_user",
@@ -313,6 +347,13 @@
    "options": "\nĐạt\nKhông đạt"
   },
   {
+   "fieldname": "a5_chuyen_doi",
+   "fieldtype": "Select",
+   "label": "1e Vệ sinh chuyển đổi trong ngày (sau lạc / dừa / sữa)",
+   "description": "sau lạc / dừa / sữa — không có thì bấm Không có",
+   "options": "\nKhông có chuyển đổi\nĐạt\nKhông đạt"
+  },
+  {
    "fieldname": "section_buoc_2",
    "fieldtype": "Section Break",
    "label": "2. Luộc  (oPRP-1)",
@@ -384,8 +425,26 @@
   {
    "fieldname": "luoi_sang_nguyen_ven",
    "fieldtype": "Select",
-   "label": "4 Lưới sàng cát / sàng lại nguyên vẹn",
+   "label": "4a Lưới sàng cát / sàng lại nguyên vẹn",
    "description": "sàng cát và sàng lại",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "thung_khay_cat_sach",
+   "fieldtype": "Select",
+   "label": "4b Thùng, khay cát sạch",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_buoc_5",
+   "fieldtype": "Section Break",
+   "label": "5. Ủ",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "u_thung_vai_sach",
+   "fieldtype": "Select",
+   "label": "5 Thùng ủ, vải ủ sạch, khô",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -422,14 +481,42 @@
   {
    "fieldname": "do_min_dat",
    "fieldtype": "Select",
-   "label": "7 Độ mịn đạt, rây 0,2 mm",
+   "label": "7a Rây kiểm RY-01: độ mịn đạt (rây 0,2 mm)",
    "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "hat_tho",
+   "fieldtype": "Int",
+   "label": "7b Rây kiểm RY-01: số hạt thô trên rây",
+   "description": "0 = không có hạt thô",
+   "default": "0"
+  },
+  {
+   "fieldname": "di_vat_ray",
+   "fieldtype": "Check",
+   "label": "7c Rây kiểm RY-01: có dị vật",
+   "description": "tích = tạo sự cố",
+   "default": "0"
   },
   {
    "fieldname": "do_min_dat_m2",
    "fieldtype": "Select",
-   "label": "7 Độ mịn đạt, rây 0,2 mm — máy 2",
+   "label": "7a Rây kiểm RY-01: độ mịn đạt (rây 0,2 mm) — M2",
    "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "hat_tho_m2",
+   "fieldtype": "Int",
+   "label": "7b Rây kiểm RY-01: số hạt thô trên rây — M2",
+   "description": "0 = không có hạt thô",
+   "default": "0"
+  },
+  {
+   "fieldname": "di_vat_ray_m2",
+   "fieldtype": "Check",
+   "label": "7c Rây kiểm RY-01: có dị vật — M2",
+   "description": "tích = tạo sự cố",
+   "default": "0"
   },
   {
    "fieldname": "section_buoc_8",
@@ -579,13 +666,13 @@
    "fieldname": "b2_rang_lac_nhiet",
    "fieldtype": "Int",
    "label": "B2a Rang lạc: nhiệt độ",
-   "description": "ngưỡng lấy từ SX QC Setting"
+   "description": "150 – 180 °C"
   },
   {
    "fieldname": "b2_rang_lac_phut",
    "fieldtype": "Int",
    "label": "B2b Rang lạc: thời gian mẻ",
-   "description": "ngưỡng lấy từ SX QC Setting"
+   "description": "30 – 40 phút"
   },
   {
    "fieldname": "b2_lac_chin",
@@ -604,7 +691,7 @@
    "fieldname": "b8_nhiet_han",
    "fieldtype": "Int",
    "label": "B8 Máy đóng gói: nhiệt độ hàn",
-   "description": "ngưỡng lấy từ SX QC Setting · QC đóng gói ghi"
+   "description": "150 – 190 °C · QC đóng gói ghi"
   },
   {
    "fieldname": "b4_moi_han_tui",
@@ -624,7 +711,7 @@
    "fieldname": "b8_nhiet_han_m2",
    "fieldtype": "Int",
    "label": "B8 Máy đóng gói: nhiệt độ hàn — máy 2",
-   "description": "ngưỡng lấy từ SX QC Setting · QC đóng gói ghi"
+   "description": "150 – 190 °C · QC đóng gói ghi"
   },
   {
    "fieldname": "b4_moi_han_tui_m2",
@@ -644,7 +731,7 @@
    "fieldname": "b8_nhiet_han_m3",
    "fieldtype": "Int",
    "label": "B8 Máy đóng gói: nhiệt độ hàn — máy 3",
-   "description": "ngưỡng lấy từ SX QC Setting · QC đóng gói ghi"
+   "description": "150 – 190 °C · QC đóng gói ghi"
   },
   {
    "fieldname": "b4_moi_han_tui_m3",
@@ -663,8 +750,8 @@
   {
    "fieldname": "b5_nhan_di_ung",
    "fieldtype": "Select",
-   "label": "B5 Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",
-   "description": "đúng sản phẩm",
+   "label": "B5 Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa — túi 40 g, hộp nhựa",
+   "description": "túi 40 g và hộp nhựa — đúng sản phẩm",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -678,6 +765,13 @@
    "fieldname": "b7_gio",
    "fieldtype": "Time",
    "label": "B7b Giờ thử"
+  },
+  {
+   "fieldname": "b7_ve_sinh_sua",
+   "fieldtype": "Select",
+   "label": "B7c Vệ sinh chuyển đổi sau vị có sữa bột",
+   "description": "không chuyển đổi thì bấm Không có",
+   "options": "\nKhông có chuyển đổi\nĐạt\nKhông đạt"
   },
   {
    "fieldname": "section_ghi_chu",

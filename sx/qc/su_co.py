@@ -26,7 +26,10 @@ THUONG = "Thường"
 
 
 def _loai(m):
-    """oPRP / PRP / Khác theo mục: mã oPRP của mục (W03) hoặc của bước chứa nó."""
+    """Loại sự cố khi mục Không đạt: loại khai riêng trên mục (D129 — vd thùng ủ là
+    PRP vệ sinh), không thì PRP / oPRP (mã oPRP của mục hoặc của bước) / Khác."""
+    if m.get("loai"):
+        return m["loai"]
     if m["cd"] == "PRP":
         return "PRP"
     return "oPRP" if m.get("oprp") else "Khác"
@@ -50,6 +53,27 @@ def phat_hien(doc):
             ra.append((m["f"], m["cd"], _loai(m), THUONG,
                        _("Mục {0} {1}: Không đạt").format(
                            m["so"], m["nhan"] + (may if m["may_so"] == 1 else ""))))
+
+        elif m["kieu"] == "chon_cd" and v == M.KHONG_DAT:
+            # Vệ sinh chuyển đổi (1e trong ngày, B7c sau vị có sữa): sót là mang
+            # chất gây dị ứng sang mẻ sau — loại Dị ứng. Mức Thường: chưa có kết
+            # quả dương tính, chỉ là bước vệ sinh chưa đạt (khác B7 dương tính).
+            ra.append((m["f"], m["cd"], _loai(m), THUONG,
+                       _("Mục {0} {1}: Không đạt").format(m["so"], m["nhan"])))
+
+        elif goc == "di_vat_ray" and cint(v):
+            # Dị vật trên rây kiểm = mối nguy vật lý đã lọt tới bột — Cao như mạt
+            # kim loại ở nam châm.
+            ra.append((m["f"], m["cd"], "oPRP", CAO,
+                       _("Rây kiểm RY-01{0}: có dị vật — cô lập bột của máy, kiểm lưới "
+                         "rây").format(may if may else M.ten_may(m))))
+
+        elif goc == "hat_tho" and M.co_ghi(m, v):
+            toi_da = ng.get("hat_tho_toi_da")
+            if toi_da is not None and cint(v) > toi_da:
+                ra.append((m["f"], m["cd"], "oPRP", THUONG,
+                           _("Rây kiểm RY-01{0}: {1} hạt thô > {2}").format(
+                               may if may else M.ten_may(m), cint(v), toi_da)))
 
         elif goc == "b7_chuyen_doi" and v == M.B7_DUONG:
             # Dị ứng là thứ đưa người vào viện, không phải thứ ghi nhận rồi thôi.
@@ -123,6 +147,12 @@ def canh_bao(doc):
             ra.append(_("Rang{0}: {1} °C vượt trần vận hành {2} °C — báo tổ trưởng")
                       .format(M.ten_may(m) if nhieu else "", int(flt(v)),
                               ng["rang_nhiet_max_van_hanh"]))
+    if nguong().get("hat_tho_toi_da") is None:
+        # Chưa có ngưỡng thì không thành sự cố — nhưng có hạt thô thì phải NÓI.
+        for m in M.muc_ap_dung(doc.get("luot"), doc):
+            if m["goc"] == "hat_tho" and cint(doc.get(m["f"])) > 0:
+                ra.append(_("Rây kiểm RY-01{0}: {1} hạt thô — chưa có ngưỡng, báo tổ "
+                            "trưởng xem lưới").format(M.ten_may(m), cint(doc.get(m["f"]))))
     if cint(doc.get("t2_so_bay_dau_hieu")) > 0:
         ra.append(_("Lượt tuần: {0} trạm bẫy có dấu hiệu — theo dõi tuần sau").format(
             cint(doc.get("t2_so_bay_dau_hieu"))))

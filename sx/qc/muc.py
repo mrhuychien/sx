@@ -13,6 +13,18 @@ RANH GIỚI MODULE: file này KHÔNG import gì từ `sx` ngoài thư viện chu
 module qc phải bê nguyên sang app khác được (xem sx/qc/README.md).
 """
 
+# ── Phiên bản bộ mục (D129) ───────────────────────────────────────────────
+# Bản giấy BM.08.01 sửa đổi thì bộ mục đổi. Phiếu đã ghi theo bộ cũ phải giữ
+# NGUYÊN bộ cũ: thêm mục mới vào phiếu tháng trước là tờ in ra một hàng "chưa
+# kiểm" mà hôm đó mục ấy chưa tồn tại; bỏ mục cũ khỏi phiếu cũ là mất số đã ghi.
+# Mỗi phiếu nhớ phiên bản lúc mở (SX QC Round.phien_ban — phiếu trước D129 để
+# trống, đọc là 1); mỗi mục có `tu` (từ phiên bản) / `den` (tới, không gồm).
+#   1  bản đầu (D85 … D128)
+#   2  W01/W02 08/10/2026: 1e chuyển đổi trong ngày, 4b thùng/khay cát, 5 Ủ, 7 rây
+#      kiểm RY-01 (hạt thô, dị vật), B7c vệ sinh chuyển đổi sữa; bỏ T11 quả chuẩn
+#      (sang quản lý thiết bị đo — W17)
+PHIEN_BAN = 2
+
 # ── Lượt ──────────────────────────────────────────────────────────────────
 # MỘT NGÀY BA LƯỢT, không chia ca (D95). Trước D95 là 3 lượt × 2 ca Sáng/Chiều;
 # nhà máy đổi sang ba mốc cố định trong ngày, mỗi mốc có hạn chót riêng — xem
@@ -87,6 +99,7 @@ BUOC = [
     ("2",  "Luộc",             "oPRP-1",  ""),
     ("3",  "Rang",             "oPRP-1",  ""),
     ("4",  "Sàng cát",         "oPRP-2",  ""),
+    ("5",  "Ủ",                "",        ""),
     ("6",  "Vỡ đỗ · Nam châm", "",        ""),
     ("7",  "Nghiền",           "oPRP-2",  ""),
     ("8",  "Kho bột",          "oPRP-3",  ""),
@@ -102,7 +115,7 @@ BUOC = [
 #   8  Kho bột     — thùng bột nằm trong kho dù hôm nay có nghiền hay không
 #   C  Lượt tuần   — lịch tuần, không theo sản xuất
 #   B  Bột đậu     — đã có công tắc riêng "có sản xuất bột"
-BUOC_TAT_DUOC = ("2", "3", "4", "6", "7", "10", "12")
+BUOC_TAT_DUOC = ("2", "3", "4", "5", "6", "7", "10", "12")
 
 
 def _oprp_buoc(ma):
@@ -132,6 +145,19 @@ NHOM_MAY = {
     "goi_bot": ("Máy đóng gói bột", 3, "so_may_goi_bot"),
 }
 
+# MÃ MÁY THẬT (W02/W16): rây kiểm ghi theo máy nghiền M1 / M2. Nhóm chưa có mã (máy
+# rang M3, ba máy gói bột — chờ Cơ điện, C10) vẫn hiện "máy 1/2/3". Chỉ đổi NHÃN:
+# fieldname không đổi (máy 1 = field gốc, máy k = `<f>_mk`).
+MA_MAY = {
+    "nghien": ("M1", "M2"),
+}
+
+
+def ten_may_so(nhom, k):
+    """Nhãn máy thứ k của một nhóm: mã thật nếu có ("M2"), không thì "máy 2"."""
+    ma = MA_MAY.get(nhom) or ()
+    return ma[k - 1] if 0 < k <= len(ma) else f"máy {k}"
+
 # ── Lạc (D100) ────────────────────────────────────────────────────────────
 # Mục về LẠC chỉ áp dụng khi hôm đó làm vị có lạc (chè đậu đen cốt dừa). Hai
 # nghĩa khác nhau, tách hai cờ:
@@ -142,10 +168,14 @@ NHOM_MAY = {
 LAC_LAM = "lam"
 LAC_DOI = "doi"
 
+# Sữa (D129, W01): ô vệ sinh chuyển đổi sau vị có SỮA BỘT — cùng luật với thử lạc
+# sau chuyển đổi: lượt này hoặc một lượt trước trong ngày có làm vị có sữa bột.
+SUA_DOI = "doi"
+
 
 def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
        dv="", goi_y="", batbuoc=False, phu=False, ngan="", may=None, lac=None,
-       oprp=None):
+       oprp=None, sua=None, loai=None, tu=1, den=None):
     """Một mục kiểm.
 
     ap   = tuple lượt áp dụng, None = mọi lượt
@@ -162,12 +192,16 @@ def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
     lac  = LAC_LAM / LAC_DOI — chỉ áp dụng khi có làm vị có lạc (xem trên)
     oprp = mã oPRP của riêng mục này (W03). Bỏ trống = theo bước (BUOC) — dây
            chuyền bánh gắn oPRP theo công đoạn; phần bột gắn theo từng mục.
+    sua  = SUA_DOI — chỉ áp dụng khi có làm vị có sữa bột (lượt này / lượt trước)
+    loai = loại sự cố khi mục Không đạt, nếu khác loại suy từ công đoạn (PRP…)
+    tu, den = phiên bản bộ mục mục này có mặt: [tu, den) — xem PHIEN_BAN
     """
     return {"f": f, "so": so, "nhan": nhan, "ngan": ngan or nhan, "buoc": buoc, "cd": cd, "kieu": kieu,
             "ap": tuple(ap) if ap else None, "goi": goi, "bot": bot,
             "dv": dv, "goi_y": goi_y, "batbuoc": batbuoc, "phu": phu,
             "may": may, "may_so": 1 if may else 0, "goc": f, "lac": lac,
-            "oprp": oprp or _oprp_buoc(buoc)}
+            "oprp": oprp or _oprp_buoc(buoc), "sua": sua, "loai": loai,
+            "tu": tu, "den": den}
 
 
 MUC = [
@@ -185,6 +219,11 @@ MUC = [
     _m("a4_hoa_chat", "1d", "Không hoá chất/dầu trong khu SX; không rò dầu",
        "A", "PRP", ap=DAU_NGAY_HOAC_TUAN,
        ngan="Hoá chất cất đúng nơi", goi_y="không hoá chất/dầu trong khu SX; không rò dầu"),
+    # W01 (D129): chuyển đổi TRONG NGÀY xảy ra ở lượt nào cũng được (sau lạc / dừa
+    # / sữa) nên mục này có ở cả ba lượt; không chuyển đổi thì bấm "Không có".
+    _m("a5_chuyen_doi", "1e", "Vệ sinh chuyển đổi trong ngày (sau lạc / dừa / sữa)",
+       "A", "PRP", kieu="chon_cd", loai="Dị ứng", tu=2,
+       ngan="Vệ sinh chuyển đổi trong ngày", goi_y="sau lạc / dừa / sữa — không có thì bấm Không có"),
 
     # ── B: dây chuyền bánh ───────────────────────────────────────────────
     _m("luoc_soi_du", "2", "Sôi liên tục, đỗ chín nổi", "2", "2 Luộc"),
@@ -194,9 +233,15 @@ MUC = [
     _m("rang_vong_quay", "3b", "Vòng quay lồng rang", "3", "3 Rang", kieu="so",
        dv="v/ph", goi_y="6,2 – 7,0", may="rang"),
     _m("rang_mau_dat", "3c", "Hạt vàng hoa cau", "3", "3 Rang"),
-    _m("luoi_sang_nguyen_ven", "4", "Lưới sàng cát / sàng lại nguyên vẹn",
+    _m("luoi_sang_nguyen_ven", "4a", "Lưới sàng cát / sàng lại nguyên vẹn",
        "4", "4 Sàng cát",
        ngan="Lưới sàng nguyên vẹn", goi_y="sàng cát và sàng lại"),
+    _m("thung_khay_cat_sach", "4b", "Thùng, khay cát sạch", "4", "4 Sàng cát",
+       ap=DAU_NGAY_HOAC_TUAN, loai="PRP", tu=2),
+    # W01 (D129): mục 5 trên bản giấy. Vải ủ (không phải "khăn phủ"). Chất vải, giặt
+    # mỗi lần hay mỗi tuần, số tấm, giờ ủ tối đa: CHỜ quyết định — chỉ kiểm sạch/khô.
+    _m("u_thung_vai_sach", "5", "Thùng ủ, vải ủ sạch, khô", "5", "5 Ủ",
+       loai="PRP", tu=2, ngan="Thùng ủ, vải ủ sạch khô"),
     _m("nam_cham_da_kiem", "6", "Nam châm đã kiểm, vệ sinh",
        "6", "6 Vỡ đỗ, nam châm", ap=DAU_NGAY_HOAC_TUAN),
     _m("nam_cham_vat", "6b", "Vật bắt được", "6", "6 Vỡ đỗ, nam châm",
@@ -204,7 +249,16 @@ MUC = [
     _m("nam_cham_mat_kim_loai", "6c", "Có mạt kim loại",
        "6", "6 Vỡ đỗ, nam châm", kieu="co_khong", ap=DAU_NGAY_HOAC_TUAN,
        goi_y="tích = tạo sự cố", phu=True),
-    _m("do_min_dat", "7", "Độ mịn đạt, rây 0,2 mm", "7", "7 Nghiền", may="nghien"),
+    # W02 (D129): rây kiểm RY-01 theo từng máy nghiền M1 / M2 — Đ/K, đếm hạt thô,
+    # có dị vật. Máy 1 giữ fieldname cũ (do_min_dat) để phiếu trước D129 đọc nguyên.
+    _m("do_min_dat", "7a", "Rây kiểm RY-01: độ mịn đạt (rây 0,2 mm)", "7", "7 Nghiền",
+       may="nghien", ngan="Rây RY-01: độ mịn đạt"),
+    _m("hat_tho", "7b", "Rây kiểm RY-01: số hạt thô trên rây", "7", "7 Nghiền",
+       kieu="nguyen", dv="hạt", may="nghien", tu=2, ngan="Số hạt thô trên rây",
+       goi_y="0 = không có hạt thô"),
+    _m("di_vat_ray", "7c", "Rây kiểm RY-01: có dị vật", "7", "7 Nghiền",
+       kieu="co_khong", may="nghien", tu=2, phu=True, ngan="Có dị vật trên rây",
+       goi_y="tích = tạo sự cố"),
     _m("thung_bot_qua_han", "8", "Thùng bột quá 2 ngày / hở nắp",
        "8", "8 Kho bột", kieu="nguyen", dv="thùng",
        goi_y="0 thùng = đạt · > 0 tạo sự cố"),
@@ -227,7 +281,8 @@ MUC = [
     _m("t8_bon_rua_tay", "T8", "Bồn rửa tay: xà phòng, khăn", "C", "PRP", ap=(TUAN,)),
     _m("t9_thiet_bi", "T9", "Thiết bị: không rỉ, không rò dầu", "C", "PRP", ap=(TUAN,)),
     _m("t10_khoa", "T10", "Khoá cửa, kho", "C", "PRP", ap=(TUAN,)),
-    _m("t11_can_qua_chuan", "T11", "Cân: quả chuẩn đạt", "C", "PRP", ap=(TUAN,)),
+    # Bỏ từ phiên bản 2 (W01): cân theo hạn kiểm định ở quản lý thiết bị đo (W17).
+    _m("t11_can_qua_chuan", "T11", "Cân: quả chuẩn đạt", "C", "PRP", ap=(TUAN,), den=2),
 
     # ── D: dây chuyền bột ────────────────────────────────────────────────
     # B0: bấm chọn trong danh mục bột của báo mẻ (D100), nhiều vị một lượt. Tính
@@ -256,15 +311,18 @@ MUC = [
        bot=True, goi=True, ap=(TRUA, CUOI_CHIEU), may="goi_bot", oprp=OPRP_GOI),
     _m("b6_kl_tui", "B6", "KL tịnh túi 40 g", "B", "Bột: đóng túi",
        bot=True, goi=True, may="goi_bot"),
-    _m("b5_nhan_di_ung", "B5", "Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",
+    _m("b5_nhan_di_ung", "B5", "Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa — túi 40 g, hộp nhựa",
        "B", "Bột: đóng túi", bot=True,
-       ngan="Nhãn, HSD, cảnh báo lạc/sữa", goi_y="đúng sản phẩm"),
+       ngan="Nhãn, HSD, cảnh báo lạc/sữa", goi_y="túi 40 g và hộp nhựa — đúng sản phẩm"),
     _m("b7_chuyen_doi", "B7", "Chuyển đổi sau chè đậu đen cốt dừa — thử nhanh lạc",
        "B", "Bột: trộn", kieu="chon3", bot=True, lac=LAC_DOI,
        goi_y="Dương tính → sự cố Dị ứng, mức Cao",
        ngan="Chuyển đổi sau chè — thử nhanh lạc"),
     _m("b7_gio", "B7b", "Giờ thử", "B", "Bột: trộn", kieu="gio", bot=True, phu=True,
        lac=LAC_DOI),
+    _m("b7_ve_sinh_sua", "B7c", "Vệ sinh chuyển đổi sau vị có sữa bột", "B", "Bột: trộn",
+       kieu="chon_cd", bot=True, sua=SUA_DOI, loai="Dị ứng", tu=2,
+       ngan="Vệ sinh chuyển đổi sau vị có sữa", goi_y="không chuyển đổi thì bấm Không có"),
 ]
 
 
@@ -290,7 +348,7 @@ def _mo_rong_may(ds):
         for k in range(2, NHOM_MAY[m["may"]][1] + 1):
             for g in khoi:
                 ra.append(dict(g, f=f'{g["f"]}_m{k}', may_so=k,
-                               nhan=f'{g["nhan"]} — máy {k}'))
+                               nhan=f'{g["nhan"]} — {ten_may_so(m["may"], k)}'))
         i = j
     return ra
 
@@ -306,6 +364,10 @@ B7_AM = "Âm tính"
 B7_DUONG = "Dương tính"
 B7_OPTIONS = f"\n{B7_KHONG}\n{B7_AM}\n{B7_DUONG}"
 
+# Mục chuyển đổi (D129: 1e, B7c): Không có chuyển đổi / Đạt / Không đạt. Không có
+# là một câu trả lời (đã nhìn, hôm nay không đổi vị) — khác với để trống.
+CD_OPTIONS = f"\n{B7_KHONG}\n{DAT}\n{KHONG_DAT}"
+
 # Mục có giá trị SỐ: rỗng khác 0. Người không đo được thì để trống + ghi lý do;
 # gõ 0 là khẳng định "đo được, bằng 0". Đừng gộp hai cái đó lại.
 KIEU_SO = ("so", "nguyen")
@@ -318,7 +380,7 @@ KIEU_SO = ("so", "nguyen")
 # thì mọi lượt chưa kịp đo nhiệt độ đều tự sinh sự cố "nhiệt độ < 255", ngày nào
 # cũng vài cái, rồi không ai thèm đọc phiếu sự cố nữa. Đó là cách một hệ thống
 # ISO chết: không phải vì thiếu số liệu, mà vì quá nhiều báo động giả.
-DEM = ("thung_bot_qua_han", "t2_so_bay_dau_hieu")
+DEM = ("thung_bot_qua_han", "t2_so_bay_dau_hieu", "hat_tho")
 
 
 def co_ghi(muc_, gia_tri):
@@ -327,7 +389,7 @@ def co_ghi(muc_, gia_tri):
         return True                      # checkbox: không tích cũng là một câu trả lời
     if gia_tri is None or gia_tri == "":
         return False
-    if muc_["kieu"] in KIEU_SO and muc_["f"] not in DEM:
+    if muc_["kieu"] in KIEU_SO and muc_.get("goc", muc_["f"]) not in DEM:
         try:
             return float(gia_tri) != 0
         except (TypeError, ValueError):
@@ -347,33 +409,50 @@ def so_may(v, nhom):
     return min(max(_so(v), 1), NHOM_MAY[nhom][1])
 
 
+def phien_ban(v):
+    """Phiên bản bộ mục của một phiếu. Trống / 0 = 1 (phiếu trước D129)."""
+    return _so(v) or 1
+
+
 def boi_canh(x):
-    """Những gì quyết định mục nào áp dụng, ngoài lượt: có bột, có lạc, số máy.
+    """Những gì quyết định mục nào áp dụng, ngoài lượt: có bột, có lạc, có sữa,
+    số máy, công đoạn nghỉ, phiên bản bộ mục.
 
     `x` là một phiếu (Document / dict có co_san_xuat_bot…) HOẶC một số 0/1 kiểu
-    cũ = "có bột không". Số trần thì coi như vị có lạc đi cùng bột và mỗi nhóm
-    một máy — đúng nghĩa của mọi phiếu trước D100, nên nơi gọi cũ không đổi nghĩa.
+    cũ = "có bột không". Số trần thì coi như vị có lạc đi cùng bột, mỗi nhóm một
+    máy, và bộ mục HIỆN HÀNH — đúng nghĩa của mọi nơi gọi cũ (ma trận cho phiếu
+    sắp mở), nên nơi gọi cũ không đổi nghĩa. Ô sữa (D129) chỉ bật theo phiếu thật.
     """
     if isinstance(x, dict) and "may" in x and "bot" in x:
         return x
     if x is None or isinstance(x, (int, float, str, bool)):
         b = 1 if _so(x) else 0
-        return {"bot": b, "lac": b, "lac_doi": b,
-                "may": {n: 1 for n in NHOM_MAY}, "nghi": frozenset()}
+        return {"bot": b, "lac": b, "lac_doi": b, "sua_doi": 0,
+                "may": {n: 1 for n in NHOM_MAY}, "nghi": frozenset(),
+                "pb": PHIEN_BAN}
     g = x.get
     return {"nghi": frozenset(buoc_nghi(g("buoc_nghi"))),
             "bot": 1 if _so(g("co_san_xuat_bot")) else 0,
             "lac": 1 if _so(g("co_lac")) else 0,
             "lac_doi": 1 if (_so(g("can_thu_lac")) or _so(g("co_lac"))) else 0,
-            "may": {n: so_may(g(t[2]), n) for n, t in NHOM_MAY.items()}}
+            "sua_doi": 1 if (_so(g("can_ve_sinh_sua")) or _so(g("co_sua"))) else 0,
+            "may": {n: so_may(g(t[2]), n) for n, t in NHOM_MAY.items()},
+            "pb": phien_ban(g("phien_ban"))}
+
+
+def con_hieu_luc(muc, pb):
+    """Mục có trong bộ mục phiên bản `pb` không."""
+    return muc.get("tu", 1) <= pb and (not muc.get("den") or pb < muc["den"])
 
 
 def ap_dung(muc, luot, bc):
-    """Mục này có phải ghi ở lượt đó không (ma trận 1.1.5 + D100).
+    """Mục này có phải ghi ở lượt đó không (ma trận 1.1.5 + D100 + D129).
 
     `bc` = boi_canh(...) hoặc số 0/1 "có bột" kiểu cũ.
     """
     bc = boi_canh(bc)
+    if not con_hieu_luc(muc, bc.get("pb", PHIEN_BAN)):
+        return False
     if muc["buoc"] in bc.get("nghi", ()):
         return False
     if muc["bot"] and not bc["bot"]:
@@ -381,6 +460,8 @@ def ap_dung(muc, luot, bc):
     if muc.get("lac") == LAC_LAM and not bc["lac"]:
         return False
     if muc.get("lac") == LAC_DOI and not bc["lac_doi"]:
+        return False
+    if muc.get("sua") == SUA_DOI and not bc.get("sua_doi"):
         return False
     if muc.get("may") and muc["may_so"] > bc["may"].get(muc["may"], 1):
         return False
@@ -409,8 +490,8 @@ def buoc_nghi(v):
 
 
 def ten_may(m):
-    """' (máy k)' cho câu sự cố — rỗng với mục không theo máy."""
-    return f' (máy {m["may_so"]})' if m.get("may") else ""
+    """' (máy k)' / ' (M2)' cho câu sự cố — rỗng với mục không theo máy."""
+    return f' ({ten_may_so(m["may"], m["may_so"])})' if m.get("may") else ""
 
 
 # ═══ Loại bột + lạc (D100) ═════════════════════════════════════════════════
@@ -454,6 +535,13 @@ def can_thu_lac(co_lac, luot, cac_luot_khac):
         return 1
     t = thu_tu_luot(luot)
     return 1 if any(int(c or 0) and thu_tu_luot(l) < t for l, c in cac_luot_khac) else 0
+
+
+def can_ve_sinh_sua(co_sua, luot, cac_luot_khac):
+    """Lượt này có phải ghi ô vệ sinh chuyển đổi sau vị có sữa bột (B7c) không —
+    cùng luật với thử lạc: lượt này hoặc một lượt TRƯỚC trong ngày có làm vị có sữa.
+    `cac_luot_khac` = [(lượt, co_sua)]."""
+    return can_thu_lac(co_sua, luot, cac_luot_khac)
 
 
 def ma_tran(co_bot):

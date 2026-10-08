@@ -166,7 +166,7 @@ field = {f["fieldname"]: f for f in jd["fields"]}
 thieu = [m["f"] for m in M.MUC if m["f"] not in field]
 kiem("mọi mục trong muc.py đều có field trong JSON", not thieu, ", ".join(thieu))
 
-KIEU_JSON = {"chon": "Select", "chon3": "Select", "so": "Float", "nguyen": "Int",
+KIEU_JSON = {"chon": "Select", "chon3": "Select", "chon_cd": "Select", "so": "Float", "nguyen": "Int",
              "chu": "Data", "co_khong": "Check", "gio": "Time", "chon_bot": "Small Text"}
 sai = [f'{m["f"]}: {field[m["f"]]["fieldtype"]} ≠ {KIEU_JSON[m["kieu"]]}'
        for m in M.MUC if m["f"] in field
@@ -207,9 +207,12 @@ kiem("nam châm chỉ ở Đầu sáng / Tuần",
 kiem("mối hàn túi chỉ ở Trưa / Cuối chiều",
      ap("moi_han_kin", M.TRUA) and ap("moi_han_kin", M.CUOI_CHIEU)
      and not ap("moi_han_kin", M.DAU_SANG) and not ap("moi_han_kin", M.TUAN))
-kiem("phần C (t1–t11) chỉ ở lượt Tuần",
+kiem("phần C (t1–t10) chỉ ở lượt Tuần",
      all(ap(f, M.TUAN) and not ap(f, M.DAU_SANG)
-         for f in ("t1_be_nuoc", "t2_so_bay_dau_hieu", "t11_can_qua_chuan")))
+         for f in ("t1_be_nuoc", "t2_so_bay_dau_hieu", "t10_khoa")))
+kiem("T11 quả chuẩn: còn trên phiếu bản 1, bỏ khỏi bản 2 (W01, D129)",
+     M.ap_dung(M.THEO_F["t11_can_qua_chuan"], M.TUAN, {"phien_ban": 1})
+     and not ap("t11_can_qua_chuan", M.TUAN))
 kiem("phần D chỉ khi hôm đó có bột",
      ap("b1_lac_sach", M.TRUA, 1) and not ap("b1_lac_sach", M.TRUA, 0))
 kiem("rang + luộc + nhãn ghi ở MỌI lượt",

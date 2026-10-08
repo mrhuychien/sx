@@ -25,10 +25,21 @@ const B7 = [
   { v: 'Âm tính', ten: 'Âm tính' },
   { v: 'Dương tính', ten: 'Dương tính' },
 ];
+// Mục vệ sinh chuyển đổi (D129: 1e, B7c) — "Không có" là một câu trả lời thật.
+const CD = [
+  { v: 'Không có chuyển đổi', ten: 'Không có' },
+  { v: 'Đạt', ten: '✓ Đạt' },
+  { v: 'Không đạt', ten: '✕ Không' },
+];
 
 /** Giờ trên MÁY QC, dạng server đọc được. Cố tình lấy giờ máy chứ không phải
  *  giờ server: khi ghi ngoại tuyến rồi gửi sau, chỗ lệch giữa hai giờ đó chính
  *  là thứ auditor cần thấy. */
+/** Mã máy thật (M1, M2…) nếu nhóm đó có, không thì số thứ tự — D129 (W02). */
+function tenMay(nm, k) {
+  return (nm && nm.ma && nm.ma[k - 1]) || String(k);
+}
+
 function gioMay() {
   const d = new Date();
   const p = (n) => String(n).padStart(2, '0');
@@ -36,7 +47,8 @@ function gioMay() {
     + `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-const DEM = ['thung_bot_qua_han', 't2_so_bay_dau_hieu'];
+// Ô ĐẾM: 0 là số thật. So theo mục GỐC — ô máy 2 của "hạt thô" cũng là ô đếm.
+const DEM = ['thung_bot_qua_han', 't2_so_bay_dau_hieu', 'hat_tho'];
 
 /** Bản sao client của muc.co_ghi() bên server. Chỉ để vẽ thanh tiến độ —
  *  server vẫn là chỗ quyết định. Lệch nhau thì thanh tiến độ sai, không phải
@@ -44,7 +56,7 @@ const DEM = ['thung_bot_qua_han', 't2_so_bay_dau_hieu'];
 function daCham(m, v) {
   if (m.kieu === 'co_khong') return true;
   if (v === null || v === undefined || v === '') return false;
-  if ((m.kieu === 'so' || m.kieu === 'nguyen') && !DEM.includes(m.f)) {
+  if ((m.kieu === 'so' || m.kieu === 'nguyen') && !DEM.includes(m.goc || m.f)) {
     return Number(v) !== 0;
   }
   return true;
@@ -272,7 +284,7 @@ export async function render({ container, call, tham_so }) {
   function dauMay(m) {
     const nm = (hom.nhom_may || {})[m.may] || { ten: 'Máy', toi_da: 1 };
     const h = el('div', 'sx-qc-may');
-    h.appendChild(el('span', 'sx-qc-may-ten', `${esc(nm.ten)} ${m.may_so}`));
+    h.appendChild(el('span', 'sx-qc-may-ten', `${esc(nm.ten)} ${esc(tenMay(nm, m.may_so))}`));
     const dang = soMay[m.may] || 1;
     if (!khoa && m.may_so > 1 && m.may_so === dang) {
       const bot = el('button', 'sx-btn sx-btn-ghost', 'Máy này nghỉ');
@@ -283,7 +295,7 @@ export async function render({ container, call, tham_so }) {
         const bo = () => doiVaVeLai(nm.truong, dang - 1);
         if (!daGhi.length) { bo(); return; }
         confirm2Step({
-          title: `${nm.ten} ${m.may_so} nghỉ?`,
+          title: `${nm.ten} ${tenMay(nm, m.may_so)} nghỉ?`,
           message: `Đã ghi ${daGhi.length} ô của máy này. Các ô đó sẽ ẩn khỏi lượt, `
             + 'khỏi tờ in và không sinh sự cố (giá trị vẫn giữ trong hồ sơ).',
           confirmLabel: 'MÁY NÀY NGHỈ',
@@ -300,7 +312,7 @@ export async function render({ container, call, tham_so }) {
     const dang = soMay[nhom] || 1;
     if (khoa || !nm || dang >= nm.toi_da) return null;
     const b = el('button', 'sx-btn sx-btn-ghost sx-qc-may-them',
-      `+ THÊM ${esc(nm.ten.toUpperCase())} ${dang + 1}`);
+      `+ THÊM ${esc(nm.ten.toUpperCase())} ${esc(tenMay(nm, dang + 1))}`);
     b.type = 'button';
     b.title = `Có ${dang + 1} máy đang chạy — thêm ô ghi cho máy ${dang + 1}`;
     b.addEventListener('click', () => { b.disabled = true; doiVaVeLai(nm.truong, dang + 1); });
@@ -401,6 +413,7 @@ function veMuc(m, v, onSet, hom, khoa) {
   if (m.kieu === 'chon3') {
     return oChon3(m, v, onSet, B7, khoa);
   }
+  if (m.kieu === 'chon_cd') return oChon3(m, v, onSet, CD, khoa);
   return hangChon(m, v, onSet, khoa);
 }
 
