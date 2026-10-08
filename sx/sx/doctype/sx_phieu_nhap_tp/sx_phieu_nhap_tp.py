@@ -20,7 +20,7 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, cint, flt, getdate, now_datetime
+from frappe.utils import cint, flt, getdate, now_datetime
 
 
 def _tong_tu_uom(chi_tiet, mac_dinh):
@@ -37,15 +37,15 @@ def _tong_tu_uom(chi_tiet, mac_dinh):
 
 
 def hsd_goi_y(item, ngay):
-    """HSD mặc định = ngày nhập + "Shelf Life In Days" của mã hàng (D114).
+    """HSD mặc định = ngày nhập + hạn dùng của mã hàng (D114, D127).
 
-    None khi mã hàng chưa khai số ngày — KHÔNG bịa: thủ kho gõ tay theo bao bì,
-    hoặc quản lý khai Shelf Life trên Item một lần là các phiếu sau tự điền.
+    Hạn dùng lấy theo sản phẩm tự công bố (tháng) nếu mã đã gắn, không thì "Shelf
+    Life In Days" — xem sx.utils.han_dung. None khi chưa khai gì — KHÔNG bịa: thủ
+    kho gõ tay theo bao bì.
     """
-    so_ngay = cint(frappe.get_cached_value("Item", item, "shelf_life_in_days"))
-    if so_ngay <= 0 or not ngay:
-        return None
-    return str(add_days(getdate(ngay), so_ngay))
+    from sx.utils import hsd_tu_nsx
+
+    return hsd_tu_nsx(item, ngay) if ngay else None
 
 
 def _gia_von_tam(item, kho):

@@ -33,6 +33,7 @@ from sx.qc import muc as M
 from sx.qc import nhac as _nhac
 from sx.qc import xuat
 from sx.qc.nguong import nguong
+from sx.qc.san_pham import co_di_ung
 from sx.qc.su_co import canh_bao, phat_hien
 
 QC = "SX QC"
@@ -251,8 +252,10 @@ def _loai_bot():
     except Exception:
         return []
     lac = nguong()["bot_co_lac"]
+    du = co_di_ung([x.name for x in ds])          # W28: cờ của sản phẩm tự công bố
     return [{"item": x.name, "ten": x.item_name or x.name,
-             "lac": M.co_lac_trong([x.name], {x.name: x.item_name}, lac)} for x in ds]
+             "lac": 1 if (M.co_lac_trong([x.name], {x.name: x.item_name}, lac)
+                          or du.get(x.name, {}).get("lac")) else 0} for x in ds]
 
 
 def _luot_truoc_cung_ngay(d, luot):

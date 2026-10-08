@@ -292,8 +292,8 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
 
   // D114: HSD của lô. Thủ kho gõ (x.hsd) > mặc định server (ngày phiếu + Shelf
   // Life) > tự tính cho dòng vừa thêm trên máy. Cả ba trống = duyệt bị chặn.
-  const hsdMacDinh = (x) => x.hsd_goi_y || congNgay(p.ngay,
-    (danhMuc.find((d) => d.item === x.item) || {}).han_dung);
+  const hsdMacDinh = (x) => x.hsd_goi_y || hsdTu(p.ngay,
+    danhMuc.find((d) => d.item === x.item));
   const hsdCua = (x) => x.hsd || hsdMacDinh(x);
   function veHsd(x, i) {
     const h = hsdCua(x);
@@ -600,6 +600,14 @@ export function moHsd({ ten, ngay, hsd, macDinh, onOk }) {
   const bo = m.body.querySelector('#sx-hsd-bo');
   if (bo) bo.addEventListener('click', () => { m.close(); onOk(null); });
   return m;
+}
+
+// HSD mặc định từ một ngày + hạn dùng của mã hàng (D127): `han_dung_thang` theo bộ
+// tự công bố (cộng tháng theo lịch), không có thì `han_dung` ngày (Shelf Life).
+export function hsdTu(iso, d) {
+  if (!iso || !d) return null;
+  if (Number(d.han_dung_thang) > 0) return congThang(iso, Number(d.han_dung_thang));
+  return congNgay(iso, d.han_dung);
 }
 
 // "2026-08-22" + n ngày -> ISO. Tính theo UTC để không lệch một ngày vì múi giờ.

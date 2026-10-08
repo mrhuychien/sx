@@ -15,7 +15,7 @@ import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { moTaUom, tachUom } from '/assets/sx/sx/components/soluong.js';
 import { bamPhim } from '/assets/sx/sx/components/numpad.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
-import { congNgay, congThang, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js';
+import { congNgay, congThang, hsdTu, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js';
 
 const KHOA = 'sx-tet-dong-';
 
@@ -36,7 +36,7 @@ export async function render({ container, call, boot }) {
     return;
   }
   const sp = (item) => (dm.rows || []).find((x) => x.item === item) || { item, ten: item, uoms: [] };
-  const hsdMacDinh = (item) => congNgay(ngay, sp(item).han_dung);
+  const hsdMacDinh = (item) => hsdTu(ngay, sp(item));
 
   container.innerHTML = `
     <div class="sx-tet-dau">

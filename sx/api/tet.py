@@ -67,15 +67,17 @@ def danh_muc():
     """Hàng Tết chọn được: tên, ĐVT kho, các đơn vị đếm (thùng/hộp), số ngày hạn
     dùng (điền sẵn HSD) + bảng mã vạch → mã hàng để quét."""
     guard_card(CARD)
-    from sx.api.khotp import _nap_uom, _uom_cua
+    from sx.api.khotp import _han_dung_js, _nap_uom, _uom_cua
     from sx.api.portal import _ma_quet
+    from sx.utils import nap_cong_bo
 
     ds, co_nhom = hang_tet(["name", "item_name", "stock_uom", "shelf_life_in_days"])
     _nap_uom([i.name for i in ds])
+    nap_cong_bo([i.name for i in ds])
     return {
         "rows": [{"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or "",
                   "uoms": _uom_cua(i.name, i.stock_uom),
-                  "han_dung": cint(i.get("shelf_life_in_days"))} for i in ds],
+                  **_han_dung_js(i.name, i.get("shelf_life_in_days"))} for i in ds],
         "ma_quet": {"sp": _ma_quet([])["sp"]},   # đủ mọi TP: quét nhầm mã thường thì báo rõ
         "chua_co_nhom": not co_nhom,
     }

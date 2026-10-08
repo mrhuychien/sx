@@ -133,6 +133,7 @@ for goi in ("sx", "sx.qc", "sx.qc.doctype"):
 
 M = nap("sx.qc.muc", "sx/qc/muc.py")
 NG = nap("sx.qc.nguong", "sx/qc/nguong.py")
+nap("sx.qc.san_pham", "sx/qc/san_pham.py")
 SC = nap("sx.qc.su_co", "sx/qc/su_co.py")
 X = nap("sx.qc.xuat", "sx/qc/xuat.py")
 R = nap("sx.qc.doctype.sx_qc_round.sx_qc_round",

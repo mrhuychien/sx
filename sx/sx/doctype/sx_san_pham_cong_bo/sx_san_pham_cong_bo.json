@@ -1,0 +1,164 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-08 09:00:00.000000",
+ "description": "Bộ tự công bố sản phẩm (W28) — 16 sản phẩm. Mỗi mã hàng (Item) gắn về một sản phẩm ở đây để lấy hạn dùng (HSD), cờ dị ứng (lạc / sữa bột / dừa) và quy cách.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "so_cong_bo",
+  "ten_san_pham",
+  "loai",
+  "tccs",
+  "column_break_1",
+  "han_dung_thang",
+  "quy_cach",
+  "ngung_san_xuat",
+  "section_di_ung",
+  "co_lac",
+  "column_break_2",
+  "co_sua_bot",
+  "column_break_3",
+  "co_dua",
+  "section_ghi_chu",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "SPCB-.###",
+   "default": "SPCB-.###",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "so_cong_bo",
+   "fieldtype": "Data",
+   "label": "Số bản tự công bố",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Đúng như trên bản tự công bố: 01/2023, 09/2021, 01/HOANGGIANG/2026…"
+  },
+  {
+   "fieldname": "ten_san_pham",
+   "fieldtype": "Data",
+   "label": "Tên sản phẩm",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Đúng tên trên bản tự công bố."
+  },
+  {
+   "fieldname": "loai",
+   "fieldtype": "Select",
+   "label": "Loại",
+   "options": "Bánh\nBột\nChè",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "tccs",
+   "fieldtype": "Data",
+   "label": "TCCS áp dụng",
+   "description": "Tiêu chuẩn cơ sở áp dụng cho sản phẩm, vd TCCS 01."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "han_dung_thang",
+   "fieldtype": "Int",
+   "label": "Hạn sử dụng (tháng)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Bánh 9 tháng; bột và chè 12 tháng. HSD = NSX + số tháng này; lúc nhập kho NSX tính ngược = HSD − số tháng."
+  },
+  {
+   "fieldname": "quy_cach",
+   "fieldtype": "Small Text",
+   "label": "Quy cách đóng gói",
+   "description": "Mỗi quy cách một dòng, vd: Túi 40 g / Hộp nhựa 500 g."
+  },
+  {
+   "default": "0",
+   "fieldname": "ngung_san_xuat",
+   "fieldtype": "Check",
+   "label": "Ngừng sản xuất",
+   "description": "Tích khi không còn sản xuất — kế hoạch kiểm nghiệm năm (KH.KN.01) bỏ qua sản phẩm này."
+  },
+  {
+   "fieldname": "section_di_ung",
+   "fieldtype": "Section Break",
+   "label": "Thành phần cần cảnh báo (dị ứng)",
+   "description": "QC dùng để bật ô thử lạc / vệ sinh chuyển đổi trên vòng kiểm; rework không được đưa hàng có lạc vào sản phẩm không lạc."
+  },
+  {
+   "default": "0",
+   "fieldname": "co_lac",
+   "fieldtype": "Check",
+   "label": "Có lạc"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "co_sua_bot",
+   "fieldtype": "Check",
+   "label": "Có sữa bột"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "co_dua",
+   "fieldtype": "Check",
+   "label": "Có dừa"
+  },
+  {
+   "fieldname": "section_ghi_chu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "links": [
+  {
+   "group": "Mã hàng",
+   "link_doctype": "Item",
+   "link_fieldname": "custom_sp_cong_bo"
+  }
+ ],
+ "modified": "2026-10-08 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX San Pham Cong Bo",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1, "report": 1, "export": 1},
+  {"role": "SX Quan Ly", "read": 1, "write": 1, "create": 1, "report": 1, "export": 1},
+  {"role": "ISO Manager", "read": 1, "write": 1, "create": 1, "report": 1, "export": 1},
+  {"role": "SX QC", "read": 1, "report": 1},
+  {"role": "SX QC Packing", "read": 1, "report": 1},
+  {"role": "Production Manager", "read": 1, "report": 1},
+  {"role": "SX Thu Kho", "read": 1, "report": 1}
+ ],
+ "search_fields": "so_cong_bo,loai",
+ "show_title_field_in_link": 1,
+ "sort_field": "so_cong_bo",
+ "sort_order": "ASC",
+ "title_field": "ten_san_pham",
+ "track_changes": 1
+}

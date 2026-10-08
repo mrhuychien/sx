@@ -224,6 +224,7 @@ sys.modules["sx.qc"] = types.ModuleType("sx.qc")
 sys.modules["sx.qc"].__path__ = []
 for ten_mod, ten_file in [("sx.qc.muc", "sx/qc/muc.py"),
                           ("sx.qc.nguong", "sx/qc/nguong.py"),
+                          ("sx.qc.san_pham", "sx/qc/san_pham.py"),
                           ("sx.qc.su_co", "sx/qc/su_co.py"),
                           ("sx.qc.xuat", "sx/qc/xuat.py"),
                           ("sx.qc.nhac", "sx/qc/nhac.py")]:

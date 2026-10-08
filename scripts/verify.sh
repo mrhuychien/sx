@@ -280,4 +280,10 @@ python3 scripts/test-dongbo.py > /tmp/sx-dongbo.log 2>&1 \
   && tail -1 /tmp/sx-dongbo.log \
   || { cat /tmp/sx-dongbo.log; loi=1; }
 
+# D127 (W28): hạn dùng theo bộ tự công bố. Cộng ngày thay vì tháng thì HSD lệch bao
+# bì vài ngày — truy xuất theo HSD in trên hộp không ra lô nào, và không lỗi nào hiện ra.
+python3 scripts/test-congbo.py > /tmp/sx-congbo.log 2>&1 \
+  && tail -1 /tmp/sx-congbo.log \
+  || { cat /tmp/sx-congbo.log; loi=1; }
+
 exit $loi

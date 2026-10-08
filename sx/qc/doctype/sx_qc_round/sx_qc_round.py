@@ -31,6 +31,7 @@ from frappe.utils import (
 
 from sx.qc import muc as M
 from sx.qc.nguong import nguong
+from sx.qc.san_pham import co_di_ung
 from sx.qc.su_co import tao_tu_vong_kiem
 
 
@@ -59,7 +60,8 @@ class SXQCRound(Document):
     def tinh_boi_canh(self):
         """Số máy và hai cờ lạc (D100) — SERVER tính, không nhận từ máy QC.
 
-        Cờ lạc suy từ ô B0 (vị đang làm) + danh sách vị có lạc ở SX QC Setting.
+        Cờ lạc suy từ ô B0 (vị đang làm) + danh sách vị có lạc ở SX QC Setting,
+        HOẶC cờ "Có lạc" của sản phẩm tự công bố mà vị đó gắn về (W28, D127).
         Tính ở đây chứ không để máy QC gửi lên: gửi lên được thì tắt được, và tắt
         B7 là bỏ bước thử dị ứng mà hồ sơ trông vẫn đủ.
         """
@@ -76,7 +78,9 @@ class SXQCRound(Document):
         ten = {r.name: r.item_name for r in frappe.get_all(
             "Item", filters={"name": ("in", chon)}, fields=["name", "item_name"])} \
             if chon else {}
-        self.co_lac = M.co_lac_trong(chon, ten, nguong()["bot_co_lac"])
+        du = co_di_ung(chon)
+        self.co_lac = 1 if (M.co_lac_trong(chon, ten, nguong()["bot_co_lac"])
+                            or any(du.get(c, {}).get("lac") for c in chon)) else 0
         khac = frappe.get_all(
             "SX QC Round",
             filters={"ngay": self.ngay, "docstatus": ("<", 2),

@@ -53,6 +53,20 @@
  {
   "doctype": "Custom Field",
   "dt": "Item",
+  "fieldname": "custom_sp_cong_bo",
+  "fieldtype": "Link",
+  "insert_after": "custom_batch_prefix",
+  "label": "Sản phẩm tự công bố",
+  "module": "SX",
+  "name": "Item-custom_sp_cong_bo",
+  "options": "SX San Pham Cong Bo",
+  "translatable": 0,
+  "search_index": 1,
+  "description": "Sản phẩm trong bộ tự công bố mà mã hàng này thuộc về: lấy hạn sử dụng (tháng) để tính HSD/NSX, cờ lạc / sữa bột / dừa cho QC."
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Item",
   "fieldname": "custom_sx_nhom",
   "fieldtype": "Select",
   "insert_after": "item_group",

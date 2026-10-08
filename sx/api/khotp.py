@@ -50,14 +50,17 @@ def danh_muc_tp():
         "BOM", filters={"is_active": 1, "is_default": 1, "docstatus": 1},
         pluck="item", distinct=True))
     _nap_uom([i.name for i in ds])
+    from sx.utils import nap_cong_bo
+
+    nap_cong_bo([i.name for i in ds])                 # D127: một lần cho cả danh mục
     rows = [
         {"item": i.name, "ten": i.item_name or i.name, "dvt": i.stock_uom or "",
          "uoms": _uom_cua(i.name, i.stock_uom),
          # D97: chưa có BOM vẫn chọn được — nhập tạm + ghi nợ. Cờ này để màn
          # hình nói ra NGAY lúc chọn, không đợi tới lúc duyệt.
          "co_bom": i.name in co_bom_set,
-         # D114: số ngày hạn dùng — màn hình điền sẵn HSD = ngày phiếu + số này.
-         "han_dung": cint(i.get("shelf_life_in_days"))}
+         # D114/D127: hạn dùng — màn hình điền sẵn HSD = ngày phiếu + hạn dùng.
+         **_han_dung_js(i.name, i.get("shelf_life_in_days"))}
         for i in ds
     ]
     if rows:
@@ -86,6 +89,18 @@ def danh_muc_tp():
         "goi_y": [{"nhom": k, "so_item": len(v), "vi_du": v[:3]}
                   for k, v in sorted(cum.items(), key=lambda x: -len(x[1]))][:20],
     }
+
+
+def _han_dung_js(item, shelf_life=None):
+    """Hạn dùng gửi cho màn hình: `han_dung_thang` (bộ tự công bố, D127) hoặc
+    `han_dung` ngày (Shelf Life). Màn hình cộng tháng theo lịch, không quy ra ngày."""
+    from sx.utils import han_dung
+
+    h = han_dung(item, shelf_life)
+    if not h:
+        return {"han_dung": 0, "han_dung_thang": 0}
+    return {"han_dung": h[1] if h[0] == "ngay" else 0,
+            "han_dung_thang": h[1] if h[0] == "thang" else 0}
 
 
 def _nap_uom(items):

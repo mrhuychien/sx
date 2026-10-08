@@ -215,6 +215,26 @@ for ten in ("cach_lam_cua", "dat_ten_hien_thi", "get_dau_items", "topo_rank_by_b
 ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
 ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
 ut.ton_bin = lambda items, kho: {}
+# D127: hạn dùng theo bộ tự công bố — bản giả: chưa mã nào gắn sản phẩm, rơi về
+# Shelf Life (ngày) như trước. Logic thật kiểm ở scripts/test-congbo.py.
+from datetime import date as _date_d127, timedelta as _td_d127
+
+
+def _hsd_d127(item, ngay, dau=1):
+    so = int(frappe.get_cached_value("Item", item, "shelf_life_in_days") or 0)
+    if so <= 0 or not ngay:
+        return None
+    d = ngay if isinstance(ngay, _date_d127) else _date_d127.fromisoformat(str(ngay)[:10])
+    return str(d + _td_d127(days=dau * so))
+
+
+ut.hsd_tu_nsx = lambda item, nsx: _hsd_d127(item, nsx)
+ut.nsx_tu_hsd = lambda item, hsd: _hsd_d127(item, hsd, -1)
+ut.nap_cong_bo = lambda items: {i: None for i in (items or [])}
+ut.cong_bo_cua = lambda item: None
+ut.han_dung = lambda item, sl=None: (
+    ("ngay", int(sl if sl is not None else frappe.get_cached_value("Item", item, "shelf_life_in_days") or 0))
+    if int(sl if sl is not None else frappe.get_cached_value("Item", item, "shelf_life_in_days") or 0) > 0 else None)
 sys.modules["sx.utils"] = ut
 
 mfg = types.ModuleType("sx.api.mfg")

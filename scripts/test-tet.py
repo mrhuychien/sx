@@ -170,11 +170,13 @@ ut.get_settings = lambda: D(kho_tp="Kho TP", nhom_tet=[D(item_group=g) for g in 
 TEN = {"TP-SEN": "Bánh sen", "TP-TT": "Bánh TT", "TP-THUONG": "Bánh thường"}
 ut.items_tp = lambda fields=None, **k: [D(name=i, item_name=TEN[i], item_group=NHOM[i], stock_uom="Hộp",
                                           shelf_life_in_days=SHELF.get(i, 0)) for i in TEN]
+ut.nap_cong_bo = lambda items: {i: None for i in (items or [])}   # D127: chưa mã nào gắn
 sys.modules["sx.utils"] = ut
 kh = types.ModuleType("sx.api.khotp")
 kh._ghi_json = lambda v: json.dumps(v) if v else None
 kh._nap_uom = lambda items: None
 kh._uom_cua = lambda item, dvt: [{"uom": "Thùng", "he_so": 12}, {"uom": "Hộp", "he_so": 1}]
+kh._han_dung_js = lambda item, sl=None: {"han_dung": int(sl or 0), "han_dung_thang": 0}
 sys.modules["sx.api.khotp"] = kh
 po = types.ModuleType("sx.api.portal")
 

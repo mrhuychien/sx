@@ -315,6 +315,24 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Danh mục sản phẩm tự công bố (D127 — W28)
+
+DocType **SX San Pham Cong Bo** (Desk → *SX San Pham Cong Bo*): 16 sản phẩm theo bộ tự
+công bố — số bản, tên, loại (Bánh / Bột / Chè), TCCS áp dụng, **hạn sử dụng (tháng)**,
+quy cách, cờ **có lạc / có sữa bột / có dừa**. Mỗi mã hàng gắn về một sản phẩm qua ô
+**"Sản phẩm tự công bố"** trên Item (form sản phẩm có tab *Mã hàng* liệt kê mã đã gắn).
+
+- `bench migrate` tạo sẵn 16 bản theo danh sách 08/10/2026: 8 bánh 01–08/2023 (9 tháng),
+  Bột đậu xanh dinh dưỡng 09/2021, Chè đậu đen cốt dừa 10/2021 (có dừa, có lạc), 6 bột
+  01–06/HOANGGIANG/2026 (12 tháng). **14 tên để "điền tên"** — Ban ISO sửa theo bản công
+  bố, điền TCCS, quy cách, cờ dị ứng, rồi **gắn mã hàng** (patch không tự gắn: gắn sai là
+  QC bật ô thử lạc cho nhầm vị).
+- **HSD mặc định** lúc nhập kho / vào hộp Tết = ngày + **số tháng** của sản phẩm (cộng
+  theo lịch: 31/05 + 9 tháng = 28/02). Mã chưa gắn sản phẩm thì vẫn theo "Shelf Life In
+  Days" như cũ; không khai gì thì bắt nhập HSD theo bao bì.
+- **QC**: vị bột gắn sản phẩm *có lạc* thì tự bật phần lạc (B1, B2, B7) — cộng thêm danh
+  sách "Vị bột có lạc" trong SX QC Setting, không thay nó.
+
 ## Bỏ CHỐT — kho và lương tự đồng bộ (D123)
 
 Không còn nút **Chốt Ghi sổ / Chốt Vào hộp / Huỷ chốt**. Báo mẻ, báo cán, bảng vào hộp

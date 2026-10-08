@@ -597,6 +597,80 @@ def items_tp(fields=None, filters=None):
     return [frappe._dict(x) for x in ra]
 
 
+# ─────────────────────────── HẠN SỬ DỤNG THEO BỘ TỰ CÔNG BỐ (W28 / D127) ──
+#
+# Hạn dùng khai theo THÁNG trên sản phẩm tự công bố (bánh 9, bột và chè 12), mã hàng
+# gắn về sản phẩm qua Item.custom_sp_cong_bo. Mã chưa gắn thì rơi về "Shelf Life In
+# Days" của Item như trước D127 — không đoán số tháng cho mã không ai khai.
+
+TRUONG_CONG_BO = ["name", "so_cong_bo", "ten_san_pham", "loai", "tccs", "han_dung_thang",
+                  "quy_cach", "co_lac", "co_sua_bot", "co_dua", "ngung_san_xuat"]
+
+
+def nap_cong_bo(items):
+    """{item: dict sản phẩm tự công bố | None} — HAI truy vấn cho cả danh sách, nhớ
+    theo request. Site chưa migrate (chưa có field / DocType) thì coi như chưa gắn."""
+    m = nho("cong_bo")
+    thieu = [i for i in dict.fromkeys(items or []) if i and i not in m]
+    if thieu:
+        for i in thieu:
+            m[i] = None
+        try:
+            gan = {r.name: r.custom_sp_cong_bo for r in frappe.get_all(
+                "Item", filters={"name": ("in", thieu), "custom_sp_cong_bo": ("is", "set")},
+                fields=["name", "custom_sp_cong_bo"]) if r.get("custom_sp_cong_bo")}
+            sp = {r.name: dict(r) for r in frappe.get_all(
+                "SX San Pham Cong Bo", filters={"name": ("in", list(set(gan.values())))},
+                fields=TRUONG_CONG_BO)} if gan else {}
+        except Exception:
+            gan, sp = {}, {}
+        for i, ten in gan.items():
+            m[i] = sp.get(ten)
+    return {i: m.get(i) for i in (items or [])}
+
+
+def cong_bo_cua(item):
+    """Sản phẩm tự công bố của một mã hàng (dict) hoặc None."""
+    return nap_cong_bo([item]).get(item) if item else None
+
+
+def han_dung(item, shelf_life=None):
+    """("thang", n) theo bộ tự công bố; mã chưa gắn thì ("ngay", Shelf Life In Days);
+    không có gì thì None — nơi gọi bắt người ta nhập HSD theo bao bì.
+
+    `shelf_life` = số ngày đã đọc sẵn (danh mục đọc cả loạt) — khỏi tra lại từng mã."""
+    cb = cong_bo_cua(item)
+    if cb and cint(cb.get("han_dung_thang")) > 0:
+        return ("thang", cint(cb["han_dung_thang"]))
+    if shelf_life is None:
+        shelf_life = frappe.get_cached_value("Item", item, "shelf_life_in_days") if item else 0
+    so = cint(shelf_life)
+    return ("ngay", so) if so > 0 else None
+
+
+def hsd_tu_nsx(item, nsx):
+    """HSD = NSX + hạn dùng (tháng theo lịch, hoặc ngày). None khi chưa khai hạn dùng."""
+    from frappe.utils import add_days, add_months
+
+    h = han_dung(item)
+    if not h or not nsx:
+        return None
+    d = getdate(nsx)
+    return str(add_months(d, h[1]) if h[0] == "thang" else add_days(d, h[1]))
+
+
+def nsx_tu_hsd(item, hsd):
+    """NSX = HSD − hạn dùng (W05): lô thành phẩm sinh theo HSD in trên hộp, NSX suy
+    ngược ra chứ không lấy ngày nhập kho. None khi chưa khai hạn dùng."""
+    from frappe.utils import add_days, add_months
+
+    h = han_dung(item)
+    if not h or not hsd:
+        return None
+    d = getdate(hsd)
+    return str(add_months(d, -h[1]) if h[0] == "thang" else add_days(d, -h[1]))
+
+
 # ─────────────────────────────────────── ĐƠN GIÁ KHOÁN THEO THÁNG (D67) ──
 
 
