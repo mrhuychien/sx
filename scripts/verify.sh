@@ -323,4 +323,10 @@ python3 scripts/test-sucolo.py > /tmp/sx-sucolo.log 2>&1 \
   && tail -1 /tmp/sx-sucolo.log \
   || { cat /tmp/sx-sucolo.log; loi=1; }
 
+# D135 (W13): sổ khiếu nại trên Issue. Lô tìm nhầm sản phẩm, người tiếp nhận tự đóng,
+# dị vật không ra phiếu sự cố — đều không có lỗi nào hiện lên màn hình.
+python3 scripts/test-khieunai.py > /tmp/sx-khieunai.log 2>&1 \
+  && tail -1 /tmp/sx-khieunai.log \
+  || { cat /tmp/sx-khieunai.log; loi=1; }
+
 exit $loi

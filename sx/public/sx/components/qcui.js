@@ -381,6 +381,19 @@ export function chip(text, kieu) {
   return el('span', `sx-qc-tag${kieu ? ` sx-qc-tag-${kieu}` : ''}`, esc(text));
 }
 
+/** Hai nút đầu tab Sự cố (W13): phiếu sự cố BM.08.02 ↔ khiếu nại khách hàng BM.11.01.
+ *  Cùng một tab trên thanh QC: khiếu nại là nơi sự cố bắt đầu, tách tab là thêm chỗ
+ *  phải nhớ đi xem. */
+export function tabSuCo(dang) {
+  const box = el('div', 'sx-qc-seg sx-sc-tab');
+  [['incidents', 'Phiếu sự cố'], ['khieunai', 'Khiếu nại KH']].forEach(([ma, ten]) => {
+    const a = el('a', `sx-qc-tab${ma === dang ? ' sx-qc-seg-on' : ''}`, esc(ten));
+    a.href = `#/qc/${ma}`;
+    box.appendChild(a);
+  });
+  return box;
+}
+
 export function khungTrong(text) {
   return el('div', 'sx-qc-trong-box', esc(text));
 }

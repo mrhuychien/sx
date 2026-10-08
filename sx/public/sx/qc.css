@@ -397,3 +397,7 @@ button.sx-qc-tag-chon {
 .sx-sc-lo-dong b { color: var(--sx-text); }
 .sx-sc-check { display: flex; align-items: center; gap: var(--sx-s2); margin: var(--sx-s2) 0; }
 .sx-sc-check input { width: 20px; height: 20px; }
+
+/* ── D135 (W13): tab Sự cố ↔ Khiếu nại KH ───────────────────────────────── */
+.sx-sc-tab { margin-bottom: var(--sx-s2); }
+.sx-sc-tab .sx-qc-tab { font-size: var(--sx-f-sm); }

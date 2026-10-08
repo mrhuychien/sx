@@ -273,6 +273,10 @@ sys.modules["sx.utils"] = ut
 po = types.ModuleType("sx.api.portal")
 po._ma_quet = lambda nv: {"nv": {}, "sp": {"8930000000017": "TP-SEN"}}
 sys.modules["sx.api.portal"] = po
+KN_LO = {}          # W13 (D135): khiếu nại theo lô — module thật có test riêng (test-khieunai)
+kn = types.ModuleType("sx.api.qc_khieunai")
+kn.theo_lo = lambda b: KN_LO.get(b, [])
+sys.modules["sx.api.qc_khieunai"] = kn
 
 
 def nap(ten, p):
@@ -416,6 +420,9 @@ kiem("khách kèm lô TP đã nhận — nói bằng HSD, không bằng mã lô 
 print("\n-- sự cố theo lô + lô nhập tạm chưa BOM --")
 d = T.lo("DG-NCC")
 kiem("sự cố tiếp nhận ghi theo lô hiện ra", [s["name"] for s in d["su_co_lo"]] == ["SC-9"])
+KN_LO["DG-NCC"] = [{"name": "ISS-2026-00001", "trang_thai": "Mở"}]
+kiem("khiếu nại khách hàng của lô hiện ra (W13)",
+     [k["name"] for k in T.lo("DG-NCC")["khieu_nai_lo"]] == ["ISS-2026-00001"])
 d = T.lo("NB-1")
 kiem("lô nhập tạm: ghi chú nói rõ không truy đúng lô bột",
      any("CHƯA có BOM" in g for g in d["ghi_chu"]), d["ghi_chu"])

@@ -30,6 +30,9 @@ doc_events = {
         "validate": "sx.qc.tiep_nhan.validate",
         "on_submit": "sx.qc.tiep_nhan.on_submit",
     },
+    # W13 (D135): sổ khiếu nại BM.11.01 trên Issue — tự tìm lô theo (sản phẩm, HSD),
+    # đóng / mở lại chỉ Ban ISO hoặc người được giao (chặn cả Desk).
+    "Issue": {"validate": "sx.qc.khieu_nai.validate"},
     # W06 (D132): bán trừ kho thành phẩm phải chọn đúng lô (HSD) — truy xuất xuôi.
     "Sales Invoice": {"before_submit": "sx.api.banhang.kiem_lo_ban"},
     "Delivery Note": {"before_submit": "sx.api.banhang.kiem_lo_ban"},

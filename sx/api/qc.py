@@ -1111,6 +1111,7 @@ def _giu(ds):
     from sx.qc.giu_mau import ly_do_giu
 
     return ly_do_giu([{"name": x.name, "batch": x.get("batch"), "hsd": x.get("hsd"),
+                       "san_pham": x.get("san_pham"),
                        "giu_lai": x.get("giu_lai"), "ly_do_giu": x.get("ly_do_giu")}
                       for x in ds])
 

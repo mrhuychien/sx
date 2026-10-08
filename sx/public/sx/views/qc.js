@@ -14,6 +14,8 @@ const MAN = {
   history: '/assets/sx/sx/views/qc_history.js',
   review: '/assets/sx/sx/views/qc_review.js',
   luumau: '/assets/sx/sx/views/qc_luumau.js',
+  // W13 (D135): sổ khiếu nại BM.11.01 — nằm trong tab Sự cố (hai nút trên đầu).
+  khieunai: '/assets/sx/sx/views/qc_khieunai.js',
   // W06 (D132): Ban ISO diễn tập truy xuất ngay trong màn QC.
   truyxuat: '/assets/sx/sx/views/qc_truyxuat.js',
 };
@@ -71,7 +73,8 @@ function veTab(dang, api) {
   tabs.forEach(([ma, ten]) => {
     const a = el('a', 'sx-qc-tab', ten);
     a.href = ma === 'home' ? '#/qc' : `#/qc/${ma}`;
-    a.className = `sx-qc-tab${ma === dang ? ' sx-qc-seg-on' : ''}`;
+    const on = ma === dang || (ma === 'incidents' && dang === 'khieunai');
+    a.className = `sx-qc-tab${on ? ' sx-qc-seg-on' : ''}`;
     box.appendChild(a);
   });
   return box;

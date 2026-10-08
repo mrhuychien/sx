@@ -183,6 +183,7 @@ nap("sx.qc.san_pham", "sx/qc/san_pham.py")
 SC = nap("sx.qc.su_co", "sx/qc/su_co.py")
 nap("sx.qc.xuat", "sx/qc/xuat.py")
 nap("sx.qc.nhac", "sx/qc/nhac.py")
+nap("sx.qc.khieu_nai", "sx/qc/khieu_nai.py")
 nap("sx.qc.giu_mau", "sx/qc/giu_mau.py")
 R = nap("sx.qc.doctype.sx_qc_round.sx_qc_round",
         "sx/qc/doctype/sx_qc_round/sx_qc_round.py")

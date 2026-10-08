@@ -209,6 +209,7 @@ def lo(batch):
         "can_bang": can_bang,
         "luu_mau": _luu_mau(goc, cua_so),
         "su_co_lo": _su_co_theo_lo(batch),
+        "khieu_nai_lo": _khieu_nai_theo_lo(batch),
         "ghi_chu": ghi_chu,
     }
 
@@ -815,6 +816,13 @@ def _luu_mau(goc, cua_so):
 
 def _cong_ngay(d, n):
     return str(getdate(add_days(d, n)))
+
+
+def _khieu_nai_theo_lo(batch):
+    """Khiếu nại khách hàng BM.11.01 của lô (W13) — đúng lô, hoặc đúng sản phẩm + HSD."""
+    from sx.api.qc_khieunai import theo_lo
+
+    return theo_lo(batch)
 
 
 def _su_co_theo_lo(batch):

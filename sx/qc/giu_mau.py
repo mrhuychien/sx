@@ -6,6 +6,8 @@ Hai lý do giữ:
     `SX Su Co Lo`, W11), hoặc ô "lô ảnh hưởng" ghi mã lô / HSD của lô đó. Khớp theo chữ
     là CỐ Ý rộng tay: giữ nhầm một mẫu thêm vài tuần không hại gì, huỷ nhầm mẫu đang
     cần cho khiếu nại thì hết đường. Phiếu DIỄN TẬP không giữ mẫu.
+  · khiếu nại khách hàng BM.11.01 đang mở (Issue, W13): đúng lô, hoặc đúng sản phẩm +
+    HSD (sx/qc/khieu_nai.py).
 
 Hàm thuần nhất có thể; chỉ đọc SX Su Co. Không import gì ngoài frappe (ranh giới module).
 """
@@ -32,9 +34,15 @@ def _khop_chu(chu, mau):
     return any(c.lower() in chu for c in _cac_cach_ghi_hsd(mau.get("hsd")))
 
 
-def ly_do_giu(ds_mau, su_co_mo=None):
+def _cung_sp_hsd(k, m):
+    return bool(k.get("san_pham") and k.get("hsd") and m.get("san_pham") and m.get("hsd")
+                and k["san_pham"] == m["san_pham"] and getdate(k["hsd"]) == getdate(m["hsd"]))
+
+
+def ly_do_giu(ds_mau, su_co_mo=None, khieu_nai_mo=None):
     """{tên mẫu: lý do giữ} cho các mẫu trong `ds_mau` (dict: name, batch, hsd,
-    giu_lai, ly_do_giu). `su_co_mo` = phiếu sự cố đang mở (đọc nếu không truyền)."""
+    san_pham, giu_lai, ly_do_giu). `su_co_mo` = phiếu sự cố đang mở, `khieu_nai_mo` =
+    khiếu nại BM.11.01 đang mở (W13) — đọc từ DB nếu không truyền."""
     ra = {}
     for m in ds_mau:
         if cint(m.get("giu_lai")):
@@ -44,10 +52,16 @@ def ly_do_giu(ds_mau, su_co_mo=None):
         return ra
     if su_co_mo is None:
         su_co_mo = su_co_dang_mo()
+    if khieu_nai_mo is None:
+        from sx.qc.khieu_nai import dang_mo
+
+        khieu_nai_mo = dang_mo()
     for m in con:
         khop = [s["name"] for s in su_co_mo
                 if (m.get("batch") and m["batch"] in (s.get("lo") or ()))
                 or _khop_chu(s.get("lo_anh_huong"), m)]
+        khop += [k["name"] for k in khieu_nai_mo
+                 if (m.get("batch") and m["batch"] in (k.get("lo") or ())) or _cung_sp_hsd(k, m)]
         if khop:
             ra[m["name"]] = _("Lô có sự cố / khiếu nại đang mở: {0}").format(", ".join(khop[:3]))
     return ra

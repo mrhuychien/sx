@@ -271,6 +271,7 @@ nap("sx.qc.san_pham", "sx/qc/san_pham.py")
 nap("sx.qc.su_co", "sx/qc/su_co.py")
 nap("sx.qc.xuat", "sx/qc/xuat.py")
 NH = nap("sx.qc.nhac", "sx/qc/nhac.py")
+nap("sx.qc.khieu_nai", "sx/qc/khieu_nai.py")
 GM = nap("sx.qc.giu_mau", "sx/qc/giu_mau.py")
 LMC = nap("sx.qc.doctype.sx_qc_luu_mau.sx_qc_luu_mau",
           "sx/qc/doctype/sx_qc_luu_mau/sx_qc_luu_mau.py")

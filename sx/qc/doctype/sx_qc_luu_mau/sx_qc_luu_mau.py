@@ -60,7 +60,8 @@ class SXQCLuuMau(Document):
             from sx.qc.giu_mau import ly_do_giu
 
             giu = ly_do_giu([{"name": self.name or "_", "batch": self.get("batch"),
-                              "hsd": self.get("hsd"), "giu_lai": self.get("giu_lai"),
+                              "hsd": self.get("hsd"), "san_pham": self.get("san_pham"),
+                              "giu_lai": self.get("giu_lai"),
                               "ly_do_giu": self.get("ly_do_giu")}])
             if giu:
                 frappe.throw(_("Mẫu đang được GIỮ, không huỷ được — {0}").format(

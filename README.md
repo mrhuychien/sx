@@ -315,6 +315,23 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sổ khiếu nại khách hàng BM.11.01 trên Issue (D135 — W13)
+
+- Khiếu nại = **Issue** của ERPNext có tích *Là khiếu nại khách hàng* (custom field module QC:
+  người khiếu nại / liên hệ, kênh, sản phẩm, **HSD**, lô, số lượng, phân loại, mức độ, kết
+  luận, xử lý với khách, phiếu sự cố). Issue dùng việc khác thì app không đụng tới.
+- **Gắn lô theo HSD**: nhập sản phẩm + HSD in trên hộp → app tự tìm lô (đổi HSD / sản phẩm thì
+  tìm lại); không có lô khớp thì vẫn ghi, màn hình báo "chưa rõ lô".
+- Màn QC → **Sự cố** → nút **Khiếu nại KH**: ghi khiếu nại (khách trong danh mục hoặc ghi tay
+  tên + số điện thoại), danh sách mở / đã đóng, quá 7 ngày chưa đóng thì gắn "quá hạn",
+  **🖨 IN SỔ BM.11.01** (tháng này, A4 ngang, chỗ ký).
+- Phân loại **dị vật / vi sinh / dị ứng** hoặc mức Cao → tự lập **phiếu sự cố điều tra**
+  (nguồn Khiếu nại, gắn lô); loại khác thì tích "Lập phiếu sự cố" hoặc bấm sau.
+- **Đóng** (Resolved / Closed): Trưởng Ban ISO / người được giao, phải có kết luận + xử lý với
+  khách — chặn cả Desk. ERPNext tự đóng Issue "Replied" sau N ngày thì khiếu nại được giữ mở.
+- Khiếu nại đang mở → **giữ mẫu lưu** của đúng lô / đúng sản phẩm + HSD (W07); thẻ lô trong
+  Truy xuất có mục "Khiếu nại khách hàng của lô này".
+
 ## Phiếu sự cố BM.08.02: gắn lô, diễn tập, nguồn mới, quyền đóng (D134 — W11)
 
 - **Lô liên quan**: bảng `ds_lo` (`SX Su Co Lo`) thay ô "Lô thành phẩm" một lô của D133 (patch

@@ -264,6 +264,8 @@ export function veLo(box, d, { quayLai, mo, ketThuc }) {
     ${(d.ghi_chu || []).map((g) => `<div class="sx-muted sx-tx-ghichu">ⓘ ${esc(g)}</div>`).join('')}
     ${d.can_bang && d.can_bang.san_xuat ? khoi(`⚖ Cân bằng lô — ${d.can_bang.pt ?? '—'}% ${
       d.can_bang.dat ? '✓' : '✕'}`, canBang(d.can_bang, l.dvt), !d.can_bang.dat) : ''}
+    ${(d.khieu_nai_lo || []).length ? khoi('📣 Khiếu nại khách hàng của lô này',
+    d.khieu_nai_lo.map(dongKhieuNai).join(''), true) : ''}
     ${(d.su_co_lo || []).length ? khoi('⚠ Sự cố ghi theo lô này', d.su_co_lo.map(dongSuCo).join(''), true) : ''}
     ${d.ncc ? khoi('🏭 Nhà cung cấp', dongNcc(d.ncc), true) : ''}
     ${(d.nguon || []).length ? khoi('⬅ Nguồn gốc nguyên liệu', cay(d.nguon), true) : ''}
@@ -358,6 +360,13 @@ function ngay(g) {
   return `<div class="sx-tx-ngay"><div class="sx-tx-ngay-dau"><b>${esc(ngayNgan(g.ngay))}</b>
       <span>${esc(g.viec.join(' · '))}</span></div>
     ${vh}${qc}${g.su_co.map(dongSuCo).join('')}</div>`;
+}
+
+function dongKhieuNai(k) {
+  return `<div class="sx-tx-suco">📣 ${esc(k.name)} · ${esc(k.trang_thai)}${
+    k.muc_do === 'Cao' ? ' · <b>Cao</b>' : ''}${k.phan_loai ? ` · ${esc(k.phan_loai)}` : ''}${
+    k.ngay ? ` · ${esc(ngayNgan(k.ngay))}` : ''}
+    <div class="sx-vh-meta">${esc(k.mo_ta || '')}</div></div>`;
 }
 
 function dongSuCo(s) {
