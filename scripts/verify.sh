@@ -299,4 +299,10 @@ python3 scripts/test-congdoan.py > /tmp/sx-congdoan.log 2>&1 \
   && tail -1 /tmp/sx-congdoan.log \
   || { cat /tmp/sx-congdoan.log; loi=1; }
 
+# D131 (W05): lô thành phẩm theo HSD. Hai ngày đóng hộp dồn một dòng là nửa số hộp
+# mang HSD sai; NSX lấy ngày nhập là "quá trình" khớp nhầm ngày — đều im lặng.
+python3 scripts/test-lohsd.py > /tmp/sx-lohsd.log 2>&1 \
+  && tail -1 /tmp/sx-lohsd.log \
+  || { cat /tmp/sx-lohsd.log; loi=1; }
+
 exit $loi

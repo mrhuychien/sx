@@ -117,6 +117,7 @@ class SXPhieuNhapTP(Document):
         if not any(flt(r.so_dem) > 0 for r in self.dong):
             frappe.throw(_("Chưa có dòng nào đếm được số > 0 — không duyệt phiếu rỗng."))
         self.kiem_hsd()
+        self.kiem_trung_lo()
         self.kiem_tran_da_cham()
         self.kiem_ton_nguyen_lieu()
         self.nguoi_duyet = frappe.session.user
@@ -147,6 +148,22 @@ class SXPhieuNhapTP(Document):
                     "quản lý khai \"Shelf Life In Days\" trên mã hàng (Item) để các phiếu "
                     "sau tự điền."),
                 title=_("Thiếu HSD"))
+
+    def kiem_trung_lo(self):
+        """Hai dòng cùng mã + cùng HSD = cùng MỘT lô (W05) — bắt gộp lại.
+
+        Không tự gộp: hai dòng có hai cách chia thùng / hộp, hai số người lập ghi;
+        gộp ngầm là mất chỗ lệch mà thủ kho cần nhìn. Thường là bấm nhầm thêm dòng."""
+        thay = {}
+        for r in self.dong:
+            if flt(r.so_dem) <= 0 or not r.get("hsd"):
+                continue
+            k = (r.item, str(getdate(r.hsd)))
+            if k in thay:
+                frappe.throw(_("Dòng {0} và {1} cùng {2}, cùng HSD {3} — là cùng một lô. "
+                               "Gộp hai dòng lại (xoá một dòng, sửa số dòng kia).").format(
+                    thay[k], r.idx, r.ten or r.item, frappe.utils.formatdate(r.hsd)))
+            thay[k] = r.idx
 
     def kiem_tran_da_cham(self):
         """Phần nhận VƯỢT số đã chấm vào hộp → ghi nợ, KHÔNG chặn (D101).
@@ -236,7 +253,7 @@ class SXPhieuNhapTP(Document):
         """
         from sx.api.chot import _kho_nguon as kho_nguon_rm
         from sx.api.mfg import tao_batch, tao_se_manufacture, tao_se_nhap_thang, tao_wo
-        from sx.utils import get_bom_active, get_settings, sinh_ma_lo
+        from sx.utils import get_bom_active, get_settings, ma_lo_hsd, nsx_tu_hsd
 
         settings = get_settings()
         chung_tu = []
@@ -246,11 +263,12 @@ class SXPhieuNhapTP(Document):
                 continue
             bom = get_bom_active(r.item)
 
-            # Mã lô sinh theo NGÀY NHẬN — truy xuất NGÀY × LOẠI (D3) vẫn nguyên,
-            # không cần bám vào phiếu ngày sản xuất nào.
-            # D114: NSX = ngày nhập (lô sinh theo ngày nhận), HSD đã kiểm ở before_submit.
-            batch = tao_batch(r.item, sinh_ma_lo(r.item, self.ngay),
-                              nsx=self.ngay, hsd=r.get("hsd"))
+            # W05 (D131): lô = (sản phẩm, HSD). Hai phiếu cùng mã cùng HSD vào CÙNG
+            # lô. NSX = HSD − hạn dùng (bộ tự công bố, W28) — là ngày làm ra hộp, không
+            # phải ngày nhập kho; chưa khai hạn dùng thì mới lấy ngày nhập.
+            # HSD luôn có ở đây: kiem_hsd (before_submit) đã điền / chặn.
+            batch = tao_batch(r.item, ma_lo_hsd(r.item, r.hsd),
+                              nsx=nsx_tu_hsd(r.item, r.hsd) or self.ngay, hsd=r.hsd)
 
             if not bom:
                 gia = _gia_von_tam(r.item, self.kho_dich)

@@ -31,7 +31,7 @@ from frappe import _
 from frappe.utils import add_days, cint, flt, getdate
 
 from sx.config.roles import guard_card
-from sx.utils import items_tp
+from sx.utils import items_tp, la_lo_hsd
 
 SAU_TOI_DA = 8          # tầng đệ quy — chuỗi thật sâu nhất ~5 (TP→bột bánh→bột nền→vỡ→ủ→đỗ)
 NGAY_VAO_HOP_TOI_DA = 7  # cửa sổ khớp vào hộp theo ngày khi không có lần nhập trước
@@ -122,9 +122,18 @@ def _dong_lo(ten):
         fields=["name", "item", "item_name", "manufacturing_date", "expiry_date",
                 "batch_qty", "creation"],
         order_by="creation desc")
+    tp = {i.name for i in items_tp(["name"])}
+    # la_tp: màn hình hiện lô thành phẩm bằng HSD, KHÔNG bằng mã lô (W05 — ẩn mã lô).
     return [{"batch": b.name, "item": b.item, "ten": b.item_name or b.item,
              "nsx": _d(b.manufacturing_date), "hsd": _d(b.expiry_date),
-             "ton": flt(b.batch_qty, 3)} for b in ds]
+             "ton": flt(b.batch_qty, 3), "la_tp": b.item in tp} for b in ds]
+
+
+def _nhan_lo(ctx, batch):
+    """Nhãn một lô cho người đọc: lô thành phẩm có HSD → "HSD dd/mm/yyyy" (W05 —
+    người cầm hộp chỉ có HSD); lô khác (bột, đỗ NCC…) giữ mã lô."""
+    t = ctx.thong_tin(batch)
+    return _("HSD {0}").format(_vn(t["hsd"])) if t.get("la_tp") and t.get("hsd") else batch
 
 
 def _vn(iso):
@@ -167,7 +176,11 @@ def lo(batch):
     so_cai = _so_cai(batch)
     xuoi = None if goc["la_tp"] else ctx.xuoi(batch, set(), 0)
     qua_trinh, cua_so = _qua_trinh(goc, nhap, nguoc)
-    if goc["la_tp"] and cua_so:
+    if goc["la_tp"] and cua_so and cua_so[0] == cua_so[1] and la_lo_hsd(batch):
+        ghi_chu.append(_(
+            "Vào hộp ngày {0} = NSX của lô (HSD − hạn dùng): ai đóng mã này hôm đó.")
+            .format(_vn(cua_so[0])))
+    elif goc["la_tp"] and cua_so:
         ghi_chu.append(_(
             "Vào hộp khớp THEO NGÀY ({0} → {1}): những ngày đóng mã này trước khi nhập "
             "lô. Thành phẩm không gắn bảng vào hộp nào nên không khớp được theo lô.")
@@ -176,6 +189,10 @@ def lo(batch):
         ghi_chu.append(_("Không tìm thấy phiếu sản xuất nào sinh ra lô này — lô nhập "
                          "tay trên Desk, hoặc chứng từ đã huỷ."))
 
+    khach = _khach_tong(so_cai, xuoi)
+    for k in khach:
+        # W05: khách nhận lô thành phẩm nào — nói bằng HSD, không bằng mã lô.
+        k["lo"] = [_nhan_lo(ctx, b) for b in k["lo"]]
     return {
         "lo": goc,
         "nhap_kho": nhap,
@@ -184,7 +201,7 @@ def lo(batch):
         "qua_trinh": qua_trinh,
         "ban": _ban(so_cai),
         "xuoi": xuoi,
-        "khach": _khach_tong(so_cai, xuoi),
+        "khach": khach,
         "luu_mau": _luu_mau(goc, cua_so),
         "su_co_lo": _su_co_theo_lo(batch),
         "ghi_chu": ghi_chu,
@@ -461,18 +478,25 @@ def _phieu_nhap_cua(batch):
     se = set(frappe.get_all("Stock Entry Detail",
                             filters={"batch_no": batch, "docstatus": 1,
                                      "t_warehouse": ("is", "set")}, pluck="parent"))
+    # W05 (D131): lô theo HSD — hai phiếu nhập cùng mã cùng HSD vào CÙNG lô. Phiếu
+    # đầu tiên là "nhập kho", các phiếu sau liệt kê kèm.
+    ra = None
     for s in sorted(se):
         p = frappe.get_all(
             "SX Phieu Nhap TP",
             filters={"ds_se": ("like", f'%"{s}"%'), "docstatus": 1},
             fields=["name", "ngay", "nguoi_lap", "nguoi_duyet", "duyet_luc", "kho_dich"],
             limit=1)
-        if p:
-            p = p[0]
-            return {"phieu": p.name, "ngay": _d(p.ngay), "nguoi_lap": p.nguoi_lap,
-                    "nguoi_duyet": p.nguoi_duyet, "duyet_luc": str(p.duyet_luc or "")[:16],
-                    "kho": p.kho_dich, "se": s}
-    return None
+        if not p:
+            continue
+        p = p[0]
+        if ra is None:
+            ra = {"phieu": p.name, "ngay": _d(p.ngay), "nguoi_lap": p.nguoi_lap,
+                  "nguoi_duyet": p.nguoi_duyet, "duyet_luc": str(p.duyet_luc or "")[:16],
+                  "kho": p.kho_dich, "se": s, "them": []}
+        elif p.name != ra["phieu"] and p.name not in [x["phieu"] for x in ra["them"]]:
+            ra["them"].append({"phieu": p.name, "ngay": _d(p.ngay)})
+    return ra
 
 
 def _cua_so_vao_hop(item, nhap):
@@ -510,7 +534,12 @@ def _qua_trinh(goc, nhap, nguoc):
     cua_so = None
     if goc["la_tp"] and nhap:
         viec(nhap["ngay"], _("Nhập kho"))
-        cua_so = _cua_so_vao_hop(goc["item"], nhap)
+        for x in nhap.get("them") or []:
+            viec(x["ngay"], _("Nhập kho"))
+        # W05 (D131): lô theo HSD có NSX = HSD − hạn dùng = ĐÚNG ngày vào hộp; lô cũ
+        # (theo ngày nhập) mới phải khớp theo cửa sổ ngày.
+        cua_so = ((goc["nsx"], goc["nsx"]) if la_lo_hsd(goc["batch"]) and goc.get("nsx")
+                  else _cua_so_vao_hop(goc["item"], nhap))
         for d, ds in _vao_hop(goc["item"], *cua_so).items():
             viec(d, _("Vào hộp"))
             ngay_cua(d)["vao_hop"] = ds

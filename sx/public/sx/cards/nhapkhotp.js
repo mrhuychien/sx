@@ -158,23 +158,29 @@ function veChuaCo(container, r, ganDay, call, refresh) {
   // "lập phiếu trống" rồi mới tìm lại mã vừa thấy là thừa một bước.
   container.querySelectorAll('[data-cn]').forEach((b) => {
     const d = cho.find((x) => x.item === b.dataset.cn);
-    b.addEventListener('click', () => openSoLuong({
-      kicker: `Đã vào hộp ${formatNumber(d.con)} — chưa nhập kho`,
-      ten: d.ten,
-      uoms: d.uoms || [],
-      chi_tiet: null,
-      tong: d.con,
-      onOk: async (tong, ct) => {
-        const n = Math.max(0, Math.round(tong));
-        if (!n) return;
-        try {
-          await call('sx.api.khotp.tao_phieu_nhap', {
-            rows: JSON.stringify([{ item: d.item, so_luong: n, chi_tiet: ct }]),
-          });
-          refresh();
-        } catch (err) { toastErr(err.message); }
-      },
-    }));
+    const tao = async (ds) => {
+      try {
+        await call('sx.api.khotp.tao_phieu_nhap', { rows: JSON.stringify(ds) });
+        refresh();
+      } catch (err) { toastErr(err.message); }
+    };
+    // W05: nhiều ngày đóng hộp = nhiều HSD = nhiều lô → mỗi HSD một dòng, thủ kho
+    // đếm lại từng dòng trên phiếu. Một HSD thì hỏi số như trước.
+    const chia = chiaCua(d);
+    b.addEventListener('click', () => (chia.length > 1
+      ? tao(chia.map((g) => ({ item: d.item, so_luong: Math.floor(g.con), hsd: g.hsd })))
+      : openSoLuong({
+        kicker: `Đã vào hộp ${formatNumber(d.con)} — chưa nhập kho`,
+        ten: d.ten,
+        uoms: d.uoms || [],
+        chi_tiet: null,
+        tong: d.con,
+        onOk: (tong, ct) => {
+          const n = Math.max(0, Math.round(tong));
+          if (!n) return;
+          tao([{ item: d.item, so_luong: n, chi_tiet: ct, hsd: (chia[0] || {}).hsd || null }]);
+        },
+      })));
   });
 
   container.querySelector('#sx-nk-tao').addEventListener('click', async (e) => {
@@ -199,11 +205,18 @@ function veChoNhan(cho, rows, coTaiHet) {
     ${coTaiHet ? `<button type="button" class="sx-btn" id="sx-nk-tai">
       ⇩ TẢI TẤT CẢ VÀO PHIẾU</button>` : ''}
     <div class="sx-vh-list">${cho.map((d) => {
-    const co = (rows || []).find((x) => x.item === d.item);
+    // W05: một mã có thể nhiều dòng (mỗi HSD một dòng) — cộng hết các dòng của mã.
+    const cua = (rows || []).filter((x) => x.item === d.item);
+    const co = cua.length ? {
+      so_hien: cua.reduce((a, x) => a + Number(x.so_hien != null ? x.so_hien : x.so_dem), 0),
+    } : null;
+    const theoHsd = chiaCua(d).filter((g) => g.hsd);
     // Kèm cách chia: người bấm là người đang đứng trước chồng thùng, "21 thùng 3 hộp"
     // đọc được ngay còn "255" thì phải chia nhẩm mới biết đủ hay thiếu.
-    const chia = moTaUom(tachUom(co ? (co.so_hien != null ? co.so_hien : co.so_dem) : d.con,
-      d.uoms));
+    const chia = [moTaUom(tachUom(co ? co.so_hien : d.con, d.uoms)),
+      theoHsd.length > 1 ? theoHsd.map((g) => `HSD ${veNgayDu(g.hsd)}: ${formatNumber(g.con)}`)
+        .join(' · ') : (theoHsd[0] ? `HSD ${veNgayDu(theoHsd[0].hsd)}` : '')]
+      .filter(Boolean).join(' — ');
     return `<button type="button" class="sx-nv-row${co ? ' sx-nv-row-xong' : ''}"
         data-cn="${esc(d.item)}" style="flex-direction:row;align-items:center;
         justify-content:space-between;min-height:var(--sx-tap-lg)">
@@ -212,7 +225,7 @@ function veChoNhan(cho, rows, coTaiHet) {
           ${chia ? `<span class="sx-vh-meta">${esc(chia)}</span>` : ''}
         </span>
         <span class="sx-nv-qty">${co
-      ? `ghi ${formatNumber(co.so_hien != null ? co.so_hien : co.so_dem)}`
+      ? `ghi ${formatNumber(co.so_hien)}`
       : formatNumber(d.con)}</span>
       </button>`;
   }).join('')}</div>`;
@@ -367,7 +380,7 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       ? veChoNhan(cho, rows.map((x) => ({ ...x, so_hien: soCua(x) })), true) : '';
     hopBox.querySelectorAll('[data-cn]').forEach((b) => {
       const d = cho.find((x) => x.item === b.dataset.cn);
-      b.addEventListener('click', () => themItem(d.item, d));
+      b.addEventListener('click', () => themTuVaoHop(d));
     });
     const btnTai = hopBox.querySelector('#sx-nk-tai');
     if (btnTai) {
@@ -391,35 +404,104 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   // Danh mục KHÔNG bày sẵn: vài chục SKU trải hết ra thì phiếu đang ghi bị đẩy khỏi
   // màn hình. Bấm TÌM SẢN PHẨM mới xổ danh sách, có ô lọc.
   const btnTim = container.querySelector('#sx-nk-tim');
-  if (btnTim) btnTim.addEventListener('click', () => moChonSP(danhMuc, rows, cho, themItem));
+  // Chọn trong danh mục một mã đang "vừa vào hộp" → điền sẵn phần còn lại theo HSD.
+  if (btnTim) {
+    btnTim.addEventListener('click', () => moChonSP(danhMuc, rows, cho,
+      (item, cn) => (cn ? themTuVaoHop(cn) : themItem(item))));
+  }
   ve();
 
 
-  // `goiY` là dòng bên bảng vào hộp (nếu bấm từ mục "vừa vào hộp"): điền sẵn phần
-  // CÒN LẠI để thủ kho chỉ phải sửa khi đếm thật lệch, chứ không phải gõ lại từ 0.
-  function themItem(item, goiY) {
-    const co = rows.find((x) => x.item === item);
-    const d = danhMuc.find((x) => x.item === item) || goiY || {};
+  // Mở số của MỘT dòng (đã có) để sửa.
+  function suaDong(co) {
     openSoLuong({
-      kicker: goiY && !co ? `Đã vào hộp ${formatNumber(goiY.con)} — chưa nhập kho`
-        : (co ? 'Sửa số' : 'Thêm sản phẩm'),
-      ten: d.ten || item,
-      uoms: d.uoms || [],
-      chi_tiet: co ? ctCua(co) : null,
-      tong: co ? soCua(co) : (goiY ? goiY.con : 0),
+      kicker: hsdCua(co) ? `Sửa số · HSD ${veNgayDu(hsdCua(co))}` : 'Sửa số',
+      ten: co.ten || tenSP(co.item),
+      uoms: uomCua(co.item),
+      chi_tiet: ctCua(co),
+      tong: soCua(co),
       onOk: (tong, ct) => {
         const n = chotSo(tong, ct);
-        if (!n) { if (co) rows.splice(rows.indexOf(co), 1); ve(); return; }
-        if (co) {
-          co.so_dem = n; co.dem_uom = ct;
-          if (!laThuKho) { co.so_lap = n; co.lap_uom = ct; }
-        } else {
-          rows.push({ item, ten: d.ten || item, dvt: d.dvt || '',
-                      so_lap: n, so_dem: n, lap_uom: ct, dem_uom: ct });
-        }
+        if (!n) { rows.splice(rows.indexOf(co), 1); ve(); return; }
+        co.so_dem = n; co.dem_uom = ct;
+        if (!laThuKho) { co.so_lap = n; co.lap_uom = ct; }
         ve();
       },
     });
+  }
+
+  // Thêm MỘT dòng mới (mã + HSD); `hsd` null = HSD mặc định của phiếu.
+  // `goiY` là dòng bên bảng vào hộp: điền sẵn phần CÒN LẠI để thủ kho chỉ phải sửa khi
+  // đếm thật lệch, chứ không phải gõ lại từ 0.
+  function dongMoi(item, hsd, goiY, so) {
+    const d = danhMuc.find((x) => x.item === item) || goiY || {};
+    openSoLuong({
+      kicker: goiY ? `Đã vào hộp ${formatNumber(so)} — chưa nhập kho`
+        : `Thêm sản phẩm${hsd ? ` · HSD ${veNgayDu(hsd)}` : ''}`,
+      ten: d.ten || item,
+      uoms: d.uoms || [],
+      chi_tiet: null,
+      tong: goiY ? so : 0,
+      onOk: (tong, ct) => {
+        const n = chotSo(tong, ct);
+        if (!n) return;
+        rows.push({ item, ten: d.ten || item, dvt: d.dvt || '', hsd: hsd || null,
+                    so_lap: n, so_dem: n, lap_uom: ct, dem_uom: ct });
+        ve();
+      },
+    });
+  }
+
+  // W05 (D131): mỗi (mã, HSD) một dòng = một lô. Mã chưa có dòng → thêm dòng. Mã đã
+  // có dòng → hỏi sửa dòng nào, hay thêm dòng HSD khác (hộp in HSD khác ngày).
+  function themItem(item) {
+    const cua = rows.filter((x) => x.item === item);
+    if (!cua.length) { dongMoi(item, null); return; }
+    const m = openModal({ kicker: 'Nhập kho', title: cua[0].ten || tenSP(item) });
+    m.body.innerHTML = `<div class="sx-muted">Mã này đã có ${cua.length} dòng trên phiếu —
+      mỗi HSD một dòng (một lô).</div>
+      <div class="sx-vh-list">${cua.map((x, i) => `
+        <button type="button" class="sx-nv-row" data-sua="${i}"
+          style="flex-direction:row;align-items:center;justify-content:space-between;
+          min-height:var(--sx-tap-lg)">
+          <span class="sx-nv-ten">HSD ${esc(hsdCua(x) ? veNgayDu(hsdCua(x)) : '—')} ✎</span>
+          <span class="sx-nv-qty">${formatNumber(soCua(x))}</span></button>`).join('')}</div>
+      <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-hsd-khac">
+        + DÒNG HSD KHÁC</button>`;
+    m.body.querySelectorAll('[data-sua]').forEach((b) => b.addEventListener('click', () => {
+      m.close(); suaDong(cua[Number(b.dataset.sua)]);
+    }));
+    m.body.querySelector('#sx-nk-hsd-khac').addEventListener('click', () => {
+      m.close();
+      moHsd({
+        ten: cua[0].ten || tenSP(item), ngay: p.ngay, hsd: null,
+        macDinh: hsdMacDinh({ item }),
+        onOk: (v) => {
+          const h = v || hsdMacDinh({ item });
+          const trung = cua.find((x) => hsdCua(x) === h);
+          if (trung) { toast('Đã có dòng HSD này — sửa số dòng đó.'); suaDong(trung); return; }
+          dongMoi(item, h);
+        },
+      });
+    });
+  }
+
+  // Bấm một mã ở "vừa vào hộp": thêm đủ các dòng theo HSD còn thiếu trên phiếu.
+  function themTuVaoHop(d) {
+    const chia = chiaCua(d);
+    const chuaCo = chia.filter((g) => !rows.some((x) => x.item === d.item
+      && hsdCua(x) === (g.hsd || hsdMacDinh({ item: d.item }))));
+    if (!chuaCo.length) { themItem(d.item); return; }
+    if (chuaCo.length === 1) { dongMoi(d.item, chuaCo[0].hsd, d, chuaCo[0].con); return; }
+    chuaCo.forEach((g) => {
+      const n = Math.floor(g.con);
+      if (n > 0) {
+        rows.push({ item: d.item, ten: d.ten, dvt: d.dvt || '', hsd: g.hsd || null,
+                    so_lap: n, so_dem: n, lap_uom: null, dem_uom: null });
+      }
+    });
+    toast(`Đã thêm ${chuaCo.length} dòng theo HSD — đếm lại từng dòng.`);
+    ve();
   }
 
   // Guard null như mọi nút khác: nút này chỉ render khi danh mục TP không rỗng. Đổi
@@ -544,7 +626,8 @@ function moChonSP(danhMuc, rows, cho, onPick) {
       .sort((a, b) => (conCua(b.item) ? 1 : 0) - (conCua(a.item) ? 1 : 0));
     box.innerHTML = khop.length
       ? `<div class="sx-vh-list">${khop.map((d) => {
-        const co = rows.find((x) => x.item === d.item);
+        const cua = rows.filter((x) => x.item === d.item);
+        const co = cua.length ? { so_dem: cua.reduce((a, x) => a + x.so_dem, 0) } : null;
         const cn = conCua(d.item);
         return `<button type="button" class="sx-nv-row${co ? ' sx-nv-row-xong' : ''}"
             data-item="${esc(d.item)}" style="flex-direction:row;align-items:center;
@@ -566,6 +649,12 @@ function moChonSP(danhMuc, rows, cho, onPick) {
   oTim.addEventListener('input', ve);
   ve();
   return m;
+}
+
+// Phần "vừa vào hộp" của một mã chia theo HSD (W05) — server tính theo ngày đóng hộp.
+// Phiếu cũ / server cũ không gửi `chia` thì coi cả phần còn lại là một nhóm.
+function chiaCua(d) {
+  return (d && d.chia && d.chia.length) ? d.chia : [{ hsd: null, con: (d || {}).con || 0 }];
 }
 
 // D114: cửa sổ nhập HSD. Ô ngày + nút nhanh theo tháng (HSD bánh thường tính

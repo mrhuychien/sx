@@ -10,7 +10,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 // lịch chốt), phải là việc TRA CỨU (truy xuất, lương, tài khoản). Thẻ không có
 // trong hai danh sách (tồn BTP theo luồng…) trải hết bề ngang bên dưới. Điện thoại
 // chỉ là một cột: trái rồi phải rồi phần rộng, thứ tự gần như cũ.
-const COT_TRAI = ['qcnhac', 'nobom', 'nogia', 'novaohop', 'lichchot'];
+const COT_TRAI = ['qcnhac', 'nobom', 'nogia', 'novaohop', 'lohsd', 'lichchot'];
 const COT_PHAI = ['truyxuat', 'phieuluong', 'nguoidung'];
 
 export async function render({ container, ctx, call, cards, mountCard }) {

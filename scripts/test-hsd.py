@@ -170,6 +170,7 @@ ut.items_tp = lambda *a, **k: [Doc(name=i, item_name=i, stock_uom="Hộp",
                                    shelf_life_in_days=s) for i, s in SHELF.items()]
 ut.nhom_tp = lambda: []
 ut.sinh_ma_lo = lambda item, ngay: f"{item}-{_getdate(ngay):%d%m%y}"
+ut.ma_lo_hsd = lambda item, hsd: f"{item}-HSD{_getdate(hsd):%d%m%y}"   # W05 (D131)
 ut.cho_phep_ton_am = lambda: False
 ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
 ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
@@ -276,11 +277,14 @@ _tao_se = types.SimpleNamespace(name="SE-1")
 M.tao_wo = lambda *a, **k: types.SimpleNamespace(name="WO-1")
 M.tao_se_manufacture = lambda *a, **k: _tao_se
 P.SXPhieuNhapTP.on_submit(p)
-kiem("lô mới có expiry_date = HSD dòng",
-     BATCH.get("TP-SEN-061026", {}).get("expiry_date") == "2027-04-04", str(BATCH))
-kiem("lô mới có manufacturing_date = ngày nhập",
-     BATCH.get("TP-SEN-061026", {}).get("manufacturing_date") == "2026-10-06")
-kiem("dòng gõ tay → đúng HSD gõ tay", BATCH.get("TP-CU-061026", {}).get("expiry_date") == "2027-03-01")
+kiem("lô mới theo HSD (W05), expiry_date = HSD dòng",
+     BATCH.get("TP-SEN-HSD040427", {}).get("expiry_date") == "2027-04-04", str(BATCH))
+kiem("NSX = HSD − hạn dùng (180 ngày) = 06/10/2026",
+     BATCH.get("TP-SEN-HSD040427", {}).get("manufacturing_date") == "2026-10-06")
+kiem("dòng gõ tay → lô theo đúng HSD gõ tay",
+     BATCH.get("TP-CU-HSD010327", {}).get("expiry_date") == "2027-03-01")
+kiem("mã chưa khai hạn dùng → NSX lấy ngày nhập",
+     BATCH.get("TP-CU-HSD010327", {}).get("manufacturing_date") == "2026-10-06")
 
 # Lô dùng lại sau khi huỷ phiếu (sinh_ma_lo chỉ trả lô CHƯA DÙNG): HSD lần mới.
 M.tao_batch("TP-SEN", "TP-SEN-061026", nsx="2026-10-06", hsd="2027-05-01")

@@ -111,9 +111,12 @@ export async function render({ container, call }) {
     r.lo.forEach((x) => {
       const b = el('button', 'sx-vh-row sx-tx-lo');
       b.type = 'button';
-      b.innerHTML = `<div class="sx-vh-who"><div class="sx-vh-name">${esc(x.batch)}</div>
+      // W05: lô thành phẩm hiện bằng HSD (thứ in trên hộp), không bằng mã lô.
+      const tpHsd = x.la_tp && x.hsd;
+      b.innerHTML = `<div class="sx-vh-who"><div class="sx-vh-name">${tpHsd
+        ? `HSD ${esc(ngayNgan(x.hsd))}` : esc(x.batch)}</div>
         <div class="sx-vh-meta">${esc(x.ten)}${x.nsx ? ` · NSX ${esc(ngayNgan(x.nsx))}` : ''}${
-          x.hsd ? ` · HSD ${esc(ngayNgan(x.hsd))}` : ''}</div></div>
+          x.hsd && !tpHsd ? ` · HSD ${esc(ngayNgan(x.hsd))}` : ''}</div></div>
         <span class="sx-nv-qty">tồn ${esc(so(x.ton))}</span>`;
       b.addEventListener('click', () => moLo(x.batch, true));
       ds.appendChild(b);
@@ -147,7 +150,7 @@ export function veLo(box, d, { quayLai, mo }) {
   box.innerHTML = `
     ${quayLai ? '<button type="button" class="sx-btn sx-tx-lui" data-lui>‹ Lô trước</button>' : ''}
     <div class="sx-tx-the">
-      <div class="sx-tx-the-lo">${esc(l.batch)}</div>
+      <div class="sx-tx-the-lo">${l.la_tp && l.hsd ? `HSD ${esc(ngayNgan(l.hsd))}` : esc(l.batch)}</div>
       <div class="sx-tx-the-ten">${esc(l.ten)}</div>
       <div class="sx-tx-the-ngay">
         ${l.nsx ? `<span>NSX <b>${esc(ngayNgan(l.nsx))}</b></span>` : ''}
@@ -155,7 +158,9 @@ export function veLo(box, d, { quayLai, mo }) {
         ${l.ngay_sx ? `<span>Làm ngày <b>${esc(ngayNgan(l.ngay_sx))}</b></span>` : ''}
       </div>
       ${n ? `<div class="sx-vh-meta">Nhập kho ${esc(ngayNgan(n.ngay))} · phiếu ${esc(n.phieu)} ·
-        duyệt ${esc(n.nguoi_duyet || '?')}</div>` : ''}
+        duyệt ${esc(n.nguoi_duyet || '?')}${(n.them || []).length
+    ? ` · thêm ${n.them.map((x) => `${esc(x.phieu)} (${esc(ngayNgan(x.ngay))})`).join(', ')}` : ''}</div>`
+    : ''}
       <div class="sx-tx-so">
         <div><span class="sx-field-label">Nhập</span><b>${esc(so(b.nhap, l.dvt))}</b></div>
         ${l.la_tp
@@ -185,7 +190,9 @@ function khoi(tieuDe, than, mo) {
     <div class="sx-tx-than">${than}</div></details>`;
 }
 
-const nutLo = (b) => (b ? `<button type="button" class="sx-tx-ma" data-lo="${esc(b)}">${esc(b)}</button>` : '');
+// `nhan`: chữ hiện trên nút — lô thành phẩm hiện "HSD …" thay mã lô (W05).
+const nutLo = (b, nhan) => (b ? `<button type="button" class="sx-tx-ma" data-lo="${esc(b)}">${
+  esc(nhan || b)}</button>` : '');
 
 function dongNcc(c) {
   if (!c) return '<div class="sx-warn-text">Chưa rõ nhà cung cấp — lô không gắn hoá đơn mua nào.</div>';
@@ -262,8 +269,8 @@ function demTp(ds) {
 function cayXuoi(ds) {
   return `<ul class="sx-tx-cay">${ds.map((x) => `<li><div class="sx-tx-nut">${x.la_tp ? '📦' : '🥣'}
       <b>${esc(x.ten)}</b> <span class="sx-tx-sl">dùng ${esc(so(x.dung))}</span>
-      <div class="sx-vh-meta">${nutLo(x.batch)}${x.nsx ? ` · ${esc(ngayNgan(x.nsx))}` : ''}${
-        x.hsd && x.la_tp ? ` · HSD ${esc(ngayNgan(x.hsd))}` : ''}${x.bu ? ' · <i>trừ bù (nợ BOM)</i>' : ''}${
+      <div class="sx-vh-meta">${nutLo(x.batch, x.la_tp && x.hsd ? `HSD ${ngayNgan(x.hsd)}` : null)}${
+        x.nsx ? ` · NSX ${esc(ngayNgan(x.nsx))}` : ''}${x.bu ? ' · <i>trừ bù (nợ BOM)</i>' : ''}${
         x.lap ? ' · <i>đã có ở nhánh trên</i>' : ''}</div>
       ${x.ban ? `<div class="sx-vh-meta">→ bán ${esc(so(x.ban.da_ban))}${x.ban.ban.length
         ? ` cho ${esc([...new Set(x.ban.ban.map((y) => y.ten_khach))].join(', '))}` : ''}</div>` : ''}

@@ -2082,3 +2082,7 @@ b.sx-tx-kl-loi { background: none; }
 .sx-tet-hsd .sx-textarea { min-height: 44px; margin: 0; }
 .sx-tet-hsd-nhanh { grid-column: 1 / -1; display: flex; gap: var(--sx-s1); flex-wrap: wrap; }
 .sx-tet-hsd-nhanh .sx-np-chip { min-height: 36px; padding: 0 var(--sx-s2); }
+
+/* D131 — thẻ "Lô cũ chưa có HSD": ô ngày gọn bên phải mỗi dòng */
+.sx-lh-o { width: 160px; flex: none; margin: 0; min-height: 44px; }
+@media (max-width: 420px) { .sx-lh-o { width: 138px; } }

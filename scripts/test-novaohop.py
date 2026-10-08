@@ -208,6 +208,7 @@ ut.get_settings = lambda: Doc({"cong_ty": "RVHG", "kho_nvl": "NVL", "kho_btp": "
 ut.items_tp = lambda *a, **k: []
 ut.nhom_tp = lambda: []
 ut.sinh_ma_lo = lambda item, ngay: f"{item}-LO"
+ut.ma_lo_hsd = lambda item, hsd: f"{item}-LO"      # W05: lô theo HSD — không phải chủ đề bài này
 ut.cho_phep_ton_am = lambda: True
 for ten in ("cach_lam_cua", "dat_ten_hien_thi", "get_dau_items", "topo_rank_by_bom",
             "loai_phieu_kho"):
@@ -433,8 +434,9 @@ kiem("phần vượt thành đúng một dòng nợ, đúng số (240+30−250 =
 kiem("nợ trỏ về phiếu, mã, ngày; trạng thái Chờ chấm",
      (NO[0].phieu_nhap, NO[0].item, NO[0].trang_thai) == ("PN-2", "TP-A", "Chờ chấm"))
 kiem("hàng vẫn vào kho theo số đếm", SE[-1] == 30)
-p = phieu({"item": "TP-B", "ten": "Bánh B", "so_dem": 12},
-          {"item": "TP-B", "ten": "Bánh B", "so_dem": 3})
+# W05 (D131): hai dòng cùng mã là hai HSD (hai lô) — cùng HSD thì bị chặn gộp.
+p = phieu({"item": "TP-B", "ten": "Bánh B", "so_dem": 12, "hsd": "2027-06-01"},
+          {"item": "TP-B", "ten": "Bánh B", "so_dem": 3, "hsd": "2027-06-02"})
 duyet(p)
 nb = [x for x in NO if x.item == "TP-B"]
 kiem("mã chưa chấm lần nào → cả số nhận thành nợ, gộp hai dòng cùng mã",

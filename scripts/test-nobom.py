@@ -133,6 +133,10 @@ ut.get_bom_active = lambda item: BOM.get(item)
 ut.get_settings = lambda: Doc({"cong_ty": "RVHG", "kho_nvl": "KHO-NVL",
                                "kho_btp": "KHO-BTP", "kho_tp": "KHO-TP"})
 ut.sinh_ma_lo = lambda item, ngay: f"{item}-{str(ngay)[8:10]}{str(ngay)[5:7]}"
+# W05 (D131): lô thành phẩm theo HSD — {mã}-HSD{DDMMYY}; NSX ngược từ HSD (không khai
+# hạn dùng → None → lấy ngày nhập).
+ut.ma_lo_hsd = lambda item, hsd: f"{item}-HSD{str(hsd)[8:10]}{str(hsd)[5:7]}{str(hsd)[2:4]}"
+ut.nsx_tu_hsd = lambda item, hsd: None
 ut.cho_phep_ton_am = lambda: TON_AM[0]
 ut.items_tp = lambda *a: []
 ut.nhom_tp = lambda: []
@@ -218,8 +222,8 @@ def lam_sach():
 # ═══ 1. Duyệt phiếu có dòng thiếu BOM ════════════════════════════════════
 print("-- duyệt phiếu: một dòng có BOM, một dòng chưa có --")
 lam_sach()
-p = phieu({"item": "TP-A", "ten": "A", "so_dem": 100, "dvt": "Hộp"},
-          {"item": "TP-B", "ten": "B", "so_dem": 40, "dvt": "Hộp"})
+p = phieu({"item": "TP-A", "ten": "A", "so_dem": 100, "dvt": "Hộp", "hsd": "2027-06-20"},
+          {"item": "TP-B", "ten": "B", "so_dem": 40, "dvt": "Hộp", "hsd": "2027-06-20"})
 kiem("kiểm tồn KHÔNG chặn vì dòng thiếu BOM", thu(p.kiem_ton_nguyen_lieu) is None)
 loi = thu(p.on_submit)
 kiem("duyệt KHÔNG chặn vì dòng thiếu BOM", loi is None, loi or "")
@@ -231,14 +235,14 @@ kiem("dòng thiếu BOM nhập thẳng (Material Receipt), KHÔNG qua Manufactur
 kiem("dòng thiếu BOM không trừ nguyên liệu nào",
      not any(x["loai"] == "Material Issue" for x in SE))
 nr = [x for x in SE if x["loai"] == "Material Receipt"][0]
-kiem("nhập đúng số THỦ KHO ĐẾM, đúng kho, có lô theo ngày",
-     (nr["qty"], nr["kho"], nr["batch"]) == (40, "KHO-TP", "TP-B-2009"),
+kiem("nhập đúng số THỦ KHO ĐẾM, đúng kho, có lô theo HSD (W05)",
+     (nr["qty"], nr["kho"], nr["batch"]) == (40, "KHO-TP", "TP-B-HSD200627"),
      str((nr["qty"], nr["kho"], nr["batch"])))
 kiem("ghi đúng MỘT dòng nợ", len(NO) == 1, str(len(NO)))
 no = NO[0]
 kiem("nợ trỏ về đúng phiếu, dòng, lô, phiếu kho nhập tạm",
      (no["phieu_nhap"], no["dong_idx"], no["batch"], no["se_nhap"])
-     == ("SXNTP-0001", 2, "TP-B-2009", nr["name"]))
+     == ("SXNTP-0001", 2, "TP-B-HSD200627", nr["name"]))
 kiem("nợ mở ở trạng thái Chờ BOM, đúng số lượng",
      (no["trang_thai"], no["so_luong"]) == ("Chờ BOM", 40))
 kiem("phiếu kho nhập tạm được ghi vào ds_se (huỷ phiếu là thu hồi được)",

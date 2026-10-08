@@ -304,20 +304,26 @@ def sua_phieu(name, rows, ghi_chu=None):
         frappe.throw(_("Phiếu {0} đã duyệt — không sửa được. Huỷ phiếu rồi lập lại.")
                      .format(name))
     co_uom = _co_chi_tiet_uom()
-    cu = {r.item: (flt(r.so_lap), r.get("lap_uom")) for r in doc.dong}
-    hsd_cu = {r.item: r.get("hsd") for r in doc.dong}
+    # W05 (D131): một mã có thể nhiều dòng — mỗi HSD một dòng (một lô). Số cũ của
+    # người lập tra theo (mã, HSD); mã chỉ có MỘT dòng cũ thì tra theo mã như trước.
+    cu, theo_ma = {}, {}
+    for r in doc.dong:
+        cu[(r.item, _khoa_hsd(r.get("hsd")))] = (flt(r.so_lap), r.get("lap_uom"), r.get("hsd"))
+        theo_ma.setdefault(r.item, []).append((flt(r.so_lap), r.get("lap_uom"), r.get("hsd")))
     doc.set("dong", [])
     for r in (json.loads(rows) if isinstance(rows, str) else rows) or []:
         item = r.get("item")
         if not item:
             continue
         so_dem = flt(r.get("so_dem"))
-        lap_cu, lap_uom_cu = cu.get(item, (so_dem, None))
+        mot = theo_ma.get(item) if len(theo_ma.get(item) or []) == 1 else None
+        lap_cu, lap_uom_cu, hsd_cu = (cu.get((item, _khoa_hsd(r.get("hsd"))))
+                                      or (mot[0] if mot else (so_dem, None, None)))
         so_lap = flt(r.get("so_lap")) if r.get("so_lap") is not None else lap_cu
         dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem,
                 "ghi_chu": r.get("ghi_chu"),
                 # D114: không gửi `hsd` thì giữ HSD cũ; gửi rỗng = xoá (về mặc định).
-                "hsd": (r.get("hsd") or None) if "hsd" in r else hsd_cu.get(item)}
+                "hsd": (r.get("hsd") or None) if "hsd" in r else hsd_cu}
         if co_uom:
             # lap_uom cũ CHỈ giữ khi client không gửi so_lap. Gửi so_lap mới mà vẫn
             # giữ chi tiết cũ thì controller tính lại so_lap TỪ chi tiết cũ và nuốt
@@ -510,6 +516,11 @@ def _co_chi_tiet_uom():
     return bool(frappe.get_meta("SX Phieu Nhap TP Item").get_field("dem_uom"))
 
 
+def _khoa_hsd(v):
+    """HSD về chuỗi ISO để làm khoá (date / str / rỗng)."""
+    return str(getdate(v)) if v else ""
+
+
 def _doc_json(v):
     if not v:
         return None
@@ -669,6 +680,44 @@ def tran_con_lai(tu_ngay, den_ngay, tru_phieu=None):
     return {item: flt(so) - flt(nhan.get(item, 0)) for item, so in cham.items()}
 
 
+def con_theo_hsd(tu_ngay, den_ngay, tru_phieu=None):
+    """{item: [{hsd, nsx, con}]} — phần CHƯA nhập kho, chia theo HSD (W05, D131).
+
+    Phần còn lại của một mã (đã chấm − đã nhận, như tran_con_lai) được gán cho các
+    ngày vào hộp MỚI NHẤT trước: hàng nhận rồi là hàng đóng trước (FIFO), phần chưa
+    nhận là của những ngày gần đây. Mỗi ngày vào hộp = một NSX → HSD = NSX + hạn
+    dùng (sx.utils.hsd_tu_nsx). Mã chưa khai hạn dùng thì HSD None, một nhóm.
+    """
+    from sx.utils import hsd_tu_nsx
+
+    con = {k: flt(v) for k, v in tran_con_lai(tu_ngay, den_ngay, tru_phieu).items()
+           if flt(v) > 1e-6}
+    if not con:
+        return {}
+    cham = {}
+    for d, item, so in _cham_theo_ngay(tu_ngay, den_ngay, list(con)):
+        cham.setdefault(item, {})
+        cham[item][d] = cham[item].get(d, 0) + flt(so)
+    ra = {}
+    for item, tong in con.items():
+        nhom = {}
+        lai = tong
+        for d, so in sorted(cham.get(item, {}).items(), reverse=True):
+            if lai <= 1e-6:
+                break
+            lay = min(so, lai)
+            lai -= lay
+            h = hsd_tu_nsx(item, d)
+            g = nhom.setdefault(h, {"hsd": h, "nsx": str(d), "con": 0.0})
+            g["con"] += lay
+            g["nsx"] = min(g["nsx"], str(d))
+        if lai > 1e-6:                 # không có ngày chấm nào (lệch dữ liệu) — một nhóm
+            g = nhom.setdefault(None, {"hsd": None, "nsx": None, "con": 0.0})
+            g["con"] += lai
+        ra[item] = sorted(nhom.values(), key=lambda g: g["hsd"] or "")
+    return ra
+
+
 def vuot_so_cham(ngay, dong, tru_phieu=None):
     """{item: phần kho nhận VƯỢT số đã chấm vào hộp} cho một phiếu (D101).
 
@@ -726,10 +775,14 @@ def cho_nhan(so_ngay=None, den=None):
     }
     rows = []
     _nap_uom(ma)
+    chia = con_theo_hsd(tu_ngay, den_ngay)
     for item in ma:
         t, dvt = ten.get(item, (item, ""))
         rows.append({"item": item, "ten": t, "dvt": dvt,
-                     "uoms": _uom_cua(item, dvt), "con": flt(con[item], 0)})
+                     "uoms": _uom_cua(item, dvt), "con": flt(con[item], 0),
+                     # W05: phần còn lại chia theo HSD — mỗi HSD một dòng trên phiếu.
+                     "chia": [{"hsd": g["hsd"], "nsx": g["nsx"], "con": flt(g["con"], 0)}
+                              for g in chia.get(item, [])]})
     rows.sort(key=lambda x: -x["con"])
     return {"rows": rows, "tu_ngay": str(tu_ngay), "den_ngay": str(den_ngay)}
 
@@ -755,8 +808,14 @@ def tai_tu_vao_hop(name, so_ngay=None):
                 cint(so_ngay) or SO_NGAY_TRAN, frappe.utils.formatdate(tu))
         )
     co_uom = _co_chi_tiet_uom()
-    cu = {r.item: flt(r.so_dem) for r in doc.dong}
-    hsd_cu = {r.item: r.get("hsd") for r in doc.dong}
+    # W05 (D131): mỗi (mã, HSD) một dòng. Số thủ kho đã đếm giữ theo (mã, HSD).
+    cu = {(r.item, _khoa_hsd(r.get("hsd"))): flt(r.so_dem) for r in doc.dong}
+    # Mã chưa khai hạn dùng (nhóm HSD None) mà thủ kho đã gõ HSD trên ĐÚNG MỘT dòng
+    # → giữ HSD đó, đừng bắt gõ lại sau mỗi lần tải.
+    hsd_go = {}
+    for r in doc.dong:
+        hsd_go.setdefault(r.item, set()).add(_khoa_hsd(r.get("hsd")))
+    chia = con_theo_hsd(tu, den, name)
     # Dòng KHÔNG có trong bảng chấm (hàng trả về, hàng làm bù thủ kho tự thêm) phải
     # sống sót qua lần tải: xoá sạch rồi chỉ dựng lại mã đã chấm là nuốt mất công
     # nhập tay của thủ kho, mà nuốt im lặng — bấm xong mới thấy dòng biến đâu mất.
@@ -764,20 +823,26 @@ def tai_tu_vao_hop(name, so_ngay=None):
     dvt = {i.name: i.stock_uom for i in frappe.get_all(
         "Item", filters={"name": ("in", list(con))}, fields=["name", "stock_uom"])}
     doc.set("dong", [])
-    for item, so in sorted(con.items(), key=lambda x: -x[1]):
-        # LÀM TRÒN XUỐNG, không round: trần là trần. flt(254.6, 0) ra 255 rồi
-        # phiếu vừa tự điền lại tự sinh nợ vào hộp 1 hộp (D101).
-        so_lap = float(int(flt(so) + 1e-9))
-        # Giữ số thủ kho đã đếm nếu có, nhưng không vượt trần mới.
-        so_dem = min(cu.get(item, so_lap), so_lap)
-        dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem, "hsd": hsd_cu.get(item)}
-        if co_uom:
-            # Chia sẵn ra thùng + hộp: thủ kho đang đứng đếm thùng, đưa 255 hộp là
-            # bắt họ chia nhẩm rồi gõ lại.
-            uoms = _uom_cua(item, dvt.get(item))
-            dong["lap_uom"] = _ghi_json(tach_uom(so_lap, uoms))
-            dong["dem_uom"] = _ghi_json(tach_uom(so_dem, uoms))
-        doc.append("dong", dong)
+    for item, so_ma in sorted(con.items(), key=lambda x: -x[1]):
+        nhom = chia.get(item) or [{"hsd": None, "con": so_ma}]
+        for g in nhom:
+            if not g["hsd"] and len(hsd_go.get(item, ())) == 1:
+                g = dict(g, hsd=next(iter(hsd_go[item])) or None)
+            # LÀM TRÒN XUỐNG, không round: trần là trần. flt(254.6, 0) ra 255 rồi
+            # phiếu vừa tự điền lại tự sinh nợ vào hộp 1 hộp (D101).
+            so_lap = float(int(flt(g["con"]) + 1e-9))
+            if so_lap <= 0:
+                continue
+            # Giữ số thủ kho đã đếm nếu có, nhưng không vượt trần mới.
+            so_dem = min(cu.get((item, _khoa_hsd(g["hsd"])), so_lap), so_lap)
+            dong = {"item": item, "so_lap": so_lap, "so_dem": so_dem, "hsd": g["hsd"]}
+            if co_uom:
+                # Chia sẵn ra thùng + hộp: thủ kho đang đứng đếm thùng, đưa 255 hộp là
+                # bắt họ chia nhẩm rồi gõ lại.
+                uoms = _uom_cua(item, dvt.get(item))
+                dong["lap_uom"] = _ghi_json(tach_uom(so_lap, uoms))
+                dong["dem_uom"] = _ghi_json(tach_uom(so_dem, uoms))
+            doc.append("dong", dong)
     for r in giu:
         them = {"item": r.item, "so_lap": flt(r.so_lap), "so_dem": flt(r.so_dem),
                 "ghi_chu": r.get("ghi_chu"), "hsd": r.get("hsd")}

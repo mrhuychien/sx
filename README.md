@@ -315,6 +315,22 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Lô thành phẩm theo HSD (D131 — W05)
+
+- **Mỗi (sản phẩm, HSD) một lô.** Mã lô `{prefix}-HSD{DDMMYY}` — hai phiếu nhập cùng mã
+  cùng HSD vào CÙNG lô. Người dùng không thấy mã lô: truy xuất, nhập kho nói bằng **HSD**
+  (thứ in trên hộp).
+- **NSX = HSD − hạn dùng** (bộ tự công bố, D127) — ngày làm ra hộp, không phải ngày nhập
+  kho. Mã chưa khai hạn dùng thì NSX = ngày nhập như cũ. Truy xuất khớp "vào hộp" ĐÚNG
+  ngày NSX cho lô theo HSD (lô cũ vẫn khớp theo cửa sổ ngày).
+- **Tách dòng theo HSD**: "Vừa vào hộp" chia phần còn lại theo ngày đóng hộp (mới nhất
+  trước — phần đã nhận là hàng đóng trước), mỗi ngày → một HSD → một dòng. Nút *Tải tất cả*
+  và bấm một mã đều ra đủ dòng theo HSD. Thêm mã đã có dòng → hỏi sửa dòng nào hay
+  **+ DÒNG HSD KHÁC**. Hai dòng cùng mã cùng HSD → duyệt bị chặn, bảo gộp.
+- **Lô cũ chưa có HSD**: thẻ *Lô cũ chưa có HSD* (màn Nhập kho + Quản lý, tự ẩn khi hết) —
+  liệt kê lô thành phẩm không HSD (còn tồn trước), HSD điền sẵn = NSX + hạn dùng; thủ kho
+  soát theo bao bì rồi **GHI HSD**. Không ghi đè HSD đã có, không nhận HSD trước NSX.
+
 ## Danh mục sản phẩm tự công bố (D127 — W28)
 
 DocType **SX San Pham Cong Bo** (Desk → *SX San Pham Cong Bo*): 16 sản phẩm theo bộ tự

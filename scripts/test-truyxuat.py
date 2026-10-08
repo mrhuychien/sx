@@ -265,6 +265,7 @@ ut.items_tp = lambda fields=None, **k: [D(name=i, item_name=i) for i, n in NHOM.
 ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
 ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
 ut.ton_bin = lambda items, kho: {}
+ut.la_lo_hsd = lambda b: "-HSD" in str(b or "")      # W05 (D131): lô TP theo HSD
 sys.modules["sx.utils"] = ut
 po = types.ModuleType("sx.api.portal")
 po._ma_quet = lambda nv: {"nv": {}, "sp": {"8930000000017": "TP-SEN"}}
@@ -406,7 +407,8 @@ kh = {k["ten_khach"]: k["so"] for k in d["khach"]}
 kiem("khách gộp qua mọi lô: Hà 90+30, Siêu thị B 50",
      kh == {"Đại lý Hà": 120, "Siêu thị B": 50}, kh)
 ha = tim(d["khach"], ten_khach="Đại lý Hà")
-kiem("khách kèm lô TP đã nhận", ha["lo"] == ["SEN-061026", "SEN-071026"], ha["lo"])
+kiem("khách kèm lô TP đã nhận — nói bằng HSD, không bằng mã lô (W05)",
+     ha["lo"] == ["HSD 04/04/2027", "HSD 05/04/2027"], ha["lo"])
 
 print("\n-- sự cố theo lô + lô nhập tạm chưa BOM --")
 d = T.lo("DG-NCC")

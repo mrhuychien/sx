@@ -401,6 +401,24 @@ def sinh_ma_lo(item_code, ngay):
         goc, lambda ma: frappe.db.exists("Batch", ma) and not lo_chua_dung(ma, item_code))
 
 
+def ma_lo_hsd(item_code, hsd):
+    """Mã lô THÀNH PHẨM theo HSD (W05, D131): mỗi (sản phẩm, HSD) đúng MỘT lô.
+
+    `{prefix}-HSD{DDMMYY}`. Cùng mã + cùng HSD (nhập hai phiếu, hai ngày khác nhau)
+    là CÙNG lô — người cầm hộp chỉ có HSD in trên hộp, truy xuất theo đúng thứ đó.
+    Người dùng không thấy mã này (W05: ẩn mã lô) — chỉ thấy sản phẩm + HSD. Trùng mã
+    của mặt hàng KHÁC (hai prefix trùng) thì thêm -2, -3.
+    """
+    goc = f"{prefix_lo(item_code)}-HSD{getdate(hsd).strftime('%d%m%y')}"
+    return _unique_suffix(goc, lambda ma: frappe.db.exists("Batch", ma)
+                          and frappe.db.get_value("Batch", ma, "item") != item_code)
+
+
+def la_lo_hsd(batch):
+    """Lô thành phẩm sinh theo HSD (từ D131) — NSX của nó là ngày vào hộp thật."""
+    return "-HSD" in str(batch or "")
+
+
 def lo_chua_dung(ma, item_code):
     """Batch `ma` của `item_code` và không còn giao dịch kho nào còn hiệu lực."""
     if frappe.db.get_value("Batch", ma, "item") != item_code:
