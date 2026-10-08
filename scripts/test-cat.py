@@ -264,6 +264,7 @@ for t in ("san_pham", "su_co", "xuat"):
 NH = nap("sx.qc.nhac", "sx/qc/nhac.py")
 nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
 CAT = nap("sx.qc.cat", "sx/qc/cat.py")
+nap("sx.qc.so_do", "sx/qc/so_do.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 A = nap("sx.api.qc_cat", "sx/api/qc_cat.py")
 CTL = nap("cat_ctl", "sx/qc/doctype/sx_nhat_ky_cat/sx_nhat_ky_cat.py")

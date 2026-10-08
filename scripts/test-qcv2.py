@@ -173,6 +173,7 @@ LMC = nap("sx.qc.doctype.sx_qc_luu_mau.sx_qc_luu_mau",
           "sx/qc/doctype/sx_qc_luu_mau/sx_qc_luu_mau.py")
 nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
 nap("sx.qc.cat", "sx/qc/cat.py")
+nap("sx.qc.so_do", "sx/qc/so_do.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 
 
@@ -310,7 +311,8 @@ frappe.get_all = _ga
 
 print("\n-- W02: rây kiểm RY-01 theo máy nghiền M1 / M2 --")
 kiem("máy nghiền mang mã M1 / M2", M.ten_may_so("nghien", 1) == "M1" and M.ten_may_so("nghien", 2) == "M2")
-kiem("nhóm chưa có mã (máy rang) vẫn là 'máy k'", M.ten_may_so("rang", 3) == "máy 3")
+kiem("máy rang mang mã M1 / M2 / M3 (W16)", [M.ten_may_so("rang", k) for k in (1, 2, 3)] == ["M1", "M2", "M3"])
+kiem("nhóm chưa có mã (máy gói bột — chờ C10) vẫn là 'máy k'", M.ten_may_so("goi_bot", 3) == "máy 3")
 kiem("7a / 7b / 7c theo từng máy, máy 2 đi sau trọn máy 1",
      [m["f"] for m in M.MUC if m["may"] == "nghien"]
      == ["do_min_dat", "hat_tho", "di_vat_ray", "do_min_dat_m2", "hat_tho_m2", "di_vat_ray_m2"])

@@ -135,6 +135,32 @@ export async function render(api) {
     container.appendChild(box);
   }
 
+  // ── số đo theo máy (W16): mỗi máy rang M1–M3 / máy gói bột một dòng mỗi số đo ──
+  // Gộp ba máy thì một lồng rang quay chậm cả tháng vẫn nằm lọt trong trung bình.
+  const sd = kpi.so_do_may || [];
+  if (sd.length) {
+    container.appendChild(el('div', 'sx-qc-buoc', '<span class="sx-qc-buoc-ten">Số đo theo máy</span>'));
+    const so = (v) => (v === null || v === undefined ? '…'
+      : Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 1 }));
+    // Nhãn ngắn cho vừa màn điện thoại; tên đầy đủ ở title.
+    const NGAN = { rang_nhiet_do: 'Nhiệt độ', rang_vong_quay: 'Vòng quay', b8_nhiet_han: 'Nhiệt độ hàn' };
+    const mayNgan = (t) => t.replace('Máy rang đỗ', 'Rang').replace('Máy đóng gói bột', 'Gói bột');
+    let h = '<table><tr><th>Máy</th><th>Số đo</th><th>Lần</th><th>Thấp – cao</th><th>Ngoài</th></tr>';
+    sd.forEach((x) => {
+      const ngoai = [x.duoi ? `${x.duoi} dưới` : '', x.tren ? `${x.tren} trên` : ''].filter(Boolean).join(' · ');
+      h += `<tr><td title="${esc(x.ten_may)}">${esc(mayNgan(x.ten_may))}</td>`
+        + `<td title="${esc(x.ten)}">${esc(NGAN[x.f] || x.ten)}</td><td>${x.so_lan}</td>`
+        + `<td>${so(x.thap)} – ${so(x.cao)} ${esc(x.dv)}</td>`
+        + `<td class="${ngoai ? 'sx-qc-o-loi' : 'sx-qc-o-xong'}" title="ngưỡng ${so(x.lo)} – ${so(x.hi)} ${esc(x.dv)}">`
+        + `${ngoai || '0'}</td></tr>`;
+    });
+    const bang = el('div', 'sx-qc-luoi');
+    bang.innerHTML = `${h}</table>`;
+    container.appendChild(bang);
+    container.appendChild(el('div', 'sx-qc-goiy', 'Ngưỡng ở SX QC Setting. Nhiệt độ rang: dưới ngưỡng là sự cố oPRP, '
+      + 'trên trần vận hành là cảnh báo. Máy gói bột chưa có mã (chờ Cơ điện) — hiện theo số thứ tự.'));
+  }
+
   // ── nhật ký cát rang của tháng (W12: Ban ISO xem cuối tháng) ─────────────
   container.appendChild(el('div', 'sx-qc-buoc',
     '<span class="sx-qc-buoc-ten">Nhật ký cát rang (BM.08.03)</span>'));

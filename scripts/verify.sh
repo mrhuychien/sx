@@ -366,4 +366,10 @@ python3 scripts/test-cat.py > /tmp/sx-cat.log 2>&1 \
   && tail -1 /tmp/sx-cat.log \
   || { cat /tmp/sx-cat.log; loi=1; }
 
+# D142 (W16): số đo theo máy rang M1–M3 / máy gói bột. Số của máy đã tắt lọt vào thống kê,
+# nhãn Desk lệch nhãn màn hình, field đọc không có trên phiếu — đều im lặng.
+python3 scripts/test-somay.py > /tmp/sx-somay.log 2>&1 \
+  && tail -1 /tmp/sx-somay.log \
+  || { cat /tmp/sx-somay.log; loi=1; }
+
 exit $loi

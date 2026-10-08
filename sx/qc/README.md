@@ -233,8 +233,9 @@ Bản 2 so với bản 1:
 **Chưa làm — cần bản giấy**: sửa nhãn **T1–T10** theo phiếu giấy (chưa có chữ trên
 phiếu giấy để chép). Gửi ảnh / chữ phiếu giấy là sửa trong `muc.py`, không đổi field.
 
-Mã máy thật (`MA_MAY`): mới có máy nghiền M1/M2. Máy rang M3 và 3 máy gói bột chờ
-Cơ điện (C10) — điền vào `MA_MAY` là nhãn đổi theo, field giữ nguyên.
+Mã máy thật (`MA_MAY`): máy nghiền M1/M2 (W02), máy rang M1/M2/M3 (W16, D142). Ba máy gói
+bột chờ Cơ điện (C10) — điền vào `MA_MAY` rồi chạy `scripts/gen-qc-doctype.py` là nhãn đổi
+theo, field giữ nguyên. Thống kê theo máy cho Ban ISO: `sx/qc/so_do.py`.
 
 ## Danh mục công đoạn (D130 — W04)
 

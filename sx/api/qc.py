@@ -33,6 +33,7 @@ from sx.qc import cat as _cat
 from sx.qc import dong_vat as _dong_vat
 from sx.qc import muc as M
 from sx.qc import nhac as _nhac
+from sx.qc import so_do as _so_do
 from sx.qc import xuat
 from sx.qc.nguong import nguong
 from sx.qc.quyen import duoc_dong_su_co
@@ -366,10 +367,19 @@ def _truoc_do(doc):
     ds = frappe.get_all(
         "SX QC Round",
         filters={"docstatus": 1, "ngay": ("<=", doc.ngay), "name": ("!=", doc.name)},
-        fields=["name", "ngay", "luot", "rang_nhiet_do", "rang_vong_quay",
-                "finished_at"],
+        fields=["name", "ngay", "luot", "rang_nhiet_do", "rang_vong_quay", "finished_at",
+                "so_may_rang"] + [f"{f}_m{k}" for f in ("rang_nhiet_do", "rang_vong_quay")
+                                  for k in range(2, M.NHOM_MAY["rang"][1] + 1)],
         order_by="ngay desc, finished_at desc", limit=1)
-    return ds[0] if ds else None
+    if not ds:
+        return None
+    r = ds[0]
+    # W16 (D142): theo từng máy rang đang chạy ở lượt đó — "M2 lượt trước 262" chứ không
+    # chỉ máy 1.
+    r["may"] = [{"may": M.ten_may_so("rang", k), "nhiet": r.get(_so_do.truong("rang_nhiet_do", k)),
+                 "vong": r.get(_so_do.truong("rang_vong_quay", k))}
+                for k in range(1, M.so_may(r.get("so_may_rang"), "rang") + 1)]
+    return r
 
 
 @frappe.whitelist()
@@ -959,6 +969,10 @@ def dashboard(tu=None, den=None):
         "ngay_thieu": [d for d in ngay_sx if theo_ngay[d]["luot"] < len(M.LUOT_TRONG_NGAY)],
         "theo_ngay": theo_ngay,
         "cat": {k: v for k, v in cat.items() if k != "ds"},
+        # W16 (D142): nhiệt độ / vòng quay theo máy rang M1–M3, nhiệt độ hàn theo máy gói bột.
+        "so_do_may": _so_do.tong_hop(frappe.get_all(
+            "SX QC Round", filters={"ngay": ("between", [tu, den]), "docstatus": 1},
+            fields=_so_do.can_lay()), nguong()),
         "ty_le_hoan_tat": round(min(len(rounds), can_co) * 100.0 / can_co, 1) if can_co else 0,
         "ty_le_dung_gio": (round((len(rounds) - ghi_muon) * 100.0 / len(rounds), 1)
                            if rounds else 0),

@@ -99,10 +99,13 @@ export async function render({ container, call, tham_so }) {
     container.appendChild(b);
   }
   if (dl.truoc_do) {
+    // W16 (D142): theo từng máy rang của lượt trước (M1 / M2 / M3).
     const t = dl.truoc_do;
+    const may = (t.may && t.may.length) ? t.may
+      : [{ may: '', nhiet: t.rang_nhiet_do, vong: t.rang_vong_quay }];
     container.appendChild(el('div', 'sx-qc-luot-phu',
-      esc(`Lượt trước (${t.ngay} ${t.luot}): rang ${t.rang_nhiet_do || '—'} °C`
-        + ` · vòng quay ${t.rang_vong_quay || '—'}`)));
+      esc(`Lượt trước (${t.ngay} ${t.luot}): ${may.map((x) => `${x.may ? `${x.may} ` : ''}`
+        + `${x.nhiet || '—'} °C · ${x.vong || '—'} v/ph`).join(' | ')}`)));
   }
 
   // ── tự lưu ──────────────────────────────────────────────────────────

@@ -160,10 +160,12 @@ NHOM_MAY = {
     "goi_bot": ("Máy đóng gói bột", 3, "so_may_goi_bot"),
 }
 
-# MÃ MÁY THẬT (W02/W16): rây kiểm ghi theo máy nghiền M1 / M2. Nhóm chưa có mã (máy
-# rang M3, ba máy gói bột — chờ Cơ điện, C10) vẫn hiện "máy 1/2/3". Chỉ đổi NHÃN:
-# fieldname không đổi (máy 1 = field gốc, máy k = `<f>_mk`).
+# MÃ MÁY THẬT (W02/W16): rây kiểm ghi theo máy nghiền M1 / M2; nhiệt độ, vòng quay ghi
+# theo máy rang M1 / M2 / M3 (W16, tài liệu 08/10). Ba máy gói bột CHƯA có mã (chờ Cơ
+# điện, C10) — vẫn hiện "máy 1/2/3"; có mã thì điền tuple vào đây là nhãn đổi theo. Chỉ
+# đổi NHÃN: fieldname không đổi (máy 1 = field gốc, máy k = `<f>_mk`).
 MA_MAY = {
+    "rang": ("M1", "M2", "M3"),
     "nghien": ("M1", "M2"),
 }
 

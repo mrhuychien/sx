@@ -191,6 +191,7 @@ LMC = nap("sx.qc.doctype.sx_qc_luu_mau.sx_qc_luu_mau",
           "sx/qc/doctype/sx_qc_luu_mau/sx_qc_luu_mau.py")
 nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
 nap("sx.qc.cat", "sx/qc/cat.py")
+nap("sx.qc.so_do", "sx/qc/so_do.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 P = nap("sx.patches.d100_qc_may_va_lac", "sx/patches/d100_qc_may_va_lac.py")
 
@@ -275,9 +276,9 @@ def sc(**kw):
 
 
 r = sc(so_may_rang=2, rang_nhiet_do=260, rang_nhiet_do_m2=240)
-kiem("máy 2 rang 240 °C → sự cố CAO, nói rõ máy 2",
+kiem("máy 2 rang 240 °C → sự cố CAO, nói rõ máy rang M2 (W16)",
      len(r) == 1 and r[0][0] == "rang_nhiet_do_m2" and r[0][3] == "Cao"
-     and "máy 2" in r[0][4], str(r))
+     and "M2" in r[0][4], str(r))
 kiem("máy 2 KHÔNG chạy thì số cũ trong ô đó không sinh sự cố",
      not sc(so_may_rang=1, rang_nhiet_do=260, rang_nhiet_do_m2=240))
 r = sc(so_may_rang=2, rang_vong_quay_m2=9)
@@ -286,8 +287,8 @@ r = sc(so_may_nghien=2, do_min_dat_m2="Không đạt")
 kiem("máy nghiền 2 không đạt độ mịn → sự cố ghi mã máy M2 (W02)",
      len(r) == 1 and "M2" in r[0][4], str(r))
 cb = SC.canh_bao(Doc({"luot": "Trưa", "so_may_rang": 3, "rang_nhiet_do_m3": 280}))
-kiem("máy 3 vượt trần vận hành → cảnh báo nói rõ máy 3",
-     any("máy 3" in c for c in cb), str(cb))
+kiem("máy 3 vượt trần vận hành → cảnh báo nói rõ máy rang M3 (W16)",
+     any("M3" in c for c in cb), str(cb))
 
 print("\n-- nhiệt độ hàn máy đóng gói bột --")
 # W03 (D128): hàn túi 150–190 °C là MẶC ĐỊNH, và sự cố hàn là oPRP (trước: Khác).

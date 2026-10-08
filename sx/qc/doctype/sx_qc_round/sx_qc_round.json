@@ -387,26 +387,26 @@
   {
    "fieldname": "rang_nhiet_do_m2",
    "fieldtype": "Int",
-   "label": "3a Nhiệt độ rang — máy 2",
+   "label": "3a Nhiệt độ rang — M2",
    "description": "≥ 255 · ngoài 255–270 cảnh báo vận hành"
   },
   {
    "fieldname": "rang_vong_quay_m2",
    "fieldtype": "Float",
-   "label": "3b Vòng quay lồng rang — máy 2",
+   "label": "3b Vòng quay lồng rang — M2",
    "description": "6,2 – 7,0",
    "precision": "1"
   },
   {
    "fieldname": "rang_nhiet_do_m3",
    "fieldtype": "Int",
-   "label": "3a Nhiệt độ rang — máy 3",
+   "label": "3a Nhiệt độ rang — M3",
    "description": "≥ 255 · ngoài 255–270 cảnh báo vận hành"
   },
   {
    "fieldname": "rang_vong_quay_m3",
    "fieldtype": "Float",
-   "label": "3b Vòng quay lồng rang — máy 3",
+   "label": "3b Vòng quay lồng rang — M3",
    "description": "6,2 – 7,0",
    "precision": "1"
   },

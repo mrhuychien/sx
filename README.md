@@ -315,6 +315,18 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Số đo theo máy rang M1–M3, máy gói bột (D142 — W16)
+
+- Máy rang đỗ mang mã **M1 / M2 / M3** (tài liệu 08/10): nhiệt độ, vòng quay lồng rang ghi theo
+  từng máy trên lượt kiểm (đã có từ D100 — nay nhãn là mã máy: màn lượt, tờ in BM.08.01, câu sự cố,
+  nhãn trên Desk). Chỉ đổi nhãn — fieldname giữ nguyên, phiếu cũ đọc nguyên. Máy nghiền vẫn M1 / M2.
+- **Ba máy gói bột chưa có mã (chờ Cơ điện, C10)** → vẫn "máy 1/2/3". Có mã thì điền
+  `MA_MAY["goi_bot"]` trong `sx/qc/muc.py` (rồi `python3 scripts/gen-qc-doctype.py`), nhãn đổi theo.
+- Màn lượt: dòng **Lượt trước** ghi theo từng máy rang đang chạy ("M1 262 °C · 6,5 v/ph | M2 …").
+- Màn **Xem xét**: bảng **Số đo theo máy** của tháng — mỗi máy rang × (nhiệt độ, vòng quay), mỗi
+  máy gói bột × nhiệt độ hàn: số lần đo, thấp – cao, số lần dưới / trên ngưỡng (tô đỏ). Chỉ tính ô
+  áp dụng ở lượt đó: máy đang chạy, bước Rang không nghỉ, hôm có làm bột (`sx/qc/so_do.py`).
+
 ## Nhật ký cát rang BM.08.03, xem xét tháng theo ngày sản xuất (D141 — W20, W12)
 
 - Màn QC → Hôm nay → **♨ Nhật ký cát rang** (`#/qc/cat`, doctype `SX Nhat Ky Cat`): mỗi ngày có rang
