@@ -39,6 +39,8 @@
   "section_luu_mau",
   "luu_mau_so_ngay",
   "luu_mau_so_thang",
+  "section_cat",
+  "cat_so_ngay_toi_da",
   "section_quyen",
   "nguoi_dong_su_co",
   "nguoi_duyet_xuat_xuong"
@@ -257,6 +259,18 @@
    "label": "Lưu mẫu bao nhiêu tháng (tính từ NSX)",
    "default": "12",
    "description": "W07: 1 năm từ NSX. Mẫu không gắn lô thì tính từ ngày lấy mẫu."
+  },
+  {
+   "fieldname": "section_cat",
+   "fieldtype": "Section Break",
+   "label": "Nhật ký cát rang"
+  },
+  {
+   "fieldname": "cat_so_ngay_toi_da",
+   "fieldtype": "Int",
+   "label": "Cát dùng tối đa bao nhiêu ngày",
+   "default": "0",
+   "description": "W20 / C19: CHƯA CHỐT — để 0 thì app chỉ đếm số ngày cát đã dùng, không nhắc. Điền số ngày khi đã chốt: tới ngưỡng thì hộp nhắc QC báo thay cát."
   },
   {
    "fieldname": "section_quyen",

@@ -315,6 +315,28 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhật ký cát rang BM.08.03, xem xét tháng theo ngày sản xuất (D141 — W20, W12)
+
+- Màn QC → Hôm nay → **♨ Nhật ký cát rang** (`#/qc/cat`, doctype `SX Nhat Ky Cat`): mỗi ngày có rang
+  **một dòng** — nguồn cát (NCC loại *Cát rang*), có thay cát không, đã vệ sinh thùng / khay, cảm quan
+  cát, ghi chú. Ghi lại một ngày đã có = sửa dòng đó. Ghi bù ngày cũ được (không ghi trước ngày).
+- **App tự đếm số ngày cát đã dùng**: số dòng nhật ký kể từ lần thay cát gần nhất (tính cả hôm đó).
+  Dòng đầu sổ khai tay cát đang dùng đã được mấy ngày. Ghi bù / sửa ngày / xoá một dòng → cả chuỗi sau
+  tự tính lại. **Số ngày tối đa chưa chốt (C19)** → chỉ đếm, không nhắc; khi chốt thì điền *SX QC
+  Setting → Cát dùng tối đa bao nhiêu ngày*, hộp nhắc tự báo thay cát.
+- **Đổi nguồn cát** (chọn NCC khác cát đang dùng — app tự đánh dấu thay cát): màn báo đỏ, hộp nhắc QC
+  nhắc **kiểm kim loại nặng** (chưa gửi mẫu = mức cao) và **lưu lọ mẫu** tới khi dòng đó có kết quả Đạt
+  + tích lọ mẫu (nút *GHI KẾT QUẢ* — QC hoặc Ban ISO, kể cả sau khi tháng đã ký). Kết quả **Không đạt
+  → tự lập phiếu sự cố** (nguồn Nhật ký cát, mức Cao, công đoạn 3 Rang).
+- Ngày có lượt kiểm ghi **nhiệt độ rang** mà chưa có dòng nhật ký cát → hộp nhắc (hôm nay, và các ngày
+  thiếu trong 7 ngày qua). Nguồn chưa là NCC Cát rang được duyệt → chỉ báo.
+- **Xem xét tháng (Ban ISO)**: tỷ lệ "Lượt đã làm" chia cho **ngày sản xuất** (có phiếu ngày sản xuất,
+  có lượt kiểm, hoặc có nhật ký cát — tới hôm nay), không còn chia cho mọi ngày lịch. Lưới tháng: ngày
+  sản xuất thiếu lượt **✗ đỏ**, ngày không sản xuất "–" nhạt; cột **Sự cố** (đếm, bỏ diễn tập) và cột
+  **Cát** (✓ có nhật ký, ↻ thay cát). Mục **Nhật ký cát rang** của tháng: số ngày ghi, số lần thay, ngày
+  thiếu vệ sinh, cảm quan không đạt, đổi nguồn + kim loại nặng + lọ mẫu; **🖨 NHẬT KÝ CÁT (BM.08.03)**.
+  Nút **ĐÃ XEM XÉT ĐẾN …** ký cả lượt kiểm lẫn dòng nhật ký cát; dòng đã ký chỉ Ban ISO sửa / xoá.
+
 ## Động vật gây hại theo trạm, BM.PRP.03 / BM.PRP.01 (D140 — W15)
 
 - Danh mục **trạm** `SX Tram Dong Vat`: patch tạo sẵn **R01–R21** (bẫy chuột) và **C01–C19** (bẫy /

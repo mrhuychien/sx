@@ -1,0 +1,245 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-08 23:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "ngay",
+  "ncc_cat",
+  "ten_ncc",
+  "column_break_1",
+  "thay_cat",
+  "so_ngay_dung",
+  "doi_nguon",
+  "section_doi_nguon",
+  "kln",
+  "so_phieu_kln",
+  "column_break_2",
+  "luu_lo_mau",
+  "section_ve_sinh",
+  "ve_sinh_thung",
+  "ve_sinh_khay",
+  "column_break_3",
+  "cam_quan",
+  "ghi_chu",
+  "section_ghi",
+  "nguoi_ghi",
+  "su_co",
+  "column_break_4",
+  "xem_boi",
+  "xem_luc"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "CAT-.YYYY.-.#####",
+   "default": "CAT-.YYYY.-.#####",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1,
+   "search_index": 1,
+   "description": "Mỗi ngày có rang một dòng."
+  },
+  {
+   "fieldname": "ncc_cat",
+   "fieldtype": "Link",
+   "label": "Nguồn cát (NCC)",
+   "options": "Supplier",
+   "in_list_view": 1,
+   "description": "NCC loại Cát rang (BM.07.02). Bỏ trống = giữ nguồn của cát đang dùng."
+  },
+  {
+   "fieldname": "ten_ncc",
+   "fieldtype": "Data",
+   "label": "Tên nguồn cát",
+   "read_only": 1,
+   "fetch_from": "ncc_cat.supplier_name"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "thay_cat",
+   "fieldtype": "Check",
+   "label": "Thay cát mới hôm nay",
+   "in_list_view": 1,
+   "description": "Đổi sang NCC khác thì app tự đánh dấu thay cát."
+  },
+  {
+   "fieldname": "so_ngay_dung",
+   "fieldtype": "Int",
+   "label": "Cát dùng ngày thứ",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "App tự đếm: số ngày có ghi nhật ký kể từ lần thay cát gần nhất (tính cả hôm nay). Chưa có số ngày tối đa (C19) — chỉ đếm."
+  },
+  {
+   "fieldname": "doi_nguon",
+   "fieldtype": "Check",
+   "label": "Đổi nguồn cát",
+   "read_only": 1,
+   "description": "Thay cát từ NCC khác NCC của cát trước — phải kiểm kim loại nặng và lưu lọ mẫu."
+  },
+  {
+   "fieldname": "section_doi_nguon",
+   "fieldtype": "Section Break",
+   "label": "Đổi nguồn cát — kim loại nặng, lọ mẫu",
+   "depends_on": "doi_nguon"
+  },
+  {
+   "fieldname": "kln",
+   "fieldtype": "Select",
+   "label": "Kiểm kim loại nặng",
+   "options": "\nĐã gửi mẫu\nĐạt\nKhông đạt",
+   "description": "Không đạt → app tự lập phiếu sự cố (nguồn Nhật ký cát, mức Cao)."
+  },
+  {
+   "fieldname": "so_phieu_kln",
+   "fieldtype": "Data",
+   "label": "Số phiếu kết quả kim loại nặng"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "luu_lo_mau",
+   "fieldtype": "Check",
+   "label": "Đã lưu lọ mẫu cát"
+  },
+  {
+   "fieldname": "section_ve_sinh",
+   "fieldtype": "Section Break",
+   "label": "Vệ sinh, cảm quan"
+  },
+  {
+   "fieldname": "ve_sinh_thung",
+   "fieldtype": "Check",
+   "label": "Đã vệ sinh thùng"
+  },
+  {
+   "fieldname": "ve_sinh_khay",
+   "fieldtype": "Check",
+   "label": "Đã vệ sinh khay"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cam_quan",
+   "fieldtype": "Select",
+   "label": "Cảm quan cát",
+   "options": "\nĐạt\nKhông đạt",
+   "description": "Sạch, khô, không vón cục, không lẫn tạp chất."
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  },
+  {
+   "fieldname": "section_ghi",
+   "fieldtype": "Section Break",
+   "label": "Người ghi, xem xét"
+  },
+  {
+   "fieldname": "nguoi_ghi",
+   "fieldtype": "Link",
+   "label": "Người ghi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố",
+   "options": "SX Su Co",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "xem_boi",
+   "fieldtype": "Link",
+   "label": "Ban ISO xem xét",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xem_luc",
+   "fieldtype": "Datetime",
+   "label": "Xem xét lúc",
+   "read_only": 1,
+   "description": "Đã xem xét thì khoá — chỉ Ban ISO sửa; riêng kết quả kim loại nặng / lọ mẫu vẫn cập nhật được."
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-08 23:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX Nhat Ky Cat",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "ngay",
+ "sort_order": "DESC",
+ "title_field": "ngay",
+ "track_changes": 1
+}

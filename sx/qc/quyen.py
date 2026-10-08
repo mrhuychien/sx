@@ -40,3 +40,12 @@ def duoc_duyet_xuat_xuong(user=None):
     if ISO in _vai(user):
         return True
     return user in (nguong().get("nguoi_duyet_xuat_xuong") or [])
+
+
+def la_iso(user=None):
+    """Trưởng Ban ISO hoặc quản trị — sửa được hồ sơ ĐÃ XEM XÉT (nhật ký cát W20…)."""
+    user = user or frappe.session.user
+    if user == "Administrator":
+        return True
+    vai = _vai(user)
+    return bool(vai & SIEU or ISO in vai)

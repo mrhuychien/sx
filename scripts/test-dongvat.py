@@ -199,6 +199,7 @@ for t in ("san_pham", "su_co", "xuat"):
     nap(f"sx.qc.{t}", f"sx/qc/{t}.py")
 NH = nap("sx.qc.nhac", "sx/qc/nhac.py")
 DV = nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
+nap("sx.qc.cat", "sx/qc/cat.py")
 nap("sx.api.qc", "sx/api/qc.py")
 A = nap("sx.api.qc_dvgh", "sx/api/qc_dvgh.py")
 TRC = nap("tram_ctl", "sx/qc/doctype/sx_tram_dong_vat/sx_tram_dong_vat.py")

@@ -29,6 +29,7 @@ from frappe.utils import (
     nowdate,
 )
 
+from sx.qc import cat as _cat
 from sx.qc import dong_vat as _dong_vat
 from sx.qc import muc as M
 from sx.qc import nhac as _nhac
@@ -515,15 +516,17 @@ def nhac(ngay=None):
         "SX QC Round",
         filters={"ngay": ("between", [tu, d]), "docstatus": ("<", 2)},
         fields=["name", "ngay", "luot", "docstatus", "reviewed_on",
-                "t2_so_bay_dau_hieu", "b2_rang_lac_nhiet"])
+                "t2_so_bay_dau_hieu", "b2_rang_lac_nhiet", "rang_nhiet_do"])
     # Sự cố KHÔNG giới hạn cửa sổ ngày: cái quá hạn ba tháng mới đúng là cái
     # phải hiện lên, mà nó thì nằm ngoài mọi cửa sổ hợp lý.
     su_co = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở"},
                            fields=["name", "ngay", "trang_thai", "xu_ly_ngay",
                                    "muc_do"])
+    # Ngày có lượt ghi nhiệt độ rang = ngày có rang → phải có dòng nhật ký cát (W20).
+    rang = {str(r.get("ngay")) for r in luot if cint(r.get("rang_nhiet_do")) > 0}
     return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton(),
                                              _luu_mau_nhac(d), _xuat_xuong_nhac(),
-                                             _dong_vat.nhac(d))}
+                                             _dong_vat.nhac(d), _cat.nhac(d, rang))}
 
 
 def _xuat_xuong_nhac():
@@ -871,7 +874,41 @@ def review_rounds(tu=None, den=None):
         # chặn. Đây là ghi chữ ký xem xét, không đụng số liệu của lượt.
         doc.db_set({"reviewed_by": frappe.session.user, "reviewed_on": luc},
                    update_modified=False)
-    return {"so_luot": len(ds), "den": str(den)}
+    # W12 (D141): Ban ISO xem nhật ký cát rang cuối tháng cùng một chữ ký. Dòng đã ký
+    # thì khoá (controller SX Nhat Ky Cat) — trừ kết quả kim loại nặng / lọ mẫu.
+    cat = _cat_chua_xem(tu, den)
+    for n in cat:
+        frappe.db.set_value(_cat.PT, n, {"xem_boi": frappe.session.user, "xem_luc": luc},
+                            update_modified=False)
+    return {"so_luot": len(ds), "so_cat": len(cat), "den": str(den)}
+
+
+def _cat_chua_xem(tu, den):
+    try:
+        return frappe.get_all(_cat.PT, filters={"ngay": ("between", [tu, den]),
+                                                "xem_luc": ("is", "not set")}, pluck="name")
+    except Exception:
+        return []
+
+
+def _ngay_san_xuat(tu, den, rounds):
+    """Ngày sản xuất trong khoảng (tới hôm nay) — mẫu số của các chỉ số (W12).
+
+    Hợp của: ngày có phiếu Ngày sản xuất (báo mẻ, đọc theo tên doctype — module qc cài
+    riêng thì không có, bỏ qua), ngày có lượt kiểm, ngày có nhật ký cát. Chủ nhật / ngày
+    nghỉ không ai sản xuất thì không còn bị tính là "thiếu 3 lượt"; ngày CÓ sản xuất mà QC
+    không đi lượt nào thì vẫn lộ ra — đó là chỗ mẫu số cũ (mọi ngày lịch) và mẫu số "ngày
+    có lượt" đều sai."""
+    den = min(getdate(den), getdate(nowdate()))
+    co = {str(r["ngay"]) for r in rounds}
+    for dt, truong, loc in (("SX Ngay San Xuat", "ngay", {"docstatus": ("<", 2)}),
+                            (_cat.PT, "ngay", {})):
+        try:
+            co |= {str(x) for x in frappe.get_all(
+                dt, filters=dict(loc, **{truong: ("between", [tu, den])}), pluck=truong)}
+        except Exception:
+            pass
+    return sorted(x for x in co if str(getdate(tu)) <= x <= str(den))
 
 
 @frappe.whitelist()
@@ -887,22 +924,42 @@ def dashboard(tu=None, den=None):
                 "thung_bot_qua_han", "t2_so_bay_dau_hieu", "reviewed_on",
                 "finished_at"],
         order_by="ngay, finished_at")
+    # Lượt đang làm dở cũng nói "hôm đó có sản xuất" — chỉ để đếm ngày, không vào KPI.
+    do_dang = frappe.get_all("SX QC Round", filters={"ngay": ("between", [tu, den]), "docstatus": 0},
+                             fields=["ngay"])
     # Phiếu diễn tập (W11) không phải sự cố thật: không vào số liệu, chỉ đếm riêng.
     tat_ca = frappe.get_all(
         "SX Su Co", filters={"ngay": ("between", [tu, den])},
         fields=["name", "ngay", "cong_doan", "loai", "muc_do", "trang_thai", "dien_tap"])
     su_co = [x for x in tat_ca if not cint(x.get("dien_tap"))]
 
-    so_ngay = (getdate(den) - getdate(tu)).days + 1
-    can_co = so_ngay * len(M.LUOT_TRONG_NGAY)   # 3 lượt mỗi ngày (D95)
+    # W12 (D141): mẫu số = NGÀY SẢN XUẤT, không phải mọi ngày lịch (Chủ nhật, ngày nghỉ,
+    # ngày chưa tới của tháng đang xem đều kéo tỷ lệ hoàn tất xuống mà không ai làm sai).
+    ngay_sx = _ngay_san_xuat(tu, den, rounds + do_dang)
+    can_co = len(ngay_sx) * len(M.LUOT_TRONG_NGAY)   # 3 lượt mỗi ngày (D95)
     ghi_muon = sum(1 for r in rounds if cint(r["ghi_muon"]))
+    theo_ngay = {d: {"luot": 0, "su_co": 0} for d in ngay_sx}
+    for r in rounds:
+        g = theo_ngay.setdefault(str(r["ngay"]), {"luot": 0, "su_co": 0})
+        g["luot"] += 1
+    for x in su_co:
+        theo_ngay.setdefault(str(x["ngay"]), {"luot": 0, "su_co": 0})["su_co"] += 1
+    cat = _cat_thang(tu, den)
+    for x in cat["ds"]:
+        theo_ngay.setdefault(x["ngay"], {"luot": 0, "su_co": 0})["cat"] = "thay" if x["thay_cat"] else "co"
     han = cint(nguong()["su_co_qua_han_ngay"])
     hom_nay = getdate(nowdate())
     return {
         "tu": str(tu), "den": str(den),
         "so_luot": len(rounds),
         "can_co": can_co,
-        "ty_le_hoan_tat": round(len(rounds) * 100.0 / can_co, 1) if can_co else 0,
+        "so_ngay_sx": len(ngay_sx),
+        "ngay_sx": ngay_sx,
+        # Ngày sản xuất chưa đủ 3 lượt hoàn tất — màn Xem xét tô đỏ.
+        "ngay_thieu": [d for d in ngay_sx if theo_ngay[d]["luot"] < len(M.LUOT_TRONG_NGAY)],
+        "theo_ngay": theo_ngay,
+        "cat": {k: v for k, v in cat.items() if k != "ds"},
+        "ty_le_hoan_tat": round(min(len(rounds), can_co) * 100.0 / can_co, 1) if can_co else 0,
         "ty_le_dung_gio": (round((len(rounds) - ghi_muon) * 100.0 / len(rounds), 1)
                            if rounds else 0),
         "ghi_muon": ghi_muon,
@@ -921,6 +978,29 @@ def dashboard(tu=None, den=None):
                        for r in rounds if cint(r["rang_nhiet_do"])],
         "thung_qua_han": sum(cint(r["thung_bot_qua_han"]) for r in rounds),
         "bay_co_dau_hieu": sum(cint(r["t2_so_bay_dau_hieu"]) for r in rounds),
+    }
+
+
+def _cat_thang(tu, den):
+    """Nhật ký cát rang của khoảng xem xét (W12): Ban ISO xem cuối tháng. Chưa migrate → rỗng."""
+    try:
+        ds = frappe.get_all(_cat.PT, filters={"ngay": ("between", [tu, den])},
+                            fields=["name", "ngay", "ten_ncc", "ncc_cat", "thay_cat", "so_ngay_dung",
+                                    "doi_nguon", "kln", "luu_lo_mau", "ve_sinh_thung", "ve_sinh_khay",
+                                    "cam_quan", "xem_luc"], order_by="ngay asc")
+    except Exception:
+        ds = []
+    return {
+        "ds": [dict(x, ngay=str(x["ngay"])) for x in ds],
+        "so_ngay": len(ds),
+        "chua_xem": sum(1 for x in ds if not x.get("xem_luc")),
+        "so_lan_thay": sum(1 for x in ds if cint(x.get("thay_cat"))),
+        "chua_ve_sinh": sum(1 for x in ds if not (cint(x.get("ve_sinh_thung")) and cint(x.get("ve_sinh_khay")))),
+        "cam_quan_hong": sum(1 for x in ds if x.get("cam_quan") == "Không đạt"),
+        "so_ngay_cuoi": cint(ds[-1]["so_ngay_dung"]) if ds else 0,
+        "doi_nguon": [{"ngay": str(x["ngay"]), "ncc": x.get("ten_ncc") or x.get("ncc_cat"),
+                       "kln": x.get("kln") or "", "lo_mau": cint(x.get("luu_lo_mau"))}
+                      for x in ds if cint(x.get("doi_nguon"))],
     }
 
 

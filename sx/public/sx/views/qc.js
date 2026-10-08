@@ -23,6 +23,8 @@ const MAN = {
   // W15 (D140): động vật gây hại theo trạm — nút ở cuối Hôm nay; #/qc/dvgh/R05 là URL trên
   // tem QR tại trạm.
   dvgh: '/assets/sx/sx/views/qc_dvgh.js',
+  // W20 (D141): nhật ký cát rang BM.08.03 — nút ở cuối Hôm nay, cạnh động vật gây hại.
+  cat: '/assets/sx/sx/views/qc_cat.js',
 };
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
@@ -81,7 +83,7 @@ function veTab(dang, api) {
     const a = el('a', 'sx-qc-tab', ten);
     a.href = ma === 'home' ? '#/qc' : `#/qc/${ma}`;
     const on = ma === dang || (ma === 'incidents' && dang === 'khieunai')
-      || (ma === 'xuatxuong' && dang === 'luumau') || (ma === 'home' && dang === 'dvgh');
+      || (ma === 'xuatxuong' && dang === 'luumau') || (ma === 'home' && ['dvgh', 'cat'].includes(dang));
     a.className = `sx-qc-tab${on ? ' sx-qc-seg-on' : ''}`;
     box.appendChild(a);
   });

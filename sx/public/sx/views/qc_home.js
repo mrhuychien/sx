@@ -98,13 +98,19 @@ export async function render({ container, call, st }) {
   // cùng một nội dung trên một màn thì người đọc phải dừng lại kiểm xem chúng
   // có khác nhau không — mà chúng thì không.
 
-  // W15 (D140): động vật gây hại ghi theo TRẠM, lúc thấy — không gắn vào lượt nào. Thường
-  // QC quét tem ở trạm (camera mở thẳng phiếu); nút này cho lúc gõ mã / xem tuần / in sổ.
-  const dv = el('button', 'sx-btn sx-btn-ghost', '🐀 Động vật gây hại — ghi theo trạm, in BM.PRP');
-  dv.type = 'button';
-  dv.style.cssText = 'width:100%';
-  dv.addEventListener('click', () => { window.location.hash = '#/qc/dvgh'; });
-  container.appendChild(dv);
+  // Hai sổ không gắn vào lượt nào:
+  //  · W15 (D140) động vật gây hại ghi theo TRẠM, lúc thấy — thường QC quét tem ở trạm
+  //    (camera mở thẳng phiếu); nút này cho lúc gõ mã / xem tuần / in sổ.
+  //  · W20 (D141) nhật ký cát rang BM.08.03 — mỗi ngày có rang một dòng.
+  const so = el('div', 'sx-qc-so');
+  [['#/qc/dvgh', '🐀 Động vật gây hại', 'theo trạm · BM.PRP'],
+    ['#/qc/cat', '♨ Nhật ký cát rang', 'BM.08.03 · đếm ngày cát']].forEach(([href, ten, phu]) => {
+    const b = el('button', 'sx-btn sx-btn-ghost', `${esc(ten)}<small>${esc(phu)}</small>`);
+    b.type = 'button';
+    b.addEventListener('click', () => { window.location.hash = href; });
+    so.appendChild(b);
+  });
+  container.appendChild(so);
 
   // Nhập lại từ bản giấy = mở một ngày cũ. Viết hẳn ra thành câu, vì cái nút 📅
   // trên đầu màn không tự nói được nó dùng để làm việc đó.

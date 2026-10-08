@@ -8,7 +8,7 @@
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step } from '/assets/sx/sx/components/modal.js';
-import { LUOT_NGAY, khungTrong, timLuot, veNhac } from '/assets/sx/sx/components/qcui.js';
+import { LUOT_NGAY, chip, khungTrong, timLuot, veNhac } from '/assets/sx/sx/components/qcui.js';
 
 const st = { thang: null };
 
@@ -67,11 +67,15 @@ export async function render(api) {
   const kp = el('div', 'sx-qc-kpi');
   kp.appendChild(o('Ghi đúng khung giờ', `${kpi.ty_le_dung_gio}%`,
     `${kpi.ghi_muon} lượt ghi muộn`));
+  // W12 (D141): mẫu số là NGÀY SẢN XUẤT (có báo mẻ / lượt kiểm / nhật ký cát), tới hôm nay —
+  // Chủ nhật, ngày nghỉ, ngày chưa tới không còn kéo tỷ lệ xuống.
   kp.appendChild(o('Lượt đã làm', `${kpi.so_luot}/${kpi.can_co}`,
-    `${kpi.ty_le_hoan_tat}% so với 3 lượt mỗi ngày`));
+    `${kpi.ty_le_hoan_tat}% · 3 lượt × ${kpi.so_ngay_sx} ngày sản xuất`));
   kp.appendChild(o('Sự cố đang mở', kpi.su_co_mo,
     kpi.su_co_qua_han ? `${kpi.su_co_qua_han} phiếu QUÁ HẠN` : 'không có phiếu quá hạn'));
-  kp.appendChild(o('Chưa xem xét', kpi.chua_xem_xet, 'lượt đã hoàn tất, Ban ISO chưa ký'));
+  const cat = kpi.cat || {};
+  kp.appendChild(o('Chưa xem xét', kpi.chua_xem_xet, `lượt đã hoàn tất, Ban ISO chưa ký${
+    cat.chua_xem ? ` · + ${cat.chua_xem} dòng nhật ký cát` : ''}`));
   if (kpi.nhap_lai_tu_giay) {
     kp.appendChild(o('Nhập lại từ giấy', kpi.nhap_lai_tu_giay,
       'không tính là ghi muộn'));
@@ -79,29 +83,47 @@ export async function render(api) {
   container.appendChild(kp);
 
   // ── lưới ngày × lượt ────────────────────────────────────────────────
+  // Ngày sản xuất thiếu lượt: ô ĐỎ (✗) — đó là lỗ hồ sơ. Ngày không sản xuất: "–" nhạt —
+  // không ai phải giải trình. Trước W12 cả hai cùng một dấu chấm xám.
   const luoi = el('div', 'sx-qc-luoi');
   const cot = LUOT_NGAY;
+  const coSx = new Set(kpi.ngay_sx || []);
+  const tn = kpi.theo_ngay || {};
+  const nay = new Date();
+  const homNay = `${nay.getFullYear()}-${String(nay.getMonth() + 1).padStart(2, '0')}-${
+    String(nay.getDate()).padStart(2, '0')}`;
   let html = '<table><tr><th>Ngày</th>'
     + cot.map((c) => `<th>${esc(c.ngan)}</th>`).join('')
-    + '<th>Sự cố</th></tr>';
+    + '<th>Sự cố</th><th>Cát</th></tr>';
   for (let i = 1; i <= cuoi.getDate(); i += 1) {
     const ngay = `${st.thang}-${String(i).padStart(2, '0')}`;
     const cua = ds.filter((r) => String(r.ngay) === ngay);
-    html += `<tr><td>${i}</td>`;
+    const laSx = coSx.has(ngay);
+    const sau = ngay > homNay;
+    html += `<tr class="${sau ? 'sx-qc-hang-sau' : (laSx ? '' : 'sx-qc-hang-nghi')}"><td>${i}</td>`;
     cot.forEach((c) => {
       const r = timLuot(cua, c.luot);
-      const cls = !r ? 'sx-qc-o-thieu'
-        : (r.ghi_muon ? 'sx-qc-o-muon' : (r.docstatus === 1 ? 'sx-qc-o-xong' : ''));
-      const ky = !r ? '·' : (r.docstatus === 1 ? (r.ghi_muon ? '✻' : '✓') : '…');
-      html += `<td class="${cls}" title="${esc(r ? r.name : 'chưa có lượt')}">${ky}</td>`;
+      let cls = '';
+      let ky = sau ? '' : '–';
+      if (r) {
+        cls = r.ghi_muon ? 'sx-qc-o-muon' : (r.docstatus === 1 ? 'sx-qc-o-xong' : '');
+        ky = r.docstatus === 1 ? (r.ghi_muon ? '✻' : '✓') : '…';
+      } else if (laSx) {
+        cls = 'sx-qc-o-loi';
+        ky = '✗';
+      }
+      html += `<td class="${cls}" title="${esc(r ? r.name : (laSx ? 'ngày sản xuất — thiếu lượt'
+        : 'không sản xuất'))}">${ky}</td>`;
     });
-    html += '<td></td></tr>';
+    const g = tn[ngay] || {};
+    html += `<td>${g.su_co || ''}</td><td>${g.cat === 'thay' ? '↻' : (g.cat ? '✓' : '')}</td></tr>`;
   }
   html += '</table>';
   luoi.innerHTML = html;
   container.appendChild(luoi);
   container.appendChild(el('div', 'sx-qc-goiy',
-    '✓ xong đúng giờ · ✻ ghi muộn · … đang làm dở · · chưa có lượt'));
+    '✓ xong đúng giờ · ✻ ghi muộn · … đang làm dở · ✗ ngày sản xuất thiếu lượt · – không sản xuất'
+    + ' · Cát: ✓ có nhật ký, ↻ thay cát'));
 
   // ── sự cố theo công đoạn ────────────────────────────────────────────
   if (kpi.theo_cong_doan.length) {
@@ -113,21 +135,46 @@ export async function render(api) {
     container.appendChild(box);
   }
 
+  // ── nhật ký cát rang của tháng (W12: Ban ISO xem cuối tháng) ─────────────
+  container.appendChild(el('div', 'sx-qc-buoc',
+    '<span class="sx-qc-buoc-ten">Nhật ký cát rang (BM.08.03)</span>'));
+  if (!cat.so_ngay) {
+    container.appendChild(khungTrong('Tháng này chưa có dòng nhật ký cát nào.'));
+  } else {
+    const box = el('div', 'sx-qc-chips');
+    box.appendChild(chip(`${cat.so_ngay} ngày ghi`));
+    box.appendChild(chip(`thay cát ${cat.so_lan_thay} lần`));
+    box.appendChild(chip(`cuối kỳ: cát ngày thứ ${cat.so_ngay_cuoi}`));
+    if (cat.chua_ve_sinh) box.appendChild(chip(`${cat.chua_ve_sinh} ngày thiếu vệ sinh thùng / khay`, 'han'));
+    if (cat.cam_quan_hong) box.appendChild(chip(`${cat.cam_quan_hong} ngày cảm quan Không đạt`, 'han'));
+    (cat.doi_nguon || []).forEach((x) => box.appendChild(chip(
+      `đổi nguồn ${x.ncc} ${x.ngay.slice(8, 10)}/${x.ngay.slice(5, 7)}: kim loại nặng ${x.kln || 'CHƯA GỬI'}`
+      + ` · lọ mẫu ${x.lo_mau ? '✓' : '✗'}`, x.kln === 'Đạt' && x.lo_mau ? '' : 'han')));
+    container.appendChild(box);
+  }
+  const moCat = el('button', 'sx-btn sx-btn-ghost', 'MỞ NHẬT KÝ CÁT');
+  moCat.type = 'button';
+  moCat.addEventListener('click', () => { window.location.hash = '#/qc/cat'; });
+  container.appendChild(moCat);
+
   // ── đánh dấu đã xem xét ─────────────────────────────────────────────
+  // Một chữ ký cho cả lượt kiểm lẫn nhật ký cát của khoảng đang xem (W12).
   const nut = el('button', 'sx-btn sx-btn-primary sx-btn-big',
     `ĐÃ XEM XÉT ĐẾN ${esc(den)}`);
   nut.type = 'button';
-  nut.disabled = !kpi.chua_xem_xet;
+  nut.disabled = !(kpi.chua_xem_xet || cat.chua_xem);
   nut.addEventListener('click', () => confirm2Step({
     title: 'Đánh dấu đã xem xét',
-    message: `Ký xem xét ${kpi.chua_xem_xet} lượt từ ${tu} đến ${den}. `
+    message: `Ký xem xét ${kpi.chua_xem_xet} lượt${cat.chua_xem ? ` và ${cat.chua_xem} dòng nhật ký cát` : ''}`
+      + ` từ ${tu} đến ${den}. `
       + 'Sau khi ký, các lượt này KHOÁ — không huỷ được nữa, kể cả bởi Ban ISO. '
+      + 'Dòng nhật ký cát đã ký chỉ Ban ISO sửa (kết quả kim loại nặng / lọ mẫu vẫn ghi được). '
       + 'Sai sót phát hiện sau thì ghi phiếu sự cố loại "Hiệu chỉnh hồ sơ".',
     confirmLabel: 'XÁC NHẬN ĐÃ XEM XÉT',
     onConfirm: async () => {
       try {
         const kq = await call('sx.api.qc.review_rounds', { tu, den });
-        toast(`Đã ký xem xét ${kq.so_luot} lượt`);
+        toast(`Đã ký xem xét ${kq.so_luot} lượt${kq.so_cat ? ` · ${kq.so_cat} dòng nhật ký cát` : ''}`);
         render(api);
       } catch (e) { toastErr(e.message); }
     },
@@ -173,6 +220,24 @@ export async function render(api) {
     } catch (e) { toastErr(e.message); } finally { nutNcc.disabled = false; }
   });
   ho_so.appendChild(nutNcc);
+
+  // W20 (D141): nhật ký cát rang BM.08.03 của tháng đang xem.
+  const nutCat = el('button', 'sx-btn sx-btn-ghost', '🖨 NHẬT KÝ CÁT (BM.08.03)');
+  nutCat.type = 'button';
+  nutCat.addEventListener('click', async () => {
+    nutCat.disabled = true;
+    try {
+      const html = await call('sx.api.qc_cat.in_bm0803', { thang: st.thang });
+      const w = window.open('', '_blank');
+      if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+      w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+        + `<title>BM.08.03 — ${st.thang}</title></head><body>${html}</body></html>`);
+      w.document.close();
+      w.focus();
+      setTimeout(() => w.print(), 400);
+    } catch (e) { toastErr(e.message); } finally { nutCat.disabled = false; }
+  });
+  ho_so.appendChild(nutCat);
 
   // W14 (D139): sổ kiểm xe BM.09.01 của tháng đang xem — gom từ hoá đơn bán + phiếu nhập mua.
   const nutXe = el('button', 'sx-btn sx-btn-ghost', '🖨 KIỂM XE THÁNG (BM.09.01)');

@@ -359,4 +359,11 @@ python3 scripts/test-dongvat.py > /tmp/sx-dongvat.log 2>&1 \
   && tail -1 /tmp/sx-dongvat.log \
   || { cat /tmp/sx-dongvat.log; loi=1; }
 
+# D141 (W20, W12): nhật ký cát rang + xem xét tháng theo ngày sản xuất. Số ngày cát không
+# tính lại khi ghi bù / xoá, đổi nguồn không nhắc kim loại nặng, tỷ lệ lượt chia cho ngày
+# lịch — đều im lặng.
+python3 scripts/test-cat.py > /tmp/sx-cat.log 2>&1 \
+  && tail -1 /tmp/sx-cat.log \
+  || { cat /tmp/sx-cat.log; loi=1; }
+
 exit $loi

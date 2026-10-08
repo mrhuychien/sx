@@ -190,6 +190,7 @@ R = nap("sx.qc.doctype.sx_qc_round.sx_qc_round",
 LMC = nap("sx.qc.doctype.sx_qc_luu_mau.sx_qc_luu_mau",
           "sx/qc/doctype/sx_qc_luu_mau/sx_qc_luu_mau.py")
 nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
+nap("sx.qc.cat", "sx/qc/cat.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 P = nap("sx.patches.d100_qc_may_va_lac", "sx/patches/d100_qc_may_va_lac.py")
 

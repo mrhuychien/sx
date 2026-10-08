@@ -431,3 +431,22 @@ button.sx-qc-tag-chon {
 .sx-dv-tram-co { background: var(--sx-danger-soft); border-color: var(--sx-danger); color: var(--sx-danger-text); }
 .sx-dv-tram-co small { color: var(--sx-danger-text); font-weight: 700; }
 .sx-dv-tram:disabled { cursor: default; opacity: 1; }
+
+/* ── D141 (W20, W12): nhật ký cát rang, sổ ở màn Hôm nay, xem xét theo ngày sản xuất ─ */
+.sx-qc-so { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sx-s2); }
+.sx-qc-so .sx-btn { line-height: 1.25; padding: var(--sx-s2); white-space: normal; }
+.sx-qc-so .sx-btn small { display: block; font-size: var(--sx-f-xs); font-weight: 500; color: var(--sx-text-3); }
+.sx-cat-hien { border-left: 4px solid var(--sx-primary); }
+.sx-cat-so { font-size: var(--sx-f-xl); font-weight: 800; }
+.sx-cat-so small { font-size: var(--sx-f-sm); font-weight: 600; color: var(--sx-text-3); }
+.sx-cat-nguon { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-cat-dong { cursor: pointer; }
+.sx-cat-thay { border-left: 4px solid var(--sx-warning); }
+.sx-cat-doi {
+  background: var(--sx-danger-soft); color: var(--sx-danger-text); font-size: var(--sx-f-sm);
+  border-radius: var(--sx-radius-sm); padding: var(--sx-s2) var(--sx-s3); margin: var(--sx-s2) 0;
+}
+.sx-qc-nhac-o .sx-btn { margin-top: var(--sx-s2); min-height: 36px; }
+.sx-qc-o-loi { background: var(--sx-danger-soft); color: var(--sx-danger-text); font-weight: 700; }
+.sx-qc-hang-nghi td { color: var(--sx-text-3); background: transparent; }
+.sx-qc-hang-sau td { color: var(--sx-line-2); }
