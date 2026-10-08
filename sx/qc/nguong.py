@@ -21,13 +21,20 @@ MAC_DINH = {
     "su_co_qua_han_ngay": 7,
     "do_am_toi_da": 13.0,
     "luu_mau_so_ngay": 180,
+    # W03 (D128): ngưỡng phần bột đã chốt theo tài liệu 08/10/2026 — trước đó là
+    # "chờ thẩm định" (chưa đặt thì chỉ ghi số). Rang lạc 150–180 °C, 30–40 phút;
+    # hàn túi 150–190 °C. Sửa được trong SX QC Setting; để trống = số ở đây.
+    "rang_lac_nhiet_min": 150,
+    "rang_lac_nhiet_max": 180,
+    "rang_lac_phut_min": 30,
+    "rang_lac_phut_max": 40,
+    "han_nhiet_min": 150,
+    "han_nhiet_max": 190,
 }
 
 # Ngưỡng chờ thẩm định: không có mặc định, chưa đặt thì không sinh sự cố.
-CHO_THAM_DINH = ("rang_lac_nhiet_min", "rang_lac_phut_min",
-                 # Nhiệt độ hàn máy đóng gói bột (D100): mỗi loại màng một khoảng,
-                 # chưa ai đưa con số — nên chưa đặt thì chỉ ghi số.
-                 "han_nhiet_min", "han_nhiet_max")
+# (Từ D128 rang lạc và nhiệt độ hàn đã có số — xem MAC_DINH.)
+CHO_THAM_DINH = ()
 
 # Vị bột có lạc (D100) khi SX QC Setting chưa khai gì. Đây là vị duy nhất đang
 # có lạc trong công thức (BOM chè đậu đen cốt dừa có Lạc).

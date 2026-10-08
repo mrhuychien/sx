@@ -563,7 +563,7 @@ def list_incidents(trang_thai=None, tu=None, den=None, loai=None, cong_doan=None
     ds = frappe.get_all(
         "SX Su Co", filters=dk,
         fields=["name", "ngay", "nguon", "qc_round", "muc", "cong_doan",
-                "loai", "muc_do", "mo_ta", "trang_thai", "xu_ly_ngay",
+                "loai", "oprp", "muc_do", "mo_ta", "trang_thai", "xu_ly_ngay",
                 "quyet_dinh_sp", "nguoi_xu_ly", "dong_boi", "dong_ngay",
                 "lo_anh_huong", "so_luong", "nguyen_nhan", "hanh_dong_khac_phuc",
                 "car_so"],

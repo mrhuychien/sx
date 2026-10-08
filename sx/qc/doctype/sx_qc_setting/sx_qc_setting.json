@@ -12,7 +12,9 @@
   "column_break_nguong",
   "thung_bot_max",
   "rang_lac_nhiet_min",
+  "rang_lac_nhiet_max",
   "rang_lac_phut_min",
+  "rang_lac_phut_max",
   "section_bot",
   "bot_co_lac",
   "column_break_bot",
@@ -81,13 +83,27 @@
    "fieldname": "rang_lac_nhiet_min",
    "fieldtype": "Int",
    "label": "Rang lạc: nhiệt độ tối thiểu (°C)",
-   "description": "Để trống cho tới khi thẩm định xong — trống thì chỉ ghi số, không tự sinh sự cố."
+   "description": "Mặc định 150 °C (W03). Ngoài khoảng tối thiểu–tối đa → phiếu sự cố oPRP.",
+   "default": "150"
+  },
+  {
+   "fieldname": "rang_lac_nhiet_max",
+   "fieldtype": "Int",
+   "label": "Rang lạc: nhiệt độ tối đa (°C)",
+   "default": "180"
   },
   {
    "fieldname": "rang_lac_phut_min",
    "fieldtype": "Int",
    "label": "Rang lạc: thời gian tối thiểu (phút)",
-   "description": "Để trống cho tới khi thẩm định xong."
+   "description": "Mặc định 30 phút (W03).",
+   "default": "30"
+  },
+  {
+   "fieldname": "rang_lac_phut_max",
+   "fieldtype": "Int",
+   "label": "Rang lạc: thời gian tối đa (phút)",
+   "default": "40"
   },
   {
    "fieldname": "section_bot",
@@ -108,13 +124,15 @@
    "fieldname": "han_nhiet_min",
    "fieldtype": "Int",
    "label": "Máy đóng gói: nhiệt độ hàn tối thiểu (°C)",
-   "description": "Bỏ trống = chỉ ghi số, không tự sinh sự cố."
+   "description": "Mặc định 150–190 °C (W03). Ngoài khoảng → phiếu sự cố oPRP.",
+   "default": "150"
   },
   {
    "fieldname": "han_nhiet_max",
    "fieldtype": "Int",
    "label": "Máy đóng gói: nhiệt độ hàn tối đa (°C)",
-   "description": "Bỏ trống = chỉ ghi số, không tự sinh sự cố."
+   "description": "Bỏ trống = chỉ ghi số, không tự sinh sự cố.",
+   "default": "190"
   },
   {
    "fieldname": "section_gio",
@@ -200,7 +218,7 @@
   }
  ],
  "links": [],
- "modified": "2026-09-13 08:00:00.000000",
+ "modified": "2026-10-08 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

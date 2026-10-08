@@ -105,6 +105,19 @@ BUOC = [
 BUOC_TAT_DUOC = ("2", "3", "4", "6", "7", "10", "12")
 
 
+def _oprp_buoc(ma):
+    """Mã oPRP của một bước ("" nếu bước đó không phải oPRP)."""
+    return next((o for m, _t, o, _g in BUOC if m == ma), "")
+
+
+# oPRP của phần bột (W03, D128). Dây chuyền bánh gắn oPRP theo công đoạn (BUOC);
+# phần bột gắn theo MỤC, cùng loại kiểm soát với bánh: xử lý nhiệt (rang lạc) như
+# luộc/rang đỗ → oPRP-1; hàn kín bao gói như đóng gói bánh → oPRP-4.
+# Ban ISO đối chiếu KH.HACCP dây chuyền bột — khác thì sửa đúng hai hằng số này.
+OPRP_NHIET = "oPRP-1"
+OPRP_GOI = "oPRP-4"
+
+
 # ── Máy chạy song song (D100) ─────────────────────────────────────────────
 # Xưởng có 3 máy rang đỗ, 2 máy nghiền, 3 máy đóng gói bột — nhưng không phải
 # ngày nào cũng chạy đủ. Mục gắn nhóm máy thì MÁY 1 dùng đúng fieldname cũ (phiếu
@@ -131,7 +144,8 @@ LAC_DOI = "doi"
 
 
 def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
-       dv="", goi_y="", batbuoc=False, phu=False, ngan="", may=None, lac=None):
+       dv="", goi_y="", batbuoc=False, phu=False, ngan="", may=None, lac=None,
+       oprp=None):
     """Một mục kiểm.
 
     ap   = tuple lượt áp dụng, None = mọi lượt
@@ -146,11 +160,14 @@ def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
     goi  = do QC đóng gói ghi (QC chế biến vẫn thấy, chỉ là không phải việc mình)
     may  = nhóm máy (NHOM_MAY) — mục này ghi riêng cho từng máy đang chạy
     lac  = LAC_LAM / LAC_DOI — chỉ áp dụng khi có làm vị có lạc (xem trên)
+    oprp = mã oPRP của riêng mục này (W03). Bỏ trống = theo bước (BUOC) — dây
+           chuyền bánh gắn oPRP theo công đoạn; phần bột gắn theo từng mục.
     """
     return {"f": f, "so": so, "nhan": nhan, "ngan": ngan or nhan, "buoc": buoc, "cd": cd, "kieu": kieu,
             "ap": tuple(ap) if ap else None, "goi": goi, "bot": bot,
             "dv": dv, "goi_y": goi_y, "batbuoc": batbuoc, "phu": phu,
-            "may": may, "may_so": 1 if may else 0, "goc": f, "lac": lac}
+            "may": may, "may_so": 1 if may else 0, "goc": f, "lac": lac,
+            "oprp": oprp or _oprp_buoc(buoc)}
 
 
 MUC = [
@@ -221,22 +238,22 @@ MUC = [
        "B", "Bột: nhặt lạc", bot=True, lac=LAC_LAM,
        ngan="Lạc sạch, không mốc/sạn", goi_y="đã sàng trước rang"),
     _m("b2_rang_lac_nhiet", "B2a", "Rang lạc: nhiệt độ", "B", "Bột: rang lạc",
-       kieu="nguyen", bot=True, dv="°C", goi_y="ngưỡng lấy từ SX QC Setting",
-       lac=LAC_LAM),
+       kieu="nguyen", bot=True, dv="°C", goi_y="150 – 180 °C",
+       lac=LAC_LAM, oprp=OPRP_NHIET),
     _m("b2_rang_lac_phut", "B2b", "Rang lạc: thời gian mẻ", "B", "Bột: rang lạc",
-       kieu="nguyen", bot=True, dv="phút", goi_y="ngưỡng lấy từ SX QC Setting",
-       lac=LAC_LAM),
+       kieu="nguyen", bot=True, dv="phút", goi_y="30 – 40 phút",
+       lac=LAC_LAM, oprp=OPRP_NHIET),
     _m("b2_lac_chin", "B2c", "Lạc chín vàng đều", "B", "Bột: rang lạc", bot=True,
-       lac=LAC_LAM),
+       lac=LAC_LAM, oprp=OPRP_NHIET),
     _m("b3_cong_thuc", "B3", "Đường xay, rây; cân đúng công thức",
        "B", "Bột: xay đường", bot=True,
        ngan="Đúng công thức trộn", goi_y="đường xay, rây; cân đúng"),
     # Máy đóng gói bột (D100): nhiệt độ hàn + mối hàn + khối lượng, TỪNG MÁY.
     _m("b8_nhiet_han", "B8", "Máy đóng gói: nhiệt độ hàn", "B", "Bột: đóng túi",
        kieu="nguyen", bot=True, goi=True, dv="°C", may="goi_bot",
-       ngan="Nhiệt độ hàn", goi_y="ngưỡng lấy từ SX QC Setting"),
+       ngan="Nhiệt độ hàn", goi_y="150 – 190 °C", oprp=OPRP_GOI),
     _m("b4_moi_han_tui", "B4", "Mối hàn túi 40 g kín, 5 túi", "B", "Bột: đóng túi",
-       bot=True, goi=True, ap=(TRUA, CUOI_CHIEU), may="goi_bot"),
+       bot=True, goi=True, ap=(TRUA, CUOI_CHIEU), may="goi_bot", oprp=OPRP_GOI),
     _m("b6_kl_tui", "B6", "KL tịnh túi 40 g", "B", "Bột: đóng túi",
        bot=True, goi=True, may="goi_bot"),
     _m("b5_nhan_di_ung", "B5", "Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa",

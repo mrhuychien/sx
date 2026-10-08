@@ -15,6 +15,7 @@
   "section_phan_loai",
   "cong_doan",
   "loai",
+  "oprp",
   "column_break_pl",
   "muc_do",
   "loai_chuyen",
@@ -120,6 +121,13 @@
    "options": "oPRP\nPRP\nDị ứng\nHiệu chỉnh hồ sơ\nKhác",
    "default": "Khác",
    "in_list_view": 1
+  },
+  {
+   "fieldname": "oprp",
+   "fieldtype": "Data",
+   "label": "Mã oPRP",
+   "in_standard_filter": 1,
+   "description": "oPRP cụ thể theo KH.HACCP (oPRP-1 … oPRP-4). Vòng kiểm tự ghi; phiếu nhập tay thì ghi khi Loại = oPRP."
   },
   {
    "fieldname": "column_break_pl",
@@ -256,7 +264,7 @@
   }
  ],
  "links": [],
- "modified": "2026-09-13 08:00:00.000000",
+ "modified": "2026-10-08 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX Su Co",

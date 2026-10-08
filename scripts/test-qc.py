@@ -268,11 +268,20 @@ kiem("B7 Dương tính → sự cố Dị ứng mức CAO",
      [(l, m) for _f, _c, l, m, _t in pt(b7_chuyen_doi="Dương tính", **bot)]
      == [("Dị ứng", "Cao")])
 kiem("B7 Âm tính → không sự cố", not pt(b7_chuyen_doi="Âm tính", **bot))
-kiem("rang lạc thiếu nhiệt mà NGƯỠNG CHƯA THẨM ĐỊNH → không bịa sự cố",
-     not pt(b2_rang_lac_nhiet=90, **bot))
-CAI_DAT["rang_lac_nhiet_min"] = 150
-kiem("đặt ngưỡng rang lạc rồi thì 90 °C → sự cố",
-     len(pt(b2_rang_lac_nhiet=90, **bot)) == 1)
+# W03 (D128): rang lạc 150–180 °C, 30–40 phút là MẶC ĐỊNH (trước đó chờ thẩm định).
+for ten, kw, so in [("rang lạc 90 °C (< 150) → sự cố", dict(b2_rang_lac_nhiet=90), 1),
+                    ("rang lạc 160 °C → không sự cố", dict(b2_rang_lac_nhiet=160), 0),
+                    ("rang lạc 190 °C (> 180, cháy) → sự cố", dict(b2_rang_lac_nhiet=190), 1),
+                    ("rang lạc 25 phút (< 30) → sự cố", dict(b2_rang_lac_phut=25), 1),
+                    ("rang lạc 35 phút → không sự cố", dict(b2_rang_lac_phut=35), 0),
+                    ("rang lạc 45 phút (> 40) → sự cố", dict(b2_rang_lac_phut=45), 1),
+                    ("rang lạc 0 (chưa đo) → không sự cố giả", dict(b2_rang_lac_nhiet=0), 0)]:
+    kiem(ten, len(pt(**kw, **bot)) == so, str(pt(**kw, **bot)))
+kiem("sự cố rang lạc là oPRP (không phải Khác)",
+     [x[2] for x in pt(b2_rang_lac_nhiet=90, **bot)] == ["oPRP"])
+CAI_DAT["rang_lac_nhiet_min"] = 140
+kiem("Setting hạ ngưỡng xuống 140 → 145 °C thành đạt",
+     not pt(b2_rang_lac_nhiet=145, **bot))
 CAI_DAT.pop("rang_lac_nhiet_min")
 kiem("mục KHÔNG áp dụng ở lượt này thì không sinh sự cố",
      not pt(luot=M.TRUA, a1_ve_sinh="Không đạt"))
@@ -413,6 +422,9 @@ kiem("phiếu mở sẵn, chờ người xử lý",
      all(x["trang_thai"] == "Mở" for x in DA_TAO))
 kiem("phiếu ghi rõ mục nào", sorted(x["muc"].split()[0] for x in DA_TAO)
      == ["2", "3a"], str([x["muc"] for x in DA_TAO]))
+kiem("sự cố oPRP ghi đúng mã oPRP (rang → oPRP-1), sự cố không phải oPRP để trống",
+     sorted((x["muc"].split()[0], x["loai"], x["oprp"]) for x in DA_TAO)
+     == [("2", "oPRP", "oPRP-1"), ("3a", "oPRP", "oPRP-1")], str([(x["muc"], x["oprp"]) for x in DA_TAO]))
 kiem("gọi lại lần nữa không nhân đôi bảng con", (
     lambda: (DA_TAO.clear(), SC.tao_tu_vong_kiem(d), len(d["su_co"]) == 2)[-1])())
 

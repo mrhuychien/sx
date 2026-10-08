@@ -194,12 +194,22 @@ qua cả hộp.
   (1, 5, 9, 11, 15, 16). Mười công đoạn còn lại là những cái spec ghim theo số
   trong luật map tự động nên chắc chắn đúng; sáu cái kia chỉ hiện khi người ta
   tự chọn tay trên phiếu sự cố.
-- **Ngưỡng rang lạc** (`rang_lac_nhiet_min`, `rang_lac_phut_min`) đang để trống
-  chờ thẩm định. Trống thì hệ thống chỉ ghi số, KHÔNG tự sinh sự cố — cố tình
-  như vậy, xem chú thích trong `nguong.py`.
+- ~~Ngưỡng rang lạc chờ thẩm định~~ — đã chốt ở W03 (D128), xem mục dưới.
 - Bản thiết kế có mục **"5 Ủ — thùng, khăn sạch khô"** mà spec không có
   fieldname. Chưa làm, vì bịa ra một field không có trên bản giấy BM.08.01 thì
   tờ in ra sẽ lệch với tập hồ sơ cũ.
+
+## Ngưỡng phần bột và mã oPRP (D128 — W03)
+
+- **Rang lạc 150–180 °C, 30–40 phút; hàn túi 150–190 °C** là mặc định trong code
+  (`nguong.MAC_DINH`), sửa được ở *SX QC Setting* (thêm hai ô tối đa cho rang lạc).
+  Ngoài khoảng → phiếu sự cố **oPRP** (hàn túi trước đây ghi "Khác").
+- Phiếu sự cố có ô **Mã oPRP** (`oprp`): vòng kiểm tự ghi. Dây chuyền bánh theo công
+  đoạn (Luộc/Rang oPRP-1, Sàng cát/Nghiền oPRP-2, Kho bột oPRP-3, Đóng gói oPRP-4);
+  phần bột theo mục: rang lạc → **oPRP-1** (xử lý nhiệt), hàn túi B4/B8 → **oPRP-4**
+  (hàn kín bao gói). Hai mã của phần bột là SUY theo cùng loại kiểm soát với bánh —
+  Ban ISO đối chiếu KH.HACCP bột, khác thì sửa `OPRP_NHIET` / `OPRP_GOI` trong `muc.py`.
+- Tờ in BM.08.02, danh sách sự cố, CSV đều hiện mã oPRP.
 
 ## Hai chỗ khai trùng, có test canh
 

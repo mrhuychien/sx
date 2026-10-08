@@ -69,7 +69,10 @@ function veThe(s, dl, api) {
   meta.appendChild(chip(s.name));
   meta.appendChild(el('span', null, esc(s.ngay)));
   if (s.cong_doan) meta.appendChild(chip(s.cong_doan));
-  if (s.loai) meta.appendChild(chip(s.loai, s.loai === 'oPRP' ? 'oprp' : ''));
+  if (s.loai) {
+    meta.appendChild(chip(s.loai === 'oPRP' && s.oprp ? s.oprp : s.loai,
+      s.loai === 'oPRP' ? 'oprp' : ''));
+  }
   if (s.muc_do === 'Cao') meta.appendChild(chip('mức CAO', 'cao'));
   if (s.qua_han) meta.appendChild(chip('quá hạn', 'han'));
   the.appendChild(meta);

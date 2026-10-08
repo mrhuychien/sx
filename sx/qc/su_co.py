@@ -26,13 +26,10 @@ THUONG = "Thường"
 
 
 def _loai(m):
-    """oPRP / PRP / Khác theo bước của mục."""
+    """oPRP / PRP / Khác theo mục: mã oPRP của mục (W03) hoặc của bước chứa nó."""
     if m["cd"] == "PRP":
         return "PRP"
-    for ma, _ten, oprp, _ghi in M.BUOC:
-        if ma == m["buoc"]:
-            return "oPRP" if oprp else "Khác"
-    return "Khác"
+    return "oPRP" if m.get("oprp") else "Khác"
 
 
 def phat_hien(doc):
@@ -79,15 +76,15 @@ def phat_hien(doc):
                                may, flt(v, 1), ng["vong_quay_min"], ng["vong_quay_max"])))
 
         elif goc == "b8_nhiet_han" and M.co_ghi(m, v):
-            # Khoảng chờ thẩm định như rang lạc: chưa đặt đầu nào thì đầu đó không
-            # sinh sự cố. Hàn nguội → hở túi; hàn nóng → cháy màng, cũng hở.
+            # Hàn nguội → hở túi; hàn nóng → cháy màng, cũng hở. oPRP từ D128 (W03):
+            # hàn kín bao gói là bước kiểm soát, không phải "Khác".
             lo, hi = ng["han_nhiet_min"], ng["han_nhiet_max"]
             if (lo is not None and flt(v) < lo) or (hi is not None and flt(v) > hi):
-                ra.append((m["f"], m["cd"], "Khác", THUONG,
+                ra.append((m["f"], m["cd"], "oPRP", THUONG,
                            _("Máy đóng gói bột{0}: nhiệt độ hàn {1} °C ngoài khoảng "
-                             "{2}–{3}").format(may, int(flt(v)),
-                                               "…" if lo is None else lo,
-                                               "…" if hi is None else hi)))
+                             "{2}–{3} °C").format(may, int(flt(v)),
+                                                  "…" if lo is None else lo,
+                                                  "…" if hi is None else hi)))
 
         elif goc == "thung_bot_qua_han":
             if cint(v) > ng["thung_bot_max"]:
@@ -95,14 +92,17 @@ def phat_hien(doc):
                            _("Kho bột: {0} thùng quá 2 ngày / hở nắp").format(cint(v))))
 
         elif goc in ("b2_rang_lac_nhiet", "b2_rang_lac_phut") and M.co_ghi(m, v):
-            # Ngưỡng chờ thẩm định: chưa đặt thì CHỈ GHI SỐ. Bịa ngưỡng ra để
-            # "có cho đủ" là sinh báo động giả suốt ngày rồi không ai đọc nữa.
-            key = ("rang_lac_nhiet_min" if m["f"].endswith("nhiet")
-                   else "rang_lac_phut_min")
-            if ng[key] is not None and flt(v) < ng[key]:
+            # Khoảng chốt ở W03 (D128): 150–180 °C, 30–40 phút. Thiếu nhiệt / thiếu
+            # giờ thì lạc chưa chín (vi sinh); quá thì cháy — cả hai đều lệch oPRP.
+            # Một đầu bị xoá khỏi Setting và không có mặc định thì đầu đó không xét.
+            k, ten, dv = (("rang_lac_nhiet", _("nhiệt độ"), "°C") if goc.endswith("nhiet")
+                          else ("rang_lac_phut", _("thời gian"), _("phút")))
+            lo, hi = ng[k + "_min"], ng[k + "_max"]
+            if (lo is not None and flt(v) < lo) or (hi is not None and flt(v) > hi):
                 ra.append((m["f"], m["cd"], "oPRP", THUONG,
-                           _("Rang lạc: {0} dưới ngưỡng {1}").format(
-                               flt(v, 1), ng[key])))
+                           _("Rang lạc: {0} {1} {2} ngoài khoảng {3}–{4} {2}").format(
+                               ten, int(flt(v)), dv, "…" if lo is None else lo,
+                               "…" if hi is None else hi)))
     return ra
 
 
@@ -153,6 +153,8 @@ def tao_tu_vong_kiem(doc):
             "muc": f'{m["so"]} {m["nhan"]}' if m else key,
             "cong_doan": cong_doan,
             "loai": loai,
+            # Mã oPRP cụ thể (W03): sự cố oPRP phải gắn đúng oPRP nào của KH.HACCP.
+            "oprp": (m.get("oprp") or "") if (m and loai == "oPRP") else "",
             "muc_do": muc_do,
             "mo_ta": mo_ta,
             "trang_thai": "Mở",

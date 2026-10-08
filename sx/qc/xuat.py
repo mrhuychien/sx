@@ -24,12 +24,12 @@ COT_LUOT = ["Số phiếu", "Ngày", "Lượt", "Có bột", "Giờ hoàn tất"
             "QC đóng gói", "Đã chấm", "Phải chấm", "Xem xét lúc", "Ghi chú"]
 
 COT_SU_CO = ["Số phiếu", "Ngày", "Nguồn", "Vòng kiểm", "Mục", "Công đoạn",
-             "Loại", "Mức độ", "Mô tả", "Lô ảnh hưởng", "Xử lý ngay",
+             "Loại", "Mã oPRP", "Mức độ", "Mô tả", "Lô ảnh hưởng", "Xử lý ngay",
              "Nguyên nhân", "Hành động khắc phục", "Quyết định SP", "Số CAR",
              "Trạng thái", "Đóng bởi", "Đóng lúc"]
 
 KHOA_SU_CO = ["name", "ngay", "nguon", "qc_round", "muc", "cong_doan",
-              "loai", "muc_do", "mo_ta", "lo_anh_huong", "xu_ly_ngay",
+              "loai", "oprp", "muc_do", "mo_ta", "lo_anh_huong", "xu_ly_ngay",
               "nguyen_nhan", "hanh_dong_khac_phuc", "quyet_dinh_sp", "car_so",
               "trang_thai", "dong_boi", "dong_ngay"]
 
