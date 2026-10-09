@@ -4,118 +4,17 @@
 // chạm ô mẫu không đổi giá trị, mẫu K mà dòng vẫn Đạt (server chặn, QC không hiểu vì sao), số cân B2
 // không lên payload, số phiếu BM.08.02 gửi kèm cả khi Cho xuất xưởng, phiếu cũ (8 mục tạm) mở bằng form
 // mới rồi mất mục đã ghi. Nạp code THẬT (view + qcui + dom); modal / toast / bàn số thay bằng bản giả
-// ghi lại lời gọi; DOM giả tối thiểu theo cây con (kids).
+// ghi lại lời gọi; DOM giả tối thiểu theo cây con (kids) — scripts/fakedom.mjs.
 //
 // Chạy: node scripts/test-xuatxuong.mjs   (verify.sh gọi sẵn)
 
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import {
+  E, MO, PAD, TOAST, bang, cho, dangChon, ketThuc, kiem, napView, nut, tim,
+} from './fakedom.mjs';
 
-class E {
-  constructor(tag = 'div') {
-    this.tagName = String(tag).toUpperCase();
-    this.kids = []; this.nghe = {}; this._lop = new Set(); this.dataset = {}; this.style = {};
-    this.value = ''; this.disabled = false; this.type = ''; this._html = ''; this.textContent = '';
-    const lop = this._lop;
-    this.classList = {
-      add: (...c) => c.forEach((x) => this._lop.add(x)),
-      remove: (...c) => c.forEach((x) => this._lop.delete(x)),
-      contains: (c) => this._lop.has(c),
-      toggle: (c, b) => {
-        const on = b === undefined ? !this._lop.has(c) : !!b;
-        if (on) this._lop.add(c); else this._lop.delete(c);
-        return on;
-      },
-    };
-    void lop;
-  }
-
-  get className() { return [...this._lop].join(' '); }
-
-  set className(v) { this._lop.clear(); String(v || '').split(/\s+/).filter(Boolean).forEach((c) => this._lop.add(c)); }
-
-  get innerHTML() { return this._html; }
-
-  set innerHTML(h) {
-    this._html = String(h); this.kids = [];
-    this.textContent = this._html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-  }
-
-  appendChild(x) { this.kids.push(x); return x; }
-
-  setAttribute() {}
-
-  addEventListener(ev, f) { (this.nghe[ev] = this.nghe[ev] || []).push(f); }
-
-  bam() { (this.nghe.click || []).forEach((f) => f({ currentTarget: this, target: this, preventDefault() {} })); }
-
-  doi(v) {
-    this.value = v;
-    ['input', 'change'].forEach((ev) => (this.nghe[ev] || []).forEach((f) => f({ target: this })));
-  }
-
-  querySelectorAll(q) {
-    const tag = q.toUpperCase();
-    const ra = [];
-    const di = (e) => e.kids.forEach((k) => { if (k.tagName === tag) ra.push(k); di(k); });
-    di(this);
-    return ra;
-  }
-
-  querySelector(q) { return this.querySelectorAll(q)[0] || null; }
-
-  get chu() { return [this.textContent, ...this.kids.map((k) => k.chu)].join(' ').replace(/\s+/g, ' ').trim(); }
-}
-
-globalThis.document = { createElement: (t) => new E(t) };
-globalThis.window = { open: () => null };
-
-const MO = [];
-const PAD = [];
-const TOAST = [];
-globalThis.__gia = {
-  openModal: (o) => { const m = { ...o, body: new E('div'), dong: false, close() { m.dong = true; } }; MO.push(m); return m; },
-  numpad: (o) => { PAD.push(o); },
-  toast: (s, k) => { TOAST.push([s, k]); },
-};
-
-const GOC = 'sx/public/sx/';
-const tam = mkdtempSync(join(tmpdir(), 'sx-xx-'));
-const tep = (rel) => join(tam, `${rel.replace(/\//g, '__').replace(/\.js$/, '')}.mjs`);
-const doiDuong = (src) => src.replace(/from '\/assets\/sx\/sx\/([^']+)'/g,
-  (_, rel) => `from '${pathToFileURL(tep(rel)).href}'`);
-for (const rel of ['lib/dom.js', 'components/qcui.js', 'views/qc_xuatxuong.js']) {
-  writeFileSync(tep(rel), doiDuong(readFileSync(GOC + rel, 'utf8')));
-}
-writeFileSync(tep('components/modal.js'), 'export const openModal = (o) => globalThis.__gia.openModal(o);\n'
-  + 'export const confirm2Step = () => {};\n');
-writeFileSync(tep('components/toast.js'), 'export const toast = (s, k) => globalThis.__gia.toast(s, k);\n'
-  + "export const toastErr = (s) => globalThis.__gia.toast(s, 'err');\n");
-writeFileSync(tep('components/numpad.js'), 'export const openNumpad = (o) => globalThis.__gia.numpad(o);\n');
-let XV;
-try {
-  XV = await import(pathToFileURL(tep('views/qc_xuatxuong.js')).href);
-} finally { rmSync(tam, { recursive: true, force: true }); }
-
-let hong = 0;
-function kiem(ten, dk, ct = '') {
-  if (!dk) hong += 1;
-  console.log(`  ${dk ? 'ok  ' : 'HỎNG'} ${ten}${!dk && ct !== '' ? ` — ${typeof ct === 'string' ? ct : JSON.stringify(ct)}` : ''}`);
-}
-const bang = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const cho = () => new Promise((r) => { setTimeout(r, 0); });
-function tim(goc, dk) {
-  const ra = [];
-  const di = (e) => e.kids.forEach((k) => { if (dk(k)) ra.push(k); di(k); });
-  di(goc);
-  return ra;
-}
-const nut = (goc, chu) => tim(goc, (e) => e.tagName === 'BUTTON' && e.textContent.trim() === chu)[0];
+const XV = await napView('views/qc_xuatxuong.js');
 const dongCua = (goc, ma) => tim(goc, (e) => e.classList.contains('sx-xx-muc')
   && e.kids[0] && e.kids[0].textContent.startsWith(`${ma} `))[0];
-const dangChon = (seg) => (tim(seg, (e) => e.tagName === 'BUTTON' && e.classList.contains('sx-qc-seg-on'))[0] || {}).textContent || '';
 
 // ── hàm thuần ──────────────────────────────────────────────────────────
 console.log('\n-- ô mẫu, kết luận dòng (hàm thuần) --');
@@ -274,5 +173,4 @@ await cho();
 p = JSON.parse(GOI.filter(([k]) => k.endsWith('luu_phieu')).pop()[1].payload);
 kiem('… LƯU gửi lại đúng mục cũ + số mẫu', p.ds_muc.length === 3 && p.so_mau === 3 && p.ds_muc[1].ma === '2');
 
-console.log(`\n${hong ? `XUATXUONG-JS-FAIL (${hong})` : 'XUATXUONG-JS-OK'}`);
-process.exit(hong ? 1 : 0);
+ketThuc('XUATXUONG-JS');

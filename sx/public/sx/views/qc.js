@@ -41,10 +41,12 @@ const MAN = {
   hoso: '/assets/sx/sx/views/qc_hoso.js',
   // W25 (D151): báo cáo tháng ATTP, chỉ tiêu ATTP — nút thứ ba trong tab Xem xét.
   baocao: '/assets/sx/sx/views/qc_baocao.js',
+  // W33 (D160): tiếp nhận nguyên liệu BM.07.03 + kiểm xe trên điện thoại — nút đầu lưới cuối Hôm nay.
+  tiepnhan: '/assets/sx/sx/views/qc_tiepnhan.js',
 };
 
 // Sổ mở từ lưới nút cuối màn Hôm nay — tab "Hôm nay" sáng khi đang ở các màn này.
-const SO_HOM_NAY = ['dvgh', 'cat', 'thietbi', 'kiemnghiem', 'rework', 'lichviec'];
+const SO_HOM_NAY = ['tiepnhan', 'dvgh', 'cat', 'thietbi', 'kiemnghiem', 'rework', 'lichviec'];
 // Màn con của tab "Xem xét": tổng quan ATTP (W22), xem xét tháng, báo cáo (W25), hồ sơ đánh giá (W27).
 const XEM_XET = ['attp', 'review', 'baocao', 'hoso'];
 

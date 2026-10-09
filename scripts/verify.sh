@@ -450,4 +450,13 @@ node scripts/test-xuatxuong.mjs > /tmp/sx-xuatxuong-js.log 2>&1 \
   && tail -1 /tmp/sx-xuatxuong-js.log \
   || { cat /tmp/sx-xuatxuong-js.log; loi=1; }
 
+# D160 (W33): QC kiểm tiếp nhận trên điện thoại. Ghi đè số lượng / kho, bỏ qua luật ép Cách ly khi lưu từ app,
+# QC sửa phiếu đã duyệt, người ngoài QC ghi được — đều là cổng nguyên liệu mở mà không ai thấy.
+python3 scripts/test-tiepnhanqc.py > /tmp/sx-tiepnhanqc.log 2>&1 \
+  && tail -1 /tmp/sx-tiepnhanqc.log \
+  || { cat /tmp/sx-tiepnhanqc.log; loi=1; }
+node scripts/test-tiepnhanqc.mjs > /tmp/sx-tiepnhanqc-js.log 2>&1 \
+  && tail -1 /tmp/sx-tiepnhanqc-js.log \
+  || { cat /tmp/sx-tiepnhanqc-js.log; loi=1; }
+
 exit $loi

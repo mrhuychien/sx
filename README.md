@@ -315,6 +315,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Tiếp nhận nguyên liệu trên điện thoại cho QC (D160 — W33)
+
+- QC chế biến (vai **SX QC**, không có Desk) kiểm tiếp nhận ngay trên app: màn QC → **Hôm nay** → nút
+  **📦 Tiếp nhận NL** (`#/qc/tiepnhan`). Danh sách **phiếu nhập mua nháp 14 ngày** (cả hoá đơn mua có trừ kho —
+  đường cũ): *Chờ kiểm* trước, *Đã kiểm đủ — chờ thủ kho duyệt* sau. NCC dịch vụ không hiện.
+- Mở một phiếu: thông tin NCC (loại, nguồn, đã duyệt BM.07.02, phiếu kiểm nghiệm năm còn hạn) → **kiểm xe BM.09.01**
+  cùng lúc với hàng (biển số, tài xế, các mục, kết luận — mục nào Không đạt thì kết luận Không đạt) → từng dòng: lô
+  NCC, CQ/CO, COA vi sinh (báo khi nhóm hàng bắt buộc), aflatoxin (khi nhóm hàng phải có), độ ẩm, cảm quan, kết luận
+  → ghi chú QC → ảnh hàng / giấy tờ / xe (nén trên máy, tối đa 8 ảnh một phiếu) → **LƯU KẾT QUẢ KIỂM**.
+- Ghi **đúng các ô QC có sẵn** của phiếu (không đụng số lượng, đơn giá, kho) và lưu bằng `doc.save()` — luật chạy
+  **y như trên Desk**: xe không đạt / thiếu COA / thiếu giấy tờ / thiếu aflatoxin → ép **Cách ly** và đưa vào kho cách
+  ly; "Đạt" mà cảm quan Không đạt → chặn. Lời cảnh báo của luật hiện ngay trên đầu phiếu sau khi lưu.
+- Chỉ phiếu **nháp**: thủ kho duyệt phiếu trên Desk như cũ (duyệt đòi đủ kết luận, sinh phiếu sự cố cho lô Không đạt /
+  Cách ly). Phiếu đã duyệt chỉ xem + thêm ảnh. Ảnh xem qua app (file riêng tư của phiếu mua QC không mở thẳng được).
+- *Đã kiểm đủ* = có người kiểm + mọi dòng có kết luận + đã kiểm xe (khi phải kiểm): luật W10 tự ép Cách ly ngay lúc kho
+  lập phiếu (vd đỗ thiếu aflatoxin), nên dòng có kết luận chưa chắc đã được QC nhìn.
+- **Cách tạm** cho site chưa cập nhật bản này: gán thêm role **Stock User** cho tài khoản QC để vào Desk ghi phần QC
+  trên phiếu nhập mua (rộng quyền hơn cần — bỏ role đó sau khi cập nhật).
+- Không có DocType mới — không cần migrate cho phần này; `bench restart` để nạp API mới.
+
 ## BM.08.04 theo phiếu giấy lần BH 01 (D159 — W31)
 
 - Phiếu kiểm tra xuất xưởng mới theo đúng bản giấy **BM.08.04 lần BH 01 (21/9/2026)**: đầu phiếu thêm **quy cách**
