@@ -22,6 +22,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, getdate, now_datetime, nowdate
 
+from sx.qc import rework as RW
 from sx.qc.nguong import nguong
 from sx.qc.quyen import duoc_dong_su_co
 
@@ -82,6 +83,9 @@ class SXSuCo(Document):
             thieu.append(_("Xử lý ngay"))
         if not self.quyet_dinh_sp:
             thieu.append(_("Quyết định với sản phẩm"))
+        # W19 (D145): quyết định rework thì phải có phiếu rework BM.15.01 gắn với sự cố này.
+        if self.quyet_dinh_sp == RW.QD_REWORK and not self.is_new() and not RW.co_phieu_cua_su_co(self.name):
+            thieu.append(_("phiếu rework BM.15.01 (lập trên màn QC → Rework, chọn phiếu sự cố này)"))
         if thieu:
             frappe.throw(_("Chưa đóng được phiếu — còn thiếu: {0}.").format(
                 ", ".join(thieu)))

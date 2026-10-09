@@ -1,0 +1,248 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-09 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "ngay",
+  "su_co",
+  "column_break_0",
+  "nguoi_lap",
+  "section_nguon",
+  "sp_nguon",
+  "mo_ta_nguon",
+  "ly_do",
+  "column_break_1",
+  "kl_rework",
+  "nguon_co_lac",
+  "nguon_co_sua",
+  "section_dich",
+  "sp_dich",
+  "me",
+  "ngay_sx",
+  "column_break_2",
+  "kl_me",
+  "ty_le",
+  "dich_co_lac",
+  "dich_co_sua",
+  "section_kq",
+  "ket_qua",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "RW-.YYYY.-.#####",
+   "default": "RW-.YYYY.-.#####",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố (nếu rework theo quyết định sự cố)",
+   "options": "SX Su Co",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_0",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguoi_lap",
+   "fieldtype": "Link",
+   "label": "Người lập",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_nguon",
+   "fieldtype": "Section Break",
+   "label": "Hàng đem rework"
+  },
+  {
+   "fieldname": "sp_nguon",
+   "fieldtype": "Link",
+   "label": "Thuộc sản phẩm",
+   "options": "SX San Pham Cong Bo",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "mo_ta_nguon",
+   "fieldtype": "Data",
+   "label": "Hàng / lô / HSD"
+  },
+  {
+   "fieldname": "ly_do",
+   "fieldtype": "Small Text",
+   "label": "Lý do rework (vỡ, móp, lỗi in…)"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "kl_rework",
+   "fieldtype": "Float",
+   "label": "Khối lượng đem rework (kg)",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nguon_co_lac",
+   "fieldtype": "Check",
+   "label": "Có lạc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nguon_co_sua",
+   "fieldtype": "Check",
+   "label": "Có sữa bột",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_dich",
+   "fieldtype": "Section Break",
+   "label": "Mẻ nhận rework"
+  },
+  {
+   "fieldname": "sp_dich",
+   "fieldtype": "Link",
+   "label": "Đưa vào sản phẩm",
+   "options": "SX San Pham Cong Bo",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "me",
+   "fieldtype": "Data",
+   "label": "Mẻ / lô sản xuất"
+  },
+  {
+   "fieldname": "ngay_sx",
+   "fieldtype": "Date",
+   "label": "Ngày sản xuất mẻ"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "kl_me",
+   "fieldtype": "Float",
+   "label": "Khối lượng mẻ (kg, tính cả phần rework)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ty_le",
+   "fieldtype": "Percent",
+   "label": "Tỷ lệ rework (%)",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "Tối đa 10% khối lượng mẻ — vượt thì app chặn."
+  },
+  {
+   "fieldname": "dich_co_lac",
+   "fieldtype": "Check",
+   "label": "Sản phẩm nhận có lạc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dich_co_sua",
+   "fieldtype": "Check",
+   "label": "Sản phẩm nhận có sữa bột",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_kq",
+   "fieldtype": "Section Break",
+   "label": "Kết quả"
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Small Text",
+   "label": "Kết quả / kiểm tra sau rework"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-09 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX Rework",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1
+  },
+  {
+   "role": "Production Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "ngay",
+ "sort_order": "DESC",
+ "title_field": "sp_dich",
+ "track_changes": 1
+}

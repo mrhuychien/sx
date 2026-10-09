@@ -315,6 +315,17 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Phiếu rework BM.15.01 (D145 — W19)
+
+- Màn QC → Hôm nay → **♻ Rework** (`#/qc/rework`, doctype `SX Rework`): hàng đem rework (thuộc sản phẩm
+  nào trong bộ tự công bố, lô / HSD, kg, lý do) → mẻ nhận (sản phẩm, mẻ / lô, ngày SX, khối lượng mẻ
+  **tính cả phần rework**), gắn phiếu sự cố nếu có, kết quả.
+- **Chặn** (cả Desk): rework **> 10% khối lượng mẻ** (nói rõ tối đa bao nhiêu kg); hàng **CÓ LẠC** đưa vào
+  sản phẩm **KHÔNG LẠC** (cờ "Có lạc" của bộ tự công bố W28). Sữa bột vào sản phẩm không sữa: chỉ cảnh báo.
+  Màn hình tính trước tỷ lệ + dị ứng, khoá nút khi vi phạm.
+- Phiếu sự cố có quyết định **"Rework (BM.15.01)"** chỉ đóng được khi đã có phiếu rework gắn với nó.
+- In **BM.15.01** theo tháng. Lập: QC, QLSX, Ban ISO; người lập xoá được trong ngày, Ban ISO lúc nào cũng được.
+
 ## Kế hoạch kiểm nghiệm KH.KN.01 (D144 — W18)
 
 - Màn QC → Hôm nay → **🧪 Kiểm nghiệm** (`#/qc/kiemnghiem`): mỗi sản phẩm trong bộ tự công bố (W28,

@@ -384,4 +384,10 @@ python3 scripts/test-kiemnghiem.py > /tmp/sx-kiemnghiem.log 2>&1 \
   && tail -1 /tmp/sx-kiemnghiem.log \
   || { cat /tmp/sx-kiemnghiem.log; loi=1; }
 
+# D145 (W19): phiếu rework BM.15.01. Quá 10% mẻ, hàng có lạc vào sản phẩm không lạc, đóng sự cố
+# quyết định rework mà chưa có phiếu — đều im lặng.
+python3 scripts/test-rework.py > /tmp/sx-rework.log 2>&1 \
+  && tail -1 /tmp/sx-rework.log \
+  || { cat /tmp/sx-rework.log; loi=1; }
+
 exit $loi
