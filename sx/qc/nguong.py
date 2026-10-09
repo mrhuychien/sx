@@ -12,8 +12,9 @@ không tự sinh sự cố: bịa ngưỡng ra để "có cho đủ" còn tệ h
 import frappe
 
 MAC_DINH = {
-    "rang_nhiet_min": 255,
-    "rang_nhiet_max_van_hanh": 270,
+    # W37 (D161): rang đỗ 240–280 °C (≥ 240), oPRP-1 — quyết định 09/10/2026 (trước đó 255 / 270).
+    "rang_nhiet_min": 240,
+    "rang_nhiet_max_van_hanh": 280,
     "vong_quay_min": 6.2,
     "vong_quay_max": 7.0,
     "thung_bot_max": 0,

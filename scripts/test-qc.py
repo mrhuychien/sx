@@ -242,14 +242,22 @@ def pt(**kw):
     return SC.phat_hien(luot(**kw))
 
 
-kiem("nhiệt rang 250 → 1 sự cố oPRP công đoạn 3, mức CAO",
-     [(c, l, m) for _f, c, l, m, _t in pt(rang_nhiet_do=250)]
-     == [("3 Rang", "oPRP", "Cao")], str(pt(rang_nhiet_do=250)))
+kiem("nhiệt rang 235 → 1 sự cố oPRP công đoạn 3, mức CAO",
+     [(c, l, m) for _f, c, l, m, _t in pt(rang_nhiet_do=235)]
+     == [("3 Rang", "oPRP", "Cao")], str(pt(rang_nhiet_do=235)))
+kiem("W37: ngưỡng rang đỗ ≥ 240 °C — 239 là sự cố, đúng 240 là đạt (trước đây 255)",
+     len(pt(rang_nhiet_do=239)) == 1 and not pt(rang_nhiet_do=240) and not pt(rang_nhiet_do=250)
+     and "< 240" in pt(rang_nhiet_do=239)[0][4], str(pt(rang_nhiet_do=239)))
 kiem("nhiệt rang 262 → không sự cố", not pt(rang_nhiet_do=262))
 kiem("nhiệt rang 0 (chưa đo) → không sự cố giả", not pt(rang_nhiet_do=0))
-kiem("nhiệt rang 275 → cảnh báo vận hành, KHÔNG phải sự cố",
-     not pt(rang_nhiet_do=275)
-     and len(SC.canh_bao(luot(rang_nhiet_do=275))) == 1)
+kiem("nhiệt rang 285 → cảnh báo vận hành, KHÔNG phải sự cố",
+     not pt(rang_nhiet_do=285)
+     and len(SC.canh_bao(luot(rang_nhiet_do=285))) == 1)
+kiem("W37: trần vận hành 280 °C — đúng 280 không cảnh báo, 281 cảnh báo (trước đây 270)",
+     not SC.canh_bao(luot(rang_nhiet_do=280)) and not SC.canh_bao(luot(rang_nhiet_do=275))
+     and len(SC.canh_bao(luot(rang_nhiet_do=281))) == 1)
+kiem("W37: chữ gợi ý ô nhiệt độ rang theo ngưỡng mới",
+     M.THEO_F["rang_nhiet_do"]["goi_y"] == "≥ 240 · ngoài 240–280 cảnh báo vận hành")
 kiem("vòng quay 6,8 → không sự cố", not pt(rang_vong_quay=6.8))
 kiem("vòng quay 5,0 → sự cố oPRP mức Thường",
      [(l, m) for _f, _c, l, m, _t in pt(rang_vong_quay=5.0)] == [("oPRP", "Thường")])
@@ -291,7 +299,7 @@ CAI_DAT.pop("rang_lac_nhiet_min")
 kiem("mục KHÔNG áp dụng ở lượt này thì không sinh sự cố",
      not pt(luot=M.TRUA, a1_ve_sinh="Không đạt"))
 kiem("nhiều lệch → nhiều phiếu, không gộp một",
-     len(pt(rang_nhiet_do=250, luoc_soi_du="Không đạt", thung_bot_qua_han=2)) == 3)
+     len(pt(rang_nhiet_do=235, luoc_soi_du="Không đạt", thung_bot_qua_han=2)) == 3)
 
 # ═══ 5. Chặn hoàn tất ════════════════════════════════════════════════════
 print("\n-- hoàn tất lượt: chặn cái gì, không chặn cái gì --")
@@ -423,7 +431,7 @@ kiem("patch KHÔNG đụng vào trường ca của phiếu cũ",
 # ═══ 8. Sinh phiếu sự cố gắn hai chiều ═══════════════════════════════════
 print("\n-- sự cố gắn hai chiều với lượt --")
 DA_TAO[:] = []
-d = luot(**{**day_du, "rang_nhiet_do": 250, "luoc_soi_du": "Không đạt"})
+d = luot(**{**day_du, "rang_nhiet_do": 235, "luoc_soi_du": "Không đạt"})
 SC.tao_tu_vong_kiem(d)
 kiem("sinh đúng 2 phiếu", len(DA_TAO) == 2, str(len(DA_TAO)))
 kiem("phiếu trỏ về lượt", all(x["qc_round"] == "QC-0001" for x in DA_TAO))
@@ -468,7 +476,7 @@ import jinja2  # noqa: E402
 tt = jinja2.Environment(
     loader=jinja2.FileSystemLoader("sx/qc"), autoescape=True).get_template("day_sheet.html")
 r1 = luot(**{**day_du, "luot": M.TUAN, "finished_at": datetime(2026, 9, 14, 7, 30),
-             "ghi_muon": 1, "qc_user": "hoa@rvhg.vn", "rang_nhiet_do": 250,
+             "ghi_muon": 1, "qc_user": "hoa@rvhg.vn", "rang_nhiet_do": 235,
              "ghi_chu": "không luộc mẻ nào buổi sáng"})
 cot = [{"doc": r1, "ap": {m["f"] for m in M.muc_ap_dung(M.TUAN, 0)}}]
 hang = []
@@ -483,7 +491,7 @@ for ma, ten, oprp, _g in M.BUOC:
                      "khong_ap": [m["f"] not in cot[0]["ap"]]})
 html = tt.render(
     ngay="2026-09-14", rounds=[r1], hang=hang, co_bot=0,
-    su_co=[{"name": "SC-0001", "muc": "3a Nhiệt độ rang", "mo_ta": "250 < 255",
+    su_co=[{"name": "SC-0001", "muc": "3a Nhiệt độ rang", "mo_ta": "235 < 240",
             "muc_do": "Cao", "trang_thai": "Mở", "xu_ly_ngay": "chỉnh lại nhiệt",
             "quyet_dinh_sp": "Không ảnh hưởng sản phẩm"}],
     frappe=types.SimpleNamespace(utils=types.SimpleNamespace(
@@ -583,7 +591,7 @@ mau = _D({"name": "SC-2026-0007", "ngay": "2026-09-14",
           "nguon": "Vòng kiểm QC", "qc_round": "QC-0003", "cong_doan": "3 Rang",
           "loai": "oPRP", "muc": "3a Nhiệt độ rang", "muc_do": "Cao",
           "qua_han": 1, "lo_anh_huong": "DX-140926", "so_luong": "420 hộp",
-          "mo_ta": "Rang: nhiệt độ 248 °C < 255 °C",
+          "mo_ta": "Rang: nhiệt độ 238 °C < 240 °C",
           "xu_ly_ngay": "Dừng máy, chỉnh lại nhiệt", "trang_thai": "Mở",
           "owner": "hoa@rvhg.vn"})
 gia_frappe = types.SimpleNamespace(utils=types.SimpleNamespace(

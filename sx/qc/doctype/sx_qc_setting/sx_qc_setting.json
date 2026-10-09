@@ -61,14 +61,14 @@
    "fieldname": "rang_nhiet_min",
    "fieldtype": "Int",
    "label": "Rang: nhiệt độ tối thiểu (°C)",
-   "default": "255",
+   "default": "240",
    "description": "Dưới ngưỡng này là sự cố oPRP, mức Cao."
   },
   {
    "fieldname": "rang_nhiet_max_van_hanh",
    "fieldtype": "Int",
    "label": "Rang: nhiệt độ trần vận hành (°C)",
-   "default": "270",
+   "default": "280",
    "description": "Vượt thì cảnh báo vận hành, KHÔNG tạo sự cố."
   },
   {

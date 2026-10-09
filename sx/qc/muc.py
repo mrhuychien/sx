@@ -263,7 +263,7 @@ MUC = [
     # ── B: dây chuyền bánh ───────────────────────────────────────────────
     _m("luoc_soi_du", "2", "Sôi liên tục, đỗ chín nổi", "2", "2 Luộc"),
     _m("rang_nhiet_do", "3a", "Nhiệt độ rang", "3", "3 Rang", kieu="nguyen",
-       dv="°C", goi_y="≥ 255 · ngoài 255–270 cảnh báo vận hành", batbuoc=True,
+       dv="°C", goi_y="≥ 240 · ngoài 240–280 cảnh báo vận hành", batbuoc=True,
        may="rang"),
     _m("rang_vong_quay", "3b", "Vòng quay lồng rang", "3", "3 Rang", kieu="so",
        dv="v/ph", goi_y="6,2 – 7,0", may="rang"),
@@ -443,7 +443,7 @@ KIEU_SO = ("so", "nguyen")
 # Frappe KHÔNG cho Int/Float để trống — không ghi gì thì đọc ra 0. Với ô ĐẾM
 # (thùng quá hạn, trạm bẫy) thì 0 là một con số thật: "đếm được 0". Với ô ĐO
 # (nhiệt độ, vòng quay, phút rang) thì 0 là "chưa đo" — và nếu coi nó là số thật
-# thì mọi lượt chưa kịp đo nhiệt độ đều tự sinh sự cố "nhiệt độ < 255", ngày nào
+# thì mọi lượt chưa kịp đo nhiệt độ đều tự sinh sự cố "nhiệt độ < 240", ngày nào
 # cũng vài cái, rồi không ai thèm đọc phiếu sự cố nữa. Đó là cách một hệ thống
 # ISO chết: không phải vì thiếu số liệu, mà vì quá nhiều báo động giả.
 DEM = ("thung_bot_qua_han", "t2_so_bay_dau_hieu", "hat_tho")

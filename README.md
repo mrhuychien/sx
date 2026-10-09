@@ -315,6 +315,19 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Rang đỗ 240–280 °C, bỏ aflatoxin từng lô đỗ / lạc (D161 — W37)
+
+- Ngưỡng rang đỗ theo quyết định 09/10/2026: **≥ 240 °C** (dưới là sự cố oPRP-1 mức Cao), trần vận hành **280 °C**
+  (vượt thì cảnh báo, không sự cố). Đổi ở mã (`sx/qc/nguong.py`), mặc định *SX QC Setting*, chữ gợi ý ô nhiệt độ
+  rang (cả máy 2, 3) và số dự phòng trên màn QC.
+- Patch `d161_rang_240_280`: site còn **đúng 255 / 270 cũ** thì đổi sang 240 / 280 (từng ô riêng); số site đã tự
+  chỉnh thì giữ.
+- *Nhóm hàng phải có kết quả aflatoxin khi tiếp nhận*: patch bỏ các nhóm **đỗ / đậu / lạc** — không kiểm aflatoxin
+  từng lô nữa, chuyển vào kiểm nghiệm năm (KH.KN.01). Nhóm khác site đã khai thì giữ.
+- Công đoạn 9 mang tên đúng QT.08 / KH.HACCP.01: **"9 Nấu đường, trộn"** (bản tạo sẵn là "9 Trộn"; đổi bằng Rename,
+  phiếu sự cố cũ trỏ theo; site đã tự đặt tên khác thì giữ).
+- Cần `bench --site site1.local migrate` (chạy patch, cập nhật mặc định / chữ gợi ý) rồi `bench restart`.
+
 ## Tiếp nhận nguyên liệu trên điện thoại cho QC (D160 — W33)
 
 - QC chế biến (vai **SX QC**, không có Desk) kiểm tiếp nhận ngay trên app: màn QC → **Hôm nay** → nút

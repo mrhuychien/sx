@@ -279,18 +279,18 @@ def sc(**kw):
     return SC.phat_hien(d)
 
 
-r = sc(so_may_rang=2, rang_nhiet_do=260, rang_nhiet_do_m2=240)
-kiem("máy 2 rang 240 °C → sự cố CAO, nói rõ máy rang M2 (W16)",
+r = sc(so_may_rang=2, rang_nhiet_do=260, rang_nhiet_do_m2=235)
+kiem("máy 2 rang 235 °C → sự cố CAO, nói rõ máy rang M2 (W16)",
      len(r) == 1 and r[0][0] == "rang_nhiet_do_m2" and r[0][3] == "Cao"
      and "M2" in r[0][4], str(r))
 kiem("máy 2 KHÔNG chạy thì số cũ trong ô đó không sinh sự cố",
-     not sc(so_may_rang=1, rang_nhiet_do=260, rang_nhiet_do_m2=240))
+     not sc(so_may_rang=1, rang_nhiet_do=260, rang_nhiet_do_m2=235))
 r = sc(so_may_rang=2, rang_vong_quay_m2=9)
 kiem("vòng quay máy 2 ngoài khoảng → sự cố", [x[0] for x in r] == ["rang_vong_quay_m2"])
 r = sc(so_may_nghien=2, do_min_dat_m2="Không đạt")
 kiem("máy nghiền 2 không đạt độ mịn → sự cố ghi mã máy M2 (W02)",
      len(r) == 1 and "M2" in r[0][4], str(r))
-cb = SC.canh_bao(Doc({"luot": "Trưa", "so_may_rang": 3, "rang_nhiet_do_m3": 280}))
+cb = SC.canh_bao(Doc({"luot": "Trưa", "so_may_rang": 3, "rang_nhiet_do_m3": 285}))
 kiem("máy 3 vượt trần vận hành → cảnh báo nói rõ máy rang M3 (W16)",
      any("M3" in c for c in cb), str(cb))
 

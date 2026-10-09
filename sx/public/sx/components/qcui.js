@@ -23,8 +23,8 @@ export function trangThaiSo(f, v, ng) {
   const g = ng || {};
   if (f === 'rang_nhiet_do') {
     if (n === 0) return '';                       // 0 = chưa đo, không phải 0 °C
-    if (n < (g.rang_nhiet_min ?? 255)) return 'loi';
-    return n > (g.rang_nhiet_max_van_hanh ?? 270) ? 'canh' : '';
+    if (n < (g.rang_nhiet_min ?? 240)) return 'loi';
+    return n > (g.rang_nhiet_max_van_hanh ?? 280) ? 'canh' : '';
   }
   if (f === 'rang_vong_quay') {
     if (n === 0) return '';
@@ -67,15 +67,15 @@ function nhan(m, kemGoiY = true) {
 }
 
 /** Câu báo cho ô số ngoài ngưỡng. Nói ĐÚNG cái sai, không đọc lại dòng ngưỡng:
- *  QC đang đứng cạnh máy rang, họ cần biết "thấp hơn 255" chứ không cần nghe
+ *  QC đang đứng cạnh máy rang, họ cần biết "thấp hơn 240" chứ không cần nghe
  *  lại khoảng cho phép. */
 function loiSo(f, v, ng) {
   const n = Number(v);
   const g = ng || {};
   if (f === 'rang_nhiet_do') {
-    return n < (g.rang_nhiet_min ?? 255)
-      ? `✕ ${n} °C — thấp hơn ${g.rang_nhiet_min ?? 255} °C, sẽ tạo sự cố`
-      : `⚠ ${n} °C — vượt trần vận hành ${g.rang_nhiet_max_van_hanh ?? 270} °C, báo tổ trưởng`;
+    return n < (g.rang_nhiet_min ?? 240)
+      ? `✕ ${n} °C — thấp hơn ${g.rang_nhiet_min ?? 240} °C, sẽ tạo sự cố`
+      : `⚠ ${n} °C — vượt trần vận hành ${g.rang_nhiet_max_van_hanh ?? 280} °C, báo tổ trưởng`;
   }
   if (f === 'rang_vong_quay') {
     return `✕ ${n} — ngoài khoảng ${g.vong_quay_min ?? 6.2}–${g.vong_quay_max ?? 7}, sẽ tạo sự cố`;
@@ -130,9 +130,9 @@ function goiYNgan(f, v, ng) {
   const g = ng || {};
   const tt = trangThaiSo(f, v, ng);
   if (f === 'rang_nhiet_do') {
-    if (tt === 'loi') return `✕ < ${g.rang_nhiet_min ?? 255}`;
-    if (tt === 'canh') return `⚠ > ${g.rang_nhiet_max_van_hanh ?? 270}`;
-    return `≥ ${g.rang_nhiet_min ?? 255} °C`;
+    if (tt === 'loi') return `✕ < ${g.rang_nhiet_min ?? 240}`;
+    if (tt === 'canh') return `⚠ > ${g.rang_nhiet_max_van_hanh ?? 280}`;
+    return `≥ ${g.rang_nhiet_min ?? 240} °C`;
   }
   if (f === 'rang_vong_quay') {
     const kh = `${g.vong_quay_min ?? 6.2}–${g.vong_quay_max ?? 7}`;

@@ -118,11 +118,11 @@ kiem("mọi field bảng số đo đọc đều CÓ trên SX QC Round (thiếu m
 # ═══ 2. Tổng hợp theo máy ═════════════════════════════════════════════════
 print("\n-- tổng hợp số đo theo máy (hàm thuần) --")
 R = [
-    {"luot": "Đầu sáng", "so_may_rang": 2, "rang_nhiet_do": 260, "rang_vong_quay": 6.5, "rang_nhiet_do_m2": 250,
+    {"luot": "Đầu sáng", "so_may_rang": 2, "rang_nhiet_do": 260, "rang_vong_quay": 6.5, "rang_nhiet_do_m2": 235,
      "rang_vong_quay_m2": 7.4, "rang_nhiet_do_m3": 300, "co_san_xuat_bot": 1, "so_may_goi_bot": 2,
      "b8_nhiet_han": 170, "b8_nhiet_han_m2": 195},
     {"luot": "Trưa", "so_may_rang": 3, "rang_nhiet_do": 265, "rang_vong_quay": 0, "rang_nhiet_do_m2": 258,
-     "rang_nhiet_do_m3": 275, "rang_vong_quay_m3": 6.6, "co_san_xuat_bot": 0, "b8_nhiet_han": 120},
+     "rang_nhiet_do_m3": 285, "rang_vong_quay_m3": 6.6, "co_san_xuat_bot": 0, "b8_nhiet_han": 120},
     {"luot": "Cuối chiều", "so_may_rang": 1, "buoc_nghi": "3", "rang_nhiet_do": 100},
 ]
 ng = NG.MAC_DINH
@@ -137,20 +137,20 @@ kiem("mỗi (máy, số đo) một dòng, đúng thứ tự máy rang M1 → M3 
 kiem("M1: hai lần đo nhiệt độ (260, 265); bước Rang nghỉ → số 100 không tính",
      bang[("Máy rang đỗ M1", "rang_nhiet_do")] == (2, 260, 265, 0, 0), bang[("Máy rang đỗ M1", "rang_nhiet_do")])
 kiem("vòng quay 0 = chưa ghi, không tính", bang[("Máy rang đỗ M1", "rang_vong_quay")] == (1, 6.5, 6.5, 0, 0))
-kiem("M2: 250 °C dưới ngưỡng 255 → 1 lần dưới; vòng quay 7,4 > 7,0 → 1 lần trên",
-     bang[("Máy rang đỗ M2", "rang_nhiet_do")] == (2, 250, 258, 1, 0)
+kiem("M2: 235 °C dưới ngưỡng 240 → 1 lần dưới; vòng quay 7,4 > 7,0 → 1 lần trên",
+     bang[("Máy rang đỗ M2", "rang_nhiet_do")] == (2, 235, 258, 1, 0)
      and bang[("Máy rang đỗ M2", "rang_vong_quay")] == (1, 7.4, 7.4, 0, 1))
-kiem("M3: lượt chỉ chạy 2 máy → số 300 cũ của M3 KHÔNG tính; 275 > trần vận hành 270 → 1 lần trên",
-     bang[("Máy rang đỗ M3", "rang_nhiet_do")] == (1, 275, 275, 0, 1), bang[("Máy rang đỗ M3", "rang_nhiet_do")])
+kiem("M3: lượt chỉ chạy 2 máy → số 300 cũ của M3 KHÔNG tính; 285 > trần vận hành 280 → 1 lần trên",
+     bang[("Máy rang đỗ M3", "rang_nhiet_do")] == (1, 285, 285, 0, 1), bang[("Máy rang đỗ M3", "rang_nhiet_do")])
 kiem("máy gói bột: hôm không làm bột → số hàn 120 không tính; máy 2 195 > 190 → 1 lần trên",
      bang[("Máy đóng gói bột 1", "b8_nhiet_han")] == (1, 170, 170, 0, 0)
      and bang[("Máy đóng gói bột 2", "b8_nhiet_han")] == (1, 195, 195, 0, 1))
 kiem("ngưỡng lấy từ SX QC Setting (truyền vào), có đơn vị",
      next(x for x in kq if x["f"] == "rang_vong_quay")["lo"] == 6.2 and kq[0]["dv"] == "°C")
 kiem("không có lượt nào → bảng rỗng", SD.tong_hop([], ng) == [])
-b = SD.tong_hop([{"luot": "Trưa", "so_may_rang": 1, "rang_nhiet_do": 255, "rang_vong_quay": 7.0},
-                 {"luot": "Trưa", "so_may_rang": 1, "rang_nhiet_do": 270, "rang_vong_quay": 6.2}], ng)
-kiem("đúng bằng ngưỡng (255, 270, 6,2, 7,0) không phải ngoài ngưỡng",
+b = SD.tong_hop([{"luot": "Trưa", "so_may_rang": 1, "rang_nhiet_do": 240, "rang_vong_quay": 7.0},
+                 {"luot": "Trưa", "so_may_rang": 1, "rang_nhiet_do": 280, "rang_vong_quay": 6.2}], ng)
+kiem("đúng bằng ngưỡng (240, 280, 6,2, 7,0) không phải ngoài ngưỡng — W37 rang đỗ 240–280 °C",
      all(x["duoi"] == 0 and x["tren"] == 0 for x in b) and len(b) == 2, b)
 kiem("chỉ đọc các field can_lay() là đủ — ra y hệt khi có đủ mọi field (số máy, bước nghỉ, có bột…)",
      SD.tong_hop([{k: r.get(k) for k in SD.can_lay()} for r in R], ng) == kq)

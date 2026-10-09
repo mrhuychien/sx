@@ -459,4 +459,10 @@ node scripts/test-tiepnhanqc.mjs > /tmp/sx-tiepnhanqc-js.log 2>&1 \
   && tail -1 /tmp/sx-tiepnhanqc-js.log \
   || { cat /tmp/sx-tiepnhanqc-js.log; loi=1; }
 
+# D161 (W37): rang đỗ 240–280 °C. Ngưỡng lệch giữa mã / cài đặt / màn QC, patch đè số site tự chỉnh, nhóm
+# đỗ / lạc còn trong luật aflatoxin (mọi lô đỗ tự Cách ly) — đều lặng lẽ.
+python3 scripts/test-rangdo.py > /tmp/sx-rangdo.log 2>&1 \
+  && tail -1 /tmp/sx-rangdo.log \
+  || { cat /tmp/sx-rangdo.log; loi=1; }
+
 exit $loi

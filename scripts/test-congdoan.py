@@ -151,7 +151,7 @@ cu = CD.pop("3 Rang")
 CD["3 Rang đỗ"] = D(cu, name="3 Rang đỗ", ten="3 Rang đỗ")      # = Rename trên Desk
 kiem("Ban ISO đổi '3 Rang' → '3 Rang đỗ': sự cố mới mang tên mới (tra theo mã)",
      SC.ten_cong_doan("3 Rang") == "3 Rang đỗ")
-d = Doc(name="QC-1", ngay="2026-10-08", luot="Đầu sáng", phien_ban=2, rang_nhiet_do=240)
+d = Doc(name="QC-1", ngay="2026-10-08", luot="Đầu sáng", phien_ban=2, rang_nhiet_do=235)
 SC.tao_tu_vong_kiem(d)
 kiem("phiếu sự cố tự sinh ghi tên công đoạn hiện tại",
      [x["cong_doan"] for x in TAO] == ["3 Rang đỗ"], [x.get("cong_doan") for x in TAO])

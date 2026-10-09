@@ -406,7 +406,7 @@
    "fieldname": "rang_nhiet_do",
    "fieldtype": "Int",
    "label": "3a Nhiệt độ rang",
-   "description": "≥ 255 · ngoài 255–270 cảnh báo vận hành"
+   "description": "≥ 240 · ngoài 240–280 cảnh báo vận hành"
   },
   {
    "fieldname": "rang_vong_quay",
@@ -419,7 +419,7 @@
    "fieldname": "rang_nhiet_do_m2",
    "fieldtype": "Int",
    "label": "3a Nhiệt độ rang — M2",
-   "description": "≥ 255 · ngoài 255–270 cảnh báo vận hành"
+   "description": "≥ 240 · ngoài 240–280 cảnh báo vận hành"
   },
   {
    "fieldname": "rang_vong_quay_m2",
@@ -432,7 +432,7 @@
    "fieldname": "rang_nhiet_do_m3",
    "fieldtype": "Int",
    "label": "3a Nhiệt độ rang — M3",
-   "description": "≥ 255 · ngoài 255–270 cảnh báo vận hành"
+   "description": "≥ 240 · ngoài 240–280 cảnh báo vận hành"
   },
   {
    "fieldname": "rang_vong_quay_m3",
