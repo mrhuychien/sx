@@ -45,7 +45,7 @@ def _m(muc_do, tieu_de, chi_tiet, route):
 
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
-         cat=None, thiet_bi=None, kiem_nghiem=None):
+         cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -54,7 +54,8 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `dong_vat` = {"co_du_lieu": bool, "khu_hai_tuan": [{khu, tram, tuan}]} — W15 (D140).
     `cat` = sx/qc/cat.nhac(): đổi nguồn còn thiếu, ngày có rang thiếu nhật ký — W20 (D141).
     `thiet_bi` = sx/qc/thiet_bi.nhac(): quá hạn, không đạt, sắp đến hạn, loại chưa khai — W17 (D143).
-    `kiem_nghiem` = sx/qc/kiem_nghiem.nhac(): sản phẩm quá / đến hạn gửi mẫu, chờ kết quả lâu — W18 (D144)."""
+    `kiem_nghiem` = sx/qc/kiem_nghiem.nhac(): sản phẩm quá / đến hạn gửi mẫu, chờ kết quả lâu — W18 (D144).
+    `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn — W21 (D146)."""
     nay = _d(hom_nay)
     ra = []
     ra += _nhac_bot_nen(nay, bot_nen or [])
@@ -68,6 +69,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhac_cat(cat or {})
     ra += _nhac_thiet_bi(nay, thiet_bi or {})
     ra += _nhac_kiem_nghiem(kiem_nghiem or {})
+    ra += _nhac_viec_dinh_ky(viec_dinh_ky or {})
     # Nhắc cũ theo số trạm có dấu hiệu ở lượt tuần (T2, không biết khu) — chỉ còn dùng khi
     # nhà máy CHƯA ghi dấu hiệu theo trạm (W15); có dữ liệu trạm thì nhắc theo khu thay.
     if not (dong_vat or {}).get("co_du_lieu"):
@@ -327,6 +329,21 @@ def _nhac_kiem_nghiem(kn):
         x = kn["cho_lau"]
         ra.append(_m(THUONG, f"{len(x)} mẫu kiểm nghiệm gửi lâu chưa có kết quả",
                      f"{ds(x)} — hỏi đơn vị kiểm nghiệm, có kết quả thì ghi ngay.", "#/qc/kiemnghiem"))
+    return ra
+
+
+def _nhac_viec_dinh_ky(vd):
+    """Việc định kỳ cho hồ sơ giấy (W21): quá hạn — mức cao (việc bắt buộc đã lỡ); sắp đến hạn
+    trong số ngày "nhắc trước" của từng việc — mức thường. Mỗi việc một dòng: tên việc chính là
+    điều phải làm, gộp lại thì người ta phải mở màn khác mới biết việc gì."""
+    ra = []
+    for x in vd.get("qua_han") or []:
+        ra.append(_m(CAO, f"Việc định kỳ quá hạn: {x['ten']}",
+                     f"Hạn {_d(x['han']).strftime('%d/%m/%Y')} — đã quá {-x['con']} ngày. Làm xong bấm "
+                     f"\"Đã làm\" để dời sang kỳ sau.", "#/qc/lichviec"))
+    for x in vd.get("sap_den") or []:
+        ra.append(_m(THUONG, f"Sắp đến hạn: {x['ten']}",
+                     f"Hạn {_d(x['han']).strftime('%d/%m/%Y')} — còn {x['con']} ngày.", "#/qc/lichviec"))
     return ra
 
 

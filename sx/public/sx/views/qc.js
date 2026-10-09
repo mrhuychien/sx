@@ -31,10 +31,12 @@ const MAN = {
   kiemnghiem: '/assets/sx/sx/views/qc_kiemnghiem.js',
   // W19 (D145): phiếu rework BM.15.01.
   rework: '/assets/sx/sx/views/qc_rework.js',
+  // W21 (D146): lịch việc định kỳ cho hồ sơ giấy.
+  lichviec: '/assets/sx/sx/views/qc_lichviec.js',
 };
 
 // Sổ mở từ lưới nút cuối màn Hôm nay — tab "Hôm nay" sáng khi đang ở các màn này.
-const SO_HOM_NAY = ['dvgh', 'cat', 'thietbi', 'kiemnghiem', 'rework'];
+const SO_HOM_NAY = ['dvgh', 'cat', 'thietbi', 'kiemnghiem', 'rework', 'lichviec'];
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
 // null = hôm nay. Giữ ngoài hàm render để đổi tab không mất ngày đang xem.

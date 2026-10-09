@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "istable": 1,
+ "editable_grid": 1,
+ "name": "SX Viec Dinh Ky Lan",
+ "field_order": [
+  "ngay",
+  "nguoi",
+  "han_ky",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày làm",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nguoi",
+   "fieldtype": "Link",
+   "label": "Người ghi",
+   "options": "User",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "han_ky",
+   "fieldtype": "Date",
+   "label": "Của kỳ hạn",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú / biên bản",
+   "in_list_view": 1
+  }
+ ],
+ "permissions": []
+}

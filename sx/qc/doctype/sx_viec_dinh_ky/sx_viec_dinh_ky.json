@@ -1,0 +1,147 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "autoname": "hash",
+ "name": "SX Viec Dinh Ky",
+ "field_order": [
+  "ten",
+  "chu_ky",
+  "han",
+  "bao_truoc",
+  "column_break_1",
+  "phu_trach",
+  "ho_so",
+  "ngung",
+  "mo_ta",
+  "section_lan",
+  "lan_cuoi",
+  "ds_lan"
+ ],
+ "fields": [
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Việc",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "chu_ky",
+   "fieldtype": "Select",
+   "label": "Chu kỳ",
+   "options": "Năm\nQuý\nTháng\nMột lần",
+   "default": "Năm",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "han",
+   "fieldtype": "Date",
+   "label": "Hạn lần tới",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "bao_truoc",
+   "fieldtype": "Int",
+   "label": "Nhắc trước (ngày)",
+   "default": "14"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "phu_trach",
+   "fieldtype": "Data",
+   "label": "Phụ trách"
+  },
+  {
+   "fieldname": "ho_so",
+   "fieldtype": "Data",
+   "label": "Hồ sơ / biểu mẫu liên quan"
+  },
+  {
+   "fieldname": "ngung",
+   "fieldtype": "Check",
+   "label": "Ngừng (không nhắc nữa)"
+  },
+  {
+   "fieldname": "mo_ta",
+   "fieldtype": "Small Text",
+   "label": "Làm gì"
+  },
+  {
+   "fieldname": "section_lan",
+   "fieldtype": "Section Break",
+   "label": "Các lần đã làm"
+  },
+  {
+   "fieldname": "lan_cuoi",
+   "fieldtype": "Date",
+   "label": "Lần làm gần nhất",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ds_lan",
+   "fieldtype": "Table",
+   "label": "Lịch sử",
+   "options": "SX Viec Dinh Ky Lan",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "han",
+ "sort_order": "ASC",
+ "title_field": "ten",
+ "track_changes": 1
+}

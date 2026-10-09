@@ -105,12 +105,14 @@ export async function render({ container, call, st }) {
   //  · W17 (D143) thiết bị đo BM.06.01–06.04 — hạn hiệu chuẩn, kiểm tra định kỳ.
   //  · W18 (D144) kế hoạch kiểm nghiệm KH.KN.01 — gửi mẫu, kết quả.
   //  · W19 (D145) phiếu rework BM.15.01 — ≤ 10% mẻ, không lạc vào sản phẩm không lạc.
+  //  · W21 (D146) việc định kỳ cho hồ sơ giấy — việc năm / quý lên hộp nhắc.
   const so = el('div', 'sx-qc-so');
   [['#/qc/dvgh', '🐀 Động vật gây hại', 'theo trạm · BM.PRP'],
     ['#/qc/cat', '♨ Nhật ký cát rang', 'BM.08.03 · đếm ngày cát'],
     ['#/qc/thietbi', '🌡 Thiết bị đo', 'BM.06 · hạn hiệu chuẩn'],
     ['#/qc/kiemnghiem', '🧪 Kiểm nghiệm', 'KH.KN.01 · gửi mẫu năm'],
-    ['#/qc/rework', '♻ Rework', 'BM.15.01 · ≤ 10% mẻ']].forEach(([href, ten, phu]) => {
+    ['#/qc/rework', '♻ Rework', 'BM.15.01 · ≤ 10% mẻ'],
+    ['#/qc/lichviec', '📅 Việc định kỳ', 'năm / quý · hồ sơ giấy']].forEach(([href, ten, phu]) => {
     const b = el('button', 'sx-btn sx-btn-ghost', `${esc(ten)}<small>${esc(phu)}</small>`);
     b.type = 'button';
     b.addEventListener('click', () => { window.location.hash = href; });

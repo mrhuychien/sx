@@ -315,6 +315,16 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Lịch việc định kỳ cho hồ sơ giấy (D146 — W21)
+
+- Màn QC → Hôm nay → **📅 Việc định kỳ** (`#/qc/lichviec`, doctype `SX Viec Dinh Ky`): việc năm / quý /
+  tháng / một lần — hạn lần tới, nhắc trước bao nhiêu ngày (mặc định 14), phụ trách, hồ sơ liên quan.
+- Patch tạo sẵn hai việc tài liệu nêu: **thử khôi phục dữ liệu app** (hạn 30/11/2026) và **thay bóng đèn
+  bẫy côn trùng** (31/03/2027), hằng năm, nhắc trước 30 ngày. Ban ISO / QC thêm việc khác.
+- **ĐÃ LÀM**: ghi ngày, người, ghi chú / số biên bản; hạn **kỳ sau tính từ hạn cũ** (làm muộn vẫn giữ tháng
+  cũ năm sau); việc một lần làm xong thì ngừng nhắc.
+- Hộp nhắc màn Hôm nay: mỗi việc quá hạn một dòng **mức cao**, sắp đến hạn mức thường.
+
 ## Phiếu rework BM.15.01 (D145 — W19)
 
 - Màn QC → Hôm nay → **♻ Rework** (`#/qc/rework`, doctype `SX Rework`): hàng đem rework (thuộc sản phẩm

@@ -390,4 +390,10 @@ python3 scripts/test-rework.py > /tmp/sx-rework.log 2>&1 \
   && tail -1 /tmp/sx-rework.log \
   || { cat /tmp/sx-rework.log; loi=1; }
 
+# D146 (W21): lịch việc định kỳ. Hạn trôi theo ngày làm, việc một lần nhắc mãi, thiếu hai việc
+# tài liệu nêu — đều im lặng.
+python3 scripts/test-lichviec.py > /tmp/sx-lichviec.log 2>&1 \
+  && tail -1 /tmp/sx-lichviec.log \
+  || { cat /tmp/sx-lichviec.log; loi=1; }
+
 exit $loi
