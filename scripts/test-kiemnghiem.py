@@ -108,8 +108,9 @@ kiem("… kế hoạch: Không đạt — kiểm lại", next(x for x in A.tong_
 
 # ═══ 3. Cát: chỉ khi đổi nguồn, chép sang nhật ký cát ══════════════════════
 print("\n-- cát rang: đổi nguồn, chép kết quả sang nhật ký cát --")
-for ngay, ncc, so in (("2026-10-01", "CAT-A", 5), ("2026-10-07", "CAT-B", 0)):
-    F.get_doc({"doctype": CATM.PT, "ngay": ngay, "ncc_cat": ncc, "so_ngay_dung": so}).insert()
+# D164 (W32): nhật ký cát mỗi việc một dòng — đổi nguồn là lần NHẬP cát của NCC khác lần nhập trước.
+for ngay, ncc in (("2026-10-01", "CAT-A"), ("2026-10-07", "CAT-B")):
+    F.get_doc({"doctype": CATM.PT, "ngay": ngay, "viec": CATM.NHAP, "ncc_cat": ncc, "khoi_luong": 200}).insert()
 dong = next(n for n, x in F.bang(CATM.PT).items() if str(x["ngay"]) == "2026-10-07")
 c = KN.cat_cho_kiem()
 kiem("kế hoạch cát: chỉ lần đổi nguồn 07/10 (Cát Minh Anh), chưa gửi mẫu", [x["name"] for x in c] == [dong]

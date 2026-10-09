@@ -370,6 +370,10 @@ python3 scripts/test-dongvat.py > /tmp/sx-dongvat.log 2>&1 \
 python3 scripts/test-cat.py > /tmp/sx-cat.log 2>&1 \
   && tail -1 /tmp/sx-cat.log \
   || { cat /tmp/sx-cat.log; loi=1; }
+# D164 (W32): màn nhật ký cát mỗi việc một dòng — ô theo việc, đổi nguồn báo trước khi lưu, dòng sổ cũ chỉ xem.
+node scripts/test-cat.mjs > /tmp/sx-cat-js.log 2>&1 \
+  && tail -1 /tmp/sx-cat-js.log \
+  || { cat /tmp/sx-cat-js.log; loi=1; }
 
 # D142 (W16): số đo theo máy rang M1–M3 / máy gói bột. Số của máy đã tắt lọt vào thống kê,
 # nhãn Desk lệch nhãn màn hình, field đọc không có trên phiếu — đều im lặng.

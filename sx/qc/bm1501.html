@@ -1,4 +1,4 @@
-{#- BM.15.01 — phiếu rework trong tháng (W19, D145). A4 ngang. -#}
+{#- BM.15.01 — phiếu rework trong tháng (W19, D145; W32 D164: giờ bắt đầu – kết thúc, QLSX quyết định). A4 ngang. -#}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .rw { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -17,22 +17,26 @@
   <div class="ma">BM.15.01 &nbsp;·&nbsp; Tháng {{ thang }} &nbsp;·&nbsp; {{ ds|length }} lần rework &nbsp;·&nbsp;
     tối đa {{ "%g"|format(toi_da) }}% khối lượng mẻ; không đưa hàng có lạc vào sản phẩm không lạc</div>
   <table>
-    <tr><th style="width:7%">Ngày</th><th class="t" style="width:17%">Hàng đem rework<br>(sản phẩm · lô)</th>
-      <th style="width:6%">KL (kg)</th><th class="t" style="width:13%">Lý do</th><th class="t" style="width:17%">Đưa vào sản phẩm<br>(mẻ)</th>
-      <th style="width:7%">KL mẻ (kg)</th><th style="width:6%">Tỷ lệ</th><th style="width:7%">Lạc<br>nguồn / nhận</th>
-      <th style="width:8%">Sự cố</th><th class="t">Kết quả</th><th style="width:9%">Người lập</th></tr>
+    <tr><th style="width:6%">Ngày</th><th class="t" style="width:14%">Hàng đem rework<br>(sản phẩm · lô)</th>
+      <th style="width:5%">KL (kg)</th><th class="t" style="width:11%">Lý do</th><th style="width:7%">Giờ bắt đầu<br>– kết thúc</th>
+      <th class="t" style="width:14%">Đưa vào sản phẩm<br>(mẻ)</th>
+      <th style="width:6%">KL mẻ (kg)</th><th style="width:5%">Tỷ lệ</th><th style="width:6%">Lạc<br>nguồn / nhận</th>
+      <th style="width:10%">QLSX quyết định<br>(giờ)</th><th style="width:6%">Sự cố</th><th class="t">Kết quả</th>
+      <th style="width:7%">Người lập</th></tr>
     {% for x in ds %}
     <tr>
       <td>{{ frappe.utils.formatdate(x.ngay, "dd/MM/yyyy") }}</td>
       <td class="t">{{ x.ten_nguon }}{% if x.mo_ta_nguon %}<br><small>{{ x.mo_ta_nguon }}</small>{% endif %}</td>
       <td>{{ "%g"|format(x.kl_rework or 0) }}</td><td class="t">{{ x.ly_do or "" }}</td>
+      <td>{% if x.gio_bat_dau or x.gio_ket_thuc %}{{ x.gio_bat_dau or "…" }} – {{ x.gio_ket_thuc or "…" }}{% endif %}</td>
       <td class="t">{{ x.ten_dich }}{% if x.me %}<br><small>mẻ {{ x.me }}{% if x.ngay_sx %} · {{ frappe.utils.formatdate(x.ngay_sx, "dd/MM") }}{% endif %}</small>{% endif %}</td>
       <td>{{ "%g"|format(x.kl_me or 0) }}</td><td>{{ "%g"|format(x.ty_le or 0) }}%</td>
       <td>{{ "có" if x.nguon_co_lac else "không" }} / {{ "có" if x.dich_co_lac else "không" }}</td>
+      <td>{% if x.qlsx_quyet_dinh %}{{ x.ten_qlsx or x.qlsx_quyet_dinh }}{% if x.qlsx_luc %}<br><small>{{ x.qlsx_luc[11:16] }}</small>{% endif %}{% endif %}</td>
       <td>{{ x.su_co or "" }}</td><td class="t">{{ x.ket_qua or "" }}</td><td>{{ x.nguoi_lap or "" }}</td>
     </tr>
     {% else %}
-    <tr><td colspan="11">Tháng này không có rework.</td></tr>
+    <tr><td colspan="13">Tháng này không có rework.</td></tr>
     {% endfor %}
   </table>
   <table class="ky"><tr><td><b>QC</b><br>(ký, ghi rõ họ tên)</td><td><b>Quản lý sản xuất</b><br>(ký, ghi rõ họ tên)</td>

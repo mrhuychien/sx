@@ -83,7 +83,7 @@ ds = NH.tinh("2026-10-09", luot, [{"name": "S", "ngay": "2026-09-01", "trang_tha
              luu_mau={"den_han": 2, "lau_nhat": "2026-10-01", "dot_cho": [{"name": "D", "lap_luc": "2026-10-01"}]},
              xuat_xuong={"cho_duyet": 1, "lau_nhat": "2026-10-07"},
              dong_vat={"co_du_lieu": True, "khu_hai_tuan": [{"khu": "Kho", "tram": ["R01"], "tuan": ["2026-09-28", "2026-10-05"]}]},
-             cat={"co_du_lieu": True, "thieu": ["2026-10-07"], "hom_nay_chua": True,
+             cat={"co_du_lieu": True, "dang_dung": True, "rang_khong_cat": "2026-10-07",
                   "cho_kln": [{"ngay": "2026-10-01", "ncc": "x", "kln": "", "lo_mau": 0}], "so_ngay": 50, "toi_da": 30},
              thiet_bi={"qua_han": [{"ma": "DH-01", "han": "2026-10-01"}], "khong_dat": [{"ma": "NC-01"}],
                        "sap_den": [{"ma": "LS-01", "han": "2026-10-20"}], "thieu_loai": ["Cân"], "han_dau": "2026-10-31"},
@@ -157,8 +157,9 @@ F.bang("SX Kiem Nghiem").update({
     "KN-1": {"name": "KN-1", "doi_tuong": "Sản phẩm", "san_pham": "SP-1", "ngay_gui": "2026-03-01", "ket_qua": "Đạt"},
     "KN-2": {"name": "KN-2", "doi_tuong": "Sản phẩm", "san_pham": "SP-2", "ngay_gui": "2026-10-01", "ket_qua": ""},
     "KN-4": {"name": "KN-4", "doi_tuong": "Sản phẩm", "san_pham": "SP-4", "ngay_gui": "2025-09-01", "ket_qua": "Đạt"}})
-F.bang("SX Nhat Ky Cat")["CAT-1"] = {"name": "CAT-1", "ngay": "2026-10-08", "so_ngay_dung": 12,
-                                     "ten_ncc": "Cát Sông Lô", "doi_nguon": 0}
+# Dòng sổ cũ (D141: mỗi ngày có rang một dòng — D164 đánh dấu so_cu): cát ngày thứ 12 hôm 08/10.
+F.bang("SX Nhat Ky Cat")["CAT-1"] = {"name": "CAT-1", "ngay": "2026-10-08", "so_ngay_dung": 12, "so_cu": 1,
+                                     "ncc_cat": "NCC-CAT", "ten_ncc": "Cát Sông Lô", "doi_nguon": 0}
 F.bang("SX Dau Hieu Dong Vat")["DV-1"] = {"name": "DV-1", "ngay": "2026-10-06", "tram": "R05", "khu": "Kho NL"}
 F.bang("Supplier").update({
     "NCC-CAT": {"name": "NCC-CAT", "supplier_name": "Cát Sông Lô", "disabled": 0, "custom_loai_ncc": "Cát rang",
@@ -251,6 +252,14 @@ kiem("hôm nay CÓ phiếu ngày sản xuất mà chưa đi lượt nào → 0/3
      {x["ma"]: x for x in API.tong_quan()["linh_vuc"]}["vong_kiem"]["dong"][0] == "Hôm nay 0/3 lượt đã xong")
 F.bang("SX Ngay San Xuat").clear()
 F.bang("SX QC Round").update(hn)
+
+# W32 (D164): loại cát mà chưa ghi cát mới đưa vào máy → thẻ không nói số ngày.
+F.bang("SX Nhat Ky Cat")["CAT-2"] = {"name": "CAT-2", "ngay": "2026-10-09", "viec": "Loại cát", "ly_do_loai": "đủ ngày",
+                                     "creation": "2026-10-09 08:00:00"}
+c = {x["ma"]: x for x in API.tong_quan()["linh_vuc"]}["cat"]
+kiem("cát đã loại, chưa ghi cát mới → thẻ cát '–', nói không có cát đang dùng",
+     c["so"] == "–" and "không có cát đang dùng" in c["nhan_so"], c)
+F.bang("SX Nhat Ky Cat").pop("CAT-2")
 
 # ═══ 3. Một mảng hỏng không làm trống cả màn; quyền ══════════════════════
 print("\n-- mảng lỗi, quyền --")

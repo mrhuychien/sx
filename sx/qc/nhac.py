@@ -60,7 +60,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `luu_mau` = {"den_han": n, "lau_nhat": ngày, "dot_cho": [{name, thang, lap_luc}]} (W07).
     `xuat_xuong` = {"cho_duyet": n, "lau_nhat": ngày gửi} — phiếu BM.08.04 chờ duyệt (W08).
     `dong_vat` = {"co_du_lieu": bool, "khu_hai_tuan": [{khu, tram, tuan}]} — W15 (D140).
-    `cat` = sx/qc/cat.nhac(): đổi nguồn còn thiếu, ngày có rang thiếu nhật ký — W20 (D141).
+    `cat` = sx/qc/cat.nhac(): đổi nguồn còn thiếu, tối đa, có rang mà không có cát đang dùng — W20, W32.
     `thiet_bi` = sx/qc/thiet_bi.nhac(): quá hạn, không đạt, sắp đến hạn, loại chưa khai — W17 (D143).
     `kiem_nghiem` = sx/qc/kiem_nghiem.nhac(): sản phẩm quá / đến hạn gửi mẫu, chờ kết quả lâu — W18 (D144).
     `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn — W21 (D146).
@@ -282,8 +282,9 @@ def _nhac_dong_vat(dv):
 
 
 def _nhac_cat(c):
-    """Nhật ký cát rang (W20): đổi nguồn chưa kiểm kim loại nặng / chưa lưu lọ mẫu, ngày có
-    rang mà chưa ghi. Số ngày tối đa chỉ nhắc khi SX QC Setting đã điền (C19 chưa chốt)."""
+    """Nhật ký cát rang (W20; W32 — mỗi việc một dòng): đổi nguồn chưa kiểm kim loại nặng / chưa lưu lọ mẫu;
+    số ngày tối đa chỉ nhắc khi SX QC Setting đã điền (C19 chưa chốt); có rang mà sổ không có cát đang dùng
+    (chưa ghi lần đưa cát vào máy, hoặc đã loại mà chưa ghi cát mới) — số ngày cát đã dùng đếm sai từ đó."""
     ra = []
     for x in c.get("cho_kln") or []:
         thieu = []
@@ -292,23 +293,18 @@ def _nhac_cat(c):
         if not x.get("lo_mau"):
             thieu.append("chưa lưu lọ mẫu")
         ra.append(_m(CAO if not x.get("kln") else THUONG, f"Đổi nguồn cát: {', '.join(thieu)}",
-                     f"Nguồn {x.get('ncc') or ''}, thay ngày {_d(x['ngay']).strftime('%d/%m')}. Đổi nguồn cát "
-                     f"phải kiểm kim loại nặng và lưu một lọ mẫu — có kết quả thì ghi vào nhật ký cát.",
-                     "#/qc/cat"))
+                     f"Nguồn {x.get('ncc') or ''}, nhập ngày {_d(x['ngay']).strftime('%d/%m')}. Đổi nguồn cát "
+                     f"phải kiểm kim loại nặng (trước khi dùng) và lưu một lọ mẫu — có kết quả thì ghi vào nhật ký "
+                     f"cát.", "#/qc/cat"))
     toi_da, so = int(c.get("toi_da") or 0), int(c.get("so_ngay") or 0)
-    if toi_da and so >= toi_da:
+    if c.get("dang_dung") and toi_da and so >= toi_da:
         ra.append(_m(THUONG, f"Cát đã dùng {so} ngày (tối đa {toi_da})",
-                     f"Nguồn {c.get('ncc') or ''}. Thay cát rồi ghi \"Thay cát mới\" vào nhật ký cát.",
-                     "#/qc/cat"))
-    thieu = c.get("thieu") or []
-    if thieu:
-        ds = ", ".join(_d(x).strftime("%d/%m") for x in thieu[:5])
-        ra.append(_m(THUONG, f"{len(thieu)} ngày có rang mà chưa ghi nhật ký cát",
-                     f"{ds}{'…' if len(thieu) > 5 else ''} — ghi bù (chọn ngày cũ) trong nhật ký cát "
-                     f"BM.08.03. App đếm số ngày cát đã dùng theo các dòng này.", "#/qc/cat"))
-    if c.get("hom_nay_chua"):
-        ra.append(_m(THUONG, "Hôm nay có rang — chưa ghi nhật ký cát",
-                     "Ghi trong ngày: nguồn cát, có thay cát không, vệ sinh thùng / khay.", "#/qc/cat"))
+                     f"Nguồn {c.get('ncc') or ''}. Loại cát cũ, đưa cát mới vào rồi ghi \"Loại cát\" + \"Rang khô "
+                     f"đưa dùng\" vào nhật ký cát.", "#/qc/cat"))
+    if c.get("rang_khong_cat"):
+        ra.append(_m(THUONG, "Có rang mà nhật ký cát không có cát đang dùng",
+                     f"Từ {_d(c['rang_khong_cat']).strftime('%d/%m')} có lượt ghi nhiệt độ rang. Ghi dòng \"Rang khô "
+                     f"đưa dùng\" (cát đưa vào máy) — app đếm số ngày cát đã dùng từ đó.", "#/qc/cat"))
     return ra
 
 

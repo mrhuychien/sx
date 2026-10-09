@@ -120,8 +120,8 @@ def _cat(dl):
     c = dl.get("cat")
     if not c:
         return None
-    return {"co_du_lieu": c.get("co_du_lieu"), "so_ngay": cint(c.get("so_ngay")), "ncc": c.get("ncc") or "",
-            "toi_da": cint(c.get("toi_da")), "cho_kln": len(c.get("cho_kln") or [])}
+    return {"co_du_lieu": c.get("co_du_lieu"), "dang_dung": bool(c.get("dang_dung")), "so_ngay": cint(c.get("so_ngay")),
+            "ncc": c.get("ncc") or "", "toi_da": cint(c.get("toi_da")), "cho_kln": len(c.get("cho_kln") or [])}
 
 
 def _vai_u(tu, den, dl):

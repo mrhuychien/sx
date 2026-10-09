@@ -158,6 +158,9 @@ def _cat(s):
     dong = [f"Nguồn: {s.get('ncc') or '—'}"]
     if s.get("cho_kln"):
         dong.append(f"{s['cho_kln']} lần đổi nguồn chờ kết quả kim loại nặng")
+    # W32: đã loại mà chưa ghi cát mới đưa vào máy → không có số ngày để nói.
+    if s.get("dang_dung") is False:
+        return {"so": "–", "nhan_so": "không có cát đang dùng (đã loại, chưa ghi cát mới)", "dong": dong}
     return {"so": str(s.get("so_ngay", 0)),
             "nhan_so": "ngày cát đang dùng" + (f" / tối đa {s['toi_da']}" if s.get("toi_da") else ""), "dong": dong}
 

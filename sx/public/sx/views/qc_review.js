@@ -168,15 +168,17 @@ export async function render(api) {
   // ── nhật ký cát rang của tháng (W12: Ban ISO xem cuối tháng) ─────────────
   container.appendChild(el('div', 'sx-qc-buoc',
     '<span class="sx-qc-buoc-ten">Nhật ký cát rang (BM.08.03)</span>'));
-  if (!cat.so_ngay) {
+  // D164 (W32): mỗi việc một dòng — đếm theo việc; số ngày cát đã dùng ở cuối kỳ do app đếm (ngày có rang).
+  if (!cat.so_dong) {
     container.appendChild(khungTrong('Tháng này chưa có dòng nhật ký cát nào.'));
   } else {
     const box = el('div', 'sx-qc-chips');
-    box.appendChild(chip(`${cat.so_ngay} ngày ghi`));
-    box.appendChild(chip(`thay cát ${cat.so_lan_thay} lần`));
-    box.appendChild(chip(`cuối kỳ: cát ngày thứ ${cat.so_ngay_cuoi}`));
-    if (cat.chua_ve_sinh) box.appendChild(chip(`${cat.chua_ve_sinh} ngày thiếu vệ sinh thùng / khay`, 'han'));
-    if (cat.cam_quan_hong) box.appendChild(chip(`${cat.cam_quan_hong} ngày cảm quan Không đạt`, 'han'));
+    box.appendChild(chip(`${cat.so_dong} dòng${cat.so_cu ? ` (${cat.so_cu} dòng sổ cũ)` : ''}`));
+    [['nhập', cat.so_nhap], ['thay toàn bộ', cat.so_lan_thay], ['bổ sung', cat.so_bo_sung], ['loại', cat.so_loai],
+      ['vệ sinh', cat.so_ve_sinh]].forEach(([t, n]) => { if (n) box.appendChild(chip(`${t} ${n} lần`)); });
+    box.appendChild(chip(cat.so_ngay_cuoi == null ? 'cuối kỳ: không có cát đang dùng'
+      : `cuối kỳ: cát đã dùng ${cat.so_ngay_cuoi} ngày`, cat.so_ngay_cuoi == null ? 'han' : ''));
+    if (cat.cam_quan_hong) box.appendChild(chip(`${cat.cam_quan_hong} lần cảm quan Không đạt`, 'han'));
     (cat.doi_nguon || []).forEach((x) => box.appendChild(chip(
       `đổi nguồn ${x.ncc} ${x.ngay.slice(8, 10)}/${x.ngay.slice(5, 7)}: kim loại nặng ${x.kln || 'CHƯA GỬI'}`
       + ` · lọ mẫu ${x.lo_mau ? '✓' : '✗'}`, x.kln === 'Đạt' && x.lo_mau ? '' : 'han')));

@@ -551,17 +551,15 @@ def _du_lieu_nhac(d):
         "SX QC Round",
         filters={"ngay": ("between", [tu, d]), "docstatus": ("<", 2)},
         fields=["name", "ngay", "luot", "docstatus", "reviewed_on",
-                "t2_so_bay_dau_hieu", "b2_rang_lac_nhiet", "rang_nhiet_do"])
+                "t2_so_bay_dau_hieu", "b2_rang_lac_nhiet"])
     # Sự cố KHÔNG giới hạn cửa sổ ngày: cái quá hạn ba tháng mới đúng là cái
     # phải hiện lên, mà nó thì nằm ngoài mọi cửa sổ hợp lý.
     su_co = frappe.get_all("SX Su Co", filters={"trang_thai": "Mở"},
                            fields=["name", "ngay", "trang_thai", "xu_ly_ngay",
                                    "muc_do"])
-    # Ngày có lượt ghi nhiệt độ rang = ngày có rang → phải có dòng nhật ký cát (W20).
-    rang = {str(r.get("ngay")) for r in luot if cint(r.get("rang_nhiet_do")) > 0}
     return {"luot": luot, "su_co": su_co, "ng": nguong(), "bot_nen": _bot_nen_ton(),
             "luu_mau": _luu_mau_nhac(d), "xuat_xuong": _xuat_xuong_nhac(),
-            "dong_vat": _dong_vat.nhac(d), "cat": _cat.nhac(d, rang),
+            "dong_vat": _dong_vat.nhac(d), "cat": _cat.nhac(d),
             "thiet_bi": _thiet_bi.nhac(d), "kiem_nghiem": _kiem_nghiem.nhac(d),
             "viec_dinh_ky": _viec_dinh_ky.nhac(d), "khac_phuc": _khac_phuc.nhac(d), "vai_u": _vai_u.nhac(d)}
 
@@ -945,14 +943,15 @@ def _ngay_san_xuat(tu, den, rounds):
     """Ngày sản xuất trong khoảng (tới hôm nay) — mẫu số của các chỉ số (W12).
 
     Hợp của: ngày có phiếu Ngày sản xuất (báo mẻ, đọc theo tên doctype — module qc cài
-    riêng thì không có, bỏ qua), ngày có lượt kiểm, ngày có nhật ký cát. Chủ nhật / ngày
+    riêng thì không có, bỏ qua), ngày có lượt kiểm, ngày có dòng nhật ký cát SỔ CŨ (D141: mỗi
+    ngày có rang một dòng; từ D164 mỗi việc một dòng — nhập, vệ sinh có thể rơi vào ngày nghỉ). Chủ nhật / ngày
     nghỉ không ai sản xuất thì không còn bị tính là "thiếu 3 lượt"; ngày CÓ sản xuất mà QC
     không đi lượt nào thì vẫn lộ ra — đó là chỗ mẫu số cũ (mọi ngày lịch) và mẫu số "ngày
     có lượt" đều sai."""
     den = min(getdate(den), getdate(nowdate()))
     co = {str(r["ngay"]) for r in rounds}
     for dt, truong, loc in (("SX Ngay San Xuat", "ngay", {"docstatus": ("<", 2)}),
-                            (_cat.PT, "ngay", {})):
+                            (_cat.PT, "ngay", {"so_cu": 1})):
         try:
             co |= {str(x) for x in frappe.get_all(
                 dt, filters=dict(loc, **{truong: ("between", [tu, den])}), pluck=truong)}
@@ -1039,22 +1038,27 @@ def dashboard(tu=None, den=None):
 
 
 def _cat_thang(tu, den):
-    """Nhật ký cát rang của khoảng xem xét (W12): Ban ISO xem cuối tháng. Chưa migrate → rỗng."""
+    """Nhật ký cát rang của khoảng xem xét (W12; D164: mỗi việc một dòng): Ban ISO xem cuối tháng.
+    Chưa migrate → rỗng."""
     try:
         ds = frappe.get_all(_cat.PT, filters={"ngay": ("between", [tu, den])},
-                            fields=["name", "ngay", "ten_ncc", "ncc_cat", "thay_cat", "so_ngay_dung",
-                                    "doi_nguon", "kln", "luu_lo_mau", "ve_sinh_thung", "ve_sinh_khay",
-                                    "cam_quan", "xem_luc"], order_by="ngay asc")
+                            fields=["name", "ngay", "viec", "so_cu", "ten_ncc", "ncc_cat", "thay_cat", "doi_nguon",
+                                    "kln", "luu_lo_mau", "cam_quan", "xem_luc"], order_by="ngay asc")
+        cuoi = _cat.so_ngay(min(getdate(den), getdate(nowdate())))
     except Exception:
-        ds = []
+        ds, cuoi = [], None
+    dem = lambda v: sum(1 for x in ds if x.get("viec") == v and not cint(x.get("so_cu")))  # noqa: E731
     return {
         "ds": [dict(x, ngay=str(x["ngay"])) for x in ds],
-        "so_ngay": len(ds),
+        "so_dong": len(ds),
+        "so_cu": sum(1 for x in ds if cint(x.get("so_cu"))),
         "chua_xem": sum(1 for x in ds if not x.get("xem_luc")),
         "so_lan_thay": sum(1 for x in ds if cint(x.get("thay_cat"))),
-        "chua_ve_sinh": sum(1 for x in ds if not (cint(x.get("ve_sinh_thung")) and cint(x.get("ve_sinh_khay")))),
+        "so_nhap": dem(_cat.NHAP), "so_bo_sung": dem(_cat.BO_SUNG), "so_loai": dem(_cat.LOAI),
+        "so_ve_sinh": dem(_cat.VE_SINH),
         "cam_quan_hong": sum(1 for x in ds if x.get("cam_quan") == "Không đạt"),
-        "so_ngay_cuoi": cint(ds[-1]["so_ngay_dung"]) if ds else 0,
+        # Số ngày đã dùng của cát trong máy ở cuối kỳ (tới hôm nay nếu kỳ chưa hết); None = không có cát đang dùng.
+        "so_ngay_cuoi": cuoi,
         "doi_nguon": [{"ngay": str(x["ngay"]), "ncc": x.get("ten_ncc") or x.get("ncc_cat"),
                        "kln": x.get("kln") or "", "lo_mau": cint(x.get("luu_lo_mau"))}
                       for x in ds if cint(x.get("doi_nguon"))],

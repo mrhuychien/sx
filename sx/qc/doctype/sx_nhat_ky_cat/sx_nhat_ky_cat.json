@@ -7,13 +7,26 @@
  "field_order": [
   "naming_series",
   "ngay",
+  "viec",
+  "so_cu",
+  "column_break_1",
+  "nguoi_lam",
+  "nguoi_ghi",
+  "section_nguon",
   "ncc_cat",
   "ten_ncc",
-  "column_break_1",
-  "thay_cat",
+  "so_bm0703",
+  "column_break_n",
+  "khoi_luong",
+  "thung",
+  "section_dem",
   "so_ngay_dung",
-  "doi_nguon",
+  "so_ngay_dau",
+  "thay_cat",
+  "column_break_d",
+  "ly_do_loai",
   "section_doi_nguon",
+  "doi_nguon",
   "kln",
   "so_phieu_kln",
   "column_break_2",
@@ -25,7 +38,6 @@
   "cam_quan",
   "ghi_chu",
   "section_ghi",
-  "nguoi_ghi",
   "su_co",
   "column_break_4",
   "xem_boi",
@@ -49,7 +61,45 @@
    "default": "Today",
    "in_list_view": 1,
    "search_index": 1,
-   "description": "Mỗi ngày có rang một dòng."
+   "description": "Ngày làm việc này. Mỗi việc một dòng — một ngày có thể nhiều dòng."
+  },
+  {
+   "fieldname": "viec",
+   "fieldtype": "Select",
+   "label": "Việc",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "options": "\nNhập cát\nRang khô đưa dùng\nBổ sung\nLoại cát\nVệ sinh thùng, khay",
+   "description": "Mỗi lần nhập, rang khô đưa dùng (thay toàn bộ), bổ sung, loại hoặc vệ sinh thùng, khay: một dòng. Dòng sổ cũ (mỗi ngày một dòng) có thể để trống."
+  },
+  {
+   "fieldname": "so_cu",
+   "fieldtype": "Check",
+   "label": "Dòng sổ cũ (mỗi ngày có rang một dòng)",
+   "read_only": 1,
+   "description": "Dòng ghi trước D164 — giữ nguyên; ngày của nó là ngày có rang, số ngày đã dùng của nó là mốc đếm tiếp."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguoi_lam",
+   "fieldtype": "Data",
+   "label": "Người làm",
+   "description": "Công nhân khu cát / rang (có thể không có tài khoản)."
+  },
+  {
+   "fieldname": "nguoi_ghi",
+   "fieldtype": "Link",
+   "label": "QC ghi / ký",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_nguon",
+   "fieldtype": "Section Break",
+   "label": "Nguồn, khối lượng, thùng"
   },
   {
    "fieldname": "ncc_cat",
@@ -57,7 +107,7 @@
    "label": "Nguồn cát (NCC)",
    "options": "Supplier",
    "in_list_view": 1,
-   "description": "NCC loại Cát rang (BM.07.02). Bỏ trống = giữ nguồn của cát đang dùng."
+   "description": "Nhập cát: bắt buộc (NCC loại Cát rang, BM.07.02). Đưa dùng, bổ sung: bỏ trống = nguồn của lần nhập gần nhất."
   },
   {
    "fieldname": "ten_ncc",
@@ -67,36 +117,77 @@
    "fetch_from": "ncc_cat.supplier_name"
   },
   {
-   "fieldname": "column_break_1",
+   "fieldname": "so_bm0703",
+   "fieldtype": "Data",
+   "label": "Số BM.07.03 / phiếu nhập",
+   "description": "Nhập cát: số phiếu nhập mua (phần QC tiếp nhận BM.07.03)."
+  },
+  {
+   "fieldname": "column_break_n",
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "thay_cat",
-   "fieldtype": "Check",
-   "label": "Thay cát mới hôm nay",
+   "fieldname": "khoi_luong",
+   "fieldtype": "Float",
+   "label": "Khối lượng (kg)",
    "in_list_view": 1,
-   "description": "Đổi sang NCC khác thì app tự đánh dấu thay cát."
+   "description": "Bắt buộc với nhập, rang khô đưa dùng, bổ sung."
+  },
+  {
+   "fieldname": "thung",
+   "fieldtype": "Data",
+   "label": "Thùng số / nhãn ngày",
+   "description": "Nhãn \"CÁT RANG — ngày xử lý — thùng số\" (HD.08.03 mục 4)."
+  },
+  {
+   "fieldname": "section_dem",
+   "fieldtype": "Section Break",
+   "label": "Số ngày đã dùng, loại cát"
   },
   {
    "fieldname": "so_ngay_dung",
    "fieldtype": "Int",
-   "label": "Cát dùng ngày thứ",
+   "label": "Số ngày đã dùng",
    "read_only": 1,
    "in_list_view": 1,
-   "description": "App tự đếm: số ngày có ghi nhật ký kể từ lần thay cát gần nhất (tính cả hôm nay). Chưa có số ngày tối đa (C19) — chỉ đếm."
+   "description": "App đếm: số ngày có rang (lượt kiểm ghi nhiệt độ rang) kể từ lần Rang khô đưa dùng gần nhất, tính cả hôm đó; cát bổ sung không tính lại ngày. Ghi ở dòng Bổ sung, Loại cát."
   },
   {
-   "fieldname": "doi_nguon",
+   "fieldname": "so_ngay_dau",
+   "fieldtype": "Int",
+   "label": "Cát đã dùng bao nhiêu ngày trước ngày này",
+   "description": "Chỉ dòng Rang khô đưa dùng ĐẦU SỔ: cát đang dùng từ trước khi có sổ đã qua mấy ngày có rang. Các lần thay sau để 0."
+  },
+  {
+   "fieldname": "thay_cat",
    "fieldtype": "Check",
-   "label": "Đổi nguồn cát",
-   "read_only": 1,
-   "description": "Thay cát từ NCC khác NCC của cát trước — phải kiểm kim loại nặng và lưu lọ mẫu."
+   "label": "Thay toàn bộ cát",
+   "in_list_view": 1,
+   "description": "App đánh dấu: dòng Rang khô đưa dùng (thay toàn bộ) — mốc đếm số ngày. Dòng sổ cũ: thay cát hôm đó.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_d",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ly_do_loai",
+   "fieldtype": "Small Text",
+   "label": "Lý do loại",
+   "description": "Đủ số ngày; màu sẫm đen so với lọ mẫu; mùi khét; nhiều vụn cháy; bụi bay nhiều; dính nước, dầu, hoá chất, vật lạ; kiểm nghiệm không đạt (HD.08.03 mục 5)."
   },
   {
    "fieldname": "section_doi_nguon",
    "fieldtype": "Section Break",
    "label": "Đổi nguồn cát — kim loại nặng, lọ mẫu",
    "depends_on": "doi_nguon"
+  },
+  {
+   "fieldname": "doi_nguon",
+   "fieldtype": "Check",
+   "label": "Đổi nguồn cát",
+   "read_only": 1,
+   "description": "Nhập cát của NCC khác lần nhập trước — phải kiểm kim loại nặng (trước khi dùng) và lưu lọ mẫu."
   },
   {
    "fieldname": "kln",
@@ -122,17 +213,17 @@
   {
    "fieldname": "section_ve_sinh",
    "fieldtype": "Section Break",
-   "label": "Vệ sinh, cảm quan"
+   "label": "Vệ sinh, cảm quan, ghi chú"
   },
   {
    "fieldname": "ve_sinh_thung",
    "fieldtype": "Check",
-   "label": "Đã vệ sinh thùng"
+   "label": "Vệ sinh thùng"
   },
   {
    "fieldname": "ve_sinh_khay",
    "fieldtype": "Check",
-   "label": "Đã vệ sinh khay"
+   "label": "Vệ sinh khay"
   },
   {
    "fieldname": "column_break_3",
@@ -141,9 +232,9 @@
   {
    "fieldname": "cam_quan",
    "fieldtype": "Select",
-   "label": "Cảm quan cát",
+   "label": "Cảm quan khi nhận",
    "options": "\nĐạt\nKhông đạt",
-   "description": "Sạch, khô, không vón cục, không lẫn tạp chất."
+   "description": "Vàng đồng đều, hạt thô, không mùi dầu / hoá chất / bùn, không rác, vỏ sò, nhựa, kim loại (HD.08.03 mục 2)."
   },
   {
    "fieldname": "ghi_chu",
@@ -153,14 +244,7 @@
   {
    "fieldname": "section_ghi",
    "fieldtype": "Section Break",
-   "label": "Người ghi, xem xét"
-  },
-  {
-   "fieldname": "nguoi_ghi",
-   "fieldtype": "Link",
-   "label": "Người ghi",
-   "options": "User",
-   "read_only": 1
+   "label": "Sự cố, xem xét"
   },
   {
    "fieldname": "su_co",
@@ -189,7 +273,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 23:00:00.000000",
+ "modified": "2026-10-09 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX Nhat Ky Cat",
@@ -240,6 +324,6 @@
  ],
  "sort_field": "ngay",
  "sort_order": "DESC",
- "title_field": "ngay",
+ "title_field": "viec",
  "track_changes": 1
 }

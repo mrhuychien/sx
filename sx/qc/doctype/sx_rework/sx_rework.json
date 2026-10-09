@@ -27,6 +27,12 @@
   "ty_le",
   "dich_co_lac",
   "dich_co_sua",
+  "section_qd",
+  "qlsx_quyet_dinh",
+  "qlsx_luc",
+  "column_break_qd",
+  "gio_bat_dau",
+  "gio_ket_thuc",
   "section_kq",
   "ket_qua",
   "ghi_chu"
@@ -167,6 +173,38 @@
    "read_only": 1
   },
   {
+   "fieldname": "section_qd",
+   "fieldtype": "Section Break",
+   "label": "QLSX quyết định, giờ rework"
+  },
+  {
+   "fieldname": "qlsx_quyet_dinh",
+   "fieldtype": "Link",
+   "label": "QLSX quyết định",
+   "options": "User",
+   "description": "QT.15 mục 6: phát hiện → dán nhãn REWORK → QLSX quyết định theo danh mục → làm → QC kiểm. Túi hở, hộp in sai: QC đóng gói tự quyết (để trống)."
+  },
+  {
+   "fieldname": "qlsx_luc",
+   "fieldtype": "Datetime",
+   "label": "QLSX quyết định lúc"
+  },
+  {
+   "fieldname": "column_break_qd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gio_bat_dau",
+   "fieldtype": "Time",
+   "label": "Giờ bắt đầu rework"
+  },
+  {
+   "fieldname": "gio_ket_thuc",
+   "fieldtype": "Time",
+   "label": "Giờ kết thúc rework",
+   "description": "Rework trong cùng ngày sản xuất (QT.15 mục 4)."
+  },
+  {
    "fieldname": "section_kq",
    "fieldtype": "Section Break",
    "label": "Kết quả"
@@ -183,7 +221,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-09 12:00:00.000000",
+ "modified": "2026-10-09 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX Rework",

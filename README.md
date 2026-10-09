@@ -315,6 +315,32 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhật ký cát mỗi việc một dòng; rework thêm ô QLSX, giờ (D164 — W32)
+
+- **Nhật ký cát BM.08.03** theo HD.08.03 (viết lại 07/10): bỏ "mỗi ngày có rang một dòng", giờ là **mỗi việc một
+  dòng** — *Nhập cát* · *Rang khô đưa dùng* (thay toàn bộ) · *Bổ sung* · *Loại cát* · *Vệ sinh thùng, khay*. Cột giấy:
+  ngày, việc, nguồn + số BM.07.03, khối lượng kg, thùng số / nhãn ngày, số ngày đã dùng + lý do loại, người làm / QC
+  ghi. Nhập phải có nguồn; nhập, đưa dùng, bổ sung phải có kg; loại phải có lý do (nút chọn nhanh: đủ số ngày, màu sẫm,
+  khét, vụn cháy, bụi…); vệ sinh nói thùng hay khay. Màn #/qc/cat: thẻ *Cát đang dùng*, 5 nút việc, các dòng của tháng.
+- **Số ngày đã dùng** app đếm như trước nhưng theo **ngày có rang** (lượt kiểm ghi nhiệt độ rang ở máy nào đó, cả lượt
+  đang dở) kể từ dòng *Rang khô đưa dùng* gần nhất; **bổ sung không tính lại ngày**; *Loại cát* → không có cát đang
+  dùng tới khi ghi cát mới. Số ngày ghi vào dòng bổ sung / loại (giấy: "khi bổ sung hoặc loại, ghi số ngày đã dùng").
+  Bổ sung / loại khi máy không có cát → chặn. Dòng đưa dùng **đầu sổ** khai cát đã dùng mấy ngày trước đó. Đưa cát mới
+  mà chưa ghi loại cát cũ → nhắc (không chặn).
+- **Đổi nguồn** = nhập cát của NCC khác lần nhập trước → nhắc kiểm kim loại nặng (trước khi dùng) + lưu lọ mẫu như cũ;
+  đưa dùng / bổ sung cát nguồn đó khi chưa có kết quả Đạt → báo. Số ngày tối đa vẫn để 0 = chỉ đếm (C19).
+- **Hộp nhắc**: bỏ nhắc "ngày có rang chưa ghi nhật ký" (không còn dòng hằng ngày); thêm "có rang mà nhật ký cát không
+  có cát đang dùng" (7 ngày qua). Sàng lại hằng ngày vẫn ghi BM.08.01 mục 4.
+- **Dòng cũ giữ nguyên** (patch `d164_cat_theo_viec`): đánh dấu *sổ cũ*, gán việc tương ứng — thay cát → *Rang khô đưa
+  dùng*, vệ sinh → *Vệ sinh thùng, khay*, còn lại để trống (ngày có rang). Số ngày đếm tiếp từ dòng cũ cuối cùng.
+- Xem xét tháng: chỉ dòng cát **sổ cũ** mới làm ra "ngày sản xuất" (dòng nhập / vệ sinh có thể rơi vào ngày nghỉ); mục
+  nhật ký cát đếm theo việc + số ngày cát cuối kỳ. Bản in BM.08.03 đúng 7 cột giấy + dòng "Trưởng Ban ISO xem xét cuối
+  tháng".
+- **Rework BM.15.01**: thêm **QLSX quyết định** (người có vai QLSX / Giám đốc + giờ) và **giờ bắt đầu – kết thúc**.
+  Chọn người không có vai QLSX → chặn; giờ kết thúc trước giờ bắt đầu → chặn; QLSX quyết định sau giờ bắt đầu → cảnh báo
+  (QT.15: quyết định trước khi làm). Túi hở, hộp in sai (QC đóng gói tự quyết) để trống. Bản in thêm hai cột.
+- Cần `bench --site site1.local migrate` (ô mới, patch) rồi `bench restart`.
+
 ## Sổ giặt vải ủ BM.08.05 (D163 — W29)
 
 - Màn QC → Hôm nay → **🧺 Sổ giặt vải ủ** (`#/qc/vaiu`, ngay sau nhật ký cát), theo HD.08.02 lần BH 01. **Mỗi việc

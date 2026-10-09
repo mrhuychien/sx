@@ -1,4 +1,4 @@
-// #/qc/rework — phiếu rework BM.15.01 (W19, D145).
+// #/qc/rework — phiếu rework BM.15.01 (W19, D145; W32 D164: QLSX quyết định + giờ, giờ bắt đầu – kết thúc).
 //
 // Đưa hàng đem rework vào một mẻ: KHÔNG QUÁ 10% khối lượng mẻ, KHÔNG đưa hàng có lạc vào sản
 // phẩm không lạc (cờ "Có lạc" của bộ tự công bố W28). Màn này tính trước cho người lập thấy;
@@ -58,6 +58,8 @@ export async function render(api) {
     if (x.nguon_co_lac) meta.appendChild(chip('có lạc', 'oprp'));
     if (x.me) meta.appendChild(el('span', null, `mẻ ${esc(x.me)}`));
     if (x.su_co) meta.appendChild(chip(x.su_co));
+    if (x.gio_bat_dau || x.gio_ket_thuc) meta.appendChild(chip(`${x.gio_bat_dau || '…'}–${x.gio_ket_thuc || '…'}`));
+    if (x.qlsx_quyet_dinh) meta.appendChild(chip(`QLSX ${x.ten_qlsx || x.qlsx_quyet_dinh} ${x.qlsx_luc.slice(11, 16)}`, 'dong'));
     meta.appendChild(el('span', null, esc(x.nguoi_lap || '')));
     the.appendChild(meta);
     if (x.ly_do || x.ket_qua) the.appendChild(el('div', 'sx-qc-goiy', esc([x.ly_do, x.ket_qua].filter(Boolean).join(' · '))));
@@ -125,6 +127,21 @@ function moLap(dl, api, lai) {
   const tinh = el('div', 'sx-qc-goiy sx-tb-kq');
   m.body.appendChild(tinh);
   m.body.appendChild(bao);
+  // W32: QT.15 mục 6 — QLSX quyết định (người + giờ) trước khi làm; giờ bắt đầu – kết thúc rework.
+  m.body.appendChild(el('div', 'sx-dv-khu', 'QLSX quyết định, giờ rework'));
+  const ql = chon(m.body, 'QLSX quyết định (túi hở, hộp in sai: QC đóng gói tự quyết — để trống)',
+    [['', '— không —']].concat(dl.qlsx.map((u) => [u.name, u.ten])));
+  if (dl.qlsx.find((u) => u.name === dl.user)) ql.value = dl.user;
+  const qlLuc = oNhap(m.body, 'QLSX quyết định lúc', `${dl.hom_nay}T${new Date().toTimeString().slice(0, 5)}`,
+    'datetime-local');
+  const gio = el('div', 'sx-vu-gio');
+  const o1 = el('div');
+  const o2 = el('div');
+  gio.appendChild(o1);
+  gio.appendChild(o2);
+  m.body.appendChild(gio);
+  const gioBd = oNhap(o1, 'Giờ bắt đầu', '', 'time');
+  const gioKt = oNhap(o2, 'Giờ kết thúc', '', 'time');
   const kq = oNhap(m.body, 'Kết quả / kiểm tra sau rework', '', 'ta');
   const ok = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'LẬP PHIẾU');
   ok.type = 'button';
@@ -144,11 +161,12 @@ function moLap(dl, api, lai) {
     const d = dl.san_pham.find((x) => x.name === spD.value);
     if (n && d && n.co_lac && !d.co_lac) loi.push('Hàng CÓ LẠC không được đưa vào sản phẩm KHÔNG LẠC.');
     if (n && d && n.co_sua_bot && !d.co_sua_bot) canh.push('Hàng có sữa bột vào sản phẩm không sữa — kiểm lại nhãn.');
+    if (gioBd.value && gioKt.value && gioKt.value < gioBd.value) loi.push('Giờ kết thúc trước giờ bắt đầu.');
     bao.innerHTML = [...loi.map((x) => `⛔ ${esc(x)}`), ...canh.map((x) => `⚠ ${esc(x)}`)].join('<br>');
     bao.style.display = loi.length || canh.length ? '' : 'none';
     ok.disabled = loi.length > 0;
   };
-  [klR, klM].forEach((n) => n.addEventListener('input', capNhat));
+  [klR, klM, gioBd, gioKt].forEach((n) => n.addEventListener('input', capNhat));
   [spN, spD].forEach((n) => n.addEventListener('change', capNhat));
   ok.addEventListener('click', async () => {
     if (!spN.value || !spD.value) { toastErr('Chọn sản phẩm của hàng đem rework và sản phẩm nhận.'); return; }
@@ -158,6 +176,8 @@ function moLap(dl, api, lai) {
         payload: JSON.stringify({
           ngay: ng.value || dl.hom_nay, su_co: sc.value, sp_nguon: spN.value, mo_ta_nguon: moTa.value, ly_do: lyDo.value,
           kl_rework: klR.value, sp_dich: spD.value, me: me.value, ngay_sx: ngSx.value, kl_me: klM.value, ket_qua: kq.value,
+          qlsx_quyet_dinh: ql.value, qlsx_luc: ql.value ? qlLuc.value : '', gio_bat_dau: gioBd.value,
+          gio_ket_thuc: gioKt.value,
         }),
       });
       toast(`Đã lập ${r.name} — ${so(r.ty_le)}% khối lượng mẻ`);

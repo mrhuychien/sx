@@ -9,12 +9,17 @@ Sữa bột vào sản phẩm không sữa: chỉ cảnh báo (tài liệu chưa
 Phiếu sự cố quyết định "Rework (BM.15.01)" chỉ đóng được khi đã có phiếu rework gắn với nó.
 """
 
+import re
+from datetime import datetime, time, timedelta
+
 import frappe
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, get_datetime, getdate
 
 PT, SP = "SX Rework", "SX San Pham Cong Bo"
 TOI_DA = 10.0          # % khối lượng mẻ
 QD_REWORK = "Rework (BM.15.01)"
+# W32 (D164): ô "QLSX quyết định" — người có vai quản lý sản xuất (Giám đốc SX Quan Ly cũng được).
+QLSX_VAI = ("Production Manager", "SX Quan Ly")
 
 
 def ty_le(kl_rework, kl_me):
@@ -47,6 +52,59 @@ def kiem(p, nguon, dich):
             canh.append(f"Hàng có sữa bột đưa vào sản phẩm không có sữa bột ({dich.get('ten') or ''}) — kiểm lại "
                         f"nhãn cảnh báo dị ứng.")
     return {"loi": loi, "canh_bao": canh, "ty_le": tl}
+
+
+def phut(t):
+    """Giờ trong ngày → số phút từ 0 giờ. Nhận "HH:MM[:SS]", time, datetime, timedelta (DB trả ô Time là
+    timedelta). Trống / sai → None."""
+    if t is None or t == "":
+        return None
+    if isinstance(t, timedelta):
+        return int(t.total_seconds() // 60) % (24 * 60)
+    if isinstance(t, (time, datetime)):
+        return t.hour * 60 + t.minute
+    m = re.match(r"^\s*(\d{1,2})[:hH.](\d{2})", str(t))
+    if not m or int(m.group(1)) > 23 or int(m.group(2)) > 59:
+        return None
+    return int(m.group(1)) * 60 + int(m.group(2))
+
+
+def gio(t):
+    """Giờ để hiện / in: "07:05". Trống → ""."""
+    p = phut(t)
+    return "" if p is None else f"{p // 60:02d}:{p % 60:02d}"
+
+
+def kiem_gio(p, bay_gio):
+    """Giờ rework, QLSX quyết định (W32) — hàm thuần → {"loi": [...], "canh_bao": [...]}.
+    `p` = {ngay, gio_bat_dau, gio_ket_thuc, qlsx_quyet_dinh, qlsx_luc}; giờ dạng "HH:MM[:SS]" / time / timedelta.
+
+    · Rework trong cùng ngày (QT.15 mục 4): giờ kết thúc không trước giờ bắt đầu.
+    · Giờ QLSX quyết định phải có người quyết định, không ở tương lai.
+    · QT.15 mục 6: QLSX quyết định TRƯỚC khi làm — quyết định sau giờ bắt đầu chỉ cảnh báo (ghi bù từ giấy)."""
+    loi, canh = [], []
+    a, b = phut(p.get("gio_bat_dau")), phut(p.get("gio_ket_thuc"))
+    for f, g in (("gio_bat_dau", a), ("gio_ket_thuc", b)):
+        if p.get(f) not in (None, "") and g is None:
+            loi.append("Ghi giờ rework dạng giờ:phút (vd 07:30).")
+    if a is not None and b is not None and b < a:
+        loi.append("Giờ kết thúc rework trước giờ bắt đầu — rework trong cùng ngày sản xuất, kiểm lại giờ.")
+    luc = p.get("qlsx_luc")
+    if luc and not p.get("qlsx_quyet_dinh"):
+        loi.append("Có giờ QLSX quyết định mà chưa chọn QLSX.")
+    if luc and get_datetime(luc) > get_datetime(bay_gio):
+        loi.append("Giờ QLSX quyết định không được sau bây giờ.")
+    if luc and a is not None and p.get("ngay") and getdate(luc) == getdate(p["ngay"]) and phut(get_datetime(luc)) > a:
+        canh.append("QLSX quyết định sau giờ bắt đầu rework — QT.15: QLSX quyết định trước khi làm.")
+    return {"loi": loi, "canh_bao": canh}
+
+
+def la_qlsx(user):
+    """User có vai quản lý sản xuất (QLSX) hoặc Giám đốc."""
+    try:
+        return bool(frappe.db.exists("Has Role", {"parent": user, "parenttype": "User", "role": ("in", QLSX_VAI)}))
+    except Exception:
+        return False
 
 
 def san_pham(ten):
