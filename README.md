@@ -315,6 +315,31 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm nghiệm nước, nguyên liệu, bao bì, thẩm tra vải ủ theo KH.KN.01; việc định kỳ 2 năm (D166 — W35)
+
+- **Việc kiểm nghiệm định kỳ** = việc định kỳ (`SX Viec Dinh Ky`) có ô mới **"Kiểm nghiệm KH.KN.01 — mẫu của"** (Nước /
+  Nguyên liệu / Khác). Patch `d166_viec_kiem_nghiem` tạo nếu chưa có (so theo tên, bỏ qua hoa thường / khoảng trắng)
+  theo **KH.KN.01 lần BH 01**: nước sản xuất (mẫu nước tại vòi, QCVN 01-1:2024/BYT) — năm; đỗ xanh nhập khẩu (mẫu gộp
+  ≥ 10 bao: aflatoxin B1, tổng, độ ẩm, kim loại nặng, BVTV, phosphine, ochratoxin A) — năm; lạc nhân (aflatoxin) — năm;
+  dầu thực vật (peroxide, acid) — năm; thôi nhiễm bao bì tiếp xúc (QCVN 12-1/12-3) — **2 năm**; thẩm tra vải ủ (nấm
+  men, nấm mốc bột sau nghiền, HD.08.02 mục 9) — 3 việc *Một lần* hạn 31/10, 30/11, 31/12/2026. Hạn lần đầu của việc
+  năm = hạn đầu kiểm nghiệm ở SX QC Setting (KH.KN.01: "lần gửi mẫu đầu tiên trước 31/10/2026"); bao bì chưa biết lần
+  gần nhất → **để trống**.
+- Khác danh sách giao việc (theo KH.KN.01): nước ghi "nước sản xuất" (mẫu tại vòi); đỗ xanh nhập khẩu đủ chỉ tiêu của
+  KH.KN.01; lạc nhân và dầu thực vật là **hai việc riêng** (chỉ tiêu khác nhau).
+- **Màn Kiểm nghiệm** thêm khối **Nước · nguyên liệu · khác (KH.KN.01)**: trạng thái, tần suất, hạn, chỉ tiêu, phiếu gần
+  nhất; **GỬI MẪU** gắn việc (mẫu của lấy theo việc, chỉ tiêu điền sẵn) → app ghi **lần làm** của việc (ngày gửi, phiếu)
+  và dời hạn sang kỳ sau tính từ hạn cũ (chưa đặt hạn → từ ngày gửi); việc *Một lần* thì ngừng. Xoá phiếu (ghi nhầm) /
+  đổi việc của phiếu → lần làm bỏ theo, hạn trả lại. Chờ kết quả → **GHI KẾT QUẢ**; Không đạt → phiếu sự cố nói tên việc.
+  Bản in KH.KN.01 thêm bảng các việc này đúng cột giấy (đối tượng, chỉ tiêu, tần suất, căn cứ, gửi gần nhất, kết quả, lần
+  kế tiếp).
+- **Việc định kỳ**: thêm chu kỳ **2 năm**; **hạn để trống được** khi chưa biết → hiện "Chưa đặt hạn", hộp nhắc nói "N
+  việc chưa đặt hạn" (không im lặng). Việc kiểm nghiệm không bấm "Đã làm" ở màn Việc định kỳ — nút chuyển sang màn
+  Kiểm nghiệm (phiếu gửi mẫu là bằng chứng).
+- **Hộp nhắc**: việc kiểm nghiệm vào mảng **Kiểm nghiệm** (Tổng quan ATTP): quá hạn gửi mẫu — mức cao; đến hạn trong số
+  ngày nhắc trước (30); chưa đặt hạn. Thẻ "Việc định kỳ" không đếm việc kiểm nghiệm nữa.
+- Cần `bench --site site1.local migrate` (ô mới, patch) rồi `bench restart`.
+
 ## Kiểm xe BM.09.01: năm mục QT.09, QC kiểm ngẫu nhiên, Trưởng Ban ISO xem tháng (D165 — W34)
 
 - **Năm mục** theo QT.09 lần BH 01 mục 5.2, đúng cột giấy: *Sạch khô · Mùi · Kín/che · Hàng chung · Sàn* (mỗi mục có

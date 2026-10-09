@@ -393,9 +393,14 @@ python3 scripts/test-thietbi.py > /tmp/sx-thietbi.log 2>&1 \
 
 # D144 (W18): kế hoạch kiểm nghiệm KH.KN.01. Hạn 1 lần / năm tính sai, sản phẩm chưa gửi không có
 # hạn, Không đạt không thành sự cố, mẫu cát không chép sang nhật ký / sự cố trùng — đều im lặng.
+# D166 (W35): nước, nguyên liệu, bao bì, thẩm tra vải ủ là việc kiểm nghiệm định kỳ — gửi mẫu không dời hạn,
+# xoá phiếu mà việc vẫn "đã làm", việc chưa đặt hạn im lặng.
 python3 scripts/test-kiemnghiem.py > /tmp/sx-kiemnghiem.log 2>&1 \
   && tail -1 /tmp/sx-kiemnghiem.log \
   || { cat /tmp/sx-kiemnghiem.log; loi=1; }
+node scripts/test-kiemnghiem.mjs > /tmp/sx-kiemnghiem-js.log 2>&1 \
+  && tail -1 /tmp/sx-kiemnghiem-js.log \
+  || { cat /tmp/sx-kiemnghiem-js.log; loi=1; }
 
 # D145 (W19): phiếu rework BM.15.01. Quá 10% mẻ, hàng có lạc vào sản phẩm không lạc, đóng sự cố
 # quyết định rework mà chưa có phiếu — đều im lặng.

@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "links": [],
- "modified": "2026-10-09 14:00:00.000000",
+ "modified": "2026-10-09 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "owner": "Administrator",
@@ -18,6 +18,7 @@
   "column_break_1",
   "phu_trach",
   "ho_so",
+  "doi_tuong_kn",
   "ngung",
   "mo_ta",
   "section_lan",
@@ -36,7 +37,7 @@
    "fieldname": "chu_ky",
    "fieldtype": "Select",
    "label": "Chu kỳ",
-   "options": "Năm\nQuý\nTháng\nMột lần",
+   "options": "Năm\n2 năm\nQuý\nTháng\nMột lần",
    "default": "Năm",
    "reqd": 1,
    "in_list_view": 1
@@ -45,8 +46,8 @@
    "fieldname": "han",
    "fieldtype": "Date",
    "label": "Hạn lần tới",
-   "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "description": "Để trống khi chưa biết — app hiện \"Chưa đặt hạn\" và nhắc đặt hạn."
   },
   {
    "fieldname": "bao_truoc",
@@ -67,6 +68,13 @@
    "fieldname": "ho_so",
    "fieldtype": "Data",
    "label": "Hồ sơ / biểu mẫu liên quan"
+  },
+  {
+   "fieldname": "doi_tuong_kn",
+   "fieldtype": "Select",
+   "label": "Kiểm nghiệm KH.KN.01 — mẫu của",
+   "options": "\nNước\nNguyên liệu\nKhác",
+   "description": "Chọn khi việc là gửi mẫu kiểm nghiệm: nhắc và ghi ở màn Kiểm nghiệm — lần làm là phiếu gửi mẫu, app tự dời hạn."
   },
   {
    "fieldname": "ngung",

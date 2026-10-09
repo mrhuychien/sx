@@ -1,7 +1,9 @@
 """API màn "Kế hoạch kiểm nghiệm" KH.KN.01 (QC → Hôm nay → 🧪) — W18, D144.
 
 Kế hoạch theo sản phẩm (bộ tự công bố W28), cát chỉ khi đổi nguồn (nhật ký cát W20), gửi mẫu,
-ghi kết quả, bản in. Luật ở sx/qc/kiem_nghiem.py và controller SX Kiem Nghiem.
+ghi kết quả, bản in. Luật ở sx/qc/kiem_nghiem.py và controller SX Kiem Nghiem. W35 (D166): nước,
+nguyên liệu, bao bì, thẩm tra vải ủ theo việc kiểm nghiệm định kỳ (sx/qc/viec_dinh_ky.py) — gửi mẫu
+gắn việc thì việc tự dời hạn.
 """
 
 import json
@@ -12,11 +14,13 @@ from frappe.utils import cint, getdate, nowdate
 
 from sx.api.qc import GHI_DUOC, ISO, _guard_qc, _roles, _sieu
 from sx.qc import kiem_nghiem as KN
+from sx.qc import viec_dinh_ky as VD
 from sx.qc.quyen import la_iso
 
-TRUONG = ["name", "doi_tuong", "san_pham", "ten_san_pham", "nhat_ky_cat", "mo_ta_mau", "ngay_gui", "phong_kn",
-          "chi_tieu", "lan_sau", "ket_qua", "ngay_kq", "so_phieu", "ghi_chu", "nguoi_ghi", "su_co", "creation"]
-GUI = ("doi_tuong", "san_pham", "nhat_ky_cat", "mo_ta_mau", "phong_kn", "chi_tieu", "ghi_chu")
+TRUONG = ["name", "doi_tuong", "san_pham", "ten_san_pham", "nhat_ky_cat", "viec_dinh_ky", "mo_ta_mau", "ngay_gui",
+          "phong_kn", "chi_tieu", "lan_sau", "ket_qua", "ngay_kq", "so_phieu", "ghi_chu", "nguoi_ghi", "su_co",
+          "creation"]
+GUI = ("doi_tuong", "san_pham", "nhat_ky_cat", "viec_dinh_ky", "mo_ta_mau", "phong_kn", "chi_tieu", "ghi_chu")
 
 
 def _duoc_ghi():
@@ -41,7 +45,7 @@ def tong_quan(nam=None):
     nam = cint(nam) or d.year
     phieu = frappe.get_all(KN.PT, filters={"ngay_gui": ("between", [f"{nam}-01-01", f"{nam}-12-31"])},
                            fields=TRUONG, order_by="ngay_gui desc, creation desc")
-    return {"ke_hoach": KN.ke_hoach(d), "cat": KN.cat_cho_kiem(), "phieu": [_dong(x) for x in phieu],
+    return {"ke_hoach": KN.ke_hoach(d), "cat": KN.cat_cho_kiem(), "viec": VD.viec_kn(d), "phieu": [_dong(x) for x in phieu],
             "nam": nam, "hom_nay": str(d), "han_dau": str(KN.han_dau()), "sap_den": KN.SAP_DEN,
             "cho_lau": KN.CHO_LAU, "doi_tuong": ["Sản phẩm", "Cát rang", "Nguyên liệu", "Nước", "Khác"],
             "duoc_ghi": _duoc_ghi(), "la_iso": la_iso(), "user": frappe.session.user}
@@ -60,7 +64,7 @@ def gui_mau(payload):
             frappe.throw(_("Lần đổi nguồn cát này đã có phiếu gửi mẫu — mở phiếu đó ghi kết quả."))
     _ket_qua(doc, p)
     doc.insert(ignore_permissions=True)
-    return {"name": doc.name, "lan_sau": str(doc.lan_sau or ""), "su_co": doc.su_co}
+    return {"name": doc.name, "lan_sau": str(doc.get("lan_sau") or ""), "su_co": doc.su_co}
 
 
 def _ket_qua(doc, p):
@@ -121,4 +125,5 @@ def in_kh_kn01(nam=None):
     return frappe.render_template("sx/qc/kh_kn01.html", {
         "nam": nam, "ngay": str(d), "kh": [dict(x, thang=KN.thang_du_kien(x), phieu=theo.get(x["san_pham"], []))
                                            for x in kh],
+        "viec": VD.viec_kn(d),
         "khac": [p for p in phieu if p.doi_tuong != KN.SAN_PHAM], "cat": KN.cat_cho_kiem()})

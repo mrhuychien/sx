@@ -82,9 +82,59 @@ r = A.da_lam(mot)
 kiem("việc một lần làm xong → ngừng, không nhắc nữa", r["ngung"] == 1
      and mot not in json.dumps(VD.nhac("2027-06-01")))
 kiem("ghi đã làm việc đã ngừng → chặn", "đã ngừng" in (thu(lambda: A.da_lam(mot)) or ""))
-kiem("thêm việc thiếu hạn → chặn", "hạn" in (thu(lambda: A.luu(json.dumps({"ten": "x", "chu_ky": "Quý"}))) or ""))
+# W35 (D166): hạn để trống được khi chưa biết — hiện "Chưa đặt hạn", hộp nhắc nói ra (không im lặng).
+r = A.luu(json.dumps({"ten": "Thôi nhiễm bao bì", "chu_ky": "2 năm"}))
+x = {v["name"]: v for v in A.tong_quan()["ds"]}[r["name"]]
+kiem("thêm việc chưa biết hạn → lưu được, trạng thái 'Chưa đặt hạn' (không phải Ngừng)",
+     (x["han"], x["trang_thai"], x["con"]) == ("", VD.CHUA_HAN, None) and not F.bang(VD.PT)[r["name"]].get("han"), x)
+F.dat_ngay("2026-12-20")
+r2 = A.da_lam(r["name"], json.dumps({"ngay": "2026-12-15"}))
+kiem("việc chưa đặt hạn mà đã làm → hạn kỳ sau tính từ NGÀY LÀM + 2 năm", r2["han"] == "2028-12-15", r2)
+F.dat_ngay("2026-12-05")
 kiem("chu kỳ lạ → chặn (controller)", "Chu kỳ" in (thu(lambda: A.luu(json.dumps({"ten": "x", "chu_ky": "Tuần",
                                                                                 "han": "2027-01-01"}))) or ""))
+
+print("\n-- W35: chu kỳ 2 năm, chưa đặt hạn, việc kiểm nghiệm --")
+kiem("chu kỳ 2 năm = +24 tháng; đủ trong danh sách chọn, đúng thứ tự Select của doctype",
+     VD.ke_tiep("2026-10-31", "2 năm") == date(2028, 10, 31) and A.tong_quan()["chu_ky"] == list(VD.THANG)
+     and next(f for f in json.load(open("sx/qc/doctype/sx_viec_dinh_ky/sx_viec_dinh_ky.json", encoding="utf-8"))[
+         "fields"] if f["fieldname"] == "chu_ky")["options"].split("\n") == list(VD.THANG))
+fj = {f["fieldname"]: f for f in json.load(open("sx/qc/doctype/sx_viec_dinh_ky/sx_viec_dinh_ky.json",
+                                                 encoding="utf-8"))["fields"]}
+kiem("doctype: hạn không bắt buộc; ô 'mẫu của' kiểm nghiệm = Nước / Nguyên liệu / Khác",
+     not fj["han"].get("reqd") and fj["doi_tuong_kn"]["options"].split("\n")[1:] == list(VD.DOI_TUONG_KN))
+kiem("trạng thái: không hạn → Chưa đặt hạn; ngừng thì vẫn Ngừng", tt({}, "2026-10-09") == (VD.CHUA_HAN, None)
+     and tt({"ngung": 1}, "2026-10-09")[0] == VD.NGUNG)
+F.dat_ngay("2026-10-09")
+kn = A.luu(json.dumps({"ten": "Kiểm nghiệm nước sản xuất", "chu_ky": "Năm", "han": "2026-10-31", "bao_truoc": 30,
+                       "doi_tuong_kn": "Nước"}))["name"]
+kiem("việc kiểm nghiệm: không bấm Đã làm ở đây (lần làm = phiếu gửi mẫu ở màn Kiểm nghiệm)",
+     "màn Kiểm nghiệm" in (thu(lambda: A.da_lam(kn)) or "") and not F.bang(VD.PT)[kn].get("ds_lan"))
+kiem("mẫu của lạ → chặn (controller)", "Mẫu kiểm nghiệm" in (thu(lambda: A.luu(json.dumps(
+    {"ten": "y", "chu_ky": "Năm", "han": "2027-01-01", "doi_tuong_kn": "Sản phẩm"}))) or ""))
+A.luu(json.dumps({"name": kn, "ten": "Kiểm nghiệm nước sản xuất", "chu_ky": "Năm", "han": "2026-10-31",
+                  "bao_truoc": 30}))
+kiem("sửa việc không gửi ô mẫu của → giữ nguyên (màn cũ không xoá mất)", F.bang(VD.PT)[kn]["doi_tuong_kn"] == "Nước")
+n = VD.nhac("2026-10-09")
+kiem("nhắc tách: việc kiểm nghiệm sang phần kiem_nghiem (mảng Kiểm nghiệm), việc chưa đặt hạn có danh sách riêng",
+     [x["ten"] for x in n["kiem_nghiem"]["sap_den"]] == ["Kiểm nghiệm nước sản xuất"]
+     and "Kiểm nghiệm nước sản xuất" not in json.dumps([n["qua_han"], n["sap_den"], n["chua_han"]], ensure_ascii=False))
+ds = NH.tinh(F.hom_nay(), [], [], {}, viec_dinh_ky=n)
+kn_nh = [x for x in ds if x["nhom"] == "kiem_nghiem"]
+kiem("hộp nhắc: việc kiểm nghiệm đến hạn → mảng Kiểm nghiệm, sang màn Kiểm nghiệm",
+     [x["tieu_de"] for x in kn_nh] == ["1 mẫu nước / nguyên liệu / khác đến hạn gửi kiểm nghiệm"]
+     and kn_nh[0]["route"] == "#/qc/kiemnghiem" and "31/10/2026" in kn_nh[0]["chi_tiet"], kn_nh)
+F.bang(VD.PT)[kn]["han"] = None
+ds = NH.tinh(F.hom_nay(), [], [], {}, viec_dinh_ky=VD.nhac("2026-10-09"))
+kiem("việc kiểm nghiệm chưa đặt hạn → nhắc (mức thường), không im lặng",
+     any(x["tieu_de"] == "1 việc kiểm nghiệm chưa đặt hạn" and x["muc_do"] == "thuong" for x in ds))
+F.bang(VD.PT).pop(kn)
+F.bang(VD.PT)["VD-TRONG"] = {"name": "VD-TRONG", "ten": "Xem xét lãnh đạo", "chu_ky": "Năm", "ngung": 0}
+ds = NH.tinh(F.hom_nay(), [], [], {}, viec_dinh_ky=VD.nhac("2026-10-09"))
+kiem("việc định kỳ chưa đặt hạn → '1 việc định kỳ chưa đặt hạn', sang màn Việc định kỳ",
+     any(x["tieu_de"] == "1 việc định kỳ chưa đặt hạn" and x["route"] == "#/qc/lichviec"
+         and "Xem xét lãnh đạo" in x["chi_tiet"] for x in ds))
+F.bang(VD.PT).pop("VD-TRONG")
 
 # ═══ 3. Nhắc, quyền ═══════════════════════════════════════════════════════
 print("\n-- hộp nhắc, quyền --")

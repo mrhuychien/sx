@@ -1,4 +1,7 @@
-"""API màn "Việc định kỳ" (QC → Hôm nay → 📅) — W21, D146. Luật ở sx/qc/viec_dinh_ky.py."""
+"""API màn "Việc định kỳ" (QC → Hôm nay → 📅) — W21, D146. Luật ở sx/qc/viec_dinh_ky.py.
+
+W35 (D166): chu kỳ 2 năm, hạn để trống được (chưa đặt hạn); việc kiểm nghiệm (có ô mẫu của) ghi lần làm
+bằng phiếu gửi mẫu ở màn Kiểm nghiệm, không bấm "Đã làm" ở đây."""
 
 import json
 
@@ -9,7 +12,8 @@ from frappe.utils import cint, getdate, nowdate
 from sx.api.qc import GHI_DUOC, ISO, _guard_qc, _roles, _sieu
 from sx.qc import viec_dinh_ky as VD
 
-TRUONG = ["name", "ten", "chu_ky", "han", "bao_truoc", "phu_trach", "ho_so", "ngung", "mo_ta", "lan_cuoi"]
+TRUONG = ["name", "ten", "chu_ky", "han", "bao_truoc", "phu_trach", "ho_so", "ngung", "mo_ta", "lan_cuoi",
+          "doi_tuong_kn"]
 
 
 def _duoc_ghi():
@@ -30,10 +34,11 @@ def tong_quan():
     for v in frappe.get_all(VD.PT, fields=TRUONG, order_by="ngung asc, han asc"):
         tt, con = VD.trang_thai(v, d)
         lan = frappe.get_all("SX Viec Dinh Ky Lan", filters={"parent": v.name, "parenttype": VD.PT},
-                             fields=["ngay", "nguoi", "ghi_chu", "han_ky"], order_by="idx desc", limit=5)
+                             fields=["ngay", "nguoi", "ghi_chu", "han_ky", "phieu_kn"], order_by="idx desc", limit=5)
         ds.append(dict(v, han=str(v.han or ""), lan_cuoi=str(v.lan_cuoi or ""), trang_thai=tt, con=con,
                        lich_su=[dict(x, ngay=str(x.ngay or ""), han_ky=str(x.han_ky or "")) for x in lan]))
-    return {"ds": ds, "chu_ky": list(VD.THANG), "hom_nay": str(d), "duoc_ghi": _duoc_ghi()}
+    return {"ds": ds, "chu_ky": list(VD.THANG), "doi_tuong_kn": list(VD.DOI_TUONG_KN), "hom_nay": str(d),
+            "duoc_ghi": _duoc_ghi()}
 
 
 @frappe.whitelist()
@@ -45,11 +50,11 @@ def luu(payload):
     for f in ("ten", "phu_trach", "ho_so", "mo_ta"):
         doc.set(f, (p.get(f) or "").strip())
     doc.chu_ky = p.get("chu_ky") or "Năm"
-    if not p.get("han"):
-        frappe.throw(_("Chọn hạn lần tới."))
-    doc.han = getdate(p["han"])
+    doc.han = getdate(p["han"]) if p.get("han") else None          # chưa biết → "Chưa đặt hạn"
     doc.bao_truoc = cint(p.get("bao_truoc")) or 14
     doc.ngung = 1 if cint(p.get("ngung")) else 0
+    if "doi_tuong_kn" in p:
+        doc.doi_tuong_kn = p.get("doi_tuong_kn") or None
     if doc.is_new():
         doc.insert(ignore_permissions=True)
     else:
@@ -65,16 +70,12 @@ def da_lam(name, payload=None):
     doc = frappe.get_doc(VD.PT, name)
     if cint(doc.ngung):
         frappe.throw(_("Việc này đã ngừng."))
+    if doc.get("doi_tuong_kn"):
+        frappe.throw(_("Việc kiểm nghiệm: ghi lần gửi mẫu ở màn Kiểm nghiệm (phiếu gửi mẫu là bằng chứng) — app "
+                       "tự dời hạn."))
     ngay = getdate(p.get("ngay") or nowdate())
     if ngay > getdate(nowdate()):
         frappe.throw(_("Ngày làm không được sau hôm nay."))
-    doc.append("ds_lan", {"ngay": ngay, "nguoi": frappe.session.user, "han_ky": doc.han,
-                          "ghi_chu": (p.get("ghi_chu") or "").strip()})
-    doc.lan_cuoi = ngay
-    moi = VD.ke_tiep(doc.han, doc.chu_ky)
-    if moi:
-        doc.han = moi
-    else:
-        doc.ngung = 1
+    VD.ghi_lan(doc, ngay, (p.get("ghi_chu") or "").strip())
     doc.save(ignore_permissions=True)
     return {"name": doc.name, "han": str(doc.han or ""), "ngung": cint(doc.ngung)}

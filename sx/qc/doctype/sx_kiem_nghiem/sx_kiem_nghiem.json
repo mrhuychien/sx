@@ -10,6 +10,7 @@
   "san_pham",
   "ten_san_pham",
   "nhat_ky_cat",
+  "viec_dinh_ky",
   "mo_ta_mau",
   "column_break_1",
   "ngay_gui",
@@ -68,6 +69,14 @@
    "label": "Lần đổi nguồn cát (nhật ký cát)",
    "options": "SX Nhat Ky Cat",
    "depends_on": "eval:doc.doi_tuong=='Cát rang'"
+  },
+  {
+   "fieldname": "viec_dinh_ky",
+   "fieldtype": "Link",
+   "options": "SX Viec Dinh Ky",
+   "label": "Việc kiểm nghiệm định kỳ (KH.KN.01)",
+   "depends_on": "eval:['Nguyên liệu','Nước','Khác'].includes(doc.doi_tuong)",
+   "description": "Gắn việc: lưu phiếu là ghi lần làm của việc, hạn dời sang kỳ sau."
   },
   {
    "fieldname": "mo_ta_mau",
@@ -157,7 +166,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-09 10:00:00.000000",
+ "modified": "2026-10-09 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX Kiem Nghiem",

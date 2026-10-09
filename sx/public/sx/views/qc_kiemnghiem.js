@@ -3,6 +3,8 @@
 // Mỗi sản phẩm trong bộ tự công bố (W28) gửi mẫu ít nhất 1 lần / năm: lần sau = lần gửi gần nhất
 // + 12 tháng; chưa gửi lần nào → hạn đầu 31/10/2026. Cát rang chỉ kiểm khi đổi nguồn (nhật ký
 // cát W20) — kết quả chép sang nhật ký cát. Luật ở sx/qc/kiem_nghiem.py + controller.
+// W35 (D166): nước, nguyên liệu, bao bì, thẩm tra vải ủ theo KH.KN.01 — việc kiểm nghiệm định kỳ (màn Việc
+// định kỳ, ô "mẫu của"); GỬI MẪU gắn việc → app ghi lần làm, dời hạn sang kỳ sau.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
@@ -11,6 +13,15 @@ import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
 
 const ngayDu = (s) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}` : '');
 const KIEU = { 'Quá hạn': 'cao', 'Không đạt — kiểm lại': 'cao', 'Đến hạn': 'oprp', 'Chờ kết quả': '', 'Đạt': 'dong' };
+const KIEU_VIEC = { 'Quá hạn': 'cao', 'Sắp đến hạn': 'oprp', 'Chưa đặt hạn': 'han', 'Còn hạn': 'dong', 'Ngừng': '' };
+
+/** Dòng hạn của một việc kiểm nghiệm định kỳ — hàm THUẦN để test. Không có hạn thì NÓI ra, không im lặng. */
+export function hanViec(v) {
+  if (v.trang_thai === 'Ngừng') return v.phieu_cuoi ? `đã gửi mẫu ${ngayDu(v.phieu_cuoi.ngay_gui)}` : 'ngừng';
+  if (!v.han) return 'chưa đặt hạn — Ban ISO đặt hạn ở màn Việc định kỳ';
+  if (v.con < 0) return `quá hạn ${-v.con} ngày (${ngayDu(v.han)})`;
+  return `hạn ${ngayDu(v.han)} · còn ${v.con} ngày`;
+}
 
 export async function render(api) {
   const { container, call } = api;
@@ -32,6 +43,11 @@ export async function render(api) {
   });
   const chua = dl.ke_hoach.filter((x) => !x.lan_cuoi).length;
   if (chua) tom.appendChild(chip(`${chua} chưa gửi lần nào — hạn ${ngayDu(dl.han_dau)}`, 'han'));
+  [['Quá hạn', 'mẫu nước / NL / khác quá hạn'], ['Sắp đến hạn', 'mẫu nước / NL / khác đến hạn'],
+    ['Chưa đặt hạn', 'việc kiểm nghiệm chưa đặt hạn']].forEach(([tt, ten]) => {
+    const n = dl.viec.filter((v) => v.trang_thai === tt).length;
+    if (n) tom.appendChild(chip(`${n} ${ten}`, KIEU_VIEC[tt]));
+  });
   container.appendChild(tom);
 
   // ── sản phẩm ─────────────────────────────────────────────────────────
@@ -40,6 +56,16 @@ export async function render(api) {
   if (!dl.ke_hoach.length) khoiSp.appendChild(khungTrong('Chưa có danh mục sản phẩm tự công bố.'));
   dl.ke_hoach.forEach((x) => khoiSp.appendChild(veSp(x, dl, api, lai)));
   container.appendChild(khoiSp);
+
+  // ── nước, nguyên liệu, khác: việc kiểm nghiệm định kỳ (W35) ─────────────
+  const khoiV = el('div', 'sx-dv-nhom');
+  khoiV.appendChild(el('div', 'sx-dv-khu', `Nước · nguyên liệu · khác (KH.KN.01) — ${dl.viec.length}`));
+  if (!dl.viec.length) {
+    khoiV.appendChild(el('div', 'sx-qc-goiy', 'Chưa khai việc kiểm nghiệm định kỳ nào — Ban ISO khai ở màn Việc định kỳ '
+      + '(ô "Kiểm nghiệm — mẫu của").'));
+  }
+  dl.viec.forEach((v) => khoiV.appendChild(veViec(v, dl, api, lai)));
+  container.appendChild(khoiV);
 
   // ── cát: chỉ khi đổi nguồn ───────────────────────────────────────────
   const khoiCat = el('div', 'sx-dv-nhom');
@@ -76,6 +102,7 @@ export async function render(api) {
   }
 
   // ── phiếu trong năm ──────────────────────────────────────────────────
+  const tenViec = Object.fromEntries(dl.viec.map((v) => [v.name, v.ten]));
   const khoiP = el('div', 'sx-dv-nhom');
   khoiP.appendChild(el('div', 'sx-dv-khu', `Phiếu gửi mẫu năm ${esc(dl.nam)} (${dl.phieu.length})`));
   if (!dl.phieu.length) khoiP.appendChild(el('div', 'sx-qc-goiy', 'Chưa gửi mẫu nào trong năm.'));
@@ -83,7 +110,8 @@ export async function render(api) {
     const the = el('div', `sx-qc-sc ${p.ket_qua === 'Không đạt' ? 'sx-qc-sc-mo' : 'sx-qc-sc-dong'} sx-cat-dong`);
     the.tabIndex = 0;
     the.setAttribute('role', 'button');
-    the.appendChild(el('div', 'sx-qc-sc-ten', `${esc(ngayDu(p.ngay_gui))} · ${esc(p.ten_san_pham || p.doi_tuong)}`));
+    the.appendChild(el('div', 'sx-qc-sc-ten', `${esc(ngayDu(p.ngay_gui))} · ${esc(p.ten_san_pham || tenViec[p.viec_dinh_ky]
+      || p.doi_tuong)}`));
     const meta = el('div', 'sx-qc-sc-meta');
     meta.appendChild(chip(p.ket_qua || 'chờ kết quả', p.ket_qua === 'Đạt' ? 'dong' : (p.ket_qua ? 'cao' : '')));
     if (p.so_phieu) meta.appendChild(chip(`phiếu ${p.so_phieu}`));
@@ -130,6 +158,35 @@ function veSp(x, dl, api, lai) {
   return the;
 }
 
+function veViec(v, dl, api, lai) {
+  const p = v.phieu_cuoi;
+  const the = el('div', `sx-qc-sc ${v.trang_thai === 'Quá hạn' ? 'sx-qc-sc-mo' : 'sx-qc-sc-dong'}`);
+  the.appendChild(el('div', 'sx-qc-sc-ten', esc(v.ten)));
+  const meta = el('div', 'sx-qc-sc-meta');
+  meta.appendChild(chip(v.trang_thai === 'Ngừng' && p ? 'Đã gửi mẫu' : v.trang_thai, KIEU_VIEC[v.trang_thai]));
+  meta.appendChild(chip(`${v.doi_tuong_kn} · ${v.tan_suat}`));
+  meta.appendChild(el('span', null, esc(hanViec(v))));
+  the.appendChild(meta);
+  if (v.mo_ta) the.appendChild(el('div', 'sx-qc-goiy', esc(v.mo_ta)));
+  if (p) {
+    the.appendChild(el('div', 'sx-qc-goiy', `Gửi gần nhất ${esc(ngayDu(p.ngay_gui))}: <b>${esc(p.ket_qua || 'chờ kết quả')}</b>${
+      p.so_phieu ? ` · phiếu ${esc(p.so_phieu)}` : ''}`));
+  }
+  const cho = !!(p && !p.ket_qua);
+  if (dl.duoc_ghi && (cho || v.trang_thai !== 'Ngừng')) {
+    const nut = el('div', 'sx-qc-chips sx-tb-nut');
+    const b = el('button', 'sx-btn sx-btn-primary', cho ? 'GHI KẾT QUẢ' : 'GỬI MẪU');
+    b.type = 'button';
+    b.addEventListener('click', () => {
+      if (cho) moKetQua(dl.phieu.find((x) => x.name === p.name) || { name: p.name, ten_san_pham: v.ten }, dl, api, lai);
+      else moGui({ doi_tuong: v.doi_tuong_kn, viec_dinh_ky: v.name, ten: v.ten, chi_tieu: v.mo_ta }, dl, api, lai);
+    });
+    nut.appendChild(b);
+    the.appendChild(nut);
+  }
+  return the;
+}
+
 function oNhap(body, nhan, gt, kieu) {
   body.appendChild(el('div', 'sx-qc-goiy', esc(nhan)));
   const n = el(kieu === 'ta' ? 'textarea' : 'input');
@@ -162,6 +219,7 @@ function moGui(m0, dl, api, lai) {
       const r = await api.call('sx.api.qc_kiemnghiem.gui_mau', {
         payload: JSON.stringify({
           doi_tuong: doiTuong, san_pham: m0.san_pham || '', nhat_ky_cat: m0.nhat_ky_cat || '',
+          viec_dinh_ky: m0.viec_dinh_ky || '',
           ngay_gui: ng.value || dl.hom_nay, mo_ta_mau: mau.value, phong_kn: dv.value, chi_tieu: ct.value,
         }),
       });

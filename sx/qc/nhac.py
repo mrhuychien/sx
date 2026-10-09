@@ -64,7 +64,8 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `cat` = sx/qc/cat.nhac(): đổi nguồn còn thiếu, tối đa, có rang mà không có cát đang dùng — W20, W32.
     `thiet_bi` = sx/qc/thiet_bi.nhac(): quá hạn, không đạt, sắp đến hạn, loại chưa khai — W17 (D143).
     `kiem_nghiem` = sx/qc/kiem_nghiem.nhac(): sản phẩm quá / đến hạn gửi mẫu, chờ kết quả lâu — W18 (D144).
-    `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn — W21 (D146).
+    `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn, chưa đặt hạn — W21 (D146);
+                     phần `kiem_nghiem` (nước, nguyên liệu, khác theo KH.KN.01) vào mảng Kiểm nghiệm — W35 (D166).
     `khac_phuc` = sx/qc/khac_phuc.nhac(): phiếu BM.01.07 quá hạn, chờ kiểm tra hiệu lực lâu — W24 (D150).
     `vai_u` = sx/qc/vai_u.nhac(): quá chu kỳ chưa giặt vải ủ, dòng chờ QC ký, tháng chưa xem — W29 (D163).
     `kiem_xe` = sx/qc/kiem_xe.nhac(): tuần có chuyến mà chưa chuyến nào QC kiểm, tháng BM.09.01 chưa xem — W34."""
@@ -85,6 +86,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhom("thiet_bi", _nhac_thiet_bi(nay, thiet_bi or {}))
     ra += _nhom("kiem_nghiem", _nhac_kiem_nghiem(kiem_nghiem or {}))
     ra += _nhom("viec_dinh_ky", _nhac_viec_dinh_ky(viec_dinh_ky or {}))
+    ra += _nhom("kiem_nghiem", _nhac_viec_kn((viec_dinh_ky or {}).get("kiem_nghiem") or {}))
     # Nhắc cũ theo số trạm có dấu hiệu ở lượt tuần (T2, không biết khu) — chỉ còn dùng khi
     # nhà máy CHƯA ghi dấu hiệu theo trạm (W15); có dữ liệu trạm thì nhắc theo khu thay.
     if not (dong_vat or {}).get("co_du_lieu"):
@@ -432,6 +434,37 @@ def _nhac_viec_dinh_ky(vd):
     for x in vd.get("sap_den") or []:
         ra.append(_m(THUONG, f"Sắp đến hạn: {x['ten']}",
                      f"Hạn {_d(x['han']).strftime('%d/%m/%Y')} — còn {x['con']} ngày.", "#/qc/lichviec"))
+    if vd.get("chua_han"):
+        x = vd["chua_han"]
+        ra.append(_m(THUONG, f"{len(x)} việc định kỳ chưa đặt hạn",
+                     f"{_ten_viec(x)}. Đặt hạn lần tới trên màn Việc định kỳ — chưa có hạn thì không nhắc được.",
+                     "#/qc/lichviec"))
+    return ra
+
+
+def _ten_viec(xs, n=4):
+    return "; ".join(x["ten"] for x in xs[:n]) + ("…" if len(xs) > n else "")
+
+
+def _nhac_viec_kn(kn):
+    """Kiểm nghiệm KH.KN.01 ngoài thành phẩm (W35): nước, nguyên liệu, bao bì, thẩm tra vải ủ — việc định kỳ
+    có ô "mẫu của". Quá hạn gửi mẫu — mức cao như sản phẩm; đến hạn trong số ngày nhắc trước; chưa đặt hạn
+    (KH.KN.01 ghi "khi đổi NCC hoặc 2 năm/lần" mà chưa biết lần gần nhất) — nói ra, không im lặng."""
+    ra = []
+    if kn.get("qua_han"):
+        x = kn["qua_han"]
+        ra.append(_m(CAO, f"{len(x)} mẫu nước / nguyên liệu / khác quá hạn gửi kiểm nghiệm",
+                     f"{_ten_viec(x)} — hạn {_d(x[0]['han']).strftime('%d/%m/%Y')}. Gửi mẫu rồi ghi trên màn Kiểm "
+                     f"nghiệm (KH.KN.01).", "#/qc/kiemnghiem"))
+    if kn.get("sap_den"):
+        x = kn["sap_den"]
+        ra.append(_m(THUONG, f"{len(x)} mẫu nước / nguyên liệu / khác đến hạn gửi kiểm nghiệm",
+                     f"{_ten_viec(x)} — hạn sớm nhất {_d(x[0]['han']).strftime('%d/%m/%Y')}.", "#/qc/kiemnghiem"))
+    if kn.get("chua_han"):
+        x = kn["chua_han"]
+        ra.append(_m(THUONG, f"{len(x)} việc kiểm nghiệm chưa đặt hạn",
+                     f"{_ten_viec(x)}. Ban ISO đặt hạn lần tới (màn Việc định kỳ) — chưa có hạn thì không nhắc được.",
+                     "#/qc/kiemnghiem"))
     return ra
 
 

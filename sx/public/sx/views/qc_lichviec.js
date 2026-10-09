@@ -3,6 +3,8 @@
 // Việc năm / quý / tháng (thử khôi phục dữ liệu, thay bóng đèn bẫy…): hạn lần tới, nhắc trước
 // bao nhiêu ngày. "ĐÃ LÀM" ghi lần làm và dời hạn sang kỳ sau tính từ hạn cũ. Hộp nhắc màn Hôm
 // nay báo việc quá hạn / sắp đến hạn. Luật ở sx/qc/viec_dinh_ky.py.
+// W35 (D166): chu kỳ 2 năm; hạn để trống được (chưa biết) — hiện "Chưa đặt hạn"; việc kiểm nghiệm (ô "mẫu
+// của") ghi lần làm bằng phiếu gửi mẫu ở màn Kiểm nghiệm.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
@@ -10,7 +12,9 @@ import { openModal } from '/assets/sx/sx/components/modal.js';
 import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
 
 const ngayDu = (s) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}` : '');
-const KIEU = { 'Quá hạn': 'cao', 'Sắp đến hạn': 'oprp', 'Còn hạn': 'dong', 'Ngừng': '' };
+const KIEU = { 'Quá hạn': 'cao', 'Sắp đến hạn': 'oprp', 'Còn hạn': 'dong', 'Ngừng': '', 'Chưa đặt hạn': 'han' };
+/** "+ 1 năm", "+ 2 năm", "+ 1 quý"… — khoảng dời hạn của một chu kỳ. */
+export const kyChu = (ck) => (/^\d/.test(ck) ? ck : `1 ${String(ck || '').toLowerCase()}`);
 
 export async function render(api) {
   const { container, call } = api;
@@ -30,7 +34,10 @@ export async function render(api) {
     const meta = el('div', 'sx-qc-sc-meta');
     meta.appendChild(chip(v.trang_thai, KIEU[v.trang_thai]));
     meta.appendChild(chip(v.chu_ky));
-    if (v.trang_thai !== 'Ngừng') {
+    if (v.doi_tuong_kn) meta.appendChild(chip(`Kiểm nghiệm · ${v.doi_tuong_kn}`));
+    if (v.trang_thai === 'Chưa đặt hạn') {
+      meta.appendChild(el('span', null, '<b>chưa đặt hạn</b> — bấm SỬA đặt hạn lần tới'));
+    } else if (v.trang_thai !== 'Ngừng') {
       meta.appendChild(el('span', null, v.con < 0 ? `<b>quá hạn ${-v.con} ngày</b> (${esc(ngayDu(v.han))})`
         : `hạn ${esc(ngayDu(v.han))} · còn ${v.con} ngày`));
     }
@@ -44,7 +51,13 @@ export async function render(api) {
     }
     if (dl.duoc_ghi) {
       const nut = el('div', 'sx-qc-chips sx-tb-nut');
-      if (v.trang_thai !== 'Ngừng') {
+      if (v.trang_thai !== 'Ngừng' && v.doi_tuong_kn) {
+        // Việc kiểm nghiệm: lần làm = phiếu gửi mẫu (bằng chứng) — ghi ở màn Kiểm nghiệm.
+        const b = el('button', 'sx-btn sx-btn-primary', 'GỬI MẪU (màn Kiểm nghiệm)');
+        b.type = 'button';
+        b.addEventListener('click', () => { window.location.hash = '#/qc/kiemnghiem'; });
+        nut.appendChild(b);
+      } else if (v.trang_thai !== 'Ngừng') {
         const b = el('button', 'sx-btn sx-btn-primary', 'ĐÃ LÀM');
         b.type = 'button';
         b.addEventListener('click', () => moDaLam(v, dl, api, lai));
@@ -79,12 +92,13 @@ function oNhap(body, nhan, gt, kieu) {
 }
 
 function moDaLam(v, dl, api, lai) {
-  const m = openModal({ kicker: `ĐÃ LÀM · kỳ hạn ${ngayDu(v.han)}`, title: v.ten });
+  const m = openModal({ kicker: `ĐÃ LÀM · ${v.han ? `kỳ hạn ${ngayDu(v.han)}` : 'chưa đặt hạn'}`, title: v.ten });
   const ng = oNhap(m.body, 'Ngày làm', dl.hom_nay, 'date');
   ng.max = dl.hom_nay;
   const gc = oNhap(m.body, 'Ghi chú / số biên bản', '', 'ta');
   m.body.appendChild(el('div', 'sx-qc-goiy', v.chu_ky === 'Một lần' ? 'Việc một lần — làm xong thì ngừng nhắc.'
-    : `Hạn kỳ sau tính từ hạn cũ (${ngayDu(v.han)}) + 1 ${v.chu_ky.toLowerCase()}.`));
+    : (v.han ? `Hạn kỳ sau tính từ hạn cũ (${ngayDu(v.han)}) + ${kyChu(v.chu_ky)}.`
+      : `Chưa đặt hạn — hạn kỳ sau tính từ ngày làm + ${kyChu(v.chu_ky)}.`)));
   const ok = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'GHI ĐÃ LÀM');
   ok.type = 'button';
   ok.addEventListener('click', async () => {
@@ -105,12 +119,15 @@ function moSua(v, dl, api, lai) {
   m.body.appendChild(el('div', 'sx-qc-goiy', 'Chu kỳ'));
   let ck = v ? v.chu_ky : 'Năm';
   m.body.appendChild(segment(dl.chu_ky, ck, (x) => { ck = x || 'Năm'; }, false));
-  const han = oNhap(m.body, 'Hạn lần tới', v ? v.han : '', 'date');
+  const han = oNhap(m.body, 'Hạn lần tới (để trống khi chưa biết — app nhắc đặt hạn)', v ? v.han : '', 'date');
   const bt = oNhap(m.body, 'Nhắc trước (ngày)', v ? v.bao_truoc : 14, 'number');
   bt.inputMode = 'numeric';
   const pt = oNhap(m.body, 'Phụ trách', v ? v.phu_trach : '');
   const hs = oNhap(m.body, 'Hồ sơ / biểu mẫu liên quan', v ? v.ho_so : '');
   const mt = oNhap(m.body, 'Làm gì', v ? v.mo_ta : '', 'ta');
+  m.body.appendChild(el('div', 'sx-qc-goiy', 'Kiểm nghiệm KH.KN.01 — mẫu của (chọn khi việc là gửi mẫu kiểm nghiệm)'));
+  let kn = v ? (v.doi_tuong_kn || '') : '';
+  m.body.appendChild(segment(dl.doi_tuong_kn || [], kn, (x) => { kn = x || ''; }, false, true));
   const nl = el('label', 'sx-sc-check');
   const nc = el('input');
   nc.type = 'checkbox';
@@ -122,12 +139,11 @@ function moSua(v, dl, api, lai) {
   ok.type = 'button';
   ok.addEventListener('click', async () => {
     if (!ten.value.trim()) { toastErr('Nhập tên việc.'); return; }
-    if (!han.value) { toastErr('Chọn hạn lần tới.'); return; }
     ok.disabled = true;
     try {
       await api.call('sx.api.qc_lichviec.luu', { payload: JSON.stringify({
         name: v ? v.name : null, ten: ten.value, chu_ky: ck, han: han.value, bao_truoc: bt.value, phu_trach: pt.value,
-        ho_so: hs.value, mo_ta: mt.value, ngung: nc.checked ? 1 : 0 }) });
+        ho_so: hs.value, mo_ta: mt.value, ngung: nc.checked ? 1 : 0, doi_tuong_kn: kn }) });
       toast('Đã lưu');
       m.close();
       lai();

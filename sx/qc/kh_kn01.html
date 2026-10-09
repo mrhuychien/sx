@@ -1,4 +1,6 @@
-{#- KH.KN.01 — kế hoạch kiểm nghiệm năm (W18, D144). A4 ngang. -#}
+{#- KH.KN.01 — kế hoạch kiểm nghiệm năm (W18, D144). A4 ngang. W35 (D166): thêm bảng nước, nguyên liệu, bao bì,
+    thẩm tra — việc kiểm nghiệm định kỳ, cột như giấy (đối tượng, chỉ tiêu, tần suất, căn cứ, gửi gần nhất, kết quả,
+    lần kế tiếp). -#}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .kn { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -14,7 +16,7 @@
   .kn .ky td { border: 0; height: 56px; }
 </style>
 <div class="kn">
-  <h1>Kế hoạch kiểm nghiệm sản phẩm</h1>
+  <h1>Kế hoạch kiểm nghiệm</h1>
   <div class="ma">KH.KN.01 &nbsp;·&nbsp; Năm {{ nam }} &nbsp;·&nbsp; {{ kh|length }} sản phẩm, mỗi sản phẩm ít nhất 1 lần / năm
     &nbsp;·&nbsp; Ngày in {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }}</div>
   <table>
@@ -31,6 +33,22 @@
     </tr>
     {% else %}
     <tr><td colspan="9">Chưa có danh mục sản phẩm tự công bố.</td></tr>
+    {% endfor %}
+  </table>
+  <table>
+    <tr><th class="t" colspan="8">Nước, nguyên liệu, bao bì, thẩm tra — việc kiểm nghiệm định kỳ</th></tr>
+    <tr><th class="t" style="width:22%">Đối tượng</th><th class="t">Chỉ tiêu</th><th style="width:8%">Tần suất</th>
+      <th class="t" style="width:14%">Căn cứ</th><th style="width:8%">Gửi gần nhất</th><th style="width:9%">Kết quả</th>
+      <th style="width:8%">Lần kế tiếp</th><th style="width:9%">Trạng thái</th></tr>
+    {% for v in viec %}
+    <tr><td class="t">{{ v.ten }}</td><td class="t">{{ v.mo_ta or "" }}</td><td>{{ v.tan_suat }}</td>
+      <td class="t">{{ v.ho_so or "" }}</td>
+      <td>{{ frappe.utils.formatdate(v.phieu_cuoi.ngay_gui, "dd/MM/yyyy") if v.phieu_cuoi else "" }}</td>
+      <td>{% if v.phieu_cuoi %}{{ v.phieu_cuoi.ket_qua or "chờ kết quả" }}{% if v.phieu_cuoi.so_phieu %} ({{ v.phieu_cuoi.so_phieu }}){% endif %}{% endif %}</td>
+      <td>{{ frappe.utils.formatdate(v.han, "dd/MM/yyyy") if v.han and not v.ngung else ("—" if v.ngung else "chưa đặt hạn") }}</td>
+      <td{% if v.trang_thai == "Quá hạn" %} class="tre"{% endif %}>{{ "Đã gửi mẫu" if v.ngung and v.phieu_cuoi else v.trang_thai }}</td></tr>
+    {% else %}
+    <tr><td class="t" colspan="8">Chưa khai việc kiểm nghiệm định kỳ nào (màn Việc định kỳ — ô "Kiểm nghiệm — mẫu của").</td></tr>
     {% endfor %}
   </table>
   <table>

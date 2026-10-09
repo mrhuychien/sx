@@ -173,8 +173,8 @@ def _viec_dinh_ky(d, dl):
     vd = dl.get("viec_dinh_ky")
     if vd is None or vd == {}:
         return None
-    tiep = frappe.get_all(VD.PT, filters={"ngung": 0, "han": (">=", str(d))}, fields=["ten", "han"],
-                          order_by="han asc", limit=1)
+    tiep = frappe.get_all(VD.PT, filters={"ngung": 0, "han": (">=", str(d)), "doi_tuong_kn": ("is", "not set")},
+                          fields=["ten", "han"], order_by="han asc", limit=1)
     return {"qua_han": len(vd.get("qua_han") or []),
             "tiep": {"ten": tiep[0]["ten"], "han": str(tiep[0]["han"])} if tiep else None}
 

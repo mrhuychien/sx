@@ -5,19 +5,30 @@
   · Lần sau = ngày gửi + 12 tháng (sản phẩm).
   · Không đạt → phiếu sự cố (nguồn Kết quả kiểm nghiệm, mức Cao) một lần. Mẫu cát gắn nhật ký
     cát → kết quả chép sang nhật ký, phiếu sự cố do nhật ký cát lập (không trùng).
+  · W35 (D166): mẫu nước / nguyên liệu / khác gắn VIỆC kiểm nghiệm định kỳ (SX Viec Dinh Ky có ô mẫu
+    của) → lưu phiếu là ghi lần làm của việc (hạn dời sang kỳ sau, "Một lần" thì ngừng); mẫu của lấy
+    theo việc; bỏ gắn / xoá phiếu → lần làm bỏ theo.
 """
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import getdate, nowdate
+from frappe.utils import cint, getdate, nowdate
 
 from sx.qc import kiem_nghiem as KN
+from sx.qc import viec_dinh_ky as VD
 
 
 class SXKiemNghiem(Document):
     def validate(self):
         hn = getdate(nowdate())
+        if self.doi_tuong in (KN.SAN_PHAM, KN.CAT):
+            self.viec_dinh_ky = None
+        elif self.viec_dinh_ky:
+            kn = frappe.db.get_value(VD.PT, self.viec_dinh_ky, "doi_tuong_kn")
+            if not kn:
+                frappe.throw(_("Việc {0} không phải việc kiểm nghiệm (chưa chọn mẫu của).").format(self.viec_dinh_ky))
+            self.doi_tuong = kn
         if getdate(self.ngay_gui) > hn:
             frappe.throw(_("Ngày gửi mẫu không được sau hôm nay."))
         if self.doi_tuong == KN.SAN_PHAM and not self.san_pham:
@@ -40,13 +51,15 @@ class SXKiemNghiem(Document):
             self.nguoi_ghi = frappe.session.user
 
     def on_update(self):
+        self._ghi_viec()
         if self.doi_tuong == KN.CAT and self.nhat_ky_cat:
             sc = KN.dong_bo_cat(self)
             if sc and sc != self.su_co:
                 self.db_set("su_co", sc, update_modified=False)
             return
         if self.ket_qua == KN.KHONG_DAT and not self.su_co:
-            ten = self.ten_san_pham or self.san_pham or self.doi_tuong
+            ten = (self.ten_san_pham or self.san_pham
+                   or (self.viec_dinh_ky and frappe.db.get_value(VD.PT, self.viec_dinh_ky, "ten")) or self.doi_tuong)
             sc = frappe.get_doc({
                 "doctype": "SX Su Co", "ngay": getdate(nowdate()), "nguon": "Kết quả kiểm nghiệm",
                 "loai": "Khác", "muc_do": "Cao", "trang_thai": "Mở",
@@ -61,3 +74,25 @@ class SXKiemNghiem(Document):
             # PHẢI có phiếu.
             sc.insert(ignore_permissions=True)
             self.db_set("su_co", sc.name, update_modified=False)
+
+    def _ghi_viec(self):
+        """Lần làm của việc kiểm nghiệm = phiếu này (một lần — lưu lại không ghi thêm); đổi việc thì bỏ lần ở
+        việc cũ. Lần sau của phiếu = hạn mới của việc."""
+        cu = (self.get_doc_before_save() or {}).get("viec_dinh_ky")
+        if cu and cu != self.viec_dinh_ky and frappe.db.exists(VD.PT, cu):
+            v = frappe.get_doc(VD.PT, cu)
+            if VD.bo_lan(v, self.name):
+                v.save(ignore_permissions=True)
+        if not self.viec_dinh_ky:
+            return
+        v = frappe.get_doc(VD.PT, self.viec_dinh_ky)
+        if not any(r.get("phieu_kn") == self.name for r in v.get("ds_lan") or []):
+            VD.ghi_lan(v, getdate(self.ngay_gui), _("Gửi mẫu — phiếu {0}").format(self.name), self.name)
+            v.save(ignore_permissions=True)
+            self.db_set("lan_sau", None if cint(v.ngung) else v.han, update_modified=False)
+
+    def on_trash(self):
+        if self.viec_dinh_ky and frappe.db.exists(VD.PT, self.viec_dinh_ky):
+            v = frappe.get_doc(VD.PT, self.viec_dinh_ky)
+            if VD.bo_lan(v, self.name):
+                v.save(ignore_permissions=True)
