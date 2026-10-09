@@ -155,6 +155,15 @@ P.execute()
 kiem("chạy lại patch: không nhân đôi", len(F.bang(HS.PT)) == n == len(P.DS))
 kiem("mọi biểu mẫu app trong danh mục mẫu đều có hàm in (không có dòng 'App' mà gói luôn trống)",
      all(x["bieu_mau"] in HS.BIEU_MAU for x in ds.values() if x["nguon"] == HS.APP))
+# W46 (D157): Frappe kiểm Select lúc insert (BaseDocument._validate_selects, kể cả trong patch) — mã có trong
+# BIEU_MAU mà thiếu ở options thì patch d150 / d151 dừng migrate ("Biểu mẫu app cannot be BM.01.07") và màn Hồ sơ
+# đánh giá không lưu được dòng đó. Frappe giả không đọc JSON nên kiểm thẳng ở đây: thêm mã vào BIEU_MAU là phải
+# thêm vào options của DocType.
+_hs = json.load(open("sx/qc/doctype/sx_ho_so_danh_muc/sx_ho_so_danh_muc.json", encoding="utf-8"))
+_chon = {x for x in next(f for f in _hs["fields"] if f["fieldname"] == "bieu_mau")["options"].split("\n") if x.strip()}
+kiem("Select 'Biểu mẫu app' có ĐÚNG các mã của BIEU_MAU (thiếu mã → migrate chết ở patch, màn không lưu được)",
+     _chon == set(HS.BIEU_MAU), {"thiếu trong JSON": sorted(set(HS.BIEU_MAU) - _chon),
+                                 "thừa trong JSON": sorted(_chon - set(HS.BIEU_MAU))})
 loi = thu(lambda: F.get_doc({"doctype": HS.PT, "ma": "tccs01", "ten": "trùng", "nhom": "Sản phẩm",
                              "nguon": HS.TEP}).insert())
 kiem("mã trùng (khác khoảng trắng / hoa thường) → chặn", loi and "Đã có hồ sơ mã TCCS 01" in loi, loi)

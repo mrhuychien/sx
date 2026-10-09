@@ -315,6 +315,20 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sửa lỗi migrate ở danh mục hồ sơ (D157 — W46)
+
+- Ô *Biểu mẫu app* (Select) của **SX Ho So Danh Muc** thiếu `BM.01.07` và `BC.THANG`, trong khi patch D150, D151
+  thêm đúng hai dòng đó. Frappe kiểm Select ngay cả trong patch, nên `bench migrate` sau D150 **dừng ở patch
+  d150** với lỗi `Biểu mẫu app cannot be "BM.01.07"`; màn Hồ sơ đánh giá cũng không lưu được dòng chọn hai mã này.
+  Đã thêm hai mã. Test mới: các lựa chọn của ô này phải **bằng đúng** bảng `BIEU_MAU` (`sx/qc/ho_so.py`) — từ nay
+  thêm biểu mẫu vào `BIEU_MAU` mà quên DocType là test đỏ.
+- Migrate dừng ở một patch thì các patch sau nó (d151, d152…) và bước đồng bộ custom field (fixtures) của lần đó
+  cũng chưa chạy. Patch chỉ được ghi "đã chạy" khi chạy xong, nên chỉ cần: `git pull` →
+  `bench --site site1.local migrate` → `bench restart`.
+- Kiểm sau migrate (`bench --site site1.local console`):
+  `frappe.get_all("SX Ho So Danh Muc", filters={"bieu_mau": ("in", ["BM.01.07", "BC.THANG"])}, pluck="ma")` ra
+  `BM.01.07` và `BC ATTP tháng`; `frappe.db.exists("Patch Log", {"patch": "sx.patches.d152_bu_ngay_xuat_xuong"})` có.
+
 ## Kiểm kê bán thành phẩm: tạo lô mới ngay lúc cân (D156)
 
 - Màn kiểm kê **Bán thành phẩm / Kho xưởng** → ô **+ LÔ KHÁC / MỚI** của mã → **+ TẠO LÔ MỚI**: dùng khi cân thấy

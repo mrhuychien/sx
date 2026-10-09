@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "links": [],
- "modified": "2026-10-09 18:00:00.000000",
+ "modified": "2026-10-09 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "owner": "Administrator",
@@ -67,7 +67,7 @@
    "fieldname": "bieu_mau",
    "fieldtype": "Select",
    "label": "Biểu mẫu app",
-   "options": "\nBM.08.01\nBM.08.02\nBM.08.03\nBM.08.04\nBM.11.01\nBM.15.01\nBM.06.01\nBM.06.02\nBM.06.03\nBM.06.04\nKH.KN.01\nBM.07.02\nBM.09.01\nBM.PRP.03\nBM.PRP.01\nBM.02.04\nHUY_MAU\nTU_CONG_BO",
+   "options": "\nBM.08.01\nBM.08.02\nBM.01.07\nBM.08.03\nBM.08.04\nBM.11.01\nBM.15.01\nBM.06.01\nBM.06.02\nBM.06.03\nBM.06.04\nKH.KN.01\nBM.07.02\nBM.09.01\nBM.PRP.03\nBM.PRP.01\nBM.02.04\nHUY_MAU\nTU_CONG_BO\nBC.THANG",
    "depends_on": "eval:doc.nguon=='App lập'"
   },
   {
