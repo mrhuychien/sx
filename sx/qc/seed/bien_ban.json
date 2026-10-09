@@ -1,0 +1,2460 @@
+[
+ {
+  "ma": "BM.01.11",
+  "ten": "Biên bản họp Ban ISO",
+  "quy_trinh": "QT.01",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Tuần",
+  "nhan_ngay": "Ngày họp",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "gio",
+      "nhan": "Thời gian (giờ)",
+      "kieu": "Data"
+     },
+     {
+      "key": "dia_diem",
+      "nhan": "Địa điểm",
+      "kieu": "Data"
+     },
+     {
+      "key": "chu_tri",
+      "nhan": "Chủ trì: Trưởng Ban ISO",
+      "kieu": "Data"
+     },
+     {
+      "key": "thu_ky",
+      "nhan": "Thư ký",
+      "kieu": "Data"
+     },
+     {
+      "key": "hop_dau_thang",
+      "nhan": "Họp đầu tháng (kèm BM.01.12)",
+      "kieu": "Check"
+     },
+     {
+      "key": "thang_bm0112",
+      "nhan": "Kèm BM.01.12 tháng",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "thanh_phan",
+    "tieu_de": "1. Thành phần tham dự",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "ho_ten",
+      "nhan": "Họ và tên",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "chuc_danh",
+      "nhan": "Chức danh / bộ phận",
+      "kieu": "Data"
+     }
+    ],
+    "bat_buoc": 1
+   },
+   {
+    "key": "viec_truoc",
+    "tieu_de": "Việc giao ở cuộc họp trước, hành động từ xem xét lãnh đạo chưa xong",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "viec_bien_ban_truoc"
+   },
+   {
+    "key": "su_co",
+    "tieu_de": "Phiếu sự cố trong tuần (BM.08.02)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "su_co_ky"
+   },
+   {
+    "key": "khac_phuc",
+    "tieu_de": "Hành động khắc phục quá hạn, chờ kiểm tra (BM.01.07)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "khac_phuc_mo"
+   },
+   {
+    "key": "khieu_nai",
+    "tieu_de": "Khiếu nại khách hàng (BM.11.01)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "khieu_nai_ky"
+   },
+   {
+    "key": "nhac_cao",
+    "tieu_de": "Việc đang treo mức cao trên app",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "nhac_cao"
+   },
+   {
+    "key": "bc_thang",
+    "tieu_de": "Báo cáo phân tích dữ liệu tháng (BM.01.12) — cuộc họp đầu tháng",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "bc_thang",
+    "chi_khi": "hop_dau_thang"
+   },
+   {
+    "key": "noi_dung",
+    "tieu_de": "2. Nội dung xem xét",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "ma",
+      "nhan": "#",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "noi_dung",
+      "nhan": "Nội dung",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "nguon",
+      "nhan": "Nguồn",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "tinh_hinh",
+      "nhan": "Tình hình, ý kiến",
+      "kieu": "Text",
+      "bat_buoc": 1
+     }
+    ],
+    "dong_mau": "a | Việc giao ở cuộc họp trước, hành động từ xem xét lãnh đạo | Biên bản lần trước; BM.01.10\nb | Phiếu sự cố mở / đã đóng trong tuần | BM.08.02\nc | Hồ sơ giám sát PRP, oPRP (vòng kiểm QC, nhập nguyên liệu, xuất xưởng) | BM.08.01; BM.07.03; BM.08.04\nd | Sự không phù hợp, hành động khắc phục | BM.01.07\ne | Khiếu nại khách hàng | BM.11.01\nf | Kết quả kiểm nghiệm nhận được | KH.KN.01\ng | Thay đổi (sản phẩm, nguyên liệu, NCC, thiết bị, tài liệu, quy định) | QT.01 mục 5.8; BM.01.01\nh | Khác"
+   },
+   {
+    "key": "viec_giao",
+    "tieu_de": "3. Quyết định, việc giao",
+    "kieu": "Việc giao",
+    "cot": [
+     {
+      "key": "viec",
+      "nhan": "Việc cần làm",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "phu_trach",
+      "nhan": "Người thực hiện",
+      "kieu": "User",
+      "bat_buoc": 1
+     },
+     {
+      "key": "han",
+      "nhan": "Hạn",
+      "kieu": "Date",
+      "bat_buoc": 1,
+      "han": 1
+     },
+     {
+      "key": "ket_qua",
+      "nhan": "Kết quả (ghi ở cuộc họp sau)",
+      "kieu": "Text"
+     }
+    ]
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Thư ký",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   },
+   {
+    "vai_tro": "Trưởng Ban ISO (chủ trì)",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager",
+   "Production Manager",
+   "SX QC",
+   "SX QC Packing",
+   "SX Thu Kho",
+   "Warehouse",
+   "SX Co Dien",
+   "SX Hanh Chinh"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ky_hieu_so": "BB-ISO",
+  "ghi_chu": "Họp hằng tuần (QĐ kiện toàn Ban ISO 21/9/2026). Số liệu tuần kéo từ app lúc lập (bản chụp); cuộc họp đầu tháng tích ô đầu phiếu để kéo BM.01.12. Việc giao có hạn thành việc định kỳ một lần khi ký đủ — kết quả xem ở cuộc họp sau (mục việc giao chưa xong). Danh sách tham dự không có cột ký trên app: chữ ký điện tử của Thư ký và chủ trì xác nhận biên bản (C23)."
+ },
+ {
+  "ma": "BM.01.10",
+  "ten": "Biên bản xem xét của lãnh đạo",
+  "quy_trinh": "QT.01",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Năm",
+  "nhan_ngay": "Ngày họp",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "loai_xem_xet",
+      "nhan": "Loại xem xét",
+      "kieu": "Select",
+      "lua_chon": "Định kỳ\nĐột xuất",
+      "bat_buoc": 1
+     },
+     {
+      "key": "nam",
+      "nhan": "Định kỳ năm",
+      "kieu": "Int"
+     },
+     {
+      "key": "ly_do_dot_xuat",
+      "nhan": "Đột xuất, lý do",
+      "kieu": "Text"
+     },
+     {
+      "key": "gio",
+      "nhan": "Thời gian (giờ)",
+      "kieu": "Data"
+     },
+     {
+      "key": "dia_diem",
+      "nhan": "Địa điểm",
+      "kieu": "Data"
+     },
+     {
+      "key": "chu_tri",
+      "nhan": "Chủ trì: Giám đốc",
+      "kieu": "Data"
+     },
+     {
+      "key": "thu_ky",
+      "nhan": "Thư ký",
+      "kieu": "Data"
+     },
+     {
+      "key": "ngay_gui_bao_cao_dau_vao",
+      "nhan": "Báo cáo đầu vào gửi Giám đốc ngày",
+      "kieu": "Date"
+     }
+    ]
+   },
+   {
+    "key": "viec_truoc",
+    "tieu_de": "a. Hành động từ lần xem xét trước, việc giao họp Ban ISO chưa xong",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "viec_bien_ban_truoc"
+   },
+   {
+    "key": "rui_ro",
+    "tieu_de": "b, c8. Bên quan tâm (BM.05.01), rủi ro cấp độ 1 (BM.05.02)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "rui_ro_ben_quan_tam"
+   },
+   {
+    "key": "thay_doi",
+    "tieu_de": "c1. Thay đổi tài liệu: BM.01.01 đã duyệt, đợt ban hành",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "thay_doi_ky"
+   },
+   {
+    "key": "bc_thang",
+    "tieu_de": "c2. Kết quả theo dõi, đo lường — BM.01.12 tháng trước, lũy kế năm",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "bc_thang"
+   },
+   {
+    "key": "kiem_nghiem",
+    "tieu_de": "c2, c7. Kết quả kiểm nghiệm trong năm (KH.KN.01)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "kiem_nghiem_nam"
+   },
+   {
+    "key": "su_co",
+    "tieu_de": "c4, e. Phiếu sự cố trong kỳ (BM.08.02)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "su_co_ky"
+   },
+   {
+    "key": "khac_phuc",
+    "tieu_de": "c4. Hành động khắc phục quá hạn, chờ kiểm tra (BM.01.07)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "khac_phuc_mo"
+   },
+   {
+    "key": "dgnb",
+    "tieu_de": "c5. Kết quả đánh giá nội bộ gần nhất (BM.01.09)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "dgnb_ket_qua"
+   },
+   {
+    "key": "khieu_nai",
+    "tieu_de": "f. Khiếu nại trong kỳ (BM.11.01)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "khieu_nai_ky"
+   },
+   {
+    "key": "phan_i",
+    "tieu_de": "I. ĐẦU VÀO XEM XÉT (mục 9.3.2)",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "muc",
+      "nhan": "Mục",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "noi_dung",
+      "nhan": "Nội dung đầu vào",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "nguon_du_lieu",
+      "nhan": "Nguồn dữ liệu",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "tom_tat",
+      "nhan": "Tóm tắt kết quả, xu hướng",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "nhan_xet",
+      "nhan": "Nhận xét, đánh giá",
+      "kieu": "Text"
+     }
+    ],
+    "dong_mau": "a | Tình trạng các hành động từ lần xem xét trước | Biên bản xem xét lần trước; biên bản họp Ban ISO\nb | Thay đổi các vấn đề bên ngoài, nội bộ liên quan HTQL ATTP, kể cả thay đổi của Công ty và bối cảnh | QT.05; BM.05.01, BM.05.02\n# c | Kết quả thực hiện và hiệu lực của HTQL ATTP, kể cả xu hướng của:\nc1 | – kết quả hoạt động cập nhật hệ thống | QT.01 mục 5.8; BM.01.01; BM.01.02\nc2 | – kết quả theo dõi, đo lường | BM.08.01; hồ sơ oPRP, PRP; BM.08.04; báo cáo phân tích dữ liệu tháng (QT.01 mục 5.7)\nc3 | – phân tích kết quả thẩm tra PRP và kế hoạch kiểm soát mối nguy | QT.04; BM.04.02\nc4 | – sự không phù hợp và hành động khắc phục | BM.01.07; BM.08.02\nc5 | – kết quả đánh giá nội bộ và đánh giá bên ngoài | BM.01.09; báo cáo đánh giá bên ngoài\nc6 | – kết quả thanh tra, kiểm tra của cơ quan quản lý, khách hàng | Biên bản thanh tra, kiểm tra\nc7 | – kết quả thực hiện của nhà cung cấp bên ngoài | QT.07; BM.07.01; BM.07.02; BM.07.03\nc8 | – rủi ro, cơ hội và hiệu lực của các hành động giải quyết rủi ro, cơ hội | BM.05.02\nc9 | – mức độ đạt được các mục tiêu ATTP | MT.ATTP (bảng theo dõi kết quả)\nd | Sự thỏa đáng của nguồn lực | Đề xuất của các bộ phận\ne | Tình huống khẩn cấp, sự cố, rút lại, thu hồi sản phẩm đã xảy ra; kết quả diễn tập | QT.03; QT.02; BM.03.04; BM.02.05\nf | Thông tin từ trao đổi thông tin bên ngoài và nội bộ, kể cả yêu cầu và khiếu nại của các bên quan tâm | QT.01 mục 5.6; QT.11; BM.11.01\ng | Cơ hội cải tiến liên tục | Đề xuất của Ban ISO, các bộ phận"
+   },
+   {
+    "key": "phan_ii",
+    "tieu_de": "II. KẾT LUẬN VỀ HTQL ATTP",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "phu_hop",
+      "nhan": "Phù hợp",
+      "kieu": "Check"
+     },
+     {
+      "key": "thoa_dang",
+      "nhan": "Thỏa đáng",
+      "kieu": "Check"
+     },
+     {
+      "key": "co_hieu_luc",
+      "nhan": "Có hiệu lực",
+      "kieu": "Check"
+     },
+     {
+      "key": "can_cai_tien",
+      "nhan": "Cần cải tiến (ghi rõ ở mục III)",
+      "kieu": "Check"
+     },
+     {
+      "key": "chinh_sach",
+      "nhan": "Chính sách ATTP (CS.ATTP)",
+      "kieu": "Select",
+      "lua_chon": "Còn phù hợp\nCần sửa đổi",
+      "bat_buoc": 1
+     },
+     {
+      "key": "muc_tieu",
+      "nhan": "Mục tiêu ATTP (MT.ATTP)",
+      "kieu": "Select",
+      "lua_chon": "Giữ nguyên\nCập nhật",
+      "bat_buoc": 1
+     },
+     {
+      "key": "nhan_xet_chung",
+      "nhan": "Nhận xét chung",
+      "kieu": "Text"
+     }
+    ]
+   },
+   {
+    "key": "phan_iii",
+    "tieu_de": "III. ĐẦU RA – QUYẾT ĐỊNH VÀ HÀNH ĐỘNG (mục 9.3.3)",
+    "kieu": "Việc giao",
+    "cot": [
+     {
+      "key": "viec",
+      "nhan": "Quyết định / hành động",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "loai",
+      "nhan": "Loại (a/b)",
+      "kieu": "Select",
+      "lua_chon": "a\nb",
+      "bat_buoc": 1
+     },
+     {
+      "key": "phu_trach",
+      "nhan": "Người chịu trách nhiệm",
+      "kieu": "User",
+      "bat_buoc": 1
+     },
+     {
+      "key": "han",
+      "nhan": "Thời hạn",
+      "kieu": "Date",
+      "bat_buoc": 1,
+      "han": 1
+     },
+     {
+      "key": "ket_qua",
+      "nhan": "Theo dõi thực hiện (Ban ISO)",
+      "kieu": "Text"
+     }
+    ]
+   },
+   {
+    "key": "tham_du",
+    "tieu_de": "DANH SÁCH THAM DỰ",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "ho_ten",
+      "nhan": "Họ và tên",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "chuc_danh",
+      "nhan": "Chức danh / bộ phận",
+      "kieu": "Data"
+     }
+    ],
+    "bat_buoc": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Thư ký",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   },
+   {
+    "vai_tro": "Trưởng Ban ISO",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   },
+   {
+    "vai_tro": "Giám đốc (chủ trì)",
+    "thu_tu": 3,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager",
+   "Production Manager",
+   "SX QC",
+   "SX QC Packing",
+   "SX Thu Kho",
+   "Warehouse",
+   "SX Co Dien",
+   "SX Hanh Chinh"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Xem xét của lãnh đạo",
+  "ghi_chu": "Ít nhất 1 lần/năm (Lịch biểu mẫu: tháng 12) — việc định kỳ nhắc. Đầu vào mục I kéo từ app lúc lập (bản chụp); loại đầu ra: (a) cải tiến liên tục, (b) cập nhật / thay đổi HTQL ATTP. Hành động mục III thành việc định kỳ một lần khi ký đủ và hiện ở mục việc giao chưa xong của họp Ban ISO, lần xem xét sau."
+ },
+ {
+  "ma": "BM.01.05",
+  "ten": "Chương trình và kế hoạch đánh giá nội bộ",
+  "quy_trinh": "QT.01",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Năm",
+  "nhan_ngay": "Ngày lập",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "thoi_gian_thuc_hien",
+      "nhan": "Thời gian thực hiện",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "muc_dich",
+      "nhan": "Mục đích đánh giá",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "tieu_chuan",
+      "nhan": "Tiêu chuẩn đánh giá",
+      "kieu": "Text",
+      "bat_buoc": 1
+     }
+    ]
+   },
+   {
+    "key": "chuyen_gia",
+    "tieu_de": "Chuyên gia đánh giá",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "chuyen_gia",
+      "nhan": "Tên chuyên gia",
+      "kieu": "User",
+      "bat_buoc": 1
+     },
+     {
+      "key": "trach_nhiem",
+      "nhan": "Trách nhiệm trong đoàn",
+      "kieu": "Select",
+      "lua_chon": "Trưởng đoàn\nThành viên",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ky_hieu",
+      "nhan": "Ký hiệu chuyên gia",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "bo_phan",
+      "nhan": "Bộ phận công tác",
+      "kieu": "Data",
+      "bat_buoc": 1
+     }
+    ],
+    "dong_mau": " | Trưởng đoàn | A | \n | Thành viên | B | \n | Thành viên | C | ",
+    "bat_buoc": 1
+   },
+   {
+    "key": "chi_tiet",
+    "tieu_de": "CHI TIẾT HOẠT ĐỘNG ĐÁNH GIÁ",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "thoi_gian",
+      "nhan": "Thời gian",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "noi_dung",
+      "nhan": "Nội dung đánh giá",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "bo_phan",
+      "nhan": "Bộ phận được đánh giá",
+      "kieu": "Data"
+     },
+     {
+      "key": "chuyen_gia",
+      "nhan": "Chuyên gia đánh giá",
+      "kieu": "Data"
+     }
+    ],
+    "dong_mau": "8:00 | Họp khai mạc: Lãnh đạo và đại diện các bộ phận |  | Tất cả các chuyên gia\n8:30 |  |  | \n8:30 |  |  | \n8:30 |  |  | \n11:30 | Nghỉ trưa |  | \n13:15 |  |  | \n13:15 |  |  | \n13:15 |  |  | \n15:30 | Thảo luận và viết báo cáo của đoàn đánh giá |  | Tất cả các chuyên gia\n16:00 | Họp kết thúc: Lãnh đạo và đại diện các bộ phận |  | Tất cả các chuyên gia\n16:30 | Kết thúc cuộc đánh giá. |  | Tất cả các chuyên gia",
+    "bat_buoc": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Người lập",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   },
+   {
+    "vai_tro": "Phê duyệt (Giám đốc)",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Đánh giá nội bộ",
+  "ghi_chu": "Đánh giá mọi bộ phận ít nhất 1 lần/năm (Lịch biểu mẫu: tháng 11/2026 — việc định kỳ nhắc). Chuyên gia chọn theo tài khoản, khai bộ phận công tác; dòng lịch ghi bộ phận được đánh giá và ký hiệu chuyên gia — app chặn chuyên gia đánh giá bộ phận của mình và Trưởng Ban ISO làm trưởng đoàn (QT.01). Giám đốc ký phê duyệt = chỉ định trưởng đoàn. Ký đủ thì chuyên gia lập checklist BM.01.06 từ kế hoạch này."
+ },
+ {
+  "ma": "BM.01.06",
+  "ten": "Check list đánh giá",
+  "quy_trinh": "QT.01",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "chuyen_gia",
+      "nhan": "Chuyên gia đánh giá",
+      "kieu": "Data"
+     },
+     {
+      "key": "bo_phan",
+      "nhan": "Bộ phận được đánh giá",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "thoi_gian",
+      "nhan": "Thời gian đánh giá",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "checklist",
+    "tieu_de": "Check list đánh giá",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "yeu_cau",
+      "nhan": "Quy trình/quy định/hướng dẫn cần tuân thủ",
+      "kieu": "Text",
+      "bat_buoc": 1,
+      "hoi": 1
+     },
+     {
+      "key": "ket_luan",
+      "nhan": "Kết luận đánh giá",
+      "kieu": "Select",
+      "lua_chon": "PH\nKPH\nLưu ý",
+      "bat_buoc": 1
+     },
+     {
+      "key": "bang_chung",
+      "nhan": "Bằng chứng",
+      "kieu": "Text"
+     }
+    ],
+    "bat_buoc": 1,
+    "them_dong": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Chuyên gia đánh giá",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   }
+  ],
+  "vai_lap": [],
+  "vai_xem": [],
+  "nguon_car": "Đánh giá nội bộ",
+  "goc_mau": "BM.01.05",
+  "ghi_chu": "Lập từ kế hoạch BM.01.05 đã duyệt — chỉ chuyên gia có tên trong kế hoạch, không đánh giá bộ phận của mình. Mẫu giấy không có câu hỏi in sẵn: chuyên gia nhập câu hỏi, có nút Chép câu hỏi từ đợt trước (không seed 22 câu đợt 1/2026 — còn tham chiếu cũ). Giấy không có ô ký: app cho chuyên gia ký xác nhận để khóa phiếu. Dòng KPH → Lập BM.01.07; Lưu ý → tự gom vào BM.01.08."
+ },
+ {
+  "ma": "BM.01.08",
+  "ten": "Bảng tổng hợp các điểm lưu ý",
+  "quy_trinh": "QT.01",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày",
+  "phan": [
+   {
+    "key": "luu_y",
+    "tieu_de": "Bảng tổng hợp các điểm lưu ý",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "noi_dung",
+      "nhan": "Nội dung",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "trach_nhiem",
+      "nhan": "Trách nhiệm",
+      "kieu": "Data",
+      "bat_buoc": 1
+     }
+    ],
+    "nguon": "dgnb_luu_y"
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Trưởng đoàn đánh giá",
+    "thu_tu": 1,
+    "bat_buoc": 1
+   }
+  ],
+  "vai_lap": [],
+  "vai_xem": [],
+  "nguon_car": "Đánh giá nội bộ",
+  "goc_mau": "BM.01.05",
+  "ghi_chu": "Lập từ kế hoạch BM.01.05 của đợt: tự gom các dòng Lưu ý của checklist BM.01.06 (sửa, thêm được). Ô ký là trưởng đoàn ghi trong kế hoạch."
+ },
+ {
+  "ma": "BM.01.09",
+  "ten": "Báo cáo đánh giá nội bộ",
+  "quy_trinh": "QT.01",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "thoi_gian_danh_gia",
+      "nhan": "Thời gian đánh giá",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "thanh_phan",
+    "tieu_de": "Thành phần đoàn đánh giá và bộ phận được đánh giá",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "ho_ten",
+      "nhan": "Họ tên",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "chuc_danh",
+      "nhan": "Chức danh",
+      "kieu": "Data"
+     },
+     {
+      "key": "nhom",
+      "nhan": "Nhóm",
+      "kieu": "Data"
+     },
+     {
+      "key": "bo_phan_duoc_danh_gia",
+      "nhan": "Bộ phận được đánh giá",
+      "kieu": "Data"
+     }
+    ],
+    "nguon": "dgnb_doan",
+    "bat_buoc": 1
+   },
+   {
+    "key": "noi_dung",
+    "tieu_de": "Nội dung đánh giá",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "bo_phan",
+      "nhan": "Bộ phận được đánh giá",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "quy_trinh_dieu_khoan",
+      "nhan": "Quy trình/Điều khoản liên quan",
+      "kieu": "Data"
+     },
+     {
+      "key": "so_kph",
+      "nhan": "Tổng số phát hiện: KPH",
+      "kieu": "Int"
+     },
+     {
+      "key": "so_luu_y",
+      "nhan": "Tổng số phát hiện: Lưu ý",
+      "kieu": "Int"
+     }
+    ],
+    "nguon": "dgnb_dem",
+    "bat_buoc": 1
+   },
+   {
+    "key": "ket_luan",
+    "tieu_de": "Kết luận và kiến nghị",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "ket_luan",
+      "nhan": "Kết luận đánh giá",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "kien_nghi",
+      "nhan": "Kiến nghị đánh giá",
+      "kieu": "Text"
+     }
+    ]
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Trưởng đoàn đánh giá",
+    "thu_tu": 1,
+    "bat_buoc": 1
+   }
+  ],
+  "vai_lap": [],
+  "vai_xem": [],
+  "nguon_car": "Đánh giá nội bộ",
+  "goc_mau": "BM.01.05",
+  "ghi_chu": "Lập từ kế hoạch BM.01.05 của đợt: thành phần đoàn theo kế hoạch, số KPH / Lưu ý đếm từ các checklist BM.01.06 (sửa được). Kết quả là đầu vào BM.01.10 mục c5."
+ },
+ {
+  "ma": "BM.04.01",
+  "ten": "Kế hoạch thẩm tra",
+  "quy_trinh": "QT.04",
+  "lan_ban_hanh": "01 – sửa đổi 01 (21/9/2026)",
+  "chu_ky_lap": "Năm",
+  "nhan_ngay": "Ngày lập",
+  "phan": [
+   {
+    "key": "ke_hoach",
+    "tieu_de": "KẾ HOẠCH THẨM TRA",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "hang_muc",
+      "nhan": "Hạng mục thẩm tra",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "noi_dung",
+      "nhan": "Nội dung thẩm tra",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "phuong_phap",
+      "nhan": "Phương pháp thẩm tra",
+      "kieu": "Text"
+     },
+     {
+      "key": "thoi_gian",
+      "nhan": "Thời gian",
+      "kieu": "Date",
+      "bat_buoc": 1
+     },
+     {
+      "key": "trach_nhiem",
+      "nhan": "Trách nhiệm",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ho_so",
+      "nhan": "Hồ sơ",
+      "kieu": "Data"
+     }
+    ],
+    "dong_mau": "Các chương trình GMP | Điều kiện nhà xưởng | Khảo sát trên hiện trường. / Kiểm tra hồ sơ nhân sự. / Kiểm tra hồ sơ máy móc thiết bị |  | Ban ISO | Báo cáo thẩm tra\nCác chương trình GMP | Tình trạng thiết bị | Khảo sát trên hiện trường. / Kiểm tra hồ sơ nhân sự. / Kiểm tra hồ sơ máy móc thiết bị |  | Ban ISO | Báo cáo thẩm tra\nCác chương trình GMP | Môi trường sản xuất | Khảo sát trên hiện trường. / Kiểm tra hồ sơ nhân sự. / Kiểm tra hồ sơ máy móc thiết bị |  | Ban ISO | Báo cáo thẩm tra\nCác chương trình GMP | Nhân sự tham gia vào sản xuất, thành viên Ban ISO | Khảo sát trên hiện trường. / Kiểm tra hồ sơ nhân sự. / Kiểm tra hồ sơ máy móc thiết bị |  | Ban ISO | Báo cáo thẩm tra\nPhân tích mối nguy được cập nhật liên tục | Cập nhật sản phẩm mới | Kiểm tra hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nPhân tích mối nguy được cập nhật liên tục | Cập nhật nguyên liệu mới | Kiểm tra hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nPhân tích mối nguy được cập nhật liên tục | Các bước công nghệ, lưu đồ sx | Kiểm tra hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nPRP và kế hoạch HACCP | Mô tả sản phẩm | Kiểm tra hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nPRP và kế hoạch HACCP | Các oPRP-1, 2, 5–9 theo kế hoạch kiểm soát mối nguy (KH.HACCP.01, KH.HACCP.02 mục 5.11): oPRP-1 xử lý nhiệt đỗ, oPRP-2 loại tạp chất (bánh); oPRP-5 phụ liệu bột, sữa bột, dừa sấy, oPRP-6 lạc (aflatoxin), oPRP-7 rang lạc, oPRP-8 nhãn, cảnh báo dị ứng, oPRP-9 nhiễm chéo lạc, sữa (bột, chè; loại không thêm đường trộn đầu ngày); hồ sơ thẩm định (mục 5.10) | Kiểm tra hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nPRP và kế hoạch HACCP | Kế hoạch HACCP | Kiểm tra hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nPRP và kế hoạch HACCP | Hồ sơ giám sát oPRP: Vòng kiểm QC (BM.08.01), Phiếu sự cố (BM.08.02), Sổ kiểm tra NL nhập (BM.07.03), Phiếu kiểm tra xuất xưởng lô thành phẩm (BM.08.04) | Kiểm tra hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nPRP và kế hoạch HACCP | Kết quả kiểm tra; hiệu chuẩn đồng hồ nhiệt máy rang (BM.06.02), cân định lượng; kiểm tra nam châm, lưới sàng, rây (SĐ.02); tình trạng thiết bị đo (BM.06.01) | Kiểm tra hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nMức nguy hại nằm trong mức chấp nhận đã định | Cập nhật văn bản pháp quy hiện hành của Nhà nước | Kiểm tra hồ sơ. |  | Ban ISO | Báo cáo thẩm tra\nMức nguy hại nằm trong mức chấp nhận đã định | Cập nhật các yêu cầu khách hàng. | Kiểm tra hồ sơ. |  | Ban ISO | Báo cáo thẩm tra\nCác quy định khác theo yêu cầu của tổ chức được thực hiện và có hiệu lực. | Các quy trình và hướng dẫn có đúng với thực tế. | Kiểm tra tài liệu/ hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nCác quy định khác theo yêu cầu của tổ chức được thực hiện và có hiệu lực. | Các quy trình thủ tục chưa được áp dụng. | Kiểm tra tài liệu/ hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nKết quả kiểm tra thử nghiệm sản phẩm | Hồ sơ kiểm tra thành phẩm tại Công ty, phòng thử nghiệm bên ngoài: kết quả kiểm nghiệm theo Kế hoạch kiểm nghiệm năm (KH.KN.01) — mỗi sản phẩm/vị ít nhất 1 lần/năm, đối chiếu TCCS 01, 02, 03:2026/RVHG và hồ sơ tự công bố | Kiểm tra tài liệu/ hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nKết quả kiểm tra thử nghiệm sản phẩm | Hồ sơ công bố chất lượng sản phẩm | Kiểm tra tài liệu/ hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra\nKết quả kiểm tra thử nghiệm sản phẩm | Hồ sơ xử lý Sản phẩm không phù hợp và hành động khắc phục | Kiểm tra tài liệu/ hồ sơ. / Khảo sát trên hiện trường. |  | Ban ISO | Báo cáo thẩm tra",
+    "bat_buoc": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Người lập",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   },
+   {
+    "vai_tro": "Phê duyệt (Giám đốc)",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Thẩm tra",
+  "ghi_chu": "Hằng năm sau đánh giá nội bộ, trước xem xét của lãnh đạo (Lịch biểu mẫu: tháng 11–12/2026); thẩm tra xác nhận giá trị ≤ 12 tháng; khi có thay đổi (QT.01 mục 5.8). Dòng in sẵn (19 hạng mục mẫu trắng) chỉ là gợi ý — sửa, xóa hạng mục không áp dụng, thêm dòng 'Các vấn đề khác'. Người thẩm tra không giám sát hoạt động được thẩm tra (ISO 22000 mục 8.8.1)."
+ },
+ {
+  "ma": "BM.04.02",
+  "ten": "Báo cáo thẩm tra",
+  "quy_trinh": "QT.04",
+  "lan_ban_hanh": "01 – sửa đổi 01 (21/9/2026)",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày thẩm tra",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "nguoi_tham_tra",
+      "nhan": "Người thẩm tra",
+      "kieu": "Data",
+      "bat_buoc": 1
+     }
+    ]
+   },
+   {
+    "key": "bao_cao",
+    "tieu_de": "BÁO CÁO THẨM TRA",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "hang_muc",
+      "nhan": "Hạng mục thẩm tra",
+      "kieu": "Data",
+      "bat_buoc": 1,
+      "hoi": 1
+     },
+     {
+      "key": "noi_dung",
+      "nhan": "Nội dung thẩm tra",
+      "kieu": "Text",
+      "bat_buoc": 1,
+      "hoi": 1
+     },
+     {
+      "key": "ket_qua",
+      "nhan": "Kết quả thẩm tra",
+      "kieu": "Select",
+      "lua_chon": "Đạt\nKhông đạt",
+      "bat_buoc": 1
+     },
+     {
+      "key": "bang_chung",
+      "nhan": "Bằng chứng",
+      "kieu": "Text"
+     },
+     {
+      "key": "thoi_gian_tham_tra_lai",
+      "nhan": "Thời gian thực hiện thẩm tra lại (nếu có)",
+      "kieu": "Date",
+      "han": 1
+     }
+    ],
+    "dong_mau": "Các chương trình GMP | Điều kiện nhà xưởng\nCác chương trình GMP | Tình trạng thiết bị\nCác chương trình GMP | Môi trường sản xuất\nCác chương trình GMP | Nhân sự tham gia vào sản xuất, thành viên Ban ISO\nPhân tích mối nguy được cập nhật liên tục | Cập nhật sản phẩm mới\nPhân tích mối nguy được cập nhật liên tục | Cập nhật nguyên liệu mới\nPhân tích mối nguy được cập nhật liên tục | Các bước công nghệ, lưu đồ sx\nPRP và kế hoạch HACCP | Mô tả sản phẩm\nPRP và kế hoạch HACCP | Các oPRP-1, 2, 5–9 theo kế hoạch kiểm soát mối nguy (KH.HACCP.01, KH.HACCP.02 mục 5.11): oPRP-1 xử lý nhiệt đỗ, oPRP-2 loại tạp chất (bánh); oPRP-5 phụ liệu bột, sữa bột, dừa sấy, oPRP-6 lạc (aflatoxin), oPRP-7 rang lạc, oPRP-8 nhãn, cảnh báo dị ứng, oPRP-9 nhiễm chéo lạc, sữa (bột, chè; loại không thêm đường trộn đầu ngày); hồ sơ thẩm định (mục 5.10)\nPRP và kế hoạch HACCP | Kế hoạch HACCP\nPRP và kế hoạch HACCP | Hồ sơ giám sát oPRP: Vòng kiểm QC (BM.08.01), Phiếu sự cố (BM.08.02), Sổ kiểm tra NL nhập (BM.07.03), Phiếu kiểm tra xuất xưởng lô thành phẩm (BM.08.04)\nPRP và kế hoạch HACCP | Kết quả kiểm tra; hiệu chuẩn đồng hồ nhiệt máy rang (BM.06.02), cân định lượng; kiểm tra nam châm, lưới sàng, rây (SĐ.02); tình trạng thiết bị đo (BM.06.01)\nMức nguy hại nằm trong mức chấp nhận đã định | Cập nhật văn bản pháp quy hiện hành của Nhà nước\nMức nguy hại nằm trong mức chấp nhận đã định | Cập nhật các yêu cầu khách hàng.\nCác quy định khác theo yêu cầu của tổ chức được thực hiện và có hiệu lực. | Các quy trình và hướng dẫn có đúng với thực tế.\nCác quy định khác theo yêu cầu của tổ chức được thực hiện và có hiệu lực. | Các quy trình thủ tục chưa được áp dụng.\nKết quả kiểm tra thử nghiệm sản phẩm | Hồ sơ kiểm tra thành phẩm tại Công ty, phòng thử nghiệm bên ngoài: kết quả kiểm nghiệm theo Kế hoạch kiểm nghiệm năm (KH.KN.01) — mỗi sản phẩm/vị ít nhất 1 lần/năm, đối chiếu TCCS 01, 02, 03:2026/RVHG và hồ sơ tự công bố\nKết quả kiểm tra thử nghiệm sản phẩm | Hồ sơ công bố chất lượng sản phẩm\nKết quả kiểm tra thử nghiệm sản phẩm | Hồ sơ xử lý Sản phẩm không phù hợp và hành động khắc phục",
+    "bat_buoc": 1,
+    "them_dong": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Người lập",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   },
+   {
+    "vai_tro": "Phê duyệt (Trưởng Ban ISO)",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager",
+   "Production Manager",
+   "SX QC",
+   "SX QC Packing",
+   "SX Thu Kho",
+   "Warehouse",
+   "SX Co Dien"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Thẩm tra",
+  "goc_mau": "BM.04.01",
+  "ghi_chu": "Lập từ kế hoạch BM.04.01 đã duyệt (cùng danh sách hạng mục) hoặc từ mẫu trắng. Kết quả tách Đạt / Không đạt + Bằng chứng (như bản đã điền 23/9/2026). Không đạt → báo ngay, Lập BM.01.07 (nguồn Thẩm tra); ngày thẩm tra lại thành việc định kỳ một lần khi ký đủ. Kết quả là đầu vào BM.01.10 mục c3."
+ },
+ {
+  "ma": "BM.HACCP.01",
+  "ten": "Biên bản xác nhận sơ đồ quá trình sản xuất tại hiện trường",
+  "quy_trinh": "KH.HACCP.01; KH.HACCP.02",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "gio",
+      "nhan": "Giờ",
+      "kieu": "Data"
+     },
+     {
+      "key": "san_pham",
+      "nhan": "Sản phẩm / dây chuyền",
+      "kieu": "Select",
+      "lua_chon": "Bánh đậu xanh (KH.HACCP.01)\nCác sản phẩm bột đậu (KH.HACCP.02 mục 5.5)",
+      "bat_buoc": 1
+     },
+     {
+      "key": "lan_so_do",
+      "nhan": "Sơ đồ quá trình lần",
+      "kieu": "Data"
+     },
+     {
+      "key": "truong_ban_iso",
+      "nhan": "Thành phần: Trưởng Ban ISO",
+      "kieu": "Data"
+     },
+     {
+      "key": "qlsx",
+      "nhan": "Thành phần: QLSX",
+      "kieu": "Data"
+     },
+     {
+      "key": "qc",
+      "nhan": "Thành phần: QC",
+      "kieu": "Data"
+     },
+     {
+      "key": "co_dien",
+      "nhan": "Thành phần: Cơ điện",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "cong_doan",
+    "tieu_de": "Đối chiếu từng công đoạn tại hiện trường",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "cong_doan",
+      "nhan": "Công đoạn (số, tên theo sơ đồ)",
+      "kieu": "Data",
+      "bat_buoc": 1,
+      "hoi": 1
+     },
+     {
+      "key": "thuc_te",
+      "nhan": "Thực tế (thiết bị, thông số, thứ tự, khu vực)",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "dung_so_do",
+      "nhan": "Đúng sơ đồ",
+      "kieu": "Check"
+     },
+     {
+      "key": "khac_so_do",
+      "nhan": "Khác sơ đồ – mô tả",
+      "kieu": "Text"
+     },
+     {
+      "key": "can_sua",
+      "nhan": "Cần sửa tài liệu / đánh giá lại mối nguy",
+      "kieu": "Text"
+     }
+    ],
+    "nguon": "cong_doan",
+    "bat_buoc": 1,
+    "them_dong": 1
+   },
+   {
+    "key": "ket_luan",
+    "tieu_de": "Kết luận",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "ket_luan",
+      "nhan": "Kết luận",
+      "kieu": "Select",
+      "lua_chon": "Sơ đồ đúng thực tế\nCó điểm khác, đã ghi trên",
+      "bat_buoc": 1
+     },
+     {
+      "key": "so_bm0101",
+      "nhan": "Sửa tài liệu qua BM.01.01 số",
+      "kieu": "Data"
+     },
+     {
+      "key": "ngay_danh_gia_lai",
+      "nhan": "Đánh giá lại mối nguy (mục 5.6) ngày",
+      "kieu": "Date",
+      "han": 1
+     }
+    ]
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "QLSX",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "role": "Production Manager"
+   },
+   {
+    "vai_tro": "QC",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "SX QC"
+   },
+   {
+    "vai_tro": "Trưởng Ban ISO",
+    "thu_tu": 3,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ghi_chu": "Khi ban hành / sửa kế hoạch HACCP, khi thay đổi dây chuyền, thiết bị, công đoạn; ít nhất 1 lần/năm khi thẩm tra. Chọn dây chuyền ở đầu phiếu → app kéo danh sách công đoạn (danh mục công đoạn của app) làm từng dòng; ảnh hiện trường đính kèm. Danh mục công đoạn của một dây chuyền đổi (thêm, ngừng, đổi tên) sau lần xác nhận gần nhất → hộp nhắc. Bột: sơ đồ 11 công đoạn KH.HACCP.02 mục 5.5 chờ Ban ISO xác nhận tại xưởng — biên bản đầu tiên trên app."
+ },
+ {
+  "ma": "BM.HACCP.02",
+  "ten": "Hồ sơ thẩm định biện pháp kiểm soát (oPRP)",
+  "quy_trinh": "KH.HACCP.01; KH.HACCP.02",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày thẩm định",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "ke_hoach",
+      "nhan": "Kế hoạch",
+      "kieu": "Select",
+      "lua_chon": "KH.HACCP.01 bánh đậu xanh\nKH.HACCP.02 các sản phẩm bột đậu",
+      "bat_buoc": 1
+     },
+     {
+      "key": "lan_tham_dinh",
+      "nhan": "Lần thẩm định",
+      "kieu": "Select",
+      "lua_chon": "Lần đầu\nThẩm định lại",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ly_do",
+      "nhan": "Thẩm định lại, lý do",
+      "kieu": "Text"
+     }
+    ]
+   },
+   {
+    "key": "tham_dinh",
+    "tieu_de": "Thẩm định từng oPRP",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "oprp",
+      "nhan": "oPRP",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "moi_nguy",
+      "nhan": "Mối nguy",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "bien_phap",
+      "nhan": "Biện pháp kiểm soát, giới hạn",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "can_cu",
+      "nhan": "Căn cứ khoa học / quy định",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "bang_chung",
+      "nhan": "Bằng chứng thực tế (số phiếu KN, kết quả thử, số liệu giám sát; kèm theo)",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ket_luan",
+      "nhan": "Kết luận",
+      "kieu": "Select",
+      "lua_chon": "đủ hiệu lực\ncần điều chỉnh",
+      "bat_buoc": 1
+     }
+    ],
+    "nguon": "oprp",
+    "bat_buoc": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Thành viên Ban ISO",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   },
+   {
+    "vai_tro": "Trưởng Ban ISO",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   },
+   {
+    "vai_tro": "Giám đốc (phê duyệt)",
+    "thu_tu": 3,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager",
+   "Production Manager",
+   "SX QC",
+   "SX QC Packing",
+   "SX Thu Kho",
+   "Warehouse",
+   "SX Co Dien"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ghi_chu": "Khi ban hành kế hoạch HACCP; thẩm định lại khi đổi thiết bị, thông số, nguyên liệu, bao bì, NCC, công thức hoặc thẩm tra không đạt (mục 5.13). Chọn kế hoạch → app kéo oPRP hiện hành (bánh 1, 2; bột 5–9). Bằng chứng (phiếu KN, thử nhanh protein lạc…) đính kèm. 'cần điều chỉnh' → Lập BM.01.07."
+ },
+ {
+  "ma": "BM.14.01",
+  "ten": "Đánh giá tổn thương gian lận thực phẩm",
+  "quy_trinh": "QT.14",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Năm",
+  "nhan_ngay": "Ban ISO xem xét: ngày",
+  "phan": [
+   {
+    "key": "danh_gia",
+    "tieu_de": "PHỤ LỤC A (BM.14.01) — ĐÁNH GIÁ TỔN THƯƠNG GIAN LẬN THỰC PHẨM",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "doi_tuong",
+      "nhan": "Nguyên liệu / đối tượng",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "kieu_gian_lan",
+      "nhan": "Kiểu gian lận có thể xảy ra",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "dau_hieu",
+      "nhan": "Dấu hiệu nhận biết",
+      "kieu": "Text"
+     },
+     {
+      "key": "k",
+      "nhan": "K",
+      "kieu": "Select",
+      "lua_chon": "1\n2\n3",
+      "bat_buoc": 1
+     },
+     {
+      "key": "a",
+      "nhan": "A",
+      "kieu": "Select",
+      "lua_chon": "1\n2\n3",
+      "bat_buoc": 1
+     },
+     {
+      "key": "diem",
+      "nhan": "Điểm",
+      "kieu": "Int"
+     },
+     {
+      "key": "kiem_soat_hien_co",
+      "nhan": "Kiểm soát hiện có",
+      "kieu": "Text"
+     },
+     {
+      "key": "bien_phap_bo_sung",
+      "nhan": "Biện pháp bổ sung — tần suất",
+      "kieu": "Text"
+     }
+    ],
+    "dong_mau": "Đỗ xanh nhập khẩu (qua nhà nhập khẩu trong nước) | Thay nguồn gốc; trộn lô cũ, mốc, ẩm; chứng từ kiểm dịch, hun trùng, CO không khớp lô; hạt xử lý (đánh bóng, nhuộm) | Giá thấp bất thường; chứng từ không khớp số container, khối lượng; hạt lẫn hai màu, hai cỡ; mùi hóa chất; độ ẩm cao | 3 | 3 | 9 | 3 tầng kiểm HD.07.01: chứng từ từng lô; cảm quan khô, không mốc; kiểm nghiệm hằng năm có aflatoxin, độ ẩm | Đối chiếu số container, vận đơn với chứng từ từng lô; chỉ mua từ nhà nhập khẩu đã đánh giá (QT.07); kiểm nghiệm đột xuất khi đổi nguồn hoặc giá giảm bất thường\nDầu thực vật | Pha dầu rẻ hơn, dầu tái chế; nhãn, hạn giả | Giá thấp; bao bì không tem; mùi, màu khác lô trước | 2 | 3 | 6 | Sản phẩm đã tự công bố; hồ sơ HD.07.01 mục 0 (nhập khẩu: COA từng lô; trong nước: phiếu kiểm nghiệm năm); bao kín, nhãn | Chỉ mua qua đại lý ủy quyền, có hóa đơn VAT; kiểm chỉ số peroxide, acid 1 lần/năm hoặc khi đổi NCC\nHương liệu, phẩm màu | Chất màu ngoài danh mục (Sudan, Rhodamine…); hương không rõ nguồn; sang chiết, dán lại hạn | Không tem, không công bố; giá thấp; màu bất thường trong bánh | 2 | 3 | 6 | Danh mục TT 24/2019; NCC có công bố; hồ sơ HD.07.01 mục 0 | Không mua hàng sang chiết; kiểm nhãn, hạn từng lô; kiểm nghiệm phẩm màu thành phẩm theo tự công bố 1 lần/năm\nSữa bột | Độn bột whey, maltodextrin; melamine (tiền lệ ngành); hàng cận date dán lại | Giá thấp; độ hòa tan, mùi khác; bao bì in mờ, tem lỗi | 2 | 3 | 6 | NCC công bố; nhập khẩu: COA từng lô, chỉ tiêu theo COA nhà sản xuất; bao nguyên (KH.HACCP.02 oPRP-5) | Mua thương hiệu qua đại lý ủy quyền; COA gốc; kiểm protein, melamine khi nghi ngờ hoặc đổi NCC\nLạc nhân | Trộn lạc cũ, mốc; tẩy trắng bằng hóa chất; ngâm nước tăng cân | Hạt trắng bất thường, mùi hóa chất; độ ẩm cao; giá thấp | 2 | 3 | 6 | NCC phê duyệt có hồ sơ aflatoxin; nhặt hạt mốc, hỏng (oPRP-6) | Cảm quan khô khi nhập; kiểm aflatoxin 1 lần/năm và khi đổi NCC; đổi NCC khi có lô mốc lặp lại\nDừa sấy | Pha dừa kém chất lượng; sulfite, chất bảo quản không khai báo; dầu ôi | Màu trắng bất thường, mùi hắc; giá thấp | 2 | 2 | 4 | NCC công bố; hàng trong nước: phiếu kiểm nghiệm định kỳ hằng năm của nhà sản xuất (không yêu cầu COA lô) | Kiểm sulfite khi nghi ngờ hoặc đổi NCC\nPhụ liệu bột (cà rốt, rau má, sữa dừa, matcha; bánh: trà xanh, sầu riêng) | Độn bột gạo, chất độn; matcha pha màu, trà kém phẩm cấp | Màu quá đậm, mùi nhạt; giá thấp; nhãn không đủ | 2 | 2 | 4 | NCC công bố; nhập khẩu: COA từng lô; trong nước: phiếu kiểm nghiệm định kỳ hằng năm của nhà sản xuất | Kiểm cảm quan màu, mùi từng lô; kiểm chỉ tiêu đặc trưng khi đổi NCC\nĐường trắng | Đường kém phẩm cấp tẩy trắng; độn chất tạo ngọt | Vón, ẩm, màu ngà; giá thấp | 1 | 2 | 2 | Mua thương hiệu; hồ sơ HD.07.01 mục 0; bao nguyên | —\nĐường gluco | Độn đường kém phẩm cấp, tinh bột; ghi sai loại đường | Vón, ẩm, vị lạ; giá thấp |  |  |  | Mua thương hiệu; hồ sơ HD.07.01 mục 0; bao nguyên | —\nBột nghệ | Pha phẩm màu không được phép (chì cromat, vàng metanil); độn bột | Màu vàng tươi, đậm bất thường; giá thấp |  |  |  | NCC công bố; hồ sơ theo nguồn gốc (HD.07.01 mục 0) | Kiểm cảm quan màu từng lô\nVani, dầu chuối | Hương tổng hợp không rõ nguồn; nhãn sai | Không công bố; mùi khác | 2 | 2 | 4 | Hồ sơ HD.07.01 mục 0; danh mục TT 24/2019 | Chỉ mua hàng có công bố, tem\nBao bì tiếp xúc (giấy PP, giấy bạc, túi POPP, màng phức hợp, hộp nhựa) | Vật liệu tái chế không hợp quy; CQ, công bố giả | Mùi lạ; độ dày, màu khác lô trước; giá thấp | 2 | 2 | 4 | Công bố hợp quy/công bố phù hợp; hồ sơ HD.07.01 mục 0 | Đánh giá NCC bao bì; kiểm nghiệm thôi nhiễm khi đổi NCC hoặc 2 năm/lần\nCát rang | Cát không rõ nguồn, nhiễm dầu, hóa chất | Mùi, màu lạ | 1 | 2 | 2 | Nguồn cố định; sàng | —\nSản phẩm của Công ty trên thị trường | Hàng nhái nhãn hiệu Rồng Vàng Hoàng Gia; đổi hạn, đóng gói lại | Phản ánh khách hàng; bao bì khác chuẩn | 2 | 2 | 4 | Nhãn hiệu đăng ký; hồ sơ mẫu bao bì | Hướng dẫn khách phân biệt; theo dõi thị trường; xử lý pháp lý khi phát hiện",
+    "tinh": "k_x_a",
+    "bat_buoc": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Trưởng Ban ISO",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   },
+   {
+    "vai_tro": "Giám đốc",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ghi_chu": "Xem xét hằng năm (Lịch biểu mẫu: tháng 9 — ký lần đầu 24/9/2026), cùng BM.14.02; đánh giá lại khi đổi NCC / nguồn, có cảnh báo gian lận, sự cố. Điểm = K × A do app tính (≥ 6 cao, 3–4 trung bình, 1–2 thấp). Lập lần sau: chép bảng của lần trước rồi sửa. Đường gluco, bột nghệ chưa chấm (để trống)."
+ },
+ {
+  "ma": "BM.14.02",
+  "ten": "Kế hoạch phòng vệ thực phẩm",
+  "quy_trinh": "QT.14",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Năm",
+  "nhan_ngay": "Ban ISO xem xét: ngày",
+  "phan": [
+   {
+    "key": "ke_hoach",
+    "tieu_de": "PHỤ LỤC B (BM.14.02) — KẾ HOẠCH PHÒNG VỆ THỰC PHẨM",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "diem_de_bi_tan_cong",
+      "nhan": "Điểm dễ bị tấn công",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "moi_de_doa",
+      "nhan": "Mối đe dọa",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "k",
+      "nhan": "K",
+      "kieu": "Select",
+      "lua_chon": "1\n2\n3",
+      "bat_buoc": 1
+     },
+     {
+      "key": "a",
+      "nhan": "A",
+      "kieu": "Select",
+      "lua_chon": "1\n2\n3",
+      "bat_buoc": 1
+     },
+     {
+      "key": "diem",
+      "nhan": "Điểm",
+      "kieu": "Int"
+     },
+     {
+      "key": "bien_phap",
+      "nhan": "Biện pháp",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "nguoi_phu_trach",
+      "nhan": "Người phụ trách",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "kiem_tra_ho_so",
+      "nhan": "Kiểm tra / hồ sơ",
+      "kieu": "Data"
+     }
+    ],
+    "dong_mau": "Nước máy, đường ống | Bỏ chất độc, chất bẩn vào nước | 1 | 3 | 3 | Nước máy lấy trực tiếp tại vòi, không có bể chứa; đường ống trong xưởng, không có điểm hở; kiểm nước hằng năm | Cơ điện | BM.08.01 T1, T10\nKho nguyên liệu, kho bột, kho bao bì | Nhiễm bẩn cố ý nguyên liệu; đánh tráo | 1 | 3 | 3 | Khóa ngoài giờ; chỉ thủ kho và người được phân công; bao kín, dán nhãn; kiểm cảm quan trước khi dùng | Thủ kho | BM.08.01 T10; BM.07.03\nKhu trộn, nấu đường, phối trộn bột (điểm cuối, không có bước nhiệt sau đối với bột) | Bỏ chất lạ vào mẻ trộn | 1 | 3 | 3 | Chỉ công nhân được phân công; khách không vào; thùng bột đậy kín, dán nhãn; QC kiểm mỗi lượt | QLSX | BM.08.01\nTủ hóa chất, thuốc diệt côn trùng | Lấy hóa chất để gây nhiễm | 1 | 3 | 3 | Tủ khóa, danh mục, giao chìa cho Cơ điện; kiểm tuần | Cơ điện | BM.08.01 T5\nThành phẩm chờ xuất, xe vận chuyển | Can thiệp sản phẩm sau đóng gói; đánh tráo trên đường | 1 | 2 | 2 | Thùng carton dán băng dính; kho khóa; kiểm xe mỗi chuyến; niêm phong khi xuất khẩu | Thủ kho | Phiếu kiểm xe; phiếu xuất kho\nNhân sự: nhân viên bất mãn, nhân viên mới, thời vụ, nhà thầu | Phá hoại nội bộ | 1 | 3 | 3 | Tuyển dụng có lý lịch; đào tạo; phân công theo khu; thu chìa khóa, thẻ khi nghỉ việc; nhà thầu có người dẫn | Hành chính, QLSX | Hồ sơ nhân sự; sổ khách\nKhách tham quan, đoàn đánh giá | Mang vật lạ vào khu sản xuất | 1 | 2 | 2 | Đăng ký sổ khách (BM.PRP.06); bảo hộ; người dẫn; không chạm sản phẩm, thiết bị | QLSX | Sổ khách\nHồ sơ điện tử (ERPNext, phần mềm ATTP) | Sửa, xóa hồ sơ; mất dữ liệu | 1 | 2 | 2 | Tài khoản riêng từng người; phân quyền; audit trail; sao lưu hàng ngày | Trưởng Ban ISO | Nhật ký hệ thống\nThông tin, truyền thông | Tin giả, bôi nhọ sản phẩm | 1 | 2 | 2 | Người phát ngôn duy nhất: Giám đốc; ứng phó theo QT.03 | Giám đốc | QT.03",
+    "tinh": "k_x_a",
+    "bat_buoc": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Trưởng Ban ISO",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   },
+   {
+    "vai_tro": "Giám đốc",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ghi_chu": "Xem xét hằng năm hoặc khi có cảnh báo; cập nhật sau mỗi sự cố (QT.14 mục 5.2). Điểm = K × A do app tính. Lập lần sau: chép bảng của lần trước rồi sửa."
+ },
+ {
+  "ma": "BM.02.01",
+  "ten": "Kế hoạch thu hồi sản phẩm",
+  "quy_trinh": "QT.02",
+  "lan_ban_hanh": "01 – sửa đổi 01 (21/9/2026)",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "dia_danh",
+      "nhan": "Địa danh",
+      "kieu": "Data"
+     },
+     {
+      "key": "kinh_gui",
+      "nhan": "Kính gửi",
+      "kieu": "Data"
+     },
+     {
+      "key": "ten_san_pham",
+      "nhan": "Tên sản phẩm thu hồi",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ma_so_san_pham",
+      "nhan": "Mã số sản phẩm",
+      "kieu": "Data"
+     },
+     {
+      "key": "quy_cach",
+      "nhan": "Quy cách",
+      "kieu": "Data"
+     },
+     {
+      "key": "ngay_san_xuat",
+      "nhan": "Ngày sản xuất",
+      "kieu": "Date"
+     },
+     {
+      "key": "han_su_dung",
+      "nhan": "Hạn sử dụng (= số lô)",
+      "kieu": "Date",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ngay_xuat_kho",
+      "nhan": "Ngày xuất kho",
+      "kieu": "Date"
+     },
+     {
+      "key": "so_luong_da_xuat",
+      "nhan": "Số lượng đã xuất",
+      "kieu": "Float"
+     },
+     {
+      "key": "muc_do",
+      "nhan": "Mức độ thu hồi (theo QT.02)",
+      "kieu": "Select",
+      "lua_chon": "Mức độ A\nMức độ B\nMức độ C",
+      "bat_buoc": 1
+     }
+    ]
+   },
+   {
+    "key": "lo",
+    "tieu_de": "Lô đang có cờ thu hồi — đã bán theo khách, đã thu về (app)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "lo_thu_hoi"
+   },
+   {
+    "key": "ke_hoach",
+    "tieu_de": "Kế hoạch thu hồi",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "noi_dung",
+      "nhan": "NỘI DUNG CÔNG VIỆC",
+      "kieu": "Data",
+      "bat_buoc": 1,
+      "hoi": 1
+     },
+     {
+      "key": "trach_nhiem",
+      "nhan": "TRÁCH NHIỆM",
+      "kieu": "Data",
+      "bat_buoc": 1,
+      "hoi": 1
+     },
+     {
+      "key": "thoi_gian",
+      "nhan": "THỜI GIAN",
+      "kieu": "Date",
+      "han": 1
+     },
+     {
+      "key": "ket_qua",
+      "nhan": "KẾT QUẢ",
+      "kieu": "Text"
+     }
+    ],
+    "dong_mau": "Ra thông báo thu hồi và lệnh cấm xuất kho sản phẩm tồn kho | GĐ\nXác định nơi sản phẩm được phân phối | Kế hoạch – Tổng hợp\nGửi thông báo thu hồi đến những người có trách nhiệm/có liên quan và đến những nơi sản phẩm được phân phối (thông tin nội bộ) | Trưởng Ban ISO\nGửi thông báo thu hồi đến các cơ quan bên ngoài, nếu cần (thông tin bên ngoài) | Trưởng Ban ISO (Giám đốc ký văn bản)\nTiếp nhận, bảo quản hàng thu hồi | Quản lý sản xuất, kho\nCân đối giữa lượng xuất và lượng thu hồi | Kế hoạch – Tổng hợp, kho\nQuyết định xử lý hàng thu hồi: hủy hoặc chuyển mục đích không dùng làm thực phẩm (không rework – QT.15) | GĐ + Trưởng Ban ISO\nTìm nguyên nhân xảy ra sự cố và biện pháp ngăn ngừa sự cố lặp lại | GĐ + Trưởng Ban ISO\nTham gia hủy/xử lý | Ban ISO\nHoàn tất hồ sơ và báo cáo | Trưởng Ban ISO\nGửi báo cáo đến các cơ quan quản lý về thực phẩm | Trưởng Ban ISO",
+    "bat_buoc": 1,
+    "them_dong": 1
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Giám đốc",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly",
+    "ky_tay": 1
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ky_hieu_so": "KHTHSP",
+  "ghi_chu": "Khi có quyết định thu hồi; bộ phận sản xuất cung cấp dữ liệu sản phẩm trong 02 giờ (QT.02). Ngày sản xuất = HSD − 09 tháng (bánh) / 12 tháng (bột, chè). Giám đốc KÝ TAY (văn bản gửi ra ngoài, C23): in, ký, tải bản scan — chưa có bản scan thì không khóa. Thời hạn từng việc thành việc định kỳ một lần khi khóa. Hàng thu hồi không rework (QT.15)."
+ },
+ {
+  "ma": "BM.02.02",
+  "ten": "Báo cáo thu hồi sản phẩm",
+  "quy_trinh": "QT.02",
+  "lan_ban_hanh": "01 – sửa đổi 01 (21/9/2026)",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "dia_danh",
+      "nhan": "Địa danh",
+      "kieu": "Data"
+     },
+     {
+      "key": "kinh_gui",
+      "nhan": "Kính gửi",
+      "kieu": "Data"
+     },
+     {
+      "key": "so_ke_hoach",
+      "nhan": "Căn cứ Kế hoạch thu hồi sản phẩm số",
+      "kieu": "Data"
+     },
+     {
+      "key": "ngay_ke_hoach",
+      "nhan": "Ngày (kế hoạch)",
+      "kieu": "Date"
+     }
+    ]
+   },
+   {
+    "key": "lo",
+    "tieu_de": "Lô đang có cờ thu hồi — đã bán theo khách, đã thu về (app)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "lo_thu_hoi"
+   },
+   {
+    "key": "ket_qua",
+    "tieu_de": "Kết quả thực hiện kế hoạch thu hồi",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "san_pham_so_lo",
+      "nhan": "Sản phẩm, số lô (= HSD) thu hồi",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "muc_do",
+      "nhan": "Mức độ thu hồi áp dụng (A/B/C theo QT.02)",
+      "kieu": "Select",
+      "lua_chon": "A\nB\nC",
+      "bat_buoc": 1
+     },
+     {
+      "key": "thoi_gian_ra_thong_bao",
+      "nhan": "Thời gian ra thông báo",
+      "kieu": "Data"
+     },
+     {
+      "key": "thoi_gian_hoan_thanh_thong_bao",
+      "nhan": "Thời gian hoàn thành thông báo",
+      "kieu": "Data"
+     },
+     {
+      "key": "khu_vuc_da_gui",
+      "nhan": "Các khu vực (thị trường) đã gửi thông báo",
+      "kieu": "Text"
+     },
+     {
+      "key": "thoi_gian_gui_co_quan",
+      "nhan": "Gửi thông báo tới các cơ quan bên ngoài: Thời gian",
+      "kieu": "Data"
+     },
+     {
+      "key": "cac_co_quan",
+      "nhan": "Gửi thông báo tới các cơ quan bên ngoài: Các cơ quan",
+      "kieu": "Text"
+     },
+     {
+      "key": "so_luong_da_xuat",
+      "nhan": "Số lượng đã xuất (BM.02.01)",
+      "kieu": "Float"
+     },
+     {
+      "key": "so_luong_thu_hoi",
+      "nhan": "Số lượng sản phẩm thu hồi được",
+      "kieu": "Float",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ty_le",
+      "nhan": "Tỷ lệ thu hồi (%)",
+      "kieu": "Float"
+     },
+     {
+      "key": "nguyen_nhan",
+      "nhan": "Nguyên nhân sự cố",
+      "kieu": "Text"
+     },
+     {
+      "key": "ket_luan",
+      "nhan": "Kết luận",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "hinh_thuc_xu_ly",
+      "nhan": "Hình thức xử lý hàng thu hồi",
+      "kieu": "Text"
+     },
+     {
+      "key": "bien_phap_tranh_lap_lai",
+      "nhan": "Các biện pháp để tránh lặp lại",
+      "kieu": "Text"
+     }
+    ],
+    "tinh": "ty_le_thu_hoi"
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Ban ISO (Trưởng Ban ISO)",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   },
+   {
+    "vai_tro": "Giám đốc",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly",
+    "ky_tay": 1
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "goc_mau": "BM.02.01",
+  "ghi_chu": "Sau khi hoàn tất thu hồi theo BM.02.01 (lập từ kế hoạch: số, ngày kế hoạch, số lượng đã xuất chép sang). Thêm ô nguyên nhân, tỷ lệ thu hồi (QT.02 yêu cầu nêu nguyên nhân, cân đối số lượng). Giám đốc ký tay gửi ra ngoài (C23). Kết quả là đầu vào BM.01.10 mục e."
+ },
+ {
+  "ma": "BM.02.03",
+  "ten": "Kịch bản diễn tập",
+  "quy_trinh": "QT.02",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Năm",
+  "nhan_ngay": "Ngày diễn tập",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "hop",
+      "nhan": "Hộp",
+      "kieu": "Data"
+     },
+     {
+      "key": "vi",
+      "nhan": "Vị",
+      "kieu": "Data"
+     },
+     {
+      "key": "hsd",
+      "nhan": "Số lô = HSD in trên bao bì",
+      "kieu": "Date"
+     },
+     {
+      "key": "ngay_san_xuat",
+      "nhan": "Ngày sản xuất (HSD − 9 tháng bánh / 12 tháng bột, chè)",
+      "kieu": "Date"
+     },
+     {
+      "key": "nguoi_bam_gio",
+      "nhan": "Người bấm giờ, ghi biên bản",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "kich_ban",
+    "tieu_de": "BM.02.03 — KỊCH BẢN DIỄN TẬP",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "muc",
+      "nhan": "Mục",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "noi_dung",
+      "nhan": "Nội dung",
+      "kieu": "Text"
+     }
+    ],
+    "dong_mau": "Tình huống giả định | Khách hàng phản ánh gói Bánh đậu xanh Rồng Vàng Hoàng Gia (hộp ……, vị ……) có HSD in trên bao bì: ……/……/20…… bị mốc. Công ty phải xác định lô, nguyên nhân có thể, phạm vi ảnh hưởng và sẵn sàng thu hồi.\nLô bị ảnh hưởng | Số lô = HSD in trên bao bì: ……/……/20……  →  Ngày sản xuất = HSD − 09 tháng (bánh đậu xanh) hoặc HSD − 12 tháng (bột đậu, chè đậu đen cốt dừa) = ……/……/20……\nMục tiêu | Truy ngược đến nguyên liệu, hồ sơ sản xuất của lô; truy xuôi đến từng khách hàng đã nhận; cân bằng khối lượng; mô phỏng thông báo thu hồi\nTiêu chí đạt | Truy ngược xong ≤ 2 giờ; truy xuôi xong ≤ 2 giờ; cân bằng khối lượng ≥ 98%; danh sách khách hàng và số lượng có đủ liên hệ; toàn bộ hồ sơ tìm được, có chữ ký, ghi tại chỗ\nNgười tham gia | Trưởng Ban ISO (điều hành); QLSX; QC chế biến; QC đóng gói; thủ kho; kế toán bán hàng\nNguồn dữ liệu | BM.08.01, BM.08.02, BM.15.01 ngày sản xuất; BM.07.03 và chứng từ NCC của các lô nguyên liệu, bao bì đang dùng; BCSX, PLK; phiếu nhập kho thành phẩm; hóa đơn bán hàng có xuất kho (Sales Invoice) trên ERPNext (lọc theo mặt hàng và HSD); Stock Balance",
+    "bat_buoc": 1
+   },
+   {
+    "key": "dien_tap",
+    "tieu_de": "Diễn tập truy xuất trên app (BM.02.04)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "dien_tap_truy_xuat"
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Trưởng Ban ISO (lập kịch bản, điều hành)",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   },
+   {
+    "vai_tro": "Giám đốc (xem xét)",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ghi_chu": "Ít nhất 1 lần/năm (Lịch biểu mẫu: tháng 9/2027 — lần gần nhất 24/9/2026). Giấy không có ô ký riêng cho kịch bản: app cho Trưởng Ban ISO ký, Giám đốc xem xét (Lịch biểu mẫu). Bảng truy xuất BM.02.04 là màn Truy xuất của app (kéo vào biên bản)."
+ },
+ {
+  "ma": "BM.02.05",
+  "ten": "Biên bản đánh giá diễn tập",
+  "quy_trinh": "QT.02",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày diễn tập",
+  "phan": [
+   {
+    "key": "dien_tap",
+    "tieu_de": "Số liệu diễn tập trên app (BM.02.04)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "dien_tap_truy_xuat"
+   },
+   {
+    "key": "tieu_chi",
+    "tieu_de": "BM.02.05 — BIÊN BẢN ĐÁNH GIÁ DIỄN TẬP",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "tieu_chi",
+      "nhan": "Tiêu chí",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "ket_qua",
+      "nhan": "Kết quả (phút, %, đủ / thiếu)",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "dat",
+      "nhan": "Đạt / Không",
+      "kieu": "Select",
+      "lua_chon": "Đạt\nKhông",
+      "bat_buoc": 1
+     },
+     {
+      "key": "nhan_xet",
+      "nhan": "Nhận xét",
+      "kieu": "Text"
+     }
+    ],
+    "dong_mau": "Truy ngược ≤ 2 giờ\nTruy xuôi ≤ 2 giờ\nCân bằng khối lượng ≥ 98%\nTìm đủ hồ sơ sản xuất và nguyên liệu của lô (BM.08.01, BM.07.03, BM.08.04, chứng từ)\nHồ sơ ghi tại chỗ, có chữ ký, không điền bù\nDanh sách khách hàng đủ liên hệ\nThông báo thu hồi soạn xong, đúng mẫu\nMẫu lưu lô còn, đúng quy định",
+    "bat_buoc": 1
+   },
+   {
+    "key": "diem_yeu",
+    "tieu_de": "Điểm yếu phát hiện và hành động khắc phục (số BM.01.07 nếu lập CAR)",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "diem_yeu",
+      "nhan": "Điểm yếu và hành động khắc phục",
+      "kieu": "Text"
+     },
+     {
+      "key": "so_bm0107",
+      "nhan": "Số BM.01.07",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "ket_luan",
+    "tieu_de": "Kết luận",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "ket_luan",
+      "nhan": "Kết luận",
+      "kieu": "Select",
+      "lua_chon": "Hệ thống truy xuất đáp ứng\nCần cải tiến",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ngay_dien_tap_lai",
+      "nhan": "Diễn tập lại ngày",
+      "kieu": "Date",
+      "han": 1
+     },
+     {
+      "key": "lan_ke_tiep",
+      "nhan": "Lần diễn tập kế tiếp",
+      "kieu": "Date",
+      "han": 1
+     }
+    ]
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Trưởng Ban ISO",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   },
+   {
+    "vai_tro": "Quản lý sản xuất",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "Production Manager"
+   },
+   {
+    "vai_tro": "Thủ kho / Kế toán bán hàng",
+    "thu_tu": 3,
+    "bat_buoc": 1,
+    "role": "SX Thu Kho"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "goc_mau": "BM.02.03",
+  "ghi_chu": "Sau mỗi lần diễn tập (lập từ kịch bản BM.02.03). Thời gian, cân bằng khối lượng kéo từ màn Truy xuất (BM.02.04). Tiêu chí 'Không' → Lập BM.01.07. Ngày diễn tập lại / lần kế tiếp thành việc định kỳ một lần khi ký đủ. Ô ký 'Thủ kho / Kế toán bán hàng' giao vai Thủ kho (SX Thu Kho) — đổi vai trên Desk nếu cần."
+ },
+ {
+  "ma": "BM.03.04",
+  "ten": "Biên bản diễn tập PCCC và tình huống khẩn cấp",
+  "quy_trinh": "QT.03",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Năm",
+  "nhan_ngay": "Ngày diễn tập",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "nam_ke_hoach",
+      "nhan": "Theo Kế hoạch diễn tập KH.03.01 năm",
+      "kieu": "Int"
+     },
+     {
+      "key": "gio_bat_dau",
+      "nhan": "Bắt đầu",
+      "kieu": "Data"
+     },
+     {
+      "key": "gio_ket_thuc",
+      "nhan": "Kết thúc",
+      "kieu": "Data"
+     },
+     {
+      "key": "dia_diem",
+      "nhan": "Địa điểm",
+      "kieu": "Data"
+     },
+     {
+      "key": "dt1",
+      "nhan": "Nội dung: DT-1 Chữa cháy, thoát nạn",
+      "kieu": "Check"
+     },
+     {
+      "key": "dt2",
+      "nhan": "Nội dung: DT-2 Mất điện kéo dài",
+      "kieu": "Check"
+     },
+     {
+      "key": "dt3",
+      "nhan": "Nội dung: DT-3 Nguồn nước nhiễm bẩn",
+      "kieu": "Check"
+     },
+     {
+      "key": "noi_dung_khac",
+      "nhan": "Nội dung: Khác",
+      "kieu": "Data"
+     },
+     {
+      "key": "hinh_thuc",
+      "nhan": "Hình thức",
+      "kieu": "Select",
+      "lua_chon": "Thực hành\nMô phỏng tại hiện trường"
+     },
+     {
+      "key": "bao_truoc",
+      "nhan": "Báo trước giờ bắt đầu",
+      "kieu": "Select",
+      "lua_chon": "Có\nKhông"
+     },
+     {
+      "key": "chi_huy",
+      "nhan": "Chỉ huy",
+      "kieu": "Data"
+     },
+     {
+      "key": "dieu_hanh",
+      "nhan": "Điều hành",
+      "kieu": "Data"
+     },
+     {
+      "key": "nguoi_quan_sat",
+      "nhan": "Người quan sát, bấm giờ",
+      "kieu": "Data"
+     },
+     {
+      "key": "co_don_vi_ngoai",
+      "nhan": "Có đơn vị PCCC bên ngoài tham gia (ký tay, scan đính kèm)",
+      "kieu": "Check"
+     },
+     {
+      "key": "don_vi_ngoai",
+      "nhan": "Đơn vị bên ngoài",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "nguoi_tham_gia",
+    "tieu_de": "1. Người tham gia",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "ho_ten",
+      "nhan": "Họ và tên",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "bo_phan",
+      "nhan": "Bộ phận",
+      "kieu": "Data"
+     },
+     {
+      "key": "vai_tro",
+      "nhan": "Vai trò trong diễn tập",
+      "kieu": "Data"
+     }
+    ],
+    "bat_buoc": 1
+   },
+   {
+    "key": "dien_bien",
+    "tieu_de": "2. Diễn biến",
+    "kieu": "Bảng",
+    "cot": [
+     {
+      "key": "thoi_diem",
+      "nhan": "Thời điểm (giờ:phút)",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "su_viec",
+      "nhan": "Sự việc / hành động",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "nguoi_thuc_hien",
+      "nhan": "Người thực hiện",
+      "kieu": "Data"
+     },
+     {
+      "key": "nhan_xet",
+      "nhan": "Nhận xét",
+      "kieu": "Text"
+     }
+    ]
+   },
+   {
+    "key": "tieu_chi",
+    "tieu_de": "3. Đánh giá theo tiêu chí (nội dung đã diễn tập)",
+    "kieu": "Danh sách kiểm",
+    "cot": [
+     {
+      "key": "ma",
+      "nhan": "Mã",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "tieu_chi",
+      "nhan": "Tiêu chí",
+      "kieu": "Data",
+      "hoi": 1
+     },
+     {
+      "key": "ket_qua_thuc_te",
+      "nhan": "Kết quả thực tế",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "dat",
+      "nhan": "Đạt / Không",
+      "kieu": "Select",
+      "lua_chon": "Đạt\nKhông",
+      "bat_buoc": 1
+     }
+    ],
+    "dong_mau": "DT-1 | Phát hiện, báo động ngay; cắt điện khu vực đúng người\nDT-1 | Toàn bộ người ra điểm tập kết, điểm danh đủ — thời gian thoát nạn …… phút (mục tiêu ≤ …… phút)\nDT-1 | Sử dụng bình chữa cháy đúng kỹ thuật; nêu đúng nội dung gọi 114\nDT-2 | Ghi giờ mất điện; tách, dán nhãn \"Chờ đánh giá\" mẻ rang dở, bột, túi đang hàn\nDT-2 | Quyết định rang lại/loại đúng tiêu chí oPRP-1, oPRP-7; kiểm lại mối hàn, nhãn (mối hàn: PRP; nhãn: oPRP-8)\nDT-2 | Cơ điện kiểm thiết bị, QC kiểm bổ sung trước khi chạy lại; BM.08.02 ghi \"DIỄN TẬP\"\nDT-3 | Dừng dùng nước ngay; báo QLSX, Trưởng Ban ISO\nDT-3 | Xác định, cách ly lô/bán thành phẩm bị ảnh hưởng (số lô = HSD) — thời gian …… phút (≤ 2 giờ)\nDT-3 | Nêu đúng cách lấy mẫu, gửi kiểm nghiệm nước; xả sạch đường ống, vòi; BM.08.02 ghi \"DIỄN TẬP\"",
+    "tinh": "loc_dien_tap"
+   },
+   {
+    "key": "chua_dat",
+    "tieu_de": "4. Điểm chưa đạt và hành động khắc phục",
+    "kieu": "Việc giao",
+    "cot": [
+     {
+      "key": "diem_chua_dat",
+      "nhan": "Điểm chưa đạt",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "viec",
+      "nhan": "Hành động khắc phục",
+      "kieu": "Text",
+      "bat_buoc": 1
+     },
+     {
+      "key": "phu_trach",
+      "nhan": "Người thực hiện",
+      "kieu": "User",
+      "bat_buoc": 1
+     },
+     {
+      "key": "han",
+      "nhan": "Thời hạn",
+      "kieu": "Date",
+      "bat_buoc": 1,
+      "han": 1
+     },
+     {
+      "key": "so_bm0107",
+      "nhan": "Số BM.01.07",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "ket_luan",
+    "tieu_de": "5. Kết luận",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "ket_luan",
+      "nhan": "Kết luận",
+      "kieu": "Select",
+      "lua_chon": "Đạt\nĐạt có điều kiện (khắc phục theo mục 4)\nKhông đạt",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ngay_dien_tap_lai",
+      "nhan": "Không đạt — diễn tập lại ngày",
+      "kieu": "Date",
+      "han": 1
+     },
+     {
+      "key": "de_xuat_sua_doi",
+      "nhan": "Đề xuất sửa đổi phương án (PL.03.xx, QT.03)",
+      "kieu": "Text"
+     }
+    ]
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Người ghi biên bản",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   },
+   {
+    "vai_tro": "Trưởng Ban ISO",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   },
+   {
+    "vai_tro": "Đội trưởng Đội PCCC cơ sở",
+    "thu_tu": 3,
+    "bat_buoc": 1,
+    "role": "SX Hanh Chinh"
+   },
+   {
+    "vai_tro": "Giám đốc (xác nhận)",
+    "thu_tu": 4,
+    "bat_buoc": 1,
+    "role": "SX Quan Ly"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager",
+   "SX Hanh Chinh",
+   "SX Co Dien"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ky_tay_khi": "co_don_vi_ngoai",
+  "ghi_chu": "Ít nhất 1 lần/năm theo KH.03.01 (Lịch biểu mẫu: tháng 11/2026 — lần đầu DT-1, DT-2). Chỉ chấm tiêu chí của nội dung đã tích ở đầu phiếu. Có đơn vị PCCC bên ngoài → buộc ký tay, tải bản scan mới khóa (C23). Ô ký Đội trưởng Đội PCCC cơ sở giao vai Hành chính (SX Hanh Chinh) — KH.03.01 chưa ghi tên đội trưởng; đổi vai trên Desk nếu cần. Phiếu sự cố lập trong diễn tập tích 'diễn tập'."
+ },
+ {
+  "ma": "BM.PRP.02",
+  "ten": "Phiếu giám sát dịch vụ diệt côn trùng, chuột",
+  "quy_trinh": "PRP",
+  "lan_ban_hanh": "01",
+  "chu_ky_lap": "Khi phát sinh",
+  "nhan_ngay": "Ngày",
+  "phan": [
+   {
+    "key": "dau",
+    "tieu_de": "Ngày, giờ; đơn vị dịch vụ",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "gio",
+      "nhan": "Giờ",
+      "kieu": "Data"
+     },
+     {
+      "key": "don_vi",
+      "nhan": "Đơn vị",
+      "kieu": "Data",
+      "bat_buoc": 1
+     },
+     {
+      "key": "so_hop_dong",
+      "nhan": "Hợp đồng / phiếu công tác số",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "ly_do",
+    "tieu_de": "Lý do gọi dịch vụ",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "hai_tuan_lien",
+      "nhan": "Cùng khu còn dấu hiệu 2 tuần liền",
+      "kieu": "Check"
+     },
+     {
+      "key": "tram",
+      "nhan": "Trạm",
+      "kieu": "Data"
+     },
+     {
+      "key": "phat_hien_o",
+      "nhan": "Phát hiện ổ chuột / ổ côn trùng",
+      "kieu": "Check"
+     },
+     {
+      "key": "vi_tri_o",
+      "nhan": "Tại",
+      "kieu": "Data"
+     },
+     {
+      "key": "khac",
+      "nhan": "Khác",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "dong_vat",
+    "tieu_de": "Dấu hiệu theo trạm 30 ngày qua (BM.PRP.03, app)",
+    "kieu": "Kéo dữ liệu",
+    "cot": [],
+    "nguon": "dong_vat_ky"
+   },
+   {
+    "key": "bien_phap",
+    "tieu_de": "Biện pháp dịch vụ dùng",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "bay_co",
+      "nhan": "Trong xưởng, kho: Bẫy cơ",
+      "kieu": "Check"
+     },
+     {
+      "key": "bay_keo",
+      "nhan": "Bẫy keo",
+      "kieu": "Check"
+     },
+     {
+      "key": "den",
+      "nhan": "Đèn",
+      "kieu": "Check"
+     },
+     {
+      "key": "bit_loi_vao",
+      "nhan": "Bịt lối vào (không dùng hóa chất, bả độc)",
+      "kieu": "Check"
+     },
+     {
+      "key": "hoa_chat_ten",
+      "nhan": "Ngoài xưởng, kho (nếu dùng hóa chất): tên",
+      "kieu": "Data"
+     },
+     {
+      "key": "hoa_chat_so_dk",
+      "nhan": "Số đăng ký",
+      "kieu": "Data"
+     },
+     {
+      "key": "vi_tri_hop_ba",
+      "nhan": "Vị trí hộp bả có khóa",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "khu_vuc",
+    "tieu_de": "Khu vực",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "khu_ban",
+      "nhan": "Khu bẩn (luộc, rang, cát)",
+      "kieu": "Check"
+     },
+     {
+      "key": "khu_bot",
+      "nhan": "Khu bột",
+      "kieu": "Check"
+     },
+     {
+      "key": "khu_sach",
+      "nhan": "Khu sạch (trộn, gói)",
+      "kieu": "Check"
+     },
+     {
+      "key": "kho_nl",
+      "nhan": "Kho NL",
+      "kieu": "Check"
+     },
+     {
+      "key": "kho_tp",
+      "nhan": "Kho TP",
+      "kieu": "Check"
+     },
+     {
+      "key": "chu_vi",
+      "nhan": "Chu vi, khu rác",
+      "kieu": "Check"
+     },
+     {
+      "key": "khac",
+      "nhan": "Khác",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "giam_sat",
+    "tieu_de": "Giám sát của Công ty",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "qc_di_cung",
+      "nhan": "QC đi cùng suốt lúc xử lý",
+      "kieu": "Check",
+      "bat_buoc": 1
+     },
+     {
+      "key": "khong_hoa_chat",
+      "nhan": "Không mang hóa chất, bả độc vào xưởng, kho",
+      "kieu": "Check",
+      "bat_buoc": 1
+     },
+     {
+      "key": "che_day_sp",
+      "nhan": "Sản phẩm, bao bì hở đã che đậy/di chuyển",
+      "kieu": "Check",
+      "bat_buoc": 1
+     },
+     {
+      "key": "thu_lai",
+      "nhan": "Thu lại dụng cụ, bả thừa",
+      "kieu": "Check",
+      "bat_buoc": 1
+     },
+     {
+      "key": "ve_sinh_be_mat",
+      "nhan": "Vệ sinh bề mặt tiếp xúc trước khi sản xuất",
+      "kieu": "Check",
+      "bat_buoc": 1
+     },
+     {
+      "key": "gio_ve_sinh",
+      "nhan": "Giờ vệ sinh",
+      "kieu": "Data"
+     }
+    ]
+   },
+   {
+    "key": "ket_qua",
+    "tieu_de": "Kết quả, theo dõi sau xử lý",
+    "kieu": "Văn bản",
+    "cot": [
+     {
+      "key": "so_luong",
+      "nhan": "Số chuột, côn trùng phát hiện",
+      "kieu": "Int"
+     },
+     {
+      "key": "vi_tri",
+      "nhan": "Vị trí",
+      "kieu": "Data"
+     },
+     {
+      "key": "ngay_kiem_lai",
+      "nhan": "Kiểm lại sau 1 tuần (BM.PRP.03 ngày)",
+      "kieu": "Date",
+      "han": 1
+     },
+     {
+      "key": "ket_qua_kiem_lai",
+      "nhan": "Kết quả kiểm lại",
+      "kieu": "Select",
+      "lua_chon": "Hết dấu hiệu\nCòn"
+     }
+    ]
+   }
+  ],
+  "ky": [
+   {
+    "vai_tro": "Nhân viên dịch vụ",
+    "thu_tu": 1,
+    "bat_buoc": 1,
+    "ky_tay": 1
+   },
+   {
+    "vai_tro": "QC giám sát",
+    "thu_tu": 2,
+    "bat_buoc": 1,
+    "nguoi_lap": 1
+   },
+   {
+    "vai_tro": "Trưởng Ban ISO",
+    "thu_tu": 3,
+    "bat_buoc": 1,
+    "role": "ISO Manager"
+   }
+  ],
+  "vai_lap": [
+   "ISO Manager",
+   "SX QC"
+  ],
+  "vai_xem": [],
+  "nguon_car": "Khác",
+  "ghi_chu": "Chỉ lập khi gọi dịch vụ (cùng khu còn dấu hiệu 2 tuần liền dù đã tăng bẫy, vệ sinh, bịt lối vào; hoặc phát hiện ổ) — không phun, diệt định kỳ (bản 21/9/2026). Nhân viên dịch vụ (nhà thầu) KÝ TAY: in, ký, tải bản scan; QC giám sát, Trưởng Ban ISO ký trên app. Ngày kiểm lại thành việc định kỳ một lần khi khóa."
+ }
+]

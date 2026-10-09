@@ -1,0 +1,83 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Bien Ban Viec",
+ "istable": 1,
+ "field_order": [
+  "noi_dung",
+  "phu_trach",
+  "nguoi",
+  "han",
+  "viec_dinh_ky",
+  "xong",
+  "ket_qua",
+  "phan",
+  "dong"
+ ],
+ "fields": [
+  {
+   "fieldname": "noi_dung",
+   "fieldtype": "Small Text",
+   "label": "Việc",
+   "in_list_view": 1,
+   "columns": 4
+  },
+  {
+   "fieldname": "phu_trach",
+   "fieldtype": "Link",
+   "label": "Người thực hiện",
+   "options": "User",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "nguoi",
+   "fieldtype": "Data",
+   "label": "Người / bộ phận (chữ)"
+  },
+  {
+   "fieldname": "han",
+   "fieldtype": "Date",
+   "label": "Hạn",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "viec_dinh_ky",
+   "fieldtype": "Link",
+   "label": "Việc định kỳ (nhắc)",
+   "options": "SX Viec Dinh Ky",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "xong",
+   "fieldtype": "Check",
+   "label": "Xong"
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Small Text",
+   "label": "Kết quả"
+  },
+  {
+   "fieldname": "phan",
+   "fieldtype": "Data",
+   "label": "Phần"
+  },
+  {
+   "fieldname": "dong",
+   "fieldtype": "Int",
+   "label": "Dòng"
+  }
+ ],
+ "permissions": [],
+ "editable_grid": 1
+}

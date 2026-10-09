@@ -278,6 +278,10 @@ def _in(bm, tu, den):
     if bm == "BM.07.01":                             # W44: mỗi phiếu đánh giá NCC đã duyệt trong kỳ một tệp
         from sx.api import qc_danhgiancc
         return [(t, _trang(f"BM.07.01 — {t[:-5]}", h)) for t, h in qc_danhgiancc.in_ho_so(tu, den)]
+    # W45 (D174): biên bản (SX Mau Bien Ban) — mỗi biên bản ký đủ trong kỳ một tệp.
+    if frappe.db.exists("SX Mau Bien Ban", bm):
+        from sx.api import qc_bienban
+        return [(t, _trang(f"{bm} — {t[:-5]}", h)) for t, h in qc_bienban.in_ho_so(bm, tu, den)]
     # W43 (D172): mọi sổ ghi theo dòng (SX So) — mỗi tháng có dòng một bản / danh mục hiện hành.
     if frappe.db.exists("SX So", bm):
         from sx.api import qc_so

@@ -170,7 +170,7 @@ hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 Thêm hai tab cho mọi vai: **📚 Tài liệu** (W42 — thấy tài liệu phân phối cho mình) và **📒 Sổ** (W43 — chỉ hiện khi
 được giao ít nhất một sổ; quyền ghi / xác nhận / xem theo từng sổ). Vai mới C24 `SX Co Dien`, `SX Hanh Chinh`,
 `SX Bao Ve` chỉ có hai tab này — xem mục D171, D172. Mua hàng (`Purchase User`) có tab Sổ để lập phiếu đánh giá nhà
-cung cấp BM.07.01 (D173).
+cung cấp BM.07.01 (D173). Biên bản (D174): ai có ô ký thấy "Chờ tôi ký" ở đầu màn Tài liệu và tab Biên bản ở đó.
 
 **QC chế biến ≠ QC vào hộp** — hai người, hai việc, hai role. Ai làm cả hai thì gán cả hai.
 
@@ -319,6 +319,52 @@ bao bì đã trừ, nợ BOM / nợ vào hộp của phiếu → *Đã huỷ*, s
 bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ chứng từ xuất trước. Duyệt lại
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
+
+## Khung Biên bản — họp Ban ISO, xem xét lãnh đạo, đánh giá nội bộ, thẩm tra, HACCP, thu hồi, diễn tập (D174 — W45)
+
+**Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).** Có DocType mới → phải `bench --site site1.local migrate`.
+
+- **18 phiếu giấy là dữ liệu, không phải 18 màn**: `SX Mau Bien Ban` (phần + ô ký + vai lập / xem), seed
+  `sx/qc/seed/bien_ban.json` (soạn từ `seed_bieu_mau_giay.json`), patch `d174_bien_ban` tạo mẫu còn thiếu (mẫu Ban ISO
+  đã sửa trên Desk không đè). Kiểu phần: **Văn bản** (ô), **Bảng** (dòng in sẵn chỉ là gợi ý — sửa, thêm, xóa),
+  **Danh sách kiểm** (câu in sẵn không sửa / bỏ được, kết luận ≤ 3 lựa chọn là nút), **Kéo dữ liệu** (bản chụp lúc lập),
+  **Việc giao**. Hàm kéo / hàm tính là khóa cố định trong `sx/qc/bien_ban.py` (`NGUON`, `TINH`) — không chạy biểu thức.
+- **Biên bản** `SX Bien Ban` (`BB-.YYYY.-.####`, số riêng theo mẫu: `01/BB-ISO`, `01/KHTHSP`, `01/2026`…): Nháp → Chờ ký
+  → Đã ký đủ; người đang tới lượt ký **trả lại** (bắt ghi ý kiến) → sửa, gửi lại (chữ ký vòng trước, bản scan bỏ). Lúc
+  lập, các phần của mẫu được chép vào biên bản — sửa mẫu không đổi biên bản cũ. Desk chỉ đọc; ký đủ là khóa (cả API).
+- **Ký** (C23): theo thứ tự ô; ô "người lập" (Thư ký, Người lập, Chuyên gia), ô có vai (Trưởng Ban ISO = ISO Manager,
+  Giám đốc = SX Quan Ly, QLSX, QC, Thủ kho, Hành chính), ô trưởng đoàn = người trưởng đoàn trong kế hoạch ĐGNB; **một
+  người không ký hai ô**. **Ký tay** (in, ký, tải scan — chưa có scan thì không khóa): BM.02.01, 02.02 (Giám đốc gửi ra
+  ngoài), BM.PRP.02 (nhà thầu), BM.03.04 khi tích "có đơn vị PCCC bên ngoài".
+- **Kéo dữ liệu** (bản chụp, "Kéo lại" chỉ khi Nháp / Trả lại): sự cố, khiếu nại trong kỳ (từ sau biên bản cùng mẫu
+  lần trước), BM.01.07 quá hạn / chờ kiểm tra, nhắc mức cao, việc giao chưa xong của biên bản trước (họp Ban ISO kèm
+  hành động BM.01.10), BM.01.12 tháng trước (họp đầu tháng — tích ô), kết quả BM.01.09, thay đổi tài liệu, rủi ro cấp
+  độ 1, kiểm nghiệm trong năm, công đoạn theo dây chuyền, oPRP hiện hành, diễn tập truy xuất, lô thu hồi (đã bán theo
+  khách, đã thu về), dấu hiệu động vật theo trạm.
+- **Việc giao**: ký đủ thì mỗi dòng (và mỗi ô hạn: thẩm tra lại, diễn tập lại, kiểm lại sau dịch vụ…) thành một
+  `SX Viec Dinh Ky` "Một lần" (hạn, người, hồ sơ = số biên bản) → hộp nhắc sẵn có. Việc định kỳ năm có ô hồ sơ đúng mã
+  biên bản đóng việc (BM.01.10, BM.01.09, BM.04.02, BM.03.04, BM.02.05, BM.14.01) tự ghi "đã làm" khi biên bản ký đủ.
+- **Dòng Không phù hợp** (KPH / Không / Không đạt / cần điều chỉnh) → nút **LẬP BM.01.07** (nguồn theo mẫu: Đánh giá
+  nội bộ, Thẩm tra — nguồn mới của BM.01.07 —, Xem xét của lãnh đạo, Khác), gắn ngược vào phiếu liên quan.
+- **Đánh giá nội bộ**: BM.01.05 (chuyên gia chọn theo tài khoản + bộ phận công tác; chặn chuyên gia đánh giá bộ phận
+  mình, Trưởng Ban ISO làm trưởng đoàn; Giám đốc ký = chỉ định trưởng đoàn) → BM.01.06 (chỉ chuyên gia của kế hoạch đã
+  duyệt; "Chép câu hỏi từ đợt trước"; giấy không có ô ký — app cho chuyên gia ký xác nhận) → BM.01.08 tự gom Lưu ý →
+  BM.01.09 tự đếm KPH / Lưu ý theo bộ phận. BM.04.02 lập từ BM.04.01 đã duyệt; BM.02.02 từ BM.02.01; BM.02.05 từ 02.03.
+- **BM.HACCP.01**: chọn dây chuyền → kéo danh mục công đoạn. Patch thêm 4 công đoạn bột theo sơ đồ 11 công đoạn
+  KH.HACCP.02 mục 5.5 (bột đậu xanh / đậu đen bán thành phẩm, lưu kho, xuất hàng) và đổi thứ tự 7 công đoạn cũ theo sơ
+  đồ (chỉ khi thứ tự vẫn của D130). Mốc bánh = danh mục lúc migrate (coi như đã xác nhận giấy 22/9/2026, lưu ở
+  `SX QC Setting.so_do_moc`); danh mục một dây chuyền đổi sau lần xác nhận → hộp nhắc. Bột chưa xác nhận → nhắc ngay.
+- **Màn**: QC → Xem xét → **Biên bản** (`#/qc/bienban`); mọi vai: Tài liệu → "Chờ tôi ký" + tab Biên bản
+  (`#/tailieu/bienban`). In chung `sx/qc/bien_ban.html` (đầu trang W42, "Ký trên phần mềm: Họ tên, giờ" / ô trống ký
+  tay). Gói hồ sơ: mỗi biên bản ký đủ trong kỳ một tệp; BM.01.04 có 18 dòng mới.
+- **Nhắc** (mảng mới "Biên bản" ở Tổng quan ATTP): biên bản chờ bạn ký, chờ ký quá 3 ngày, họp Ban ISO quá 7 ngày chưa
+  có biên bản, sơ đồ dây chuyền phải xác nhận lại. Biên bản năm nhắc qua 6 việc định kỳ patch tạo theo Lịch biểu mẫu
+  21/9/2026: xem xét lãnh đạo 31/12/2026, ĐGNB 30/11/2026, thẩm tra 15/12/2026, diễn tập PCCC 30/11/2026, diễn tập truy
+  xuất 24/9/2027, QT.14 24/9/2027.
+- **Dữ liệu cần nhập / kiểm sau migrate**: ô ký "Đội trưởng Đội PCCC cơ sở" (BM.03.04) giao vai Hành chính, "Thủ kho /
+  Kế toán bán hàng" (BM.02.05) giao vai Thủ kho — đổi vai trên Desk (SX Mau Bien Ban) nếu người khác ký; vai lập họp Ban
+  ISO = thành viên Ban ISO theo QĐ 21/9/2026 + Hành chính. Tên công đoạn bánh trên app khác tên trong KH.HACCP.01 mục
+  5.5 (vd 11 "Ép khuôn" ↔ "Cán lại") — biên bản BM.HACCP.01 đầu tiên ghi "khác sơ đồ" rồi sửa qua BM.01.01.
 
 ## Danh mục có hạn, T4 theo vật, BM.01.04, đánh giá nhà cung cấp BM.07.01 (D173 — W44)
 

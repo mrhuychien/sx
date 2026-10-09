@@ -1,0 +1,50 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Bien Ban Tep",
+ "istable": 1,
+ "field_order": [
+  "mo_ta",
+  "tep",
+  "luc",
+  "nguoi"
+ ],
+ "fields": [
+  {
+   "fieldname": "mo_ta",
+   "fieldtype": "Data",
+   "label": "Mô tả",
+   "in_list_view": 1,
+   "columns": 4
+  },
+  {
+   "fieldname": "tep",
+   "fieldtype": "Attach",
+   "label": "Tệp",
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "luc",
+   "fieldtype": "Datetime",
+   "label": "Lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nguoi",
+   "fieldtype": "Link",
+   "label": "Người tải",
+   "options": "User",
+   "read_only": 1
+  }
+ ],
+ "permissions": [],
+ "editable_grid": 1
+}

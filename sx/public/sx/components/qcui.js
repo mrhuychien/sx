@@ -486,7 +486,8 @@ export function tabLo(dang) {
 export function tabXemXet(dang) {
   const box = el('div', 'sx-qc-seg sx-sc-tab');
   // W42 (D171): "Tài liệu" sang thư viện tài liệu (#/tailieu, tab Ban hành / Đề nghị cho Ban ISO).
-  [['attp', 'Tổng quan'], ['review', 'Xem xét tháng'], ['baocao', 'Báo cáo'],
+  // W45 (D174): "Biên bản" — họp Ban ISO, xem xét lãnh đạo, đánh giá nội bộ, thẩm tra… (#/qc/bienban).
+  [['attp', 'Tổng quan'], ['review', 'Xem xét tháng'], ['baocao', 'Báo cáo'], ['bienban', 'Biên bản'],
     ['hoso', 'Hồ sơ đánh giá'], ['tailieu', 'Tài liệu']].forEach(([ma, ten]) => {
     const a = el('a', `sx-qc-tab${ma === dang ? ' sx-qc-seg-on' : ''}`, esc(ten));
     a.href = ma === 'tailieu' ? '#/tailieu/tatca' : `#/qc/${ma}`;

@@ -1,0 +1,101 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Mau Bien Ban Phan",
+ "istable": 1,
+ "field_order": [
+  "key",
+  "tieu_de",
+  "kieu",
+  "cot",
+  "dong_mau",
+  "column_break_1",
+  "nguon",
+  "tinh",
+  "chi_khi",
+  "bat_buoc",
+  "them_dong"
+ ],
+ "fields": [
+  {
+   "fieldname": "key",
+   "fieldtype": "Data",
+   "label": "Khóa (chữ thường không dấu, _)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "tieu_de",
+   "fieldtype": "Data",
+   "label": "Tiêu đề phần (như giấy)",
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "kieu",
+   "fieldtype": "Select",
+   "label": "Kiểu",
+   "options": "Văn bản\nBảng\nDanh sách kiểm\nKéo dữ liệu\nViệc giao",
+   "default": "Văn bản",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "cot",
+   "fieldtype": "JSON",
+   "label": "Cột / ô (JSON, cùng dạng SX So Cot)",
+   "description": "[{\"key\",\"nhan\",\"kieu\",\"lua_chon\",\"bat_buoc\",\"han\",\"hoi\"}] — Văn bản: các ô; Bảng, Danh sách kiểm, Việc giao: các cột. \"hoi\": 1 = cột câu hỏi in sẵn (Danh sách kiểm, không sửa)."
+  },
+  {
+   "fieldname": "dong_mau",
+   "fieldtype": "Small Text",
+   "label": "Dòng in sẵn",
+   "description": "Mỗi dòng một câu / một hàng; các ô nối bằng ' | ' theo thứ tự cột. Dòng bắt đầu '# ' là tiêu đề nhóm (không chấm)."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguon",
+   "fieldtype": "Data",
+   "label": "Kéo dữ liệu (khóa hàm trong code)",
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Khóa cố định ở sx/qc/bien_ban.py (NGUON) — không gõ biểu thức."
+  },
+  {
+   "fieldname": "tinh",
+   "fieldtype": "Data",
+   "label": "Hàm tính (khóa trong code)",
+   "description": "k_x_a, loc_dien_tap, ty_le_thu_hoi."
+  },
+  {
+   "fieldname": "chi_khi",
+   "fieldtype": "Data",
+   "label": "Chỉ khi tích ô đầu phiếu",
+   "description": "Khóa một ô Check của phần đầu phiếu (vd hop_dau_thang)."
+  },
+  {
+   "fieldname": "bat_buoc",
+   "fieldtype": "Check",
+   "label": "Bắt buộc (phải có ít nhất một dòng)"
+  },
+  {
+   "fieldname": "them_dong",
+   "fieldtype": "Check",
+   "label": "Cho thêm dòng (Danh sách kiểm)"
+  }
+ ],
+ "permissions": [],
+ "editable_grid": 1
+}

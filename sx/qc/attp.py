@@ -40,6 +40,7 @@ LINH_VUC = (
     ("rework", "Rework", "BM.15.01", "#/qc/rework"),
     ("viec_dinh_ky", "Việc định kỳ", "", "#/qc/lichviec"),
     ("tai_lieu", "Tài liệu", "BM.01.02", "#/tailieu"),
+    ("bien_ban", "Biên bản, đánh giá nội bộ", "BM.01.05–01.11, BM.04.x", "#/qc/bienban"),
     ("so_khac", "Sổ khác", "BM.PRP.06, BM.03.01–03.03", "#/so"),
 )
 THU_TU_DEN = {DO: 0, VANG: 1, XANH: 2}
@@ -236,6 +237,16 @@ def _so_khac(s):
                      ", ".join(s.get("ma") or [])]}
 
 
+def _bien_ban(s):
+    """W45: biên bản chờ ký, ký đủ / đang soạn trong kỳ; họp Ban ISO gần nhất."""
+    if not s.get("so_mau"):
+        return {"so": "–", "nhan_so": "chưa khai mẫu biên bản", "dong": []}
+    return {"so": str(s.get("cho_ky", 0)), "nhan_so": "biên bản chờ ký",
+            "dong": [f"{s.get('ky_du', 0)} biên bản ký đủ trong kỳ · {s.get('nhap', 0)} đang soạn",
+                     f"Họp Ban ISO gần nhất {_ngay(s['hop_cuoi'])}" if s.get("hop_cuoi")
+                     else "Chưa có biên bản họp Ban ISO trên app"]}
+
+
 def _viec_dinh_ky(s):
     t = s.get("tiep")
     return {"so": str(s.get("qua_han", 0)), "nhan_so": "việc quá hạn",
@@ -246,7 +257,8 @@ THE = {"vong_kiem": _vong_kiem, "su_co": _su_co, "khac_phuc": _khac_phuc, "xuat_
        "thiet_bi": _thiet_bi,
        "kiem_nghiem": _kiem_nghiem, "cat": _cat, "vai_u": _vai_u, "dong_vat": _dong_vat, "kiem_xe": _kiem_xe,
        "luu_mau": _luu_mau,
-       "rework": _rework, "viec_dinh_ky": _viec_dinh_ky, "tai_lieu": _tai_lieu, "so_khac": _so_khac}
+       "rework": _rework, "viec_dinh_ky": _viec_dinh_ky, "tai_lieu": _tai_lieu, "bien_ban": _bien_ban,
+       "so_khac": _so_khac}
 THE_ROUTE = {"khieu_nai": _khieu_nai, "truy_xuat": _truy_xuat, "ncc": _ncc}
 
 

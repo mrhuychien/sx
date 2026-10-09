@@ -633,7 +633,16 @@ def _du_lieu_nhac(d):
             "thiet_bi": _thiet_bi.nhac(d), "kiem_nghiem": _kiem_nghiem.nhac(d),
             "viec_dinh_ky": _viec_dinh_ky.nhac(d), "khac_phuc": _khac_phuc.nhac(d), "vai_u": _vai_u.nhac(d),
             "kiem_xe": _kiem_xe.nhac(d), "tai_lieu": _tai_lieu.nhac(d), "so": _so.nhac(d),
-            "danh_gia_ncc": _danh_gia_ncc_nhac(d)}
+            "danh_gia_ncc": _danh_gia_ncc_nhac(d), "bien_ban": _bien_ban_nhac(d)}
+
+
+def _bien_ban_nhac(d):
+    """Biên bản W45 (D174): chờ người mở màn ký, chờ ký lâu, họp Ban ISO tuần, sơ đồ HACCP. Nạp muộn → {}."""
+    try:
+        from sx.qc import bien_ban
+        return bien_ban.nhac(d, frappe.session.user, frappe.get_roles())
+    except Exception:
+        return {}
 
 
 def _danh_gia_ncc_nhac(d):

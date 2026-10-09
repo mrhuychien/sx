@@ -238,8 +238,8 @@ kiem("tài liệu (W42): chưa nạp thư viện → '–', không nhắc gì �
 kiem("sổ khác (W43): chưa có sổ nào → '–', không nhắc gì → Xanh; sang #/so",
      th["so_khac"]["so"] == "–" and th["so_khac"]["den"] == A.XANH and th["so_khac"]["route"] == "#/so",
      th["so_khac"])
-kiem("đếm đèn 5 đỏ · 4 vàng · 9 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
-     r["dem"] == {"do": 5, "vang": 4, "xanh": 9}
+kiem("đếm đèn 5 đỏ · 4 vàng · 10 xanh (W45 thêm thẻ Biên bản); thẻ đỏ lên đầu theo thứ tự danh mục",
+     r["dem"] == {"do": 5, "vang": 4, "xanh": 10}
      and [x["ma"] for x in r["linh_vuc"][:5]] == ["su_co", "xuat_xuong", "truy_xuat", "kiem_nghiem", "viec_dinh_ky"],
      r["dem"])
 F.vai("SX QC")
@@ -320,7 +320,7 @@ print("\n-- màn hình --")
 qj = open("sx/public/sx/views/qc.js", encoding="utf-8").read()
 kiem("route #/qc/attp; tab Xem xét (người duyệt) mở vào Tổng quan, sáng cả ở Xem xét tháng",
      "attp: '/assets/sx/sx/views/qc_attp.js'" in qj and "tabs.push(['attp', 'Xem xét'])" in qj
-     and "const XEM_XET = ['attp', 'review', 'baocao', 'hoso']" in qj)
+     and "const XEM_XET = ['attp', 'review', 'baocao', 'hoso', 'bienban']" in qj)
 js = open("sx/public/sx/views/qc_attp.js", encoding="utf-8").read()
 rv = open("sx/public/sx/views/qc_review.js", encoding="utf-8").read()
 kiem("màn tổng quan gọi qc_attp.tong_quan, hai nút Tổng quan / Xem xét tháng ở cả hai màn",

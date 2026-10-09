@@ -167,6 +167,24 @@ def _xem_duoc(tl, roles):
                        TL.noi_nhan_cua(roles, _ds_noi_nhan()), _la_iso(roles))
 
 
+def _cho_ky(roles):
+    """W45: biên bản đang tới lượt người gọi ký — "Chờ tôi ký" ở đầu màn. Nạp muộn (chưa migrate → [])."""
+    try:
+        from sx.qc import bien_ban
+        return bien_ban.cho_toi(frappe.session.user, roles)
+    except Exception:
+        return []
+
+
+def _co_bien_ban(roles):
+    """W45: hiện tab Biên bản — người lập / xem được ít nhất một mẫu, hoặc có biên bản mình lập / phải ký."""
+    try:
+        from sx.qc import bien_ban
+        return bien_ban.co_bien_ban(frappe.session.user, roles, _sieu(roles))
+    except Exception:
+        return False
+
+
 # ── Thư viện ─────────────────────────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
@@ -184,7 +202,8 @@ def ds(tat_ca=0):
     for x in frappe.get_all(TL.PT, fields=TRUONG, order_by="thu_tu asc, ma asc"):
         if tat or TL.duoc_xem({"trang_thai": x.trang_thai, "phan_phoi": pp.get(x.name, [])}, cua_toi, False):
             ra.append(_dong(x, pp, bm, iso))
-    return {"ds": ra, "can_doc": _can_doc(), "cua_toi": sorted(cua_toi), "la_iso": iso,
+    return {"ds": ra, "can_doc": _can_doc(), "cho_ky": _cho_ky(roles), "bien_ban": _co_bien_ban(roles),
+            "cua_toi": sorted(cua_toi), "la_iso": iso,
             "duoc_de_nghi": bool(_sieu(roles) or roles & LAP_DE_NGHI), "duoc_nap": iso or SM in roles,
             "noi_nhan": [{"ten": x["ten"], "hinh_thuc": x.get("hinh_thuc") or "", "vai": x["vai"],
                           "moi_nguoi": cint(x.get("moi_nguoi"))} for x in nn] if iso else [],

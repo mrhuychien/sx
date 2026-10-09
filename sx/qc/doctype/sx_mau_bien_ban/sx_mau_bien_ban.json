@@ -1,0 +1,203 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Mau Bien Ban",
+ "autoname": "field:ma",
+ "naming_rule": "By fieldname",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "title_field": "ten",
+ "sort_field": "ma",
+ "sort_order": "ASC",
+ "search_fields": "ten",
+ "field_order": [
+  "ma",
+  "ten",
+  "quy_trinh",
+  "lan_ban_hanh",
+  "chu_ky_lap",
+  "ngung",
+  "column_break_1",
+  "nhan_ngay",
+  "ky_hieu_so",
+  "goc_mau",
+  "ky_tay_khi",
+  "nguon_car",
+  "section_phan",
+  "phan",
+  "section_ky",
+  "ky",
+  "section_quyen",
+  "vai_lap",
+  "column_break_2",
+  "vai_xem",
+  "section_ghi_chu",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã biểu mẫu",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên biên bản",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "quy_trinh",
+   "fieldtype": "Data",
+   "label": "Quy trình"
+  },
+  {
+   "fieldname": "lan_ban_hanh",
+   "fieldtype": "Data",
+   "label": "Lần ban hành (in khi thư viện chưa có mã)"
+  },
+  {
+   "fieldname": "chu_ky_lap",
+   "fieldtype": "Select",
+   "label": "Chu kỳ lập",
+   "options": "Tuần\nTháng\nNăm\nKhi phát sinh",
+   "default": "Khi phát sinh",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngung",
+   "fieldtype": "Check",
+   "label": "Ngừng dùng"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nhan_ngay",
+   "fieldtype": "Data",
+   "label": "Nhãn ngày biên bản",
+   "default": "Ngày"
+  },
+  {
+   "fieldname": "ky_hieu_so",
+   "fieldtype": "Data",
+   "label": "Ký hiệu số (vd BB-ISO)",
+   "description": "Số = thứ tự trong năm / ký hiệu (vd 05/BB-ISO)."
+  },
+  {
+   "fieldname": "goc_mau",
+   "fieldtype": "Link",
+   "label": "Lập từ biên bản gốc của mẫu",
+   "options": "SX Mau Bien Ban",
+   "description": "vd BM.04.02 lập từ BM.04.01; BM.01.06, 01.08, 01.09 lập từ kế hoạch BM.01.05."
+  },
+  {
+   "fieldname": "ky_tay_khi",
+   "fieldtype": "Data",
+   "label": "Buộc ký tay khi tích ô đầu phiếu",
+   "description": "Khóa một ô Check của phần đầu phiếu (vd co_don_vi_ngoai của BM.03.04)."
+  },
+  {
+   "fieldname": "nguon_car",
+   "fieldtype": "Select",
+   "label": "Nguồn BM.01.07 lập từ dòng không phù hợp",
+   "options": "Sự cố\nKhiếu nại\nĐánh giá nội bộ\nĐánh giá bên ngoài\nXem xét của lãnh đạo\nThẩm tra\nKhác",
+   "default": "Khác"
+  },
+  {
+   "fieldname": "section_phan",
+   "fieldtype": "Section Break",
+   "label": "Các phần (theo thứ tự in)"
+  },
+  {
+   "fieldname": "phan",
+   "fieldtype": "Table",
+   "label": "Phần",
+   "options": "SX Mau Bien Ban Phan",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_ky",
+   "fieldtype": "Section Break",
+   "label": "Ô ký (theo thứ tự ký)"
+  },
+  {
+   "fieldname": "ky",
+   "fieldtype": "Table",
+   "label": "Ký",
+   "options": "SX Mau Bien Ban Ky",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_quyen",
+   "fieldtype": "Section Break",
+   "label": "Vai"
+  },
+  {
+   "fieldname": "vai_lap",
+   "fieldtype": "Table MultiSelect",
+   "label": "Vai lập",
+   "options": "SX So Vai",
+   "description": "Ngoài Trưởng Ban ISO, siêu quyền (luôn lập được)."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vai_xem",
+   "fieldtype": "Table MultiSelect",
+   "label": "Vai chỉ xem",
+   "options": "SX So Vai"
+  },
+  {
+   "fieldname": "section_ghi_chu",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "track_changes": 1
+}

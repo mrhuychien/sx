@@ -55,7 +55,7 @@ def _nhom(ma, ds):
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
          cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None, vai_u=None,
-         kiem_xe=None, tai_lieu=None, so=None, danh_gia_ncc=None):
+         kiem_xe=None, tai_lieu=None, so=None, danh_gia_ncc=None, bien_ban=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -75,7 +75,9 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `so` = sx/qc/so.nhac(): sổ ghi theo dòng — hạn, không ghi, chờ xác nhận, chưa xem tháng; BM.06.05 kiểm lại sau sửa
            chữa, máy quá hạn bảo dưỡng. Mỗi sổ vào mảng của nó (`mang`) — W43 (D172).
     `danh_gia_ncc` = sx/qc/danh_gia_ncc.nhac(): đánh giá lại NCC quá / sắp đến hạn, NCC duyệt trước C26 chưa có phiếu,
-                     phiếu Chấp nhận chưa vào BM.07.02, Loại bỏ mà vẫn duyệt, phiếu chờ QC / Giám đốc — W44 (D173)."""
+                     phiếu Chấp nhận chưa vào BM.07.02, Loại bỏ mà vẫn duyệt, phiếu chờ QC / Giám đốc — W44 (D173).
+    `bien_ban` = sx/qc/bien_ban.nhac(): biên bản chờ người mở màn ký, chờ ký quá 3 ngày, họp Ban ISO tuần chưa có
+                 biên bản, sơ đồ dây chuyền phải xác nhận lại (BM.HACCP.01) — W45 (D174)."""
     nay = _d(hom_nay)
     ra = []
     # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (PRP từ W38), nên thuộc mảng vòng kiểm.
@@ -93,6 +95,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhom("tai_lieu", _nhac_tai_lieu(tai_lieu or {}))
     ra += _nhac_so(so or {})
     ra += _nhom("ncc", _nhac_danh_gia_ncc(nay, danh_gia_ncc or {}))
+    ra += _nhom("bien_ban", _nhac_bien_ban(bien_ban or {}))
     ra += _nhom("thiet_bi", _nhac_thiet_bi(nay, thiet_bi or {}))
     ra += _nhom("kiem_nghiem", _nhac_kiem_nghiem(kiem_nghiem or {}))
     ra += _nhom("viec_dinh_ky", _nhac_viec_dinh_ky(viec_dinh_ky or {}))
@@ -501,6 +504,35 @@ def _nhac_danh_gia_ncc(nay, dg):
             ra.append(_m(THUONG, f"{len(x)} phiếu đánh giá nhà cung cấp {ten}",
                          f"{', '.join((p.get('ten_ncc') or p.get('supplier') or '') for p in x[:3])}"
                          f"{'…' if len(x) > 3 else ''}.", r))
+    return ra
+
+
+def _nhac_bien_ban(bb):
+    """Khung Biên bản (W45, D174) — mảng Biên bản. Biên bản năm (BM.01.10, đánh giá nội bộ, thẩm tra, diễn tập) nhắc
+    qua việc định kỳ; việc giao quá hạn cũng vậy (mỗi việc giao là một việc định kỳ "Một lần")."""
+    ra = []
+    x = bb.get("cho_toi") or []
+    if x:
+        ra.append(_m(THUONG, f"{len(x)} biên bản chờ bạn ký",
+                     "; ".join(f"{y.get('mau')} số {y.get('so')} — ô {y.get('vai_tro')}" for y in x[:3])
+                     + ("…" if len(x) > 3 else "") + ".",
+                     f"#/qc/bienban/{x[0]['name']}" if len(x) == 1 else "#/qc/bienban"))
+    x = bb.get("cho_lau") or []
+    if x:
+        ra.append(_m(THUONG, f"{len(x)} biên bản chờ ký quá 3 ngày",
+                     "; ".join(f"{y.get('mau')} số {y.get('so')} chờ {y.get('cho') or 'ký'} ({y['so_ngay']} ngày)"
+                               for y in x[:3]) + ("…" if len(x) > 3 else "") + ".", "#/qc/bienban"))
+    for y in bb.get("den_han") or []:
+        lan = (f"Biên bản gần nhất {_d(y['lan_cuoi']).strftime('%d/%m/%Y')}." if y.get("lan_cuoi")
+               else "Chưa có biên bản nào trên app.")
+        ra.append(_m(THUONG, f"{y['ma']} {y.get('ten') or ''}: {y['so_ngay']} ngày chưa lập".replace("  ", " "),
+                     f"{lan} Lập {'hằng tuần' if y.get('chu_ky') == 'Tuần' else 'hằng tháng'} — họp xong ghi biên "
+                     f"bản trên app, việc giao có hạn tự lên hộp nhắc.", "#/qc/bienban"))
+    for y in bb.get("so_do") or []:
+        ra.append(_m(THUONG, f"Xác nhận lại sơ đồ dây chuyền {str(y.get('day_chuyen') or '').lower()} tại hiện trường "
+                             f"(BM.HACCP.01)",
+                     f"{str(y.get('ly_do') or '').capitalize()} — KH.HACCP mục 5.5: Ban ISO ra xưởng đối chiếu từng công "
+                     f"đoạn, lập biên bản BM.HACCP.01 trên app.", "#/qc/bienban"))
     return ra
 
 

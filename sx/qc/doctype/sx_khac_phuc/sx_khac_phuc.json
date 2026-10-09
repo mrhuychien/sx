@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "links": [],
- "modified": "2026-10-09 20:00:00.000000",
+ "modified": "2026-10-10 02:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "owner": "Administrator",
@@ -59,7 +59,7 @@
    "fieldname": "nguon",
    "fieldtype": "Select",
    "label": "Nguồn",
-   "options": "Sự cố\nKhiếu nại\nĐánh giá nội bộ\nĐánh giá bên ngoài\nXem xét của lãnh đạo\nKhác",
+   "options": "Sự cố\nKhiếu nại\nĐánh giá nội bộ\nĐánh giá bên ngoài\nXem xét của lãnh đạo\nThẩm tra\nKhác",
    "default": "Sự cố",
    "reqd": 1,
    "in_list_view": 1

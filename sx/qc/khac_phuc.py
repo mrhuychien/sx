@@ -12,6 +12,7 @@ chốt 09/10/2026: không bắt buộc sự cố nào (kể cả mức Cao) ph�
 
 Mỗi sự cố tối đa một phiếu khắc phục chưa đóng; số phiếu ghi ngược vào ô "Số CAR" của sự cố.
 Hộp nhắc: phiếu Mở quá hạn (mức cao), phiếu chờ kiểm tra hiệu lực quá CHO_KIEM ngày.
+W45 (D174): nguồn "Thẩm tra" — phiếu lập từ dòng Không đạt của báo cáo thẩm tra BM.04.02 (khung Biên bản).
 """
 
 import frappe
@@ -21,7 +22,7 @@ PT = "SX Khac Phuc"
 MO, CHO_KIEM, DONG = "Mở", "Chờ kiểm tra", "Đóng"
 TRANG_THAI = (MO, CHO_KIEM, DONG)
 SU_CO = "Sự cố"
-NGUON = (SU_CO, "Khiếu nại", "Đánh giá nội bộ", "Đánh giá bên ngoài", "Xem xét của lãnh đạo", "Khác")
+NGUON = (SU_CO, "Khiếu nại", "Đánh giá nội bộ", "Đánh giá bên ngoài", "Xem xét của lãnh đạo", "Thẩm tra", "Khác")
 CO_HIEU_LUC, CHUA_HIEU_LUC = "Có hiệu lực", "Chưa hiệu lực"
 CHO_KIEM_TOI_DA = 7     # ngày chờ Ban ISO kiểm tra hiệu lực thì lên hộp nhắc
 

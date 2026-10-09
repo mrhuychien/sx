@@ -34,3 +34,4 @@ sx.patches.d169_bo_thau_rua_be
 sx.patches.d171_thu_vien_tai_lieu
 sx.patches.d172_so
 sx.patches.d173_danh_muc_ncc
+sx.patches.d174_bien_ban

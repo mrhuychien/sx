@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "links": [],
- "modified": "2026-10-10 01:00:00.000000",
+ "modified": "2026-10-10 02:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "owner": "Administrator",
@@ -104,7 +104,7 @@
    "fieldname": "mang",
    "fieldtype": "Select",
    "label": "Mảng ở Tổng quan ATTP",
-   "options": "vong_kiem\nsu_co\nkhac_phuc\nkhieu_nai\nxuat_xuong\ntruy_xuat\nthiet_bi\nkiem_nghiem\ncat\nvai_u\ndong_vat\nncc\nkiem_xe\nluu_mau\nrework\nviec_dinh_ky\ntai_lieu\nso_khac",
+   "options": "vong_kiem\nsu_co\nkhac_phuc\nkhieu_nai\nxuat_xuong\ntruy_xuat\nthiet_bi\nkiem_nghiem\ncat\nvai_u\ndong_vat\nncc\nkiem_xe\nluu_mau\nrework\nviec_dinh_ky\ntai_lieu\nbien_ban\nso_khac",
    "default": "so_khac",
    "reqd": 1,
    "description": "Mã thẻ ở Tổng quan ATTP mà mục nhắc của sổ thuộc về; so_khac = thẻ Sổ khác."

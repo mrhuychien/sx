@@ -1,0 +1,72 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Mau Bien Ban Ky",
+ "istable": 1,
+ "field_order": [
+  "vai_tro",
+  "role",
+  "nguoi_lap",
+  "thu_tu",
+  "bat_buoc",
+  "ky_tay"
+ ],
+ "fields": [
+  {
+   "fieldname": "vai_tro",
+   "fieldtype": "Data",
+   "label": "Ô ký (như giấy)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "label": "Vai được ký",
+   "options": "Role",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "nguoi_lap",
+   "fieldtype": "Check",
+   "label": "Người lập ký",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Ô của người lập biên bản (Thư ký, Người lập, Chuyên gia…)."
+  },
+  {
+   "fieldname": "thu_tu",
+   "fieldtype": "Int",
+   "label": "Thứ tự ký",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "bat_buoc",
+   "fieldtype": "Check",
+   "label": "Bắt buộc",
+   "default": "1",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "ky_tay",
+   "fieldtype": "Check",
+   "label": "Ký tay (scan)",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Người ngoài / văn bản gửi ra ngoài: in, ký tay, tải bản scan — chưa có bản scan thì không khóa."
+  }
+ ],
+ "permissions": [],
+ "editable_grid": 1
+}

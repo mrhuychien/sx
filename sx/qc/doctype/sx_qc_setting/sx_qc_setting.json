@@ -56,6 +56,8 @@
   "section_ncc",
   "ncc_ngay_ap_dung_bm0701",
   "ncc_han_danh_gia_dau",
+  "section_so_do",
+  "so_do_moc",
   "section_quyen",
   "nguoi_dong_su_co",
   "nguoi_duyet_xuat_xuong",
@@ -380,6 +382,18 @@
    "description": "W44: NCC đã duyệt mà chưa có phiếu BM.07.01 trên app phải đánh giá lại trước ngày này (Lịch biểu mẫu 21/9/2026: đánh giá lại toàn bộ NCC tháng 12/2026). Nhắc trước 30 ngày."
   },
   {
+   "fieldname": "section_so_do",
+   "fieldtype": "Section Break",
+   "label": "Sơ đồ quá trình (BM.HACCP.01)"
+  },
+  {
+   "fieldname": "so_do_moc",
+   "fieldtype": "JSON",
+   "label": "Mốc xác nhận sơ đồ trước khi có biên bản trên app",
+   "read_only": 1,
+   "description": "W45: {dây chuyền: {ngay, van_tay}} — danh mục công đoạn lúc triển khai, coi như đã xác nhận bằng giấy (bánh 22/9/2026). Danh mục đổi sau mốc này (hoặc sau biên bản BM.HACCP.01 ký đủ gần nhất) → hộp nhắc xác nhận lại sơ đồ tại hiện trường."
+  },
+  {
    "fieldname": "section_quyen",
    "fieldtype": "Section Break",
    "label": "Người được giao duyệt"
@@ -411,7 +425,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-10 01:00:00.000000",
+ "modified": "2026-10-10 02:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

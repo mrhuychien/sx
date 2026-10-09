@@ -40,7 +40,7 @@ KIEU = ("Data", "Date", "Datetime", "Time", "Int", "Float", "Select", "MultiSele
 # Mã thẻ ở Tổng quan ATTP (= khóa của sx/qc/attp.LINH_VUC — test-so chốt khớp) + thẻ "Sổ khác".
 SO_KHAC = "so_khac"
 MANG = ("vong_kiem", "su_co", "khac_phuc", "khieu_nai", "xuat_xuong", "truy_xuat", "thiet_bi", "kiem_nghiem", "cat",
-        "vai_u", "dong_vat", "ncc", "kiem_xe", "luu_mau", "rework", "viec_dinh_ky", "tai_lieu", SO_KHAC)
+        "vai_u", "dong_vat", "ncc", "kiem_xe", "luu_mau", "rework", "viec_dinh_ky", "tai_lieu", "bien_ban", SO_KHAC)
 ISO = "ISO Manager"
 VAI_O = ("vai_ghi", "vai_xac_nhan", "vai_xem", "vai_xem_thang")
 KHOA_DANH_RIENG = {"ngay", "name"}       # ô của chính dòng sổ — cột không được trùng

@@ -1,12 +1,13 @@
 // #/tailieu — thư viện tài liệu (W42, D171). Mọi vai có tài khoản app vào được (C27).
 //
-//   Của tôi   "Cần đọc" trên cùng — mở PDF xong mới bật ĐÃ ĐỌC, HIỂU (thay chữ ký nhận tài liệu, C28); dưới là
+//   Của tôi   "Chờ tôi ký" (biên bản W45) rồi "Cần đọc" trên cùng — mở PDF xong mới bật ĐÃ ĐỌC, HIỂU (thay chữ ký nhận tài liệu, C28); dưới là
 //             tài liệu phân phối cho vai mình, theo nhóm, ô tìm mã / tên; biểu mẫu có màn app → nút sang màn ghi.
 //   Tất cả    (Trưởng Ban ISO) mọi trạng thái, cả bản cũ; sửa phân phối / biểu mẫu kèm; tài liệu bên ngoài, soát
 //             xét; in BM.01.02, BM.01.03.
 //   Đề nghị   BM.01.01: lập → ký gửi → Ban ISO xem xét → Giám đốc duyệt; trả lại; hủy; in.
 //   Ban hành  (Trưởng Ban ISO) đợt = QĐ + Phụ lục 1: kéo đề nghị đã duyệt, tải PDF đã ký, QĐ scan, BAN HÀNH; tiến
 //             độ đọc; in BM.01.13. Nạp bộ tài liệu 21/9/2026 (một lần) ở #/tailieu/nap.
+//   Biên bản (W45, D174) #/tailieu/bienban[/<tên>] — màn views/qc_bienban.js nạp khi mở (không import tĩnh màn khác).
 // Luật ở sx/qc/tai_lieu.py, API sx/api/qc_tailieu.py. Tệp riêng tư mở qua tai_tep (GET, kiểm quyền).
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
@@ -38,6 +39,7 @@ export function veTab(dang, q) {
   if (q && q.la_iso) tabs.push(['tatca', 'Tất cả', '#/tailieu/tatca']);
   if (q && (q.duoc_de_nghi || q.la_iso)) tabs.push(['denghi', 'Đề nghị', '#/tailieu/denghi']);
   if (q && q.la_iso) tabs.push(['banhanh', 'Ban hành', '#/tailieu/banhanh']);
+  if (q && q.bien_ban) tabs.push(['bienban', 'Biên bản', '#/tailieu/bienban']);
   const box = el('div', 'sx-qc-seg sx-tl-tab');
   tabs.forEach(([ma, ten, href]) => {
     const on = ma === dang || (ma === 'banhanh' && (dang === 'dot' || dang === 'nap'));
@@ -60,7 +62,7 @@ export async function render(api) {
     let dl = null;
     if (man === 'cuatoi' || man === 'tatca' || !st.quyen) {
       dl = await call(`${API}.ds`, { tat_ca: man === 'tatca' ? 1 : 0 });
-      st.quyen = { la_iso: dl.la_iso, duoc_de_nghi: dl.duoc_de_nghi, duoc_nap: dl.duoc_nap };
+      st.quyen = { la_iso: dl.la_iso, duoc_de_nghi: dl.duoc_de_nghi, duoc_nap: dl.duoc_nap, bien_ban: dl.bien_ban };
     }
     wrap.appendChild(veTab(man, st.quyen));
     wrap.appendChild(than);
@@ -71,6 +73,11 @@ export async function render(api) {
     else if (man === 'banhanh' && st.quyen.la_iso) await veBanHanh(ctx);
     else if (man === 'dot' && st.quyen.la_iso && tham_so) await veDot(ctx, tham_so);
     else if (man === 'nap' && st.quyen.duoc_nap) veNap(ctx);
+    else if (man === 'bienban') {
+      const mod = await import(`/assets/sx/sx/views/qc_bienban.js?v=${encodeURIComponent(
+        (api.ctx && api.ctx.assetVersion) || Date.now())}`);
+      await mod.ve(ctx, tham_so);
+    }
     else veDanhSach(ctx, dl || await call(`${API}.ds`, {}), false);
   } catch (e) {
     if (!daGan) wrap.appendChild(than);
@@ -271,8 +278,27 @@ function veDong(ctx, x, dl, tatCa) {
   return the;
 }
 
+/** "Chờ tôi ký" (W45): biên bản đang tới lượt mình ký — bấm sang #/tailieu/bienban/<tên>. */
+function veChoKy(ds) {
+  const box = el('div', 'sx-tl-cando');
+  box.appendChild(el('div', 'sx-qc-buoc', `<span class="sx-qc-buoc-ten">Chờ tôi ký</span>
+    <span class="sx-qc-buoc-dem">${ds.length} biên bản</span>`));
+  ds.forEach((x) => {
+    const a = el('a', 'sx-qc-sc sx-qc-sc-cho sx-tl-the');
+    a.href = `#/tailieu/bienban/${encodeURIComponent(x.name)}`;
+    a.appendChild(el('div', 'sx-qc-sc-ten', `${esc(x.mau)} số ${esc(x.so)} — ${esc(x.ten_mau)}`));
+    const meta = el('div', 'sx-qc-sc-meta');
+    meta.appendChild(chip(`Ô ${x.vai_tro}`, 'oprp'));
+    meta.appendChild(el('span', null, `ngày ${esc(ngayDu(x.ngay))}`));
+    a.appendChild(meta);
+    box.appendChild(a);
+  });
+  return box;
+}
+
 export function veDanhSach(ctx, dl, tatCa) {
   const c = ctx.container;
+  if (!tatCa && dl.cho_ky && dl.cho_ky.length) c.appendChild(veChoKy(dl.cho_ky));
   if (!tatCa && dl.can_doc && dl.can_doc.length) c.appendChild(veCanDoc(ctx, dl.can_doc));
   if (tatCa) {
     const tren = el('div', 'sx-qc-chips sx-tb-nut');

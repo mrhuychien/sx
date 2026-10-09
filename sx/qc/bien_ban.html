@@ -1,0 +1,85 @@
+{#- Bản in chung của khung Biên bản (W45, D174) — sx/api/qc_bienban.py (_in_dict). A4 dọc: đầu trang chung (W42), các
+    phần theo thứ tự của mẫu (Văn bản: các ô; Bảng / Danh sách kiểm / Việc giao: bảng; Kéo dữ liệu: bản chụp lúc lập,
+    ghi giờ kéo), bảng ký: "Ký trên phần mềm: Họ tên, giờ" (C23) hoặc ô trống để ký tay. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
+<style>
+  @page { size: A4 portrait; margin: 12mm 12mm; }
+  .bb { font: 11.5px/1.4 "Times New Roman", serif; color: #000; }
+  .bb h3 { font-size: 12.5px; margin: 10px 0 4px; }
+  .bb .dong { margin: 2px 0; }
+  .bb .o-nhan { color: #000; }
+  .bb table.bang { width: 100%; border-collapse: collapse; margin-top: 2px; }
+  .bb .bang td, .bb .bang th { border: 1px solid #000; padding: 3px 4px; vertical-align: top; }
+  .bb .bang th { background: #eee; }
+  .bb .bang td.c { text-align: center; width: 4%; }
+  .bb .bang tr { break-inside: avoid; }
+  .bb .bang tr.tieu-de td { font-weight: bold; background: #f4f4f4; }
+  .bb .bang tr.cao td.diem { background: #f4b6b6; }
+  .bb .bang tr.trung_binh td.diem { background: #f7e3a1; }
+  .bb .bang tr.thap td.diem { background: #c9e8c4; }
+  .bb .keo { font-size: 10px; color: #333; margin: 1px 0 3px; }
+  .bb .nho { font-size: 10px; }
+  .bb .chu { white-space: pre-wrap; }
+  .bb .ky { width: 100%; margin-top: 12px; border-collapse: collapse; }
+  .bb .ky td { border: 1px solid #000; text-align: center; vertical-align: top; height: 72px; padding: 4px; }
+  .bb .ky .ten { font-weight: bold; }
+  .bb .ky .so { font-size: 10px; margin-top: 6px; }
+  .bb .chua { font-weight: bold; }
+</style>
+<div class="bb">
+  {{ dau_trang(d.ma, d.ten, "Số: " ~ d.so, lan=d.lan) }}
+  {%- set nd = d.ngay.split("-") %}
+  <div class="dong">{{ d.nhan_ngay }}: <b>{{ nd[2] }}/{{ nd[1] }}/{{ nd[0] }}</b>{% if d.tieu_de %} &nbsp;·&nbsp; {{ d.tieu_de }}{% endif %}</div>
+  {%- if d.trang_thai != "Đã ký đủ" %}<div class="dong chua">CHƯA KÝ ĐỦ ({{ d.trang_thai }})</div>{% endif %}
+  {% for p in d.phan %}
+    {%- if p.tieu_de %}<h3>{{ p.tieu_de }}</h3>{% endif %}
+    {%- if p.kieu == "Văn bản" %}
+      {%- for o in p.o %}
+        {%- if o.check %}<div class="dong">{{ "☑" if o.co else "☐" }} {{ o.nhan }}</div>
+        {%- elif o.gt %}<div class="dong"><span class="o-nhan">{{ o.nhan }}:</span> <span class="chu">{{ o.gt }}</span></div>
+        {%- else %}<div class="dong"><span class="o-nhan">{{ o.nhan }}:</span> …………………………</div>{% endif %}
+      {%- endfor %}
+      {%- if p.chu %}<div class="dong chu">{{ p.chu }}</div>{% endif %}
+    {%- elif p.kieu == "Kéo dữ liệu" %}
+      {%- set k = p.keo or {} %}
+      <div class="keo">Số liệu app lúc lập ({{ k.luc or "" }}{% if k.tu %}; kỳ {{ k.tu[8:10] }}/{{ k.tu[5:7] }}/{{ k.tu[:4] }} – {{ k.den[8:10] }}/{{ k.den[5:7] }}/{{ k.den[:4] }}{% endif %}){% if k.ghi_chu %}: {{ k.ghi_chu }}{% endif %}</div>
+      {%- if k.dong %}
+      <table class="bang">
+        <tr><th>TT</th>{% for c in k.cot %}<th>{{ c.nhan }}</th>{% endfor %}</tr>
+        {%- for r in k.dong %}
+        <tr><td class="c">{{ loop.index }}</td>{% for c in k.cot %}<td>{{ r[c.key] }}</td>{% endfor %}</tr>
+        {%- endfor %}
+      </table>
+      {%- endif %}
+    {%- else %}
+      {%- if p.keo %}<div class="keo">Dòng lấy từ app lúc lập ({{ p.keo.luc or "" }}){% if p.keo.ghi_chu %}: {{ p.keo.ghi_chu }}{% endif %}</div>{% endif %}
+      <table class="bang">
+        <tr><th>TT</th>{% for c in p.cot %}<th>{{ c.nhan }}</th>{% endfor %}</tr>
+        {%- set n = namespace(i=0) %}
+        {%- for r in p.dong %}
+          {%- if r.tieu_de %}
+        <tr class="tieu-de"><td class="c"></td><td colspan="{{ p.cot | length }}">{{ r.o | select | join(" — ") }}</td></tr>
+          {%- else %}{% set n.i = n.i + 1 %}
+        <tr class="{{ r.muc }}"><td class="c">{{ n.i }}</td>{% for c in p.cot %}<td{% if c.key == "diem" %} class="diem"{% endif %}>{{ r.o[loop.index0] }}</td>{% endfor %}</tr>
+          {%- endif %}
+        {%- endfor %}
+        {%- if not p.dong %}<tr><td class="c">1</td>{% for c in p.cot %}<td>&nbsp;</td>{% endfor %}</tr>{% endif %}
+      </table>
+    {%- endif %}
+  {% endfor %}
+  {%- if d.lien_quan %}<div class="dong nho">Phiếu liên quan: {% for r in d.lien_quan %}{{ r.ten }}{% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+  {%- if d.tep_kem %}<div class="dong nho">Tệp kèm: {{ d.tep_kem | join("; ") }}</div>{% endif %}
+  {%- if d.y_kien_tra_lai %}<div class="dong nho">Ý kiến trả lại: <span class="chu">{{ d.y_kien_tra_lai }}</span></div>{% endif %}
+  <table class="ky">
+    <tr>
+      {%- for s in d.ky %}
+      <td style="width:{{ (100 / (d.ky | length + (1 if d.ky_tay_them else 0))) | round(1) }}%"><div class="ten">{{ s.vai_tro }}</div>
+        <div class="so">{% if s.chu %}{{ s.chu }}{% if s.chuc_danh %}<br>{{ s.chuc_danh }}{% endif %}{% if s.y_kien %}<br>Ý kiến: {{ s.y_kien }}{% endif %}{% elif s.tay %}(ký, ghi rõ họ tên){% endif %}</div></td>
+      {%- endfor %}
+      {%- if d.ky_tay_them %}
+      <td><div class="ten">Bên ngoài tham gia</div><div class="so">{{ "Ký tay — bản scan đính kèm" if d.co_ky_tay else "(ký, ghi rõ họ tên)" }}</div></td>
+      {%- endif %}
+    </tr>
+  </table>
+  <div class="nho">Lập trên phần mềm: {{ d.nguoi_lap }} · {{ d.name }}</div>
+</div>

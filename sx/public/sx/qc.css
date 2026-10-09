@@ -618,3 +618,27 @@ button.sx-qc-tag-chon {
 .sx-dg-ky span { color: var(--sx-text-3); font-size: var(--sx-f-xs); }
 .sx-dg-nut { padding: var(--sx-s3); flex-wrap: wrap; }
 .sx-dg-ds .sx-qc-sc { display: block; }
+
+/* ── Biên bản #/qc/bienban, #/tailieu/bienban (W45, D174) — tiền tố sx-bb- ─────────────── */
+.sx-bb-the, .sx-bb-lap { display: block; text-align: left; width: 100%; box-sizing: border-box; }
+.sx-bb-td { color: var(--sx-text-2); margin: 2px 0; }
+.sx-bb-loc { box-sizing: border-box; width: 100%; margin: var(--sx-s2) 0; }
+.sx-bb-phan { margin: var(--sx-s3) 0; }
+.sx-bb-dong { display: block; }
+.sx-bb-dong .sx-qc-oso .sx-textarea, .sx-bb-vb .sx-qc-oso .sx-textarea, .sx-bb-dau .sx-textarea {
+  box-sizing: border-box; width: 100%; }
+.sx-bb-hoi { font-weight: 600; margin-bottom: var(--sx-s2); white-space: pre-wrap; }
+.sx-bb-stt { color: var(--sx-text-3); font-weight: 600; }
+.sx-bb-tieude { font-weight: 700; margin: var(--sx-s3) 0 var(--sx-s1); }
+.sx-bb-kph { border-left: 4px solid var(--sx-danger); }
+.sx-bb-tralai { border-left: 4px solid var(--sx-danger); display: block; }
+.sx-bb-chu { white-space: pre-wrap; }
+.sx-bb-cuon { overflow-x: auto; max-width: 100%; }
+.sx-bb-bang { border-collapse: collapse; font-size: var(--sx-f-sm); min-width: 100%; }
+.sx-bb-bang th, .sx-bb-bang td { border: 1px solid var(--sx-line); padding: 4px 6px; vertical-align: top; text-align: left; }
+.sx-bb-bang th { background: var(--sx-surface-2); }
+.sx-bb-ky-cho { border-left: 4px solid var(--sx-warning); }
+.sx-bb-muc-cao span { color: var(--sx-danger); font-weight: 700; }
+.sx-bb-muc-tb span { color: var(--sx-warning); font-weight: 700; }
+.sx-bb-nut { padding: var(--sx-s3) 0; flex-wrap: wrap; }
+.sx-bb-ghichu { white-space: pre-wrap; }

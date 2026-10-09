@@ -515,4 +515,13 @@ node scripts/test-danhgiancc.mjs > /tmp/sx-danhgiancc-js.log 2>&1 \
   && tail -1 /tmp/sx-danhgiancc-js.log \
   || { cat /tmp/sx-danhgiancc-js.log; loi=1; }
 
+# D174 (W45): khung Biên bản. Ký sai thứ tự, một người ký hai ô, khóa khi chưa có bản ký tay, sửa sau khi ký đủ, bản
+# chụp số liệu đổi theo dữ liệu nguồn, chuyên gia tự đánh giá bộ phận mình — đều làm biên bản mất giá trị.
+python3 scripts/test-bienban.py > /tmp/sx-bienban.log 2>&1 \
+  && tail -1 /tmp/sx-bienban.log \
+  || { cat /tmp/sx-bienban.log; loi=1; }
+node scripts/test-bienban.mjs > /tmp/sx-bienban-js.log 2>&1 \
+  && tail -1 /tmp/sx-bienban-js.log \
+  || { cat /tmp/sx-bienban-js.log; loi=1; }
+
 exit $loi

@@ -72,6 +72,25 @@ BIEU_MAU = {
     "BM.05.02": ("Bảng xác định rủi ro và kế hoạch kiểm soát rủi ro", "so_khac"),
     "BM.07.01": ("Phiếu đánh giá nhà cung cấp", "ncc"),
     "BM.01.04": ("Danh mục hồ sơ", None),
+    # W45 (D174): khung Biên bản (SX Bien Ban) — mỗi biên bản ký đủ trong kỳ một tệp.
+    "BM.01.05": ("Chương trình và kế hoạch đánh giá nội bộ", "bien_ban"),
+    "BM.01.06": ("Check list đánh giá", "bien_ban"),
+    "BM.01.08": ("Bảng tổng hợp các điểm lưu ý", "bien_ban"),
+    "BM.01.09": ("Báo cáo đánh giá nội bộ", "bien_ban"),
+    "BM.01.10": ("Biên bản xem xét của lãnh đạo", "bien_ban"),
+    "BM.01.11": ("Biên bản họp Ban ISO", "bien_ban"),
+    "BM.04.01": ("Kế hoạch thẩm tra", "bien_ban"),
+    "BM.04.02": ("Báo cáo thẩm tra", "bien_ban"),
+    "BM.HACCP.01": ("Biên bản xác nhận sơ đồ quá trình sản xuất tại hiện trường", "bien_ban"),
+    "BM.HACCP.02": ("Hồ sơ thẩm định biện pháp kiểm soát (oPRP)", "bien_ban"),
+    "BM.14.01": ("Đánh giá tổn thương gian lận thực phẩm", "bien_ban"),
+    "BM.14.02": ("Kế hoạch phòng vệ thực phẩm", "bien_ban"),
+    "BM.02.01": ("Kế hoạch thu hồi sản phẩm", "truy_xuat"),
+    "BM.02.02": ("Báo cáo thu hồi sản phẩm", "truy_xuat"),
+    "BM.02.03": ("Kịch bản diễn tập truy xuất và thu hồi", "truy_xuat"),
+    "BM.02.05": ("Biên bản đánh giá diễn tập", "truy_xuat"),
+    "BM.03.04": ("Biên bản diễn tập PCCC và tình huống khẩn cấp", "bien_ban"),
+    "BM.PRP.02": ("Phiếu giám sát dịch vụ diệt côn trùng, chuột", "dong_vat"),
 }
 MUC_LUC = "BM.01.04"        # dòng này trong gói = tệp 00-MUC-LUC.html
 

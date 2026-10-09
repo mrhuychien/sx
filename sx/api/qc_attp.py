@@ -209,6 +209,19 @@ def _so_khac(tu, den, dl):
             "han": sum(len(x.get("han") or []) for x in ds)}
 
 
+def _bien_ban(tu, den, dl):
+    """W45: biên bản chờ ký, đang soạn, ký đủ trong kỳ; ngày họp Ban ISO gần nhất. Nạp muộn (chưa migrate → None)."""
+    if not dl.get("bien_ban"):
+        return None
+    from sx.qc import bien_ban as BB
+    ds = frappe.get_all(BB.PT_BB, fields=["mau", "ngay", "trang_thai", "ky_du_luc"])
+    return {"so_mau": frappe.db.count(BB.PT, {"ngung": 0}),
+            "cho_ky": sum(1 for x in ds if x.trang_thai == BB.CHO_KY),
+            "nhap": sum(1 for x in ds if x.trang_thai in BB.SUA_DUOC),
+            "ky_du": sum(1 for x in ds if x.ky_du_luc and tu <= getdate(x.ky_du_luc) <= den),
+            "hop_cuoi": max((str(x.ngay) for x in ds if x.mau == BB.HOP_ISO), default=None)}
+
+
 @frappe.whitelist()
 def tong_quan(ngay=None):
     """{linh_vuc: [thẻ], dem: {do, vang, xanh}, ngay, tu, den} — xem sx/qc/attp.py."""
@@ -234,6 +247,7 @@ def tong_quan(ngay=None):
         "rework": _thu(lambda: _rework(tu, den)),
         "viec_dinh_ky": _thu(lambda: _viec_dinh_ky(d, dl)),
         "tai_lieu": _thu(lambda: _tai_lieu(dl)),
+        "bien_ban": _thu(lambda: _bien_ban(tu, den, dl)),
         "so_khac": _thu(lambda: _so_khac(tu, den, dl)),
     }
     return dict(A.tong_hop(NH.tinh(d, **dl), so), ngay=str(d), tu=str(tu), den=str(den), so_ngay=SO_NGAY)

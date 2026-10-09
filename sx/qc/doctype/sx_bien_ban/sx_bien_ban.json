@@ -1,0 +1,205 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Bien Ban",
+ "autoname": "BB-.YYYY.-.####",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "title_field": "tieu_de",
+ "search_fields": "mau,so,tieu_de",
+ "field_order": [
+  "mau",
+  "ten_mau",
+  "so",
+  "ngay",
+  "tieu_de",
+  "trang_thai",
+  "column_break_1",
+  "nguoi_lap",
+  "gui_luc",
+  "ky_du_luc",
+  "goc",
+  "y_kien_tra_lai",
+  "section_nd",
+  "noi_dung",
+  "dinh_nghia",
+  "section_ky",
+  "ky",
+  "ban_ky_tay",
+  "section_lq",
+  "lien_quan",
+  "viec",
+  "tep_kem"
+ ],
+ "fields": [
+  {
+   "fieldname": "mau",
+   "fieldtype": "Link",
+   "label": "Mẫu",
+   "options": "SX Mau Bien Ban",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ten_mau",
+   "fieldtype": "Data",
+   "label": "Tên mẫu",
+   "read_only": 1
+  },
+  {
+   "fieldname": "so",
+   "fieldtype": "Data",
+   "label": "Số",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tieu_de",
+   "fieldtype": "Data",
+   "label": "Tiêu đề"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Nháp\nChờ ký\nĐã ký đủ\nTrả lại",
+   "default": "Nháp",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguoi_lap",
+   "fieldtype": "Link",
+   "label": "Người lập",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gui_luc",
+   "fieldtype": "Datetime",
+   "label": "Gửi ký lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ky_du_luc",
+   "fieldtype": "Datetime",
+   "label": "Ký đủ lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "goc",
+   "fieldtype": "Link",
+   "label": "Lập từ biên bản",
+   "options": "SX Bien Ban",
+   "read_only": 1
+  },
+  {
+   "fieldname": "y_kien_tra_lai",
+   "fieldtype": "Small Text",
+   "label": "Ý kiến trả lại",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_nd",
+   "fieldtype": "Section Break",
+   "label": "Nội dung"
+  },
+  {
+   "fieldname": "noi_dung",
+   "fieldtype": "JSON",
+   "label": "Nội dung (theo phần của mẫu)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dinh_nghia",
+   "fieldtype": "JSON",
+   "label": "Bản chụp các phần của mẫu lúc lập",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_ky",
+   "fieldtype": "Section Break",
+   "label": "Ký"
+  },
+  {
+   "fieldname": "ky",
+   "fieldtype": "Table",
+   "label": "Ký",
+   "options": "SX Bien Ban Ky"
+  },
+  {
+   "fieldname": "ban_ky_tay",
+   "fieldtype": "Attach",
+   "label": "Bản ký tay (scan)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_lq",
+   "fieldtype": "Section Break",
+   "label": "Liên quan"
+  },
+  {
+   "fieldname": "lien_quan",
+   "fieldtype": "Table",
+   "label": "Phiếu liên quan",
+   "options": "SX Bien Ban Lien Quan"
+  },
+  {
+   "fieldname": "viec",
+   "fieldtype": "Table",
+   "label": "Việc giao",
+   "options": "SX Bien Ban Viec"
+  },
+  {
+   "fieldname": "tep_kem",
+   "fieldtype": "Table",
+   "label": "Tệp kèm",
+   "options": "SX Bien Ban Tep"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

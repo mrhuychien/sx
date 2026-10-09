@@ -1,0 +1,114 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 02:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 02:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Bien Ban Ky",
+ "istable": 1,
+ "field_order": [
+  "vai_tro",
+  "role",
+  "nguoi_lap",
+  "thu_tu",
+  "bat_buoc",
+  "ky_tay",
+  "gan",
+  "user",
+  "ten",
+  "chuc_danh",
+  "ky_luc",
+  "y_kien"
+ ],
+ "fields": [
+  {
+   "fieldname": "vai_tro",
+   "fieldtype": "Data",
+   "label": "Ô ký",
+   "in_list_view": 1,
+   "columns": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "label": "Vai được ký",
+   "options": "Role",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nguoi_lap",
+   "fieldtype": "Check",
+   "label": "Người lập ký",
+   "read_only": 1
+  },
+  {
+   "fieldname": "thu_tu",
+   "fieldtype": "Int",
+   "label": "Thứ tự",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bat_buoc",
+   "fieldtype": "Check",
+   "label": "Bắt buộc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ky_tay",
+   "fieldtype": "Check",
+   "label": "Ký tay",
+   "read_only": 1
+  },
+  {
+   "fieldname": "gan",
+   "fieldtype": "Check",
+   "label": "Gán sẵn người ký",
+   "read_only": 1,
+   "description": "Ô trưởng đoàn của kế hoạch đánh giá nội bộ — chỉ người được gán ký; trả lại không bỏ gán."
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "Người ký",
+   "options": "User",
+   "in_list_view": 1,
+   "columns": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Họ tên lúc ký",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chuc_danh",
+   "fieldtype": "Data",
+   "label": "Chức danh lúc ký",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ky_luc",
+   "fieldtype": "Datetime",
+   "label": "Ký lúc",
+   "in_list_view": 1,
+   "columns": 2,
+   "read_only": 1
+  },
+  {
+   "fieldname": "y_kien",
+   "fieldtype": "Small Text",
+   "label": "Ý kiến",
+   "in_list_view": 1,
+   "columns": 3,
+   "read_only": 1
+  }
+ ],
+ "permissions": [],
+ "editable_grid": 1
+}

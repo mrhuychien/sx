@@ -47,12 +47,15 @@ const MAN = {
   vaiu: '/assets/sx/sx/views/qc_vaiu.js',
   // W34 (D165): kiểm xe BM.09.01 — QC kiểm ngẫu nhiên 1 chuyến/tuần, Trưởng Ban ISO xem tháng.
   kiemxe: '/assets/sx/sx/views/qc_kiemxe.js',
+  // W45 (D174): khung Biên bản (họp Ban ISO, xem xét lãnh đạo, đánh giá nội bộ, thẩm tra…) — nút trong tab Xem xét;
+  // #/qc/bienban/<tên> là một biên bản (route hộp nhắc "chờ bạn ký").
+  bienban: '/assets/sx/sx/views/qc_bienban.js',
 };
 
 // Sổ mở từ lưới nút cuối màn Hôm nay — tab "Hôm nay" sáng khi đang ở các màn này.
 const SO_HOM_NAY = ['tiepnhan', 'kiemxe', 'dvgh', 'cat', 'vaiu', 'thietbi', 'kiemnghiem', 'rework', 'lichviec'];
-// Màn con của tab "Xem xét": tổng quan ATTP (W22), xem xét tháng, báo cáo (W25), hồ sơ đánh giá (W27).
-const XEM_XET = ['attp', 'review', 'baocao', 'hoso'];
+// Màn con của tab "Xem xét": tổng quan ATTP (W22), xem xét tháng, báo cáo (W25), hồ sơ đánh giá (W27), biên bản (W45).
+const XEM_XET = ['attp', 'review', 'baocao', 'hoso', 'bienban'];
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
 // null = hôm nay. Giữ ngoài hàm render để đổi tab không mất ngày đang xem.
@@ -63,6 +66,7 @@ function tachRoute() {
   const phan = h.replace('#/qc', '').split('/').filter(Boolean);
   if (!phan.length) return { man: 'home', tham_so: null };
   if (phan[0] === 'round' || phan[0] === 'dvgh') return { man: phan[0], tham_so: phan[1] || null };
+  if (phan[0] === 'bienban') return { man: 'bienban', tham_so: phan[1] ? decodeURIComponent(phan[1]) : null };
   return { man: MAN[phan[0]] ? phan[0] : 'home', tham_so: null };
 }
 
