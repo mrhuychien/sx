@@ -1,0 +1,56 @@
+{#- Mục lục gói hồ sơ cho đoàn đánh giá (W27, D149) — tệp 00-MUC-LUC.html trong zip. A4 ngang.
+    Mỗi hồ sơ: căn cứ, nằm ở đâu (đường dẫn trong gói / nơi lưu bản giấy), hạn, cờ Đỏ / Vàng kèm lý do. -#}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .ml { font: 11px/1.35 "Times New Roman", serif; color: #000; }
+  .ml h1 { font-size: 16px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .ml .ma { text-align: center; font-size: 10.5px; margin-bottom: 8px; }
+  .ml h2 { font-size: 12.5px; margin: 12px 0 4px; }
+  .ml table { width: 100%; border-collapse: collapse; }
+  .ml td, .ml th { border: 1px solid #000; padding: 3px 5px; vertical-align: top; }
+  .ml th { background: #eee; }
+  .ml tr { break-inside: avoid; }
+  .ml .do { color: #b91c1c; font-weight: bold; }
+  .ml .vang { color: #92400e; font-weight: bold; }
+  .ml a { color: #1d4ed8; }
+  .ml .ky { margin-top: 14px; width: 100%; }
+  .ml .ky td { border: 0; text-align: center; height: 56px; }
+</style>
+<div class="ml">
+  <h1>Danh mục hồ sơ an toàn thực phẩm</h1>
+  <div class="ma">Kỳ hồ sơ {{ tu }} – {{ den }} &nbsp;·&nbsp; Lập lúc {{ lap_luc }} &nbsp;·&nbsp; {{ nguoi }}
+    &nbsp;·&nbsp; Cờ: <span class="do">{{ dem.do }} Đỏ</span>, <span class="vang">{{ dem.vang }} Vàng</span></div>
+  {% for ten_nhom, ds in nhom %}
+  <h2>{{ ten_nhom }}</h2>
+  <table>
+    <tr><th style="width:3%">#</th><th style="width:11%">Mã / số hiệu</th><th style="width:20%">Tên</th>
+      <th style="width:17%">Căn cứ</th><th style="width:22%">Nằm ở đâu</th><th style="width:8%">Hạn</th><th>Cờ</th></tr>
+    {% for x in ds %}
+    <tr>
+      <td>{{ x.stt }}</td>
+      <td>{{ x.ma }}</td>
+      <td>{{ x.ten }}{% if x.ghi_chu %}<br><small>{{ x.ghi_chu }}</small>{% endif %}</td>
+      <td>{{ x.can_cu or "—" }}{% if x.thay_the %}<br><small>Thay {{ x.thay_the }}</small>{% endif %}</td>
+      <td>
+        {%- if x.trong_goi %}{% for p in x.trong_goi %}<a href="{{ p }}">{{ p }}</a>{% if not loop.last %}<br>{% endif %}{% endfor %}
+        {%- elif x.nguon == GIAY %}Bản giấy: {{ x.noi_luu or "chưa ghi nơi lưu" }}
+        {%- elif x.nguon == APP %}App: kỳ này không có bản ghi
+        {%- else %}Chưa có bản scan{% endif %}
+        {%- if x.loi %}<br><span class="do">Không in được: {{ x.loi }}</span>{% endif %}
+      </td>
+      <td>{{ frappe.utils.formatdate(x.het_han, "dd/MM/yyyy") if x.het_han else "—" }}</td>
+      <td>{% if x.co %}<span class="{{ x.co }}">{{ "ĐỎ" if x.co == "do" else "VÀNG" }}</span>{% for l in x.ly_do %}<br><span class="{{ l.muc }}">·</span> {{ l.nd }}{% endfor %}{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endfor %}
+  {% if ngung %}
+  <h2>Văn bản đã ngừng / đã thay thế (không nằm trong gói)</h2>
+  <table>
+    <tr><th style="width:14%">Mã / số hiệu</th><th style="width:30%">Tên</th><th>Ghi chú</th></tr>
+    {% for x in ngung %}<tr><td>{{ x.ma }}</td><td>{{ x.ten }}</td><td>{{ x.ghi_chu or "—" }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  <table class="ky"><tr><td><b>Người lập</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Trưởng Ban ISO</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

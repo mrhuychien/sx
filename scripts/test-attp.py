@@ -274,7 +274,7 @@ print("\n-- màn hình --")
 qj = open("sx/public/sx/views/qc.js", encoding="utf-8").read()
 kiem("route #/qc/attp; tab Xem xét (người duyệt) mở vào Tổng quan, sáng cả ở Xem xét tháng",
      "attp: '/assets/sx/sx/views/qc_attp.js'" in qj and "tabs.push(['attp', 'Xem xét'])" in qj
-     and "const XEM_XET = ['attp', 'review']" in qj)
+     and "const XEM_XET = ['attp', 'review', 'hoso']" in qj)
 js = open("sx/public/sx/views/qc_attp.js", encoding="utf-8").read()
 rv = open("sx/public/sx/views/qc_review.js", encoding="utf-8").read()
 kiem("màn tổng quan gọi qc_attp.tong_quan, hai nút Tổng quan / Xem xét tháng ở cả hai màn",

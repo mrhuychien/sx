@@ -488,3 +488,11 @@ button.sx-qc-tag-chon {
 .sx-attp-dong { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
 .sx-attp-viec { font-size: var(--sx-f-sm); font-weight: 600; padding-left: var(--sx-s2); border-left: 3px solid var(--sx-warning); }
 .sx-attp-viec-cao { color: var(--sx-danger-text); border-left-color: var(--sx-danger); }
+
+/* ── D149 (W27): hồ sơ cho đoàn đánh giá ──────────────────────────────────── */
+.sx-hs-goi { border-left: 4px solid var(--sx-primary); }
+.sx-hs-ky { display: grid; grid-template-columns: auto minmax(0, 260px); align-items: center; gap: var(--sx-s2) var(--sx-s3); }
+.sx-hs-ky .sx-textarea { box-sizing: border-box; width: 100%; }
+.sx-hs-co-do { background: var(--sx-danger); display: inline-block; vertical-align: middle; }
+.sx-hs-co-vang { background: var(--sx-warning); display: inline-block; vertical-align: middle; }
+.sx-hs-ngung { opacity: .65; }

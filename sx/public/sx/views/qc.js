@@ -35,12 +35,14 @@ const MAN = {
   lichviec: '/assets/sx/sx/views/qc_lichviec.js',
   // W22 (D148): tổng quan ATTP cho Trưởng Ban ISO, Giám đốc — tab Xem xét mở vào đây.
   attp: '/assets/sx/sx/views/qc_attp.js',
+  // W27 (D149): danh mục hồ sơ, gói zip cho đoàn đánh giá — nút thứ ba trong tab Xem xét.
+  hoso: '/assets/sx/sx/views/qc_hoso.js',
 };
 
 // Sổ mở từ lưới nút cuối màn Hôm nay — tab "Hôm nay" sáng khi đang ở các màn này.
 const SO_HOM_NAY = ['dvgh', 'cat', 'thietbi', 'kiemnghiem', 'rework', 'lichviec'];
-// Màn con của tab "Xem xét" (W22): tổng quan ATTP, xem xét tháng.
-const XEM_XET = ['attp', 'review'];
+// Màn con của tab "Xem xét": tổng quan ATTP (W22), xem xét tháng, hồ sơ đánh giá (W27).
+const XEM_XET = ['attp', 'review', 'hoso'];
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
 // null = hôm nay. Giữ ngoài hàm render để đổi tab không mất ngày đang xem.

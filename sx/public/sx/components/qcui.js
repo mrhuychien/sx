@@ -406,11 +406,12 @@ export function tabLo(dang) {
   return box;
 }
 
-/** Nút đầu tab Xem xét (W22, D148): Tổng quan ATTP ↔ Xem xét tháng. Tab trên thanh QC đã
- *  đủ sáu với người duyệt — thêm tab thứ bảy là chữ gãy dòng trên điện thoại. */
+/** Nút đầu tab Xem xét (W22, D148): Tổng quan ATTP ↔ Xem xét tháng ↔ Hồ sơ cho đoàn đánh giá
+ *  (W27, D149). Tab trên thanh QC đã đủ sáu với người duyệt — thêm tab thứ bảy là chữ gãy dòng
+ *  trên điện thoại. */
 export function tabXemXet(dang) {
   const box = el('div', 'sx-qc-seg sx-sc-tab');
-  [['attp', 'Tổng quan ATTP'], ['review', 'Xem xét tháng']].forEach(([ma, ten]) => {
+  [['attp', 'Tổng quan'], ['review', 'Xem xét tháng'], ['hoso', 'Hồ sơ đánh giá']].forEach(([ma, ten]) => {
     const a = el('a', `sx-qc-tab${ma === dang ? ' sx-qc-seg-on' : ''}`, esc(ten));
     a.href = `#/qc/${ma}`;
     box.appendChild(a);

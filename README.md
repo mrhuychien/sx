@@ -315,6 +315,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Hồ sơ cho đoàn đánh giá (D149 — W27)
+
+- Màn QC → tab **Xem xét** → nút **Hồ sơ đánh giá** (`#/qc/hoso`, doctype `SX Ho So Danh Muc`): danh mục
+  hồ sơ / văn bản — mã, tên, nhóm, **căn cứ pháp lý**, thay thế văn bản nào, ngày ban hành, hạn, nằm ở đâu:
+  **App lập** (gói tự in từ dữ liệu app), **Tệp đính kèm** (bản scan PDF / ảnh / Word / Excel ≤ 10 MB, tệp
+  riêng tư) hoặc **Bản giấy** (ghi nơi lưu). Ban ISO / quản lý thêm, sửa, ngừng, xoá.
+- Patch tạo sẵn theo nguồn pháp lý đổi ngày 08/10/2026: **CV 21/CV-HGC (thay CV 10)**, **TCCS 01 — ban
+  hành theo QĐ 11**, **TCCS 03 — theo QĐ 12**, bản tự công bố 16 sản phẩm (W28) và mọi biểu mẫu app đang
+  lập (BM.08.01–08.04, BM.11.01, BM.15.01, BM.06.01–06.04, KH.KN.01, BM.07.02, BM.09.01, BM.PRP.01/03,
+  diễn tập truy xuất BM.02.04, biên bản huỷ mẫu). Văn bản khác (giấy chứng nhận, giấy phép…) Ban ISO nhập —
+  công cụ lập danh mục bản gốc không có trong repo nên app không đoán.
+- **Cờ Đỏ**: hết hạn; bắt buộc mà chưa có bản scan; mảng hồ sơ app đang Đỏ ở Tổng quan ATTP; sản phẩm chưa
+  có số tự công bố. **Cờ Vàng**: sắp hết hạn (≤ 60 ngày); văn bản cũ đã có bản thay thế (CV 10) mà chưa
+  Ngừng; mảng đang Vàng; sản phẩm chưa ghi TCCS hoặc TCCS chưa có văn bản trong danh mục; bản giấy chưa ghi
+  nơi lưu.
+- **⬇ TẢI GÓI ZIP** (kỳ mặc định 3 tháng, tối đa 24 tháng): `00-MUC-LUC.html` (căn cứ, chỗ tìm từng hồ
+  sơ, cờ kèm lý do, chỗ ký) + mỗi hồ sơ một thư mục: bản in app trong kỳ (tờ ngày BM.08.01 theo tháng, sổ
+  sự cố CSV, nhật ký cát…) và bản scan. Tờ nào in lỗi thì mục lục ghi "Không in được", gói vẫn tải được.
+
 ## Tổng quan ATTP (D148 — W22)
 
 - Màn QC → tab **Xem xét** (Trưởng Ban ISO, quản lý / Giám đốc) giờ mở vào **Tổng quan ATTP**

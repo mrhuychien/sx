@@ -17,3 +17,4 @@ sx.patches.d137_xuat_xuong
 sx.patches.d140_tram_dong_vat
 sx.patches.d143_thiet_bi
 sx.patches.d146_viec_dinh_ky
+sx.patches.d149_ho_so

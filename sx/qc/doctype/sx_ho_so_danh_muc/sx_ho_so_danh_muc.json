@@ -1,0 +1,173 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 18:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "autoname": "hash",
+ "name": "SX Ho So Danh Muc",
+ "field_order": [
+  "ma",
+  "ten",
+  "nhom",
+  "nguon",
+  "bieu_mau",
+  "can_cu",
+  "thay_the",
+  "column_break_1",
+  "ngay_ban_hanh",
+  "het_han",
+  "tep",
+  "noi_luu",
+  "bat_buoc",
+  "ngung",
+  "thu_tu",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã / số hiệu",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "BM.08.01, TCCS 01, CV 21/CV-HGC… — mã trùng dòng khác bị chặn."
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên hồ sơ / văn bản",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nhom",
+   "fieldtype": "Select",
+   "label": "Nhóm",
+   "options": "Pháp lý\nSản phẩm\nHệ thống quản lý\nĐiều kiện nhà xưởng (PRP)\nKiểm soát sản xuất\nNhà cung cấp, nguyên liệu\nTruy xuất, sự cố, khiếu nại\nThiết bị đo\nKhác",
+   "default": "Pháp lý",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nguon",
+   "fieldtype": "Select",
+   "label": "Nằm ở đâu",
+   "options": "App lập\nTệp đính kèm\nBản giấy",
+   "default": "Tệp đính kèm",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "App lập: gói zip tự in từ dữ liệu app. Tệp đính kèm: bản scan gắn ở đây. Bản giấy: ghi nơi lưu."
+  },
+  {
+   "fieldname": "bieu_mau",
+   "fieldtype": "Select",
+   "label": "Biểu mẫu app",
+   "options": "\nBM.08.01\nBM.08.02\nBM.08.03\nBM.08.04\nBM.11.01\nBM.15.01\nBM.06.01\nBM.06.02\nBM.06.03\nBM.06.04\nKH.KN.01\nBM.07.02\nBM.09.01\nBM.PRP.03\nBM.PRP.01\nBM.02.04\nHUY_MAU\nTU_CONG_BO",
+   "depends_on": "eval:doc.nguon=='App lập'"
+  },
+  {
+   "fieldname": "can_cu",
+   "fieldtype": "Small Text",
+   "label": "Căn cứ / nguồn pháp lý",
+   "description": "Văn bản ban hành hoặc yêu cầu, vd \"QĐ 11 — ban hành TCCS 01\"."
+  },
+  {
+   "fieldname": "thay_the",
+   "fieldtype": "Data",
+   "label": "Thay thế văn bản",
+   "description": "Mã văn bản cũ bị thay (vd CV 10). Dòng của văn bản cũ còn để đang dùng thì bị cờ Vàng."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ngay_ban_hanh",
+   "fieldtype": "Date",
+   "label": "Ngày ban hành"
+  },
+  {
+   "fieldname": "het_han",
+   "fieldtype": "Date",
+   "label": "Hết hạn",
+   "description": "Hết hạn → cờ Đỏ; còn ≤ 60 ngày → cờ Vàng."
+  },
+  {
+   "fieldname": "tep",
+   "fieldtype": "Attach",
+   "label": "Bản scan"
+  },
+  {
+   "fieldname": "noi_luu",
+   "fieldtype": "Data",
+   "label": "Nơi lưu bản giấy"
+  },
+  {
+   "fieldname": "bat_buoc",
+   "fieldtype": "Check",
+   "label": "Bắt buộc có khi đánh giá",
+   "default": "1"
+  },
+  {
+   "fieldname": "ngung",
+   "fieldtype": "Check",
+   "label": "Ngừng (đã thay / không dùng nữa)"
+  },
+  {
+   "fieldname": "thu_tu",
+   "fieldtype": "Int",
+   "label": "Thứ tự trong nhóm"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "sort_field": "ma",
+ "sort_order": "ASC",
+ "title_field": "ten",
+ "track_changes": 1
+}

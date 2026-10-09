@@ -408,4 +408,10 @@ python3 scripts/test-attp.py > /tmp/sx-attp.log 2>&1 \
   && tail -1 /tmp/sx-attp.log \
   || { cat /tmp/sx-attp.log; loi=1; }
 
+# D149 (W27): hồ sơ cho đoàn đánh giá. Văn bản hết hạn / thiếu scan không cờ, CV 10 đã bị thay vẫn
+# "đang dùng", TCCS không có văn bản ban hành, một tờ in lỗi làm hỏng cả gói zip — đều im lặng.
+python3 scripts/test-hoso.py > /tmp/sx-hoso.log 2>&1 \
+  && tail -1 /tmp/sx-hoso.log \
+  || { cat /tmp/sx-hoso.log; loi=1; }
+
 exit $loi
