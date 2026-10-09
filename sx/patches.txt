@@ -30,3 +30,4 @@ sx.patches.d164_cat_theo_viec
 sx.patches.d165_kiem_xe_phien_ban
 sx.patches.d166_viec_kiem_nghiem
 sx.patches.d167_ho_so_slm_bm0703
+sx.patches.d169_bo_thau_rua_be

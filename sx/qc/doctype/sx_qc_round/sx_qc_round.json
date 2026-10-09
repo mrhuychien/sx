@@ -674,7 +674,7 @@
   {
    "fieldname": "t1_be_nuoc",
    "fieldtype": "Select",
-   "label": "T1 Bể nước sạch, có nắp",
+   "label": "T1 Nước tại vòi trong, không mùi; vòi, ống không rò",
    "options": "\nĐạt\nKhông đạt"
   },
   {
@@ -729,7 +729,7 @@
   {
    "fieldname": "t10_khoa",
    "fieldtype": "Select",
-   "label": "T10 Khoá cửa, kho",
+   "label": "T10 Khóa kho, tủ hóa chất ngoài giờ",
    "options": "\nĐạt\nKhông đạt"
   },
   {

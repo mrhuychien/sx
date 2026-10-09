@@ -9,6 +9,8 @@ Nạp sx/qc/viec_dinh_ky.py, controller, sx/api/qc_lichviec.py, patch THẬT; fr
 Chạy: python3 scripts/test-lichviec.py   (verify.sh gọi sẵn)
 """
 
+import contextlib
+import io
 import json
 import os
 import sys
@@ -27,6 +29,7 @@ A = F.nap("sx.api.qc_lichviec", "sx/api/qc_lichviec.py")
 VDC = F.nap("vd_ctl", "sx/qc/doctype/sx_viec_dinh_ky/sx_viec_dinh_ky.py")
 F.dang_ky(VD.PT, VDC.SXViecDinhKy)
 P = F.nap("sx.patches.d146_viec_dinh_ky", "sx/patches/d146_viec_dinh_ky.py")
+P169 = F.nap("sx.patches.d169_bo_thau_rua_be", "sx/patches/d169_bo_thau_rua_be.py")
 kiem, thu = F.kiem, F.thu
 F.dat_ngay("2026-10-09")
 
@@ -135,6 +138,35 @@ kiem("việc định kỳ chưa đặt hạn → '1 việc định kỳ chưa đ
      any(x["tieu_de"] == "1 việc định kỳ chưa đặt hạn" and x["route"] == "#/qc/lichviec"
          and "Xem xét lãnh đạo" in x["chi_tiet"] for x in ds))
 F.bang(VD.PT).pop("VD-TRONG")
+
+# W39 (D169): nước lấy thẳng tại vòi, không có bể chứa → việc "thau rửa bể" (nếu site có khai) ngừng, không xoá.
+print("\n-- W39: ngừng việc thau rửa bể (không xoá) --")
+la = P169.la_thau_rua_be
+kiem("nhận: thau rửa bể, súc rửa bể chứa, vệ sinh bể nước, rửa bể., thau rửa bồn nước",
+     all(la(t) for t in ("Thau rửa bể", "THAU RỬA BỂ NƯỚC định kỳ", "Súc rửa bể chứa nước 6 tháng/lần",
+                         "Vệ sinh bể nước, thay lõi lọc", "Rửa bể.", "Thau rửa bồn nước inox")))
+kiem("không nhận: bể ngâm, nước thải, bể phốt, bồn rửa tay, kiểm nghiệm nước tại vòi, kiểm tra bể (không làm sạch)",
+     not any(la(t) for t in ("Vệ sinh bể ngâm đỗ", "Thau rửa bể nước thải", "Hút bể phốt", "Vệ sinh bồn rửa tay",
+                             "Kiểm nghiệm nước sản xuất — mẫu nước tại vòi", "Kiểm tra bể nước", "Thau rửa thùng ủ",
+                             "Thay bóng đèn bẫy côn trùng", "")))
+for n, t, ng in (("VD-BE", "Thau rửa bể nước", 0), ("VD-NGAM", "Vệ sinh bể ngâm đỗ", 0),
+                 ("VD-BE2", "Súc rửa bể chứa", 1)):
+    F.bang(VD.PT)[n] = {"name": n, "ten": t, "chu_ky": "Quý", "han": "2026-12-31", "ngung": ng,
+                        "ds_lan": [{"ngay": "2026-09-30"}] if n == "VD-BE" else []}
+so = len(F.bang(VD.PT))
+P169.execute()
+_ra = io.StringIO()
+with contextlib.redirect_stdout(_ra):
+    P169.execute()
+kiem("chạy lại: không in lại việc đã ngừng (log migrate chỉ kể việc vừa ngừng)", _ra.getvalue() == "", _ra.getvalue())
+kiem("patch: thau rửa bể → ngừng; bể ngâm, việc khác giữ; không xoá, lần đã làm còn; chạy lại vô hại",
+     F.bang(VD.PT)["VD-BE"]["ngung"] == 1 and F.bang(VD.PT)["VD-NGAM"]["ngung"] == 0
+     and not F.bang(VD.PT)[kp].get("ngung") and F.bang(VD.PT)["VD-BE2"]["ngung"] == 1 and len(F.bang(VD.PT)) == so
+     and F.bang(VD.PT)["VD-BE"]["ds_lan"] == [{"ngay": "2026-09-30"}]
+     and {x["name"]: x["trang_thai"] for x in A.tong_quan()["ds"]}["VD-BE"] == VD.NGUNG)
+for n in ("VD-BE", "VD-NGAM", "VD-BE2"):
+    F.bang(VD.PT).pop(n)
+kiem("patch d169 trong patches.txt", "sx.patches.d169_bo_thau_rua_be" in open("sx/patches.txt", encoding="utf-8").read())
 
 # ═══ 3. Nhắc, quyền ═══════════════════════════════════════════════════════
 print("\n-- hộp nhắc, quyền --")

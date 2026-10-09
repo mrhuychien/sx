@@ -234,8 +234,12 @@ Bản 2 so với bản 1:
 | **B7c** Vệ sinh chuyển đổi sau vị có sữa bột | phần bột | hiện khi lượt này / lượt trước làm vị có sữa bột (cờ của sản phẩm tự công bố W28, hoặc Setting "Vị bột có sữa bột"). Không đạt → Dị ứng |
 | ~~T11~~ Cân quả chuẩn | bỏ | sang quản lý thiết bị đo (W17) |
 
-**Chưa làm — cần bản giấy**: sửa nhãn **T1–T10** theo phiếu giấy (chưa có chữ trên
-phiếu giấy để chép). Gửi ảnh / chữ phiếu giấy là sửa trong `muc.py`, không đổi field.
+**Nhãn lượt tuần (W39, D169)**: **T1** "Nước tại vòi trong, không mùi; vòi, ống không rò" (nước máy lấy
+thẳng tại vòi, không có bể — field vẫn `t1_be_nuoc`), **T10** "Khóa kho, tủ hóa chất ngoài giờ" — theo
+BM.08.01 bản 21/9/2026. T2–T9 chưa chép nguyên chữ giấy (ngoài phạm vi W39), còn lệch: T3 thiếu "cửa kín",
+T4 giấy "Đèn, kính, nhựa giòn theo danh mục nguyên vẹn" (W44), T6 giấy "khô, kê cách sàn, FIFO, không mốc,
+mọt", T8 giấy "giấy lau" (app "khăn"). Muốn chép thì sửa `nhan` trong `muc.py` (giữ `ngan` ngắn cho màn),
+không đổi field, rồi chạy `scripts/gen-qc-doctype.py`.
 
 Mã máy thật (`MA_MAY`): máy nghiền M1/M2 (W02), máy rang M1/M2/M3 (W16, D142). Ba máy gói
 bột chờ Cơ điện (C10) — điền vào `MA_MAY` rồi chạy `scripts/gen-qc-doctype.py` là nhãn đổi

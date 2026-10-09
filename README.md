@@ -315,6 +315,17 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nước tại vòi, không bể; T10 khóa kho, tủ hóa chất (D169 — W39)
+
+- Nước máy lấy thẳng tại vòi, không có bể chứa (PRP lần BH 02, SSOP 1). BM.08.01 lượt tuần: **T1** "Nước tại vòi
+  trong, không mùi; vòi, ống không rò" (thay "Bể nước sạch, có nắp"), **T10** "Khóa kho, tủ hóa chất ngoài giờ" (thay
+  "Khoá cửa, kho"). Giữ fieldname `t1_be_nuoc`, `t10_khoa` — phiếu cũ đọc nguyên, in ra chữ mới; nhãn Desk sinh lại.
+- Patch `d169_bo_thau_rua_be`: việc định kỳ **thau rửa bể** (nếu site có khai) → **Ngừng** (`ngung=1`), không xoá —
+  lần đã làm vẫn là hồ sơ. Nhận theo tên, không dấu: có thau / súc / rửa / vệ sinh và "bể", "bể nước", "bể chứa",
+  "bồn nước"; không đụng bể ngâm, nước thải, bể phốt, bồn rửa tay. Migrate in ra việc nào đã ngừng; ngừng nhầm thì
+  bỏ tích Ngừng ở màn Việc định kỳ.
+- Cần `bench --site site1.local migrate` (nhãn, patch) rồi `bench restart`.
+
 ## Lưu bột, mối hàn túi: oPRP → PRP; rang lạc oPRP-7 (D168 — W38)
 
 - Quyết định 09/10/2026: bánh chỉ còn **oPRP-1, oPRP-2** (số 3, 4 để trống); bột **oPRP-5 … oPRP-9**. Lưu bột 2 ngày

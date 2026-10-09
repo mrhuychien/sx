@@ -215,6 +215,14 @@ kiem("mối hàn túi chỉ ở Trưa / Cuối chiều",
 kiem("phần C (t1–t10) chỉ ở lượt Tuần",
      all(ap(f, M.TUAN) and not ap(f, M.DAU_SANG)
          for f in ("t1_be_nuoc", "t2_so_bay_dau_hieu", "t10_khoa")))
+# W39 (D169): nước lấy thẳng tại vòi, không có bể chứa — chữ T1, T10 theo BM.08.01 bản 21/9/2026; fieldname giữ
+# nguyên (phiếu cũ đọc nguyên), JSON sinh lại cùng chữ.
+kiem("W39: T1 nước tại vòi, T10 khóa kho, tủ hóa chất ngoài giờ — fieldname giữ, JSON cùng nhãn",
+     (M.THEO_F["t1_be_nuoc"]["nhan"], M.THEO_F["t10_khoa"]["nhan"])
+     == ("Nước tại vòi trong, không mùi; vòi, ống không rò", "Khóa kho, tủ hóa chất ngoài giờ")
+     and field["t1_be_nuoc"]["label"] == "T1 Nước tại vòi trong, không mùi; vòi, ống không rò"
+     and field["t10_khoa"]["label"] == "T10 Khóa kho, tủ hóa chất ngoài giờ"
+     and not [m["f"] for m in M.MUC if "bể" in m["nhan"].lower() or "bể" in m["ngan"].lower()])
 kiem("T11 quả chuẩn: còn trên phiếu bản 1, bỏ khỏi bản 2 (W01, D129)",
      M.ap_dung(M.THEO_F["t11_can_qua_chuan"], M.TUAN, {"phien_ban": 1})
      and not ap("t11_can_qua_chuan", M.TUAN))
@@ -588,7 +596,7 @@ kiem("số đo ghi đúng", cot["3a Nhiệt độ rang"] == "260")
 r_tuan = luot(luot=M.TUAN, name="QC-0003", co_san_xuat_bot=1, co_lac=1)
 h2 = dict(zip(td, X.dong_luot(r_tuan, _in, frappe.utils.cint)))
 kiem("lượt Tuần thì phần C áp dụng (không còn n/a)",
-     h2["T1 Bể nước sạch, có nắp"] == "")
+     h2["T1 Nước tại vòi trong, không mùi; vòi, ống không rò"] == "")
 kiem("ngày có bột thì phần B áp dụng", h2["B1 Lạc trước rang: đã sàng, không mốc/hỏng/sạn"] == "")
 kiem("ngày KHÔNG có bột thì phần B là n/a",
      dict(zip(td, X.dong_luot(luot(luot=M.TUAN), _in, frappe.utils.cint)))[

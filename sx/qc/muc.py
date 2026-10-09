@@ -330,7 +330,9 @@ MUC = [
     _m("nhan_hsd_dung", "13", "Nhãn, HSD đúng lô", "12", "14 Nhãn, HSD", goi=True),
 
     # ── C: lượt tuần ─────────────────────────────────────────────────────
-    _m("t1_be_nuoc", "T1", "Bể nước sạch, có nắp", "C", "PRP", ap=(TUAN,)),
+    # W39 (D169): nước máy lấy thẳng tại vòi, không có bể chứa (PRP lần BH 02, SSOP 1) — đổi chữ như
+    # BM.08.01 bản 21/9/2026, giữ fieldname (phiếu cũ đọc nguyên). T10 cũng theo bản giấy (SSOP 15).
+    _m("t1_be_nuoc", "T1", "Nước tại vòi trong, không mùi; vòi, ống không rò", "C", "PRP", ap=(TUAN,)),
     _m("t2_so_bay_dau_hieu", "T2", "Trạm bẫy có dấu hiệu", "C", "PRP",
        kieu="nguyen", ap=(TUAN,), dv="trạm", goi_y="> 0 chỉ cảnh báo, không tự sự cố"),
     _m("t3_luoi_chan", "T3", "Lưới chắn côn trùng", "C", "PRP", ap=(TUAN,)),
@@ -340,7 +342,7 @@ MUC = [
     _m("t7_rac_cong", "T7", "Rác, cống thoát", "C", "PRP", ap=(TUAN,)),
     _m("t8_bon_rua_tay", "T8", "Bồn rửa tay: xà phòng, khăn", "C", "PRP", ap=(TUAN,)),
     _m("t9_thiet_bi", "T9", "Thiết bị: không rỉ, không rò dầu", "C", "PRP", ap=(TUAN,)),
-    _m("t10_khoa", "T10", "Khoá cửa, kho", "C", "PRP", ap=(TUAN,)),
+    _m("t10_khoa", "T10", "Khóa kho, tủ hóa chất ngoài giờ", "C", "PRP", ap=(TUAN,)),
     # Bỏ từ phiên bản 2 (W01): cân theo hạn kiểm định ở quản lý thiết bị đo (W17).
     _m("t11_can_qua_chuan", "T11", "Cân: quả chuẩn đạt", "C", "PRP", ap=(TUAN,), den=2),
 
