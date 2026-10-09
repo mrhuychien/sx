@@ -315,6 +315,14 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Báo cáo tháng là BM.01.12 "Báo cáo phân tích dữ liệu tháng" (D170 — W41)
+
+- Bản in báo cáo tháng (`sx.api.qc_baocao.in_bao_cao`) và màn `#/qc/baocao` đổi tiêu đề "Báo cáo an toàn thực phẩm
+  tháng" / "Báo cáo ATTP tháng" thành **"Báo cáo phân tích dữ liệu tháng MM/YYYY"**; dòng mã in **"BM.01.12 · Lần BH
+  01 · QT.01 mục 5.7"** — ghi cứng tới khi có đầu trang chung (W42) thì thay. Ô ký như giấy: **Trưởng Ban ISO (lập)**,
+  **Giám đốc (đã xem)**. Nội dung, số liệu không đổi.
+- Build **sx-134**. Không cần migrate (chỉ template, JS) — `bench restart` hoặc tải lại trang.
+
 ## Nước tại vòi, không bể; T10 khóa kho, tủ hóa chất (D169 — W39)
 
 - Nước máy lấy thẳng tại vòi, không có bể chứa (PRP lần BH 02, SSOP 1). BM.08.01 lượt tuần: **T1** "Nước tại vòi

@@ -46,8 +46,9 @@ export async function render(api) {
   const lai = () => render(api);
 
   const top = el('div', 'sx-qc-top');
-  top.appendChild(el('div', null, `<div class="sx-qc-ngay">Báo cáo ATTP tháng ${esc(dl.thang.slice(5, 7))}/${dl.nam}</div>
-    <div class="sx-qc-ai">số liệu tới hết ${esc(dl.cat.slice(8, 10))}/${esc(dl.cat.slice(5, 7))}</div>`));
+  // W41 (D170): BM.01.12 "Báo cáo phân tích dữ liệu tháng" — cùng tên, mã với bản in.
+  top.appendChild(el('div', null, `<div class="sx-qc-ngay">Báo cáo phân tích dữ liệu tháng ${esc(dl.thang.slice(5, 7))}/${dl.nam}</div>
+    <div class="sx-qc-ai">BM.01.12 · số liệu tới hết ${esc(dl.cat.slice(8, 10))}/${esc(dl.cat.slice(5, 7))}</div>`));
   const inp = el('input', 'sx-textarea');
   inp.type = 'month';
   inp.value = dl.thang;

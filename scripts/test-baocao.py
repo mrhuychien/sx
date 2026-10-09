@@ -210,6 +210,12 @@ if F.jinja2:
          "SC-1" in h and "SC-2" in h and "SC-3" not in h and "Bánh mốc" in h and "CAR-1" in h and "CAR-4" in h
          and "KN-2" in h and "Không đạt" in h)
     kiem("việc đang treo tại ngày lập (từ Tổng quan ATTP) và chỗ ký Giám đốc", "Việc đang treo" in h and "Giám đốc" in h)
+    # W41 (D170): báo cáo tháng là BM.01.12 "Báo cáo phân tích dữ liệu tháng" — mã, lần BH ghi cứng tới W42.
+    hn = " ".join(h.replace("&nbsp;", " ").split())
+    kiem("W41: tiêu đề BM.01.12 'Báo cáo phân tích dữ liệu tháng', mã + lần BH 01, ô ký như giấy",
+         "Báo cáo phân tích dữ liệu tháng 09/2026" in h and "BM.01.12 · Lần BH 01 · QT.01 mục 5.7 · Số liệu" in hn
+         and "Báo cáo an toàn thực phẩm" not in h and "Trưởng Ban ISO (lập)" in h and "Giám đốc (đã xem)" in h,
+         h[:300])
 goc = FR.get_all
 
 
@@ -259,5 +265,7 @@ js = open("sx/public/sx/views/qc_baocao.js", encoding="utf-8").read()
 kiem("màn báo cáo: chọn tháng, in, thêm / sửa / xoá chỉ tiêu", all(s in js for s in (
     "sx.api.qc_baocao.so_lieu", "sx.api.qc_baocao.in_bao_cao", "sx.api.qc_baocao.luu_chi_tieu",
     "sx.api.qc_baocao.xoa_chi_tieu", "tabXemXet('baocao')")))
+kiem("W41: màn cùng tên, mã với bản in (BM.01.12 Báo cáo phân tích dữ liệu tháng)",
+     "Báo cáo phân tích dữ liệu tháng ${" in js and "BM.01.12 · số liệu tới hết" in js and "Báo cáo ATTP tháng" not in js)
 
 F.ket_thuc("BAOCAO")
