@@ -315,6 +315,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhập kho: chọn sản phẩm là vào bàn số một màn (D153)
+
+- Màn **Nhập kho thành phẩm** giờ như *Vào hộp Tết*: chọn sản phẩm (TÌM SẢN PHẨM, QUÉT HỘP, hay bấm mã ở
+  "Vừa vào hộp") là vào thẳng **một bàn số**: tab **THÙNG / HỘP** (mỗi tab một số, tổng tự cộng theo hệ số
+  quy đổi), ô **HSD in trên hộp** với nút +3T / +6T / +9T / +12T / *mặc định*, phím số, nút **LƯU · tổng**.
+  Không còn cửa sổ số lượng rồi cửa sổ HSD riêng.
+- Bấm **số** hay bấm **HSD** của một dòng trên phiếu đều mở cùng bàn số đó. Thủ kho sửa thì chỉ đổi số
+  ĐẾM (dòng phụ "phiếu ghi N" để so); người lập sửa thì đổi cả số lập. Sửa về 0 là bỏ dòng.
+- **Mỗi (mã, HSD) một dòng = một lô** (W05): chọn lại mã đã có dòng HSD mặc định → mở sửa dòng đó; dòng
+  HSD khác của mã hiện thành ô "HSD dd/mm/yy · số ✎" ngay trên bàn số, bấm để chuyển sang sửa dòng đó;
+  lưu trùng HSD một dòng khác thì báo ngay trên bàn số, không đợi tới lúc duyệt. Bỏ cửa sổ "sửa dòng nào
+  / + DÒNG HSD KHÁC".
+- Số > 0 thì phải có HSD, và HSD phải sau ngày nhập — trước đây thiếu HSD bị chặn lúc duyệt, giờ chặn ngay
+  trên bàn số. Mã chưa khai hạn dùng thì ô HSD trống, gõ theo bao bì.
+- *Vào hộp Tết* dùng chung bàn số này (`moSoHsd` trong `cards/nhapkhotp.js`), có thêm ô dòng khác và chặn
+  trùng HSD (hai dòng một lô thì thủ kho không duyệt được phiếu Tết).
+- Bàn số vừa một màn điện thoại (390×844 trở lên không phải cuộn); màn thấp hơn thì cuộn, nút LƯU dính đáy.
+- Không cần migrate: `git pull` rồi `bench restart` (để số build mới sx-121 có hiệu lực).
+
 ## Chốt quyết định 09/10/2026, sửa patch D137 (D152)
 
 - **Đã chốt**: người kiểm đồng hồ nhiệt theo *Đào tạo nội bộ* (W17 f — patch đặt vào SX QC Setting nếu còn
@@ -673,8 +692,9 @@ không thành `…-2`.
   ngày NSX cho lô theo HSD (lô cũ vẫn khớp theo cửa sổ ngày).
 - **Tách dòng theo HSD**: "Vừa vào hộp" chia phần còn lại theo ngày đóng hộp (mới nhất
   trước — phần đã nhận là hàng đóng trước), mỗi ngày → một HSD → một dòng. Nút *Tải tất cả*
-  và bấm một mã đều ra đủ dòng theo HSD. Thêm mã đã có dòng → hỏi sửa dòng nào hay
-  **+ DÒNG HSD KHÁC**. Hai dòng cùng mã cùng HSD → duyệt bị chặn, bảo gộp.
+  và bấm một mã đều ra đủ dòng theo HSD. Thêm mã đã có dòng → mở bàn số, dòng HSD khác
+  của mã là ô bấm trên đó (D153). Hai dòng cùng mã cùng HSD → bàn số chặn ngay; duyệt cũng
+  chặn, bảo gộp.
 - **Lô cũ chưa có HSD**: thẻ *Lô cũ chưa có HSD* (màn Nhập kho + Quản lý, tự ẩn khi hết) —
   liệt kê lô thành phẩm không HSD (còn tồn trước), HSD điền sẵn = NSX + hạn dùng; thủ kho
   soát theo bao bì rồi **GHI HSD**. Không ghi đè HSD đã có, không nhận HSD trước NSX.
@@ -832,7 +852,8 @@ nó, rồi gộp danh sách khách đã nhận — đây là danh sách phải g
 
 - Mỗi dòng phiếu nhập kho có ô **HSD** (dưới tên sản phẩm). Mặc định = **ngày phiếu +
   "Shelf Life In Days"** của mã hàng (Item → tab Inventory); hiện chữ "· mặc định".
-  Bấm vào để sửa theo HSD in trên bao bì (có nút nhanh +3/+6/+9/+12 tháng).
+  Bấm vào để sửa theo HSD in trên bao bì (có nút nhanh +3/+6/+9/+12 tháng) — từ D153 là
+  cùng bàn số với số thùng / hộp.
 - Duyệt phiếu ghi vào lô ERPNext: `Batch.manufacturing_date` = ngày phiếu,
   `Batch.expiry_date` = HSD của dòng. Xem / lọc cận date ở Desk → Batch.
 - Mã **chưa khai Shelf Life** mà thủ kho cũng chưa gõ HSD → **không duyệt được**, báo

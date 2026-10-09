@@ -1986,8 +1986,6 @@ main > .container {
   border-color: var(--sx-warning); background: var(--sx-warning-soft);
   color: var(--sx-warning-text);
 }
-.sx-nk-hsd-o { width: 100%; box-sizing: border-box; font-size: var(--sx-f-md); }
-.sx-nk-hsd-nhanh { display: flex; flex-wrap: wrap; gap: var(--sx-s2); }
 
 
 /* ══════════════════ TRUY XUẤT NGUỒN GỐC (D115) ══════════════════ */
@@ -2075,13 +2073,23 @@ b.sx-tx-kl-loi { background: none; }
 .sx-lc-dong-3 span { color: var(--sx-danger-text); font-weight: 700; }
 .sx-lc-loi { flex-basis: 100%; color: var(--sx-danger-text); font-size: var(--sx-f-xs); white-space: pre-line; }
 
-/* D124 — bàn số Vào hộp Tết: tab THÙNG/HỘP + HSD trên cùng một màn */
-.sx-tet-pad { gap: var(--sx-s2); }
-.sx-tet-pad .sx-np-chip i { font-style: normal; font-weight: 500; opacity: .7; }
-.sx-tet-hsd { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--sx-s1) var(--sx-s2); }
-.sx-tet-hsd .sx-textarea { min-height: 44px; margin: 0; }
-.sx-tet-hsd-nhanh { grid-column: 1 / -1; display: flex; gap: var(--sx-s1); flex-wrap: wrap; }
-.sx-tet-hsd-nhanh .sx-np-chip { min-height: 36px; padding: 0 var(--sx-s2); }
+/* D124 → D153 — bàn số một màn (Vào hộp Tết + Nhập kho TP): tab THÙNG/HỘP + HSD + phím số */
+.sx-sohsd { gap: var(--sx-s2); }
+.sx-sohsd .sx-np-chip i { font-style: normal; font-weight: 500; opacity: .7; }
+.sx-sohsd .sx-np-hint { white-space: normal; text-align: right; }
+/* Tab + HSD + phím + LƯU phải vừa MỘT màn điện thoại: phím thấp hơn bàn số thường một chút, màn thấp
+   thì thấp nữa; còn tràn thì phần trên cuộn, nút LƯU dính đáy tờ — luôn trong tầm tay. */
+.sx-sohsd .sx-numpad-key { min-height: 60px; }
+@media (max-height: 800px) { .sx-sohsd .sx-numpad-key { min-height: 52px; } }
+.sx-sohsd #sh-ok { position: sticky; bottom: 0; z-index: 1; box-shadow: 0 0 0 6px var(--sx-surface); }
+.sx-sohsd-hsd { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--sx-s1) var(--sx-s2); }
+.sx-sohsd-hsd .sx-textarea { min-height: 44px; margin: 0; }
+/* +3T … +12T và "mặc định" chung một hàng */
+.sx-sohsd-nhanh { grid-column: 1 / -1; display: flex; gap: var(--sx-s1); flex-wrap: wrap; }
+.sx-sohsd-nhanh .sx-np-chip { flex: 1 1 auto; min-height: 36px; padding: 0 var(--sx-s2); }
+/* dòng HSD khác của cùng mã: bấm để chuyển sang sửa dòng đó */
+.sx-sohsd-daco { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sx-s1) var(--sx-s2); }
+.sx-sohsd-daco .sx-np-chip { flex: 0 1 auto; min-height: 36px; padding: 0 var(--sx-s2); }
 
 /* D131 — thẻ "Lô cũ chưa có HSD": ô ngày gọn bên phải mỗi dòng */
 .sx-lh-o { width: 160px; flex: none; margin: 0; min-height: 44px; }

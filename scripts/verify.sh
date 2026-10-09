@@ -55,15 +55,19 @@ PYEOF
 # `bench export-fixtures` sau lặng lẽ xoá bản ghi khỏi file (đã dính thật ở D56).
 python3 scripts/soat-fixtures.py || loi=1
 
-# openSoLuong dựng ô nhập TỪ `chi_tiet` và BỎ QUA `tong` khi chi_tiet không rỗng.
-# Đưa chi_tiet của cột này kèm tổng của cột kia là ghi đè mất số thủ kho vừa đếm mà
-# không báo gì (đã dính thật ở D72). Bắt buộc hai tham số lấy từ CÙNG một cặp helper.
+# Bàn số (moSoHsd, trước D153 là openSoLuong) dựng ô nhập TỪ `chi_tiet`. Đưa chi_tiet
+# của cột này kèm tổng của cột kia là ghi đè mất số thủ kho vừa đếm (đã dính thật ở
+# D72). Bắt buộc hai tham số lấy từ CÙNG một cặp helper. Không thấy lời gọi nào (đổi
+# tên hàm) cũng là hỏng — bài kiểm xanh vì không còn gì để kiểm thì vô dụng.
 python3 - <<'PYEOF'
 import re, sys
 f = "sx/public/sx/cards/nhapkhotp.js"
 src = open(f, encoding="utf-8").read()
 loi = []
-for m in re.finditer(r"openSoLuong\(\{(.*?)\n\s*\}\)", src, re.S):
+goi = list(re.finditer(r"(?<!function )\bmoSoHsd\(\{(.*?)\n\s*\}\)", src, re.S))
+if not goi:
+    loi.append(f"CAP-COT-FAIL {f}: không thấy lời gọi moSoHsd nào — đổi tên thì sửa luôn bài kiểm này")
+for m in goi:
     than = m.group(1)
     dong = src[:m.start()].count("\n") + 1
     ct = re.search(r"chi_tiet:\s*([^,\n]+)", than)
@@ -84,11 +88,12 @@ sys.exit(1 if loi else 0)
 PYEOF
 [ $? -ne 0 ] && loi=1
 
-# openSoLuong phải giữ đúng TỔNG kể cả khi bảng quy đổi ĐVT đổi sau lúc ghi phiếu
-# (đổi tên đơn vị / sửa hệ số / xoá một bậc). Nạp hàm THẬT ra chạy, không chép logic.
-node scripts/test-soluong.mjs > /tmp/sx-soluong.log 2>&1 \
-  && tail -1 /tmp/sx-soluong.log \
-  || { cat /tmp/sx-soluong.log; loi=1; }
+# Bàn số một màn thùng / hộp + HSD (D153) của Nhập kho và Vào hộp Tết: gõ, đổi tab, HSD,
+# trùng lô, cột đếm / cột lập, và giữ đúng TỔNG khi bảng quy đổi ĐVT đổi sau lúc ghi
+# phiếu. Nạp module THẬT ra chạy trên DOM giả, không chép logic.
+node scripts/test-sohsd.mjs > /tmp/sx-sohsd.log 2>&1 \
+  && tail -1 /tmp/sx-sohsd.log \
+  || { cat /tmp/sx-sohsd.log; loi=1; }
 
 # seed_ton_dau submit chứng từ kho THẬT và không có nút hoàn tác: số học lô, giá vốn
 # và cờ dry_run phải đúng trước khi ai đó gõ lệnh đó trên site nhà máy.

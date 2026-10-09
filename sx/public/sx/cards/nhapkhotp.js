@@ -14,7 +14,8 @@
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
-import { openSoLuong, moTaUom, tachUom } from '/assets/sx/sx/components/soluong.js';
+import { moTaUom, tachUom } from '/assets/sx/sx/components/soluong.js';
+import { bamPhim } from '/assets/sx/sx/components/numpad.js';
 import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
 
@@ -43,7 +44,7 @@ export async function render({ container, call, refresh, boot }) {
   }
 
   if (r.nhap) return vePhieu(container, r, ganDay, call, refresh, boot);
-  return veChuaCo(container, r, ganDay, call, refresh);
+  return veChuaCo(container, r, ganDay, call, refresh, boot);
 }
 
 // Chi tiết phiếu ĐÃ DUYỆT + huỷ (D104). Huỷ là THU HỒI chứng từ kho thật, nên:
@@ -138,7 +139,7 @@ Cách nhanh nhất: mở <b>SX Settings → Nhóm hàng là thành phẩm</b> r�
       : '');
 }
 
-function veChuaCo(container, r, ganDay, call, refresh) {
+function veChuaCo(container, r, ganDay, call, refresh, boot) {
   const trong = !(r.danh_muc || []).length;
   const cho = r.cho_nhan || [];
   container.innerHTML = `
@@ -167,18 +168,19 @@ function veChuaCo(container, r, ganDay, call, refresh) {
     // W05: nhiều ngày đóng hộp = nhiều HSD = nhiều lô → mỗi HSD một dòng, thủ kho
     // đếm lại từng dòng trên phiếu. Một HSD thì hỏi số như trước.
     const chia = chiaCua(d);
+    // D153: một màn — số thùng / hộp + HSD (HSD theo ngày đóng hộp nếu có, không thì mặc định của mã).
+    const ngay = homNay(boot);
+    const hsdVh = (chia[0] || {}).hsd || null;
     b.addEventListener('click', () => (chia.length > 1
       ? tao(chia.map((g) => ({ item: d.item, so_luong: Math.floor(g.con), hsd: g.hsd })))
-      : openSoLuong({
+      : moSoHsd({
         kicker: `Đã vào hộp ${formatNumber(d.con)} — chưa nhập kho`,
-        ten: d.ten,
-        uoms: d.uoms || [],
-        chi_tiet: null,
-        tong: d.con,
-        onOk: (tong, ct) => {
-          const n = Math.max(0, Math.round(tong));
+        ten: d.ten, uoms: d.uoms || [], dvt: d.dvt, ngay, chi_tiet: null, tong: d.con, hsd: hsdVh,
+        macDinh: hsdVh || hsdTu(ngay, (r.danh_muc || []).find((x) => x.item === d.item)),
+        onOk: (tong, ct, hsd) => {
+          const n = Math.max(0, ct && ct.length ? tong : Math.round(tong));
           if (!n) return;
-          tao([{ item: d.item, so_luong: n, chi_tiet: ct, hsd: (chia[0] || {}).hsd || null }]);
+          tao([{ item: d.item, so_luong: n, chi_tiet: ct, hsd: hsd || hsdVh }]);
         },
       })));
   });
@@ -352,30 +354,12 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       : `<div class="sx-muted">Chưa ghi sản phẩm nào${
         danhMuc.length ? ' — bấm TÌM SẢN PHẨM hoặc quét hộp' : ''}.</div>`;
 
+    // D153: bấm SỐ hay bấm HSD của dòng đều mở cùng một bàn số (thùng / hộp + HSD trên một màn).
     box.querySelectorAll('.sx-vh-sl').forEach((b) => {
-      const x = rows[Number(b.dataset.i)];
-      b.addEventListener('click', () => openSoLuong({
-        kicker: laThuKho ? 'Số thủ kho đếm' : 'Số chuyển sang kho',
-        ten: x.ten || tenSP(x.item),
-        uoms: uomCua(x.item),
-        chi_tiet: ctCua(x),
-        tong: soCua(x),
-        onOk: (tong, ct) => {
-          x.so_dem = chotSo(tong, ct);
-          x.dem_uom = ct;
-          // Người LẬP sửa số thì sửa cả hai; THỦ KHO sửa thì chỉ đụng số đếm —
-          // giữ nguyên số người lập ghi, vì chỗ lệch mới là thứ đáng xem.
-          if (!laThuKho) { x.so_lap = x.so_dem; x.lap_uom = ct; }
-          ve();
-        },
-      }));
+      b.addEventListener('click', () => moDong(rows[Number(b.dataset.i)]));
     });
     box.querySelectorAll('[data-hsd]').forEach((b) => {
-      const x = rows[Number(b.dataset.hsd)];
-      b.addEventListener('click', () => moHsd({
-        ten: x.ten || tenSP(x.item), ngay: p.ngay, hsd: x.hsd, macDinh: hsdMacDinh(x),
-        onOk: (v) => { x.hsd = v || null; ve(); },
-      }));
+      b.addEventListener('click', () => moDong(rows[Number(b.dataset.hsd)]));
     });
     box.querySelectorAll('[data-del]').forEach((b) => {
       b.addEventListener('click', () => { rows.splice(Number(b.dataset.del), 1); ve(); });
@@ -420,78 +404,64 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   ve();
 
 
-  // Mở số của MỘT dòng (đã có) để sửa.
-  function suaDong(co) {
-    openSoLuong({
-      kicker: hsdCua(co) ? `Sửa số · HSD ${veNgayDu(hsdCua(co))}` : 'Sửa số',
-      ten: co.ten || tenSP(co.item),
-      uoms: uomCua(co.item),
-      chi_tiet: ctCua(co),
-      tong: soCua(co),
-      onOk: (tong, ct) => {
+  // D153: MỘT bàn số cho cả số lẫn HSD (như Vào hộp Tết) — chọn mã là gõ số luôn, không qua cửa sổ số
+  // lượng rồi cửa sổ HSD riêng. `co` = dòng đang sửa; null = dòng mới theo `them` ({item, hsd, goiY, so}).
+  // W05: mỗi (mã, HSD) một dòng = một lô — các dòng HSD khác của cùng mã hiện thành ô bấm trên bàn số để
+  // chuyển sang sửa dòng đó; đổi HSD trùng một dòng khác thì báo ngay trên bàn số.
+  function moDong(co, them = {}) {
+    const item = co ? co.item : them.item;
+    const d = danhMuc.find((x) => x.item === item) || them.goiY || {};
+    const khac = rows.filter((x) => x.item === item && x !== co);
+    const macDinh = hsdMacDinh(co || { item });
+    moSoHsd({
+      kicker: co ? (laThuKho ? 'Số thủ kho đếm' : 'Sửa dòng')
+        : (them.goiY ? `Đã vào hộp ${formatNumber(them.so)} — chưa nhập kho` : 'Thêm sản phẩm'),
+      ten: (co && co.ten) || d.ten || tenSP(item),
+      uoms: uomCua(item),
+      dvt: (co && co.dvt) || d.dvt,
+      ngay: p.ngay,
+      chi_tiet: co ? ctCua(co) : null,
+      tong: co ? soCua(co) : (them.so || 0),
+      hsd: co ? co.hsd : (them.hsd || null),
+      macDinh,
+      phu: co && laThuKho ? `phiếu ghi ${formatNumber(co.so_lap)}` : '',
+      daCo: khac.map((x) => ({ nhan: `HSD ${hsdCua(x) ? veNgayDu(hsdCua(x)) : '—'}`, so: soCua(x) })),
+      onDaCo: (i) => moDong(khac[i]),
+      choPhepKhong: !!co,
+      kiemLuu: (tong, h) => {
+        const trung = khac.find((x) => hsdCua(x) === h);
+        return trung ? `Mã này đã có dòng HSD ${veNgayDu(h)} (${formatNumber(soCua(trung))}) — bấm ô HSD đó `
+          + 'phía trên để sửa, hoặc đổi HSD.' : '';
+      },
+      onOk: (tong, ct, hsd) => {
         const n = chotSo(tong, ct);
-        if (!n) { rows.splice(rows.indexOf(co), 1); ve(); return; }
-        co.so_dem = n; co.dem_uom = ct;
-        if (!laThuKho) { co.so_lap = n; co.lap_uom = ct; }
+        if (co) {
+          if (!n) { rows.splice(rows.indexOf(co), 1); ve(); return; }
+          co.so_dem = n; co.dem_uom = ct; co.hsd = hsd;
+          // Người LẬP sửa số thì sửa cả hai; THỦ KHO sửa thì chỉ đụng số đếm — giữ nguyên số người lập
+          // ghi, vì chỗ lệch mới là thứ đáng xem.
+          if (!laThuKho) { co.so_lap = n; co.lap_uom = ct; }
+        } else {
+          if (!n) return;
+          rows.push({ item, ten: d.ten || tenSP(item), dvt: d.dvt || '', hsd,
+                      so_lap: n, so_dem: n, lap_uom: ct, dem_uom: ct });
+        }
         ve();
       },
     });
   }
 
-  // Thêm MỘT dòng mới (mã + HSD); `hsd` null = HSD mặc định của phiếu.
-  // `goiY` là dòng bên bảng vào hộp: điền sẵn phần CÒN LẠI để thủ kho chỉ phải sửa khi
-  // đếm thật lệch, chứ không phải gõ lại từ 0.
+  // Thêm dòng mới (mã + HSD); `goiY` là dòng bên bảng vào hộp: điền sẵn phần CÒN LẠI để thủ kho chỉ phải
+  // sửa khi đếm thật lệch, chứ không phải gõ lại từ 0.
   function dongMoi(item, hsd, goiY, so) {
-    const d = danhMuc.find((x) => x.item === item) || goiY || {};
-    openSoLuong({
-      kicker: goiY ? `Đã vào hộp ${formatNumber(so)} — chưa nhập kho`
-        : `Thêm sản phẩm${hsd ? ` · HSD ${veNgayDu(hsd)}` : ''}`,
-      ten: d.ten || item,
-      uoms: d.uoms || [],
-      chi_tiet: null,
-      tong: goiY ? so : 0,
-      onOk: (tong, ct) => {
-        const n = chotSo(tong, ct);
-        if (!n) return;
-        rows.push({ item, ten: d.ten || item, dvt: d.dvt || '', hsd: hsd || null,
-                    so_lap: n, so_dem: n, lap_uom: ct, dem_uom: ct });
-        ve();
-      },
-    });
+    moDong(null, { item, hsd, goiY, so });
   }
 
-  // W05 (D131): mỗi (mã, HSD) một dòng = một lô. Mã chưa có dòng → thêm dòng. Mã đã
-  // có dòng → hỏi sửa dòng nào, hay thêm dòng HSD khác (hộp in HSD khác ngày).
+  // Chọn / quét một mã: đã có dòng HSD mặc định thì mở sửa dòng đó, chưa có thì mở dòng mới — cùng bàn số.
   function themItem(item) {
-    const cua = rows.filter((x) => x.item === item);
-    if (!cua.length) { dongMoi(item, null); return; }
-    const m = openModal({ kicker: 'Nhập kho', title: cua[0].ten || tenSP(item) });
-    m.body.innerHTML = `<div class="sx-muted">Mã này đã có ${cua.length} dòng trên phiếu —
-      mỗi HSD một dòng (một lô).</div>
-      <div class="sx-vh-list">${cua.map((x, i) => `
-        <button type="button" class="sx-nv-row" data-sua="${i}"
-          style="flex-direction:row;align-items:center;justify-content:space-between;
-          min-height:var(--sx-tap-lg)">
-          <span class="sx-nv-ten">HSD ${esc(hsdCua(x) ? veNgayDu(hsdCua(x)) : '—')} ✎</span>
-          <span class="sx-nv-qty">${formatNumber(soCua(x))}</span></button>`).join('')}</div>
-      <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-nk-hsd-khac">
-        + DÒNG HSD KHÁC</button>`;
-    m.body.querySelectorAll('[data-sua]').forEach((b) => b.addEventListener('click', () => {
-      m.close(); suaDong(cua[Number(b.dataset.sua)]);
-    }));
-    m.body.querySelector('#sx-nk-hsd-khac').addEventListener('click', () => {
-      m.close();
-      moHsd({
-        ten: cua[0].ten || tenSP(item), ngay: p.ngay, hsd: null,
-        macDinh: hsdMacDinh({ item }),
-        onOk: (v) => {
-          const h = v || hsdMacDinh({ item });
-          const trung = cua.find((x) => hsdCua(x) === h);
-          if (trung) { toast('Đã có dòng HSD này — sửa số dòng đó.'); suaDong(trung); return; }
-          dongMoi(item, h);
-        },
-      });
-    });
+    const md = hsdMacDinh({ item });
+    const trung = rows.find((x) => x.item === item && hsdCua(x) === md);
+    if (trung) moDong(trung); else dongMoi(item, null);
   }
 
   // Bấm một mã ở "vừa vào hộp": thêm đủ các dòng theo HSD còn thiếu trên phiếu.
@@ -665,37 +635,140 @@ function chiaCua(d) {
   return (d && d.chia && d.chia.length) ? d.chia : [{ hsd: null, con: (d || {}).con || 0 }];
 }
 
-// D114: cửa sổ nhập HSD. Ô ngày + nút nhanh theo tháng (HSD bánh thường tính
-// tròn tháng từ ngày sản xuất) + "Theo mặc định" để bỏ số gõ tay.
-export function moHsd({ ten, ngay, hsd, macDinh, onOk }) {
-  const m = openModal({ kicker: `Hạn sử dụng · nhập ngày ${veNgayDu(ngay)}`, title: ten });
+/**
+ * Bàn số MỘT MÀN (D124 Vào hộp Tết → D153 dùng chung với Nhập kho): chọn mã là gõ số luôn — tab đơn vị
+ * (THÙNG / HỘP, mỗi tab một số riêng; đếm thùng trước, lẻ ra mới sang hộp), ô HSD có nút nhanh, phím số,
+ * nút LƯU. Không qua cửa sổ số lượng rồi cửa sổ HSD riêng.
+ *
+ *   uoms / dvt   [{uom, he_so}] giảm dần (một đơn vị thì không có tab) / tên đơn vị khi không có uoms
+ *   chi_tiet     [{uom, sl, he_so}] đang có — ưu tiên; không có thì tự chia `tong` ra thùng + hộp
+ *   ngay         ngày nhập: HSD phải sau ngày này, nút +3T… cộng từ ngày này
+ *   hsd          HSD đang có ('' / null = dùng `macDinh` của mã); macDinh null = mã chưa khai hạn dùng
+ *   phu          chữ phụ cạnh tổng (vd "phiếu ghi 255" cho thủ kho)
+ *   daCo         [{nhan, so}] dòng KHÁC của cùng mã (mỗi HSD một lô) — bấm thì đóng bàn số, gọi onDaCo(i)
+ *   kiemLuu      (tong, hsd) → '' | lỗi: kiểm thêm lúc LƯU (vd trùng HSD dòng khác) — lỗi thì giữ bàn số
+ *   choPhepKhong true = LƯU được số 0 (sửa dòng về 0 là bỏ dòng)
+ *   onOk(tong, chi_tiet | null, hsd | null) — hsd null = đúng HSD mặc định
+ */
+export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0, hsd, macDinh, phu = '',
+  daCo, onDaCo, kiemLuu, choPhepKhong = false, onOk }) {
+  const ds = (uoms || []).filter((u) => u && u.uom);
+  const bac = ds.length ? ds : [{ uom: dvt || 'Hộp', he_so: 1 }];
+  const heSo = (u) => Number(u.he_so) || 1;
+  const goc = bac[bac.length - 1];
+  const so = bac.map(() => 0);
+  // Một đơn vị thì chi tiết cũ (nếu có) không còn nghĩa gì — số là tổng.
+  if (bac.length > 1 && chi_tiet && chi_tiet.length) {
+    chi_tiet.forEach((c) => { const i = bac.findIndex((u) => u.uom === c.uom); if (i >= 0) so[i] = Number(c.sl) || 0; });
+  } else if (tong > 0) {
+    const t = tachUom(tong, bac);
+    if (t) t.forEach((c) => { so[bac.findIndex((u) => u.uom === c.uom)] = c.sl; });
+    else so[bac.length - 1] = tong / heSo(goc);
+  }
+  // Chi tiết cũ không còn khớp bảng quy đổi (đổi tên đơn vị, xoá bậc, sửa hệ số): TỔNG là chuẩn — dồn phần
+  // chênh vào đơn vị kho VÀ nói ra, không để tổng tụt im lặng vào sổ kho.
+  let lech = 0;
+  if (tong > 0) {
+    lech = tong - bac.reduce((a, u, i) => a + so[i] * heSo(u), 0);
+    if (Math.abs(lech) > 1e-6) so[bac.length - 1] += lech / heSo(goc);
+    else lech = 0;
+  }
+  let tab = so.findIndex((x) => x > 0);
+  if (tab < 0) tab = 0;
+  let value = so[tab] ? String(so[tab]) : '';
+  let chuaGo = true;                      // phím số đầu tiên ghi đè số điền sẵn
+  const tinh = () => bac.reduce((a, u, i) => a + so[i] * heSo(u), 0);
+
+  const m = openModal({ kicker, title: ten });
+  m.body.classList.add('sx-sohsd');
   m.body.innerHTML = `
-    <div class="sx-muted">Ghi đúng HSD in trên bao bì. Ngày này thành hạn dùng của lô
-      trong kho.</div>
-    <input class="sx-textarea sx-nk-hsd-o" id="sx-hsd-o" type="date" min="${esc(congNgay(ngay, 1))}"
-      value="${esc(hsd || macDinh || '')}">
-    <div class="sx-nk-hsd-nhanh">${[3, 6, 9, 12].map((t) => `
-      <button type="button" class="sx-btn" data-thang="${t}">+${t} tháng</button>`).join('')}
+    ${(daCo || []).length ? `<div class="sx-sohsd-daco"><span class="sx-field-label">Đã có dòng</span>${
+  daCo.map((x, i) => `<button type="button" class="sx-np-chip" data-daco="${i}">${esc(x.nhan)} · ${
+    formatNumber(x.so)} ✎</button>`).join('')}</div>` : ''}
+    ${bac.length > 1 ? '<div class="sx-np-chips" id="sh-tab" role="tablist"></div>' : ''}
+    <div class="sx-numpad-display" id="sh-so"></div>
+    <div class="sx-sohsd-hsd">
+      <label class="sx-field-label" for="sh-hsd">HSD in trên hộp</label>
+      <input class="sx-textarea" type="date" id="sh-hsd" min="${esc(congNgay(ngay, 1) || '')}"
+        value="${esc(hsd || macDinh || '')}">
+      <div class="sx-sohsd-nhanh">${[3, 6, 9, 12].map((t) => `
+        <button type="button" class="sx-np-chip" data-thang="${t}">+${t}T</button>`).join('')}${
+  macDinh ? '<button type="button" class="sx-np-chip" id="sh-md">mặc định</button>' : ''}</div>
     </div>
-    ${macDinh ? `<div class="sx-muted">Mặc định theo mã hàng: <b>${esc(veNgayDu(macDinh))}</b></div>` : ''}
-    <div class="sx-warn-text" id="sx-hsd-loi" role="alert"></div>
-    <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sx-hsd-ok">LƯU HSD</button>
-    ${hsd && macDinh ? '<button type="button" class="sx-btn" id="sx-hsd-bo">Dùng mặc định</button>' : ''}
-  `;
-  const o = m.body.querySelector('#sx-hsd-o');
-  m.body.querySelectorAll('[data-thang]').forEach((b) => b.addEventListener('click', () => {
-    o.value = congThang(ngay, Number(b.dataset.thang));
-  }));
-  m.body.querySelector('#sx-hsd-ok').addEventListener('click', () => {
-    const v = o.value;
-    const loi = m.body.querySelector('#sx-hsd-loi');
-    if (!v) { loi.textContent = 'Chọn một ngày.'; return; }
-    if (v <= ngay) { loi.textContent = 'HSD phải sau ngày nhập.'; return; }
-    m.close();
-    onOk(v);
+    ${lech ? `<div class="sx-warn-text">⚠ Bảng quy đổi của mã hàng đã đổi so với lúc ghi: đã dồn ${
+    formatNumber(Math.abs(lech))} ${esc(goc.uom.toLowerCase())} ${lech > 0 ? 'thiếu' : 'thừa'} vào ô ${
+    esc(goc.uom)} để giữ đúng tổng ${formatNumber(tong)}. Đếm lại rồi sửa cho khớp.</div>` : ''}
+    <div class="sx-numpad-grid" id="sh-phim"></div>
+    <div class="sx-warn-text" id="sh-loi" role="alert"></div>
+    <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="sh-ok"></button>`;
+  const $ = (q) => m.body.querySelector(q);
+  const oHsd = $('#sh-hsd');
+
+  function ve() {
+    const t = tinh();
+    if (bac.length > 1) {
+      $('#sh-tab').innerHTML = bac.map((x, i) => `<button type="button" role="tab" aria-selected="${i === tab}"
+        class="sx-np-chip${i === tab ? ' sx-np-chip-on' : ''}" data-tab="${i}">${esc(x.uom)}${
+  so[i] ? ` · ${formatNumber(so[i])}` : ''}${heSo(x) > 1 ? ` <i>(${formatNumber(heSo(x))} ${
+    esc(goc.uom.toLowerCase())})</i>` : ''}</button>`).join('');
+      $('#sh-tab').querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
+        tab = Number(b.dataset.tab);
+        value = so[tab] ? String(so[tab]) : '';
+        chuaGo = true;
+        ve();
+      }));
+    }
+    $('#sh-so').innerHTML = `<div class="sx-np-left">
+        <div class="sx-numpad-unit">Số ${esc(bac[tab].uom.toLowerCase())}</div>
+        <div class="sx-numpad-value">${esc(value || '0')}</div></div>
+      <div class="sx-np-hint">${[bac.length > 1 ? `Tổng ${formatNumber(t)} ${esc(goc.uom.toLowerCase())}` : '',
+    esc(phu)].filter(Boolean).join(' · ')}</div>`;
+    $('#sh-ok').textContent = t > 0 ? `LƯU · ${formatNumber(t)} ${goc.uom.toUpperCase()}` : 'LƯU';
+    if ($('#sh-md')) $('#sh-md').classList.toggle('sx-np-chip-on', oHsd.value === macDinh);
+  }
+
+  ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].forEach((k) => {
+    const b = el('button', 'sx-numpad-key');
+    b.type = 'button';
+    b.textContent = k;
+    if (k === 'C' || k === '⌫') b.classList.add('sx-np-key-phu');
+    if (k === 'C') b.classList.add('sx-np-key-xoa');
+    b.addEventListener('click', () => {
+      value = bamPhim(value, k, chuaGo);
+      chuaGo = false;
+      so[tab] = Math.round(parseFloat(value || '0') || 0);
+      ve();
+    });
+    $('#sh-phim').appendChild(b);
   });
-  const bo = m.body.querySelector('#sx-hsd-bo');
-  if (bo) bo.addEventListener('click', () => { m.close(); onOk(null); });
+  m.body.querySelectorAll('[data-thang]').forEach((b) => b.addEventListener('click', () => {
+    oHsd.value = congThang(ngay, Number(b.dataset.thang)); ve();
+  }));
+  if ($('#sh-md')) $('#sh-md').addEventListener('click', () => { oHsd.value = macDinh; ve(); });
+  oHsd.addEventListener('change', ve);
+  m.body.querySelectorAll('[data-daco]').forEach((b) => b.addEventListener('click', () => {
+    m.close();
+    if (onDaCo) onDaCo(Number(b.dataset.daco));
+  }));
+
+  $('#sh-ok').addEventListener('click', () => {
+    const loi = $('#sh-loi');
+    const t = tinh();
+    const h = oHsd.value;
+    if (!(t > 0) && !choPhepKhong) {
+      loi.textContent = `Chưa nhập số ${bac.map((u) => u.uom.toLowerCase()).join(' / ')}.`;
+      return;
+    }
+    if (t > 0 && !h) { loi.textContent = 'Chưa có HSD — nhập theo HSD in trên hộp.'; return; }
+    if (t > 0 && h <= ngay) { loi.textContent = 'HSD phải sau ngày nhập.'; return; }
+    const them = t > 0 && kiemLuu ? kiemLuu(t, h) : '';
+    if (them) { loi.textContent = them; return; }
+    const ct = bac.length > 1
+      ? bac.map((u, i) => ({ uom: u.uom, sl: so[i], he_so: heSo(u) })).filter((c) => c.sl > 0) : null;
+    m.close();
+    onOk(t, ct && ct.length ? ct : null, h && h !== macDinh ? h : null);
+  });
+  ve();
   return m;
 }
 
@@ -729,6 +802,13 @@ export function congThang(iso, n) {
 export function veNgayDu(iso) {
   const d = String(iso || '').slice(0, 10).split('-');
   return d.length === 3 ? `${d[2]}/${d[1]}/${d[0].slice(2)}` : String(iso || '');
+}
+
+// Ngày hôm nay (phiếu nháp mới mang ngày hôm nay) — theo boot của server, không có thì theo máy.
+function homNay(boot) {
+  if (boot && boot.hom_nay) return String(boot.hom_nay).slice(0, 10);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // "2026-08-22" -> "22/08" — người ở xưởng đọc ngày kiểu này, không đọc ISO

@@ -359,8 +359,10 @@ kiem("shell biết thẻ lohsd", "lohsd: '/assets/sx/sx/cards/lohsd.js'" in sh)
 
 print("\n-- màn nhập kho: mỗi (mã, HSD) một dòng --")
 js = open("sx/public/sx/cards/nhapkhotp.js", encoding="utf-8").read()
-kiem("thêm mã đã có dòng → hỏi sửa dòng nào hay thêm dòng HSD khác",
-     "+ DÒNG HSD KHÁC" in js and "function themItem(item)" in js)
+# D153: hỏi "sửa dòng nào / + DÒNG HSD KHÁC" bỏ — chọn mã là vào thẳng bàn số; hành vi chạy thật ở
+# scripts/test-sohsd.mjs, đây chỉ soát dây nối.
+kiem("thêm mã đã có dòng → mở dòng HSD mặc định; dòng HSD khác là ô bấm trên bàn số; trùng HSD thì chặn",
+     "function themItem(item)" in js and "daCo: khac.map(" in js and "kiemLuu: (tong, h)" in js)
 kiem("bấm 'vừa vào hộp' thêm đủ các dòng theo HSD", "function themTuVaoHop(d)" in js
      and "chiaCua(d)" in js)
 kiem("tổng 'đã ghi' của một mã cộng mọi dòng của mã", "rows || []).filter((x) => x.item === d.item)" in js)

@@ -335,10 +335,13 @@ kiem("chưa có nhóm Tết nào → bày mọi TP + cờ nhắc cấu hình",
 CAY.update(cu)
 kiem("mã quét vẫn đủ (quét nhầm mã thường thì báo 'không phải hàng Tết')", dm["ma_quet"]["sp"] == {"893": "TP-SEN"})
 js = open("sx/public/sx/cards/vaohoptet.js", encoding="utf-8").read()
-kiem("chọn mã → vào thẳng bàn số Tết (không qua cửa sổ số lượng / HSD riêng)",
-     "moNhapTet({ s: sp(item)" in js and "openSoLuong" not in js and "moHsd" not in js)
+nk = open("sx/public/sx/cards/nhapkhotp.js", encoding="utf-8").read()
+# Hành vi bàn số (gõ, đổi tab, HSD, trùng lô) chạy thật ở scripts/test-sohsd.mjs; đây chỉ soát dây nối.
+kiem("chọn mã → vào thẳng bàn số MỘT MÀN, dùng chung với Nhập kho (moSoHsd, D153)",
+     "import { hsdTu, moSoHsd, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js'" in js
+     and "return moSoHsd({" in js and "function themItem(item)" in js and "openSoLuong" not in js)
 kiem("bàn số có tab đơn vị + ô HSD + kiểm HSD sau ngày nhập",
-     "data-tab" in js and 'id="tp-hsd"' in js and "h <= ngay" in js)
+     "data-tab" in nk and 'id="sh-hsd"' in nk and "h <= ngay" in nk)
 
 print("\n-- quyền + dây nối --")
 VAI.clear(); VAI.add("SX Vao Hop")

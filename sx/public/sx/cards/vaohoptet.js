@@ -2,20 +2,20 @@
 //
 // QC Tết ghi: mã hàng (chọn hoặc quét — chỉ HÀNG TẾT) → MỘT bàn số có tab THÙNG /
 // HỘP và ô HSD ngay trên đó (D124): chọn mã là gõ số luôn, không qua cửa sổ thứ hai.
+// Từ D153 bàn số này là moSoHsd dùng chung với màn Nhập kho thành phẩm.
 // Bấm LƯU một lần là xong: phiếu nhập kho NHÁP (thủ kho đếm + duyệt ở màn Nhập kho)
 // và sản lượng CÔNG NHẬT trong bảng vào hộp của ngày. Không chấm từng người, không
 // lập phiếu riêng, không bấm qua ba màn.
 //
 // Dòng đang gõ lưu tạm trên máy theo ngày: lỡ tay tải lại trang không mất.
 
-import { el, esc } from '/assets/sx/sx/lib/dom.js';
+import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
-import { moTaUom, tachUom } from '/assets/sx/sx/components/soluong.js';
-import { bamPhim } from '/assets/sx/sx/components/numpad.js';
+import { moTaUom } from '/assets/sx/sx/components/soluong.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
-import { congNgay, congThang, hsdTu, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js';
+import { hsdTu, moSoHsd, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js';
 
 const KHOA = 'sx-tet-dong-';
 
@@ -77,22 +77,31 @@ export async function render({ container, call, boot }) {
       </div>`;
     }).join('') : '<div class="sx-muted">Chưa có dòng nào — bấm THÊM MÃ HÀNG hoặc quét hộp.</div>';
     $('#tet-tong').textContent = formatNumber(dong.reduce((a, x) => a + Number(x.so || 0), 0));
-    const sua = (i) => {
-      const x = dong[i];
-      moNhapTet({ s: sp(x.item), ngay, cu: x, macDinh: hsdMacDinh(x.item),
-        onOk: (so, ct, hsd) => { x.so = so; x.ct = ct; x.hsd = hsd; ghiMay(); ve(); } });
-    };
-    box.querySelectorAll('[data-sl]').forEach((b) => b.addEventListener('click', () => sua(Number(b.dataset.sl))));
-    box.querySelectorAll('[data-hsd]').forEach((b) => b.addEventListener('click', () => sua(Number(b.dataset.hsd))));
+    box.querySelectorAll('[data-sl]').forEach((b) => b.addEventListener('click', () => moDong(dong[Number(b.dataset.sl)])));
+    box.querySelectorAll('[data-hsd]').forEach((b) => b.addEventListener('click', () => moDong(dong[Number(b.dataset.hsd)])));
     box.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => {
       dong.splice(Number(b.dataset.del), 1); ghiMay(); ve();
     }));
   }
 
-  // Chọn mã là vào thẳng bàn số (số thùng / hộp + HSD trên cùng một màn).
+  // Một bàn số cho cả số lẫn HSD. `x` = dòng đang sửa, null = dòng mới của `item`. Cùng mã + cùng HSD là
+  // cùng MỘT lô — thủ kho không duyệt được phiếu có hai dòng một lô — nên các dòng khác của mã hiện thành
+  // ô bấm trên bàn số, và lưu trùng HSD một dòng khác thì báo ngay tại đó.
+  function moDong(x, item = x && x.item) {
+    moNhapTet({ s: sp(item), ngay, cu: x, macDinh: hsdMacDinh(item),
+      khac: dong.filter((y) => y.item === item && y !== x),
+      onKhac: (y) => moDong(y),
+      onOk: (so, ct, hsd) => {
+        if (x) { x.so = so; x.ct = ct; x.hsd = hsd; } else dong.push({ item, so, ct, hsd });
+        ghiMay(); ve();
+      } });
+  }
+
+  // Chọn / quét mã là vào thẳng bàn số. Mã đã có dòng HSD mặc định thì mở sửa dòng đó (gõ số mới đè
+  // số cũ), chưa có thì mở dòng mới.
   function themItem(item) {
-    moNhapTet({ s: sp(item), ngay, cu: null, macDinh: hsdMacDinh(item),
-      onOk: (so, ct, hsd) => { dong.push({ item, so, ct, hsd }); ghiMay(); ve(); } });
+    const md = hsdMacDinh(item);
+    moDong(dong.find((y) => y.item === item && (y.hsd || md) === md) || null, item);
   }
 
   $('#tet-them').addEventListener('click', () => moChon(dm.rows || [], themItem));
@@ -198,99 +207,22 @@ function moChon(ds, onChon) {
 }
 
 /**
- * Bàn số Vào hộp Tết (D124): tab đơn vị (THÙNG / HỘP — mỗi tab một số riêng) + ô HSD
- * + phím số, tất cả trên MỘT màn. onOk(tong, chi_tiet|null, hsd|null) — hsd null là
- * dùng HSD mặc định của mã (ngày + Shelf Life).
+ * Bàn số Vào hộp Tết (D124): tab đơn vị (THÙNG / HỘP — mỗi tab một số riêng) + ô HSD + phím số, tất cả
+ * trên MỘT màn. Từ D153 là bàn số chung moSoHsd (cards/nhapkhotp.js) — màn Nhập kho dùng y hệt.
+ * onOk(tong, chi_tiet|null, hsd|null) — hsd null là dùng HSD mặc định của mã (ngày + Shelf Life).
+ * `khac` = các dòng khác cùng mã trên màn (mỗi HSD một lô): hiện thành ô bấm (onKhac), trùng HSD thì
+ * không cho lưu.
  */
-export function moNhapTet({ s, ngay, cu, macDinh, onOk }) {
-  const ds = (s.uoms || []).filter((u) => u && u.uom);
-  const bac = ds.length ? ds : [{ uom: s.dvt || 'Hộp', he_so: 1 }];
-  const goc = bac[bac.length - 1];
-  const so = bac.map(() => 0);
-  if (cu && cu.ct && cu.ct.length) {
-    cu.ct.forEach((c) => { const i = bac.findIndex((u) => u.uom === c.uom); if (i >= 0) so[i] = Number(c.sl) || 0; });
-  } else if (cu && cu.so) {
-    const t = tachUom(cu.so, bac);
-    if (t) t.forEach((c) => { so[bac.findIndex((u) => u.uom === c.uom)] = c.sl; });
-    else so[bac.length - 1] = cu.so;
-  }
-  let tab = 0;                           // đếm thùng trước, lẻ ra mới sang hộp
-  let value = so[0] ? String(so[0]) : '';
-  let chuaGo = value !== '';
-  let hsd = (cu && cu.hsd) || macDinh || '';
-  const heSo = (u) => Number(u.he_so) || 1;
-  const tong = () => bac.reduce((a, u, i) => a + so[i] * heSo(u), 0);
-
-  const m = openModal({ kicker: `Vào hộp Tết · ${veNgayDu(ngay)}`, title: s.ten });
-  m.body.classList.add('sx-tet-pad');
-  m.body.innerHTML = `
-    ${bac.length > 1 ? '<div class="sx-np-chips" id="tp-tab" role="tablist"></div>' : ''}
-    <div class="sx-numpad-display" id="tp-so"></div>
-    <div class="sx-tet-hsd">
-      <label class="sx-field-label" for="tp-hsd">HSD in trên hộp</label>
-      <input class="sx-textarea" type="date" id="tp-hsd" min="${esc(congNgay(ngay, 1))}" value="${esc(hsd)}">
-      <div class="sx-tet-hsd-nhanh">${[3, 6, 9, 12].map((t) => `
-        <button type="button" class="sx-np-chip" data-thang="${t}">+${t}T</button>`).join('')}${
-  macDinh ? '<button type="button" class="sx-np-chip" id="tp-md">mặc định</button>' : ''}</div>
-    </div>
-    <div class="sx-numpad-grid" id="tp-phim"></div>
-    <div class="sx-warn-text" id="tp-loi" role="alert"></div>
-    <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="tp-ok"></button>`;
-  const $ = (q) => m.body.querySelector(q);
-  const oHsd = $('#tp-hsd');
-
-  function ve() {
-    so[tab] = Math.round(parseFloat(value || '0') || 0);
-    const u = bac[tab];
-    const t = tong();
-    if (bac.length > 1) {
-      $('#tp-tab').innerHTML = bac.map((x, i) => `<button type="button" role="tab"
-        aria-selected="${i === tab}" class="sx-np-chip${i === tab ? ' sx-np-chip-on' : ''}" data-tab="${i}">
-        ${esc(x.uom)}${so[i] ? ` · ${formatNumber(so[i])}` : ''}${
-  heSo(x) > 1 ? ` <i>(${formatNumber(heSo(x))} ${esc(goc.uom.toLowerCase())})</i>` : ''}</button>`).join('');
-      $('#tp-tab').querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
-        tab = Number(b.dataset.tab);
-        value = so[tab] ? String(so[tab]) : '';
-        chuaGo = value !== '';
-        ve();
-      }));
-    }
-    $('#tp-so').innerHTML = `<div class="sx-np-left">
-        <div class="sx-numpad-unit">Số ${esc(u.uom.toLowerCase())}</div>
-        <div class="sx-numpad-value">${esc(value || '0')}</div></div>
-      <div class="sx-np-hint">${bac.length > 1 ? `Tổng ${formatNumber(t)} ${esc(goc.uom.toLowerCase())}` : ''}</div>`;
-    $('#tp-ok').textContent = t > 0 ? `LƯU · ${formatNumber(t)} ${goc.uom.toUpperCase()}` : 'LƯU';
-    $('#tp-md') && $('#tp-md').classList.toggle('sx-np-chip-on', !!macDinh && oHsd.value === macDinh);
-  }
-
-  ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].forEach((k) => {
-    const b = el('button', 'sx-numpad-key');
-    b.type = 'button';
-    b.textContent = k;
-    if (k === 'C' || k === '⌫') b.classList.add('sx-np-key-phu');
-    if (k === 'C') b.classList.add('sx-np-key-xoa');
-    b.addEventListener('click', () => { value = bamPhim(value, k, chuaGo); chuaGo = false; ve(); });
-    $('#tp-phim').appendChild(b);
+export function moNhapTet({ s, ngay, cu, macDinh, khac = [], onKhac, onOk }) {
+  const hsdCua = (y) => y.hsd || macDinh;
+  return moSoHsd({
+    kicker: `Vào hộp Tết · ${veNgayDu(ngay)}`, ten: s.ten, uoms: s.uoms, dvt: s.dvt, ngay,
+    chi_tiet: cu && cu.ct, tong: (cu && Number(cu.so)) || 0, hsd: cu && cu.hsd, macDinh,
+    daCo: khac.map((y) => ({ nhan: `HSD ${hsdCua(y) ? veNgayDu(hsdCua(y)) : '—'}`, so: Number(y.so) || 0 })),
+    onDaCo: (i) => onKhac && onKhac(khac[i]),
+    kiemLuu: (t, h) => (khac.some((y) => hsdCua(y) === h)
+      ? `Mã này đã có dòng HSD ${veNgayDu(h)} — cùng mã cùng HSD là một lô: bấm ô HSD đó phía trên để sửa số.`
+      : ''),
+    onOk,
   });
-  m.body.querySelectorAll('[data-thang]').forEach((b) => b.addEventListener('click', () => {
-    oHsd.value = congThang(ngay, Number(b.dataset.thang)); ve();
-  }));
-  if ($('#tp-md')) $('#tp-md').addEventListener('click', () => { oHsd.value = macDinh; ve(); });
-  oHsd.addEventListener('change', ve);
-
-  $('#tp-ok').addEventListener('click', () => {
-    const loi = $('#tp-loi');
-    const t = tong();
-    const h = oHsd.value;
-    if (!(t > 0)) { loi.textContent = 'Chưa nhập số thùng / hộp.'; return; }
-    if (!h) { loi.textContent = 'Chưa có HSD — nhập theo HSD in trên hộp.'; return; }
-    if (h <= ngay) { loi.textContent = 'HSD phải sau ngày nhập.'; return; }
-    const ct = bac.length > 1
-      ? bac.map((u, i) => ({ uom: u.uom, sl: so[i], he_so: heSo(u) })).filter((c) => c.sl > 0)
-      : null;
-    m.close();
-    onOk(t, ct, h === macDinh ? null : h);
-  });
-  ve();
-  return m;
 }
