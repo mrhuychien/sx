@@ -7,7 +7,8 @@ Một phiếu đi ba bước:
   3. ĐÓNG — Trưởng Ban ISO / người được giao (sx/qc/quyen.py) kiểm tra HIỆU LỰC: có hiệu lực thì đóng;
      chưa hiệu lực thì phiếu quay về Mở (đếm số lần làm lại), làm tiếp cho tới khi có hiệu lực.
 Hành động khắc phục là xoá NGUYÊN NHÂN để việc không lặp lại — khác "xử lý ngay" của phiếu sự cố
-(xử lý sản phẩm, máy lúc phát hiện). Vì vậy đóng phiếu sự cố không chờ phiếu khắc phục, và ngược lại.
+(xử lý sản phẩm, máy lúc phát hiện). Vì vậy đóng phiếu sự cố không chờ phiếu khắc phục, và ngược lại —
+chốt 09/10/2026: không bắt buộc sự cố nào (kể cả mức Cao) phải có phiếu khắc phục mới đóng.
 
 Mỗi sự cố tối đa một phiếu khắc phục chưa đóng; số phiếu ghi ngược vào ô "Số CAR" của sự cố.
 Hộp nhắc: phiếu Mở quá hạn (mức cao), phiếu chờ kiểm tra hiệu lực quá CHO_KIEM ngày.

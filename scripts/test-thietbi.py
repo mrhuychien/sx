@@ -222,9 +222,19 @@ if F.jinja2:
     kiem("BM.06.03 / 06.04 dựng được", "Nam châm" in A.in_bieu_mau("BM.06.03", 2026)
          and "Lưới" in A.in_bieu_mau("BM.06.04", 2026))
 st = {f["fieldname"]: f for f in json.load(open("sx/qc/doctype/sx_qc_setting/sx_qc_setting.json", encoding="utf-8"))["fields"]}
-kiem("SX QC Setting: hạn kiểm lần đầu 31/10/2026; người kiểm đồng hồ nhiệt mặc định TRỐNG (chờ quyết định)",
-     st["thiet_bi_han_dau"].get("default") == "2026-10-31" and not st["chung_chi_dong_ho"].get("default")
+kiem("SX QC Setting: hạn kiểm lần đầu 31/10/2026; người kiểm đồng hồ nhiệt mặc định Đào tạo nội bộ (chốt 09/10), "
+     "vẫn chọn được Giữ chứng chỉ",
+     st["thiet_bi_han_dau"].get("default") == "2026-10-31" and st["chung_chi_dong_ho"].get("default") == "Đào tạo nội bộ"
      and "Giữ chứng chỉ" in st["chung_chi_dong_ho"]["options"])
+PC = F.nap("sx.patches.d152_chung_chi_dong_ho", "sx/patches/d152_chung_chi_dong_ho.py")
+F.CAI_DAT.pop("chung_chi_dong_ho", None)
+PC.execute()
+kiem("patch D152: site chưa chọn → đặt Đào tạo nội bộ", F.CAI_DAT.get("chung_chi_dong_ho") == "Đào tạo nội bộ")
+F.CAI_DAT["chung_chi_dong_ho"] = "Giữ chứng chỉ"
+PC.execute()
+kiem("patch D152: đã chọn Giữ chứng chỉ → để nguyên", F.CAI_DAT["chung_chi_dong_ho"] == "Giữ chứng chỉ"
+     and "sx.patches.d152_chung_chi_dong_ho" in open("sx/patches.txt", encoding="utf-8").read())
+F.CAI_DAT["chung_chi_dong_ho"] = "Đào tạo nội bộ"
 hk = open("sx/hooks.py", encoding="utf-8").read()
 kiem("lịch chạy nền hằng ngày quét thiết bị quá hạn", '"daily": ["sx.qc.thiet_bi.quet_qua_han"]' in hk)
 kiem("patch có trong patches.txt", "sx.patches.d143_thiet_bi" in open("sx/patches.txt", encoding="utf-8").read())

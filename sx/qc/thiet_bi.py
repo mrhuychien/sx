@@ -25,7 +25,7 @@ LOAI = (DONG_HO, NAM_CHAM, LUOI, CAN, KHAC)
 # Biểu mẫu theo loại (BM.06.01 là danh mục). Cân / khác nằm trong danh mục, không có tờ riêng.
 BIEU_MAU = {DONG_HO: "BM.06.02", NAM_CHAM: "BM.06.03", LUOI: "BM.06.04"}
 # Chu kỳ mặc định (tháng) khi thiết bị để trống. Đồng hồ nhiệt 1 năm theo tài liệu; nam châm,
-# lưới sàng TẠM 12 tháng (tài liệu chưa ghi tần suất — Ban ISO sửa từng thiết bị). Cân: hạn
+# lưới sàng 12 tháng (chốt 09/10/2026 — thiết bị nào khác thì Ban ISO sửa chu kỳ của nó). Cân: hạn
 # là hạn ghi trên giấy kiểm định; 12 tháng chỉ để dự phòng khi chưa có giấy nào.
 CHU_KY = {DONG_HO: 12, NAM_CHAM: 12, LUOI: 12, CAN: 12, KHAC: 12}
 HAN_DAU = date(2026, 10, 31)

@@ -41,7 +41,8 @@ class SXKiemThietBi(Document):
         self.kiem_chung_chi()
 
     def kiem_chung_chi(self):
-        """W17 (f) — chờ quyết định; Setting "Giữ chứng chỉ" thì chặn, còn lại chỉ lưu biên bản."""
+        """W17 (f) — chốt 09/10/2026: Đào tạo nội bộ (chỉ lưu biên bản). Setting đổi sang "Giữ chứng chỉ"
+        thì chặn người tự kiểm chưa có chứng chỉ còn hạn."""
         if self.loai != TBM.DONG_HO or (self.hinh_thuc or TBM.NOI_BO) != TBM.NOI_BO:
             return
         try:

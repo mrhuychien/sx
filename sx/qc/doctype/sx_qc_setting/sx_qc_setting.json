@@ -295,7 +295,8 @@
    "fieldtype": "Select",
    "label": "Người kiểm đồng hồ nhiệt",
    "options": "\nĐào tạo nội bộ\nGiữ chứng chỉ",
-   "description": "W17 (f) — CHỜ QUYẾT ĐỊNH. Trống / Đào tạo nội bộ: app chỉ lưu biên bản đào tạo ở bảng dưới. Giữ chứng chỉ: người tự kiểm đồng hồ nhiệt (kiểm tra nội bộ) phải có chứng chỉ còn hạn trong bảng dưới, không thì app chặn ghi."
+   "default": "Đào tạo nội bộ",
+   "description": "W17 (f) — chốt ngày 09/10/2026: Đào tạo nội bộ — app chỉ lưu biên bản đào tạo ở bảng dưới, không chặn ghi. Đổi sang Giữ chứng chỉ thì người tự kiểm đồng hồ nhiệt (kiểm tra nội bộ) phải có chứng chỉ còn hạn trong bảng dưới, không thì app chặn ghi."
   },
   {
    "fieldname": "nguoi_kiem_dong_ho",

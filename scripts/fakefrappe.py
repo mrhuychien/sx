@@ -163,7 +163,13 @@ def get_value(dt, ten, fld=None, as_dict=False, **k):
     return d if as_dict else tuple(d.values())
 
 
+# Doctype Single: không có bảng riêng ("tabSX Settings") — như frappe thật, table_exists trả False.
+DON = {"SX Settings", "SX QC Setting", "Stock Settings"}
+
+
 def exists(dt, ten=None):
+    if dt == "DocType":                      # mọi doctype của app coi như đã migrate
+        return ten
     if isinstance(ten, dict):
         h = next((x for x in bang(dt).values() if khop(x, ten)), None)
         return h["name"] if h else None
@@ -350,9 +356,11 @@ def cai():
     frappe.get_single = frappe.get_cached_doc
     frappe.get_meta = lambda dt: types.SimpleNamespace(has_field=lambda f: True, get_field=lambda f: None)
     frappe.db = types.SimpleNamespace(get_value=get_value, exists=exists, set_value=set_value, count=count,
-                                      table_exists=lambda dt: True, commit=lambda: None,
+                                      table_exists=lambda dt: dt not in DON, commit=lambda: None,
                                       get_single_value=lambda dt, f: (CAI_DAT if dt == "SX QC Setting"
-                                                                      else CAI_DAT_SX).get(f))
+                                                                      else CAI_DAT_SX).get(f),
+                                      set_single_value=lambda dt, f, v: (CAI_DAT if dt == "SX QC Setting"
+                                                                         else CAI_DAT_SX).__setitem__(f, v))
     frappe.__dict__["_"] = lambda s: s
     fu = types.ModuleType("frappe.utils")
     fu.cint = lambda v: int(float(v or 0)) if str(v or 0).strip() not in ("", "None") else 0

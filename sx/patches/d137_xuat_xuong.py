@@ -9,7 +9,9 @@ from frappe.utils import nowdate
 
 
 def execute():
-    if not frappe.db.table_exists("SX Settings"):
+    # SX Settings là doctype Single: không có bảng "tabSX Settings" → table_exists luôn sai. Bản đầu dùng
+    # table_exists nên patch không làm gì (D152 chạy bù).
+    if not frappe.db.exists("DocType", "SX Settings"):
         return
     s = frappe.get_single("SX Settings")
     if s.get("xuat_xuong_tu_ngay"):

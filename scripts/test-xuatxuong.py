@@ -213,8 +213,9 @@ frappe.get_meta = lambda dt: types.SimpleNamespace(has_field=lambda f: True)
 frappe.render_template = lambda p, ctx: _render(p, ctx)
 frappe.db = types.SimpleNamespace(
     get_value=_get_value, count=lambda dt, f=None: len(get_all(dt, f)),
-    exists=lambda dt, f=None: bool(get_all(dt, f if isinstance(f, dict) else {"name": f})),
-    table_exists=lambda dt: True,
+    exists=lambda dt, f=None: True if dt == "DocType" else bool(get_all(dt, f if isinstance(f, dict) else {"name": f})),
+    # Như frappe thật: doctype Single (SX Settings) không có bảng riêng — D137 bản đầu hỏng đúng chỗ này.
+    table_exists=lambda dt: dt != "SX Settings",
     set_single_value=lambda dt, f, v: SETTINGS.update({f: v}),
 )
 frappe.__dict__["_"] = lambda s: s
@@ -503,6 +504,15 @@ SETTINGS["xuat_xuong_tu_ngay"] = date(2026, 9, 1)
 P.execute()
 kiem("patch: đã khai → để nguyên", SETTINGS["xuat_xuong_tu_ngay"] == date(2026, 9, 1))
 kiem("patch có trong patches.txt", "sx.patches.d137_xuat_xuong" in open("sx/patches.txt", encoding="utf-8").read())
+P2 = nap("sx.patches.d152_bu_ngay_xuat_xuong", "sx/patches/d152_bu_ngay_xuat_xuong.py")
+SETTINGS["xuat_xuong_tu_ngay"] = None
+P2.execute()
+kiem("D152 chạy bù (site đã chạy D137 bản hỏng): ngày áp dụng còn trống → đặt hôm nay; SX Settings là "
+     "Single (không có bảng riêng) vẫn chạy", SETTINGS["xuat_xuong_tu_ngay"] == "2026-10-08")
+SETTINGS["xuat_xuong_tu_ngay"] = date(2026, 9, 1)
+P2.execute()
+kiem("D152: đã khai → để nguyên", SETTINGS["xuat_xuong_tu_ngay"] == date(2026, 9, 1)
+     and "sx.patches.d152_bu_ngay_xuat_xuong" in open("sx/patches.txt", encoding="utf-8").read())
 j = {f["fieldname"]: f for f in json.load(open(
     "sx/qc/doctype/sx_kiem_tra_xuat_xuong/sx_kiem_tra_xuat_xuong.json", encoding="utf-8"))["fields"]}
 kiem("DocType: trạng thái khớp code, người kiểm / duyệt chỉ đọc",

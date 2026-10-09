@@ -15,8 +15,8 @@ Hàm THUẦN: nhận số liệu đã lấy (sx/api/qc_attp.py), không đọc D
 DO, VANG, XANH = "do", "vang", "xanh"
 CAO, THUONG = "cao", "thuong"      # = sx.qc.nhac.CAO / THUONG (không import: giữ file này thuần)
 
-# Diễn tập truy xuất: quá ngần này ngày chưa diễn tập lại thì cảnh báo. Tạm 12 tháng — tài liệu
-# chưa nêu tần suất; ISO 22000 chỉ đòi "kiểm tra định kỳ" hệ thống truy xuất.
+# Diễn tập truy xuất: quá ngần này ngày chưa diễn tập lại thì cảnh báo — 12 tháng (chốt 09/10/2026;
+# ISO 22000 chỉ đòi "kiểm tra định kỳ" hệ thống truy xuất).
 DIEN_TAP_TOI_DA_NGAY = 365
 CAN_BANG_DAT = 98       # W06: cân bằng lô đạt ≥ 98%
 

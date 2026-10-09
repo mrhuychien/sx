@@ -315,6 +315,17 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Chốt quyết định 09/10/2026, sửa patch D137 (D152)
+
+- **Đã chốt**: người kiểm đồng hồ nhiệt theo *Đào tạo nội bộ* (W17 f — patch đặt vào SX QC Setting nếu còn
+  trống); đóng sự cố không bắt buộc phiếu khắc phục; chu kỳ nam châm, lưới sàng 12 tháng; diễn tập truy xuất
+  12 tháng. Ba mục sau đúng như app đang chạy — chỉ bỏ chữ "tạm".
+- **Sửa lỗi D137 (W08)**: patch đặt "Áp dụng BM.08.04 từ ngày" kiểm `table_exists("SX Settings")`, nhưng SX
+  Settings là doctype Single (không có bảng riêng) nên patch không làm gì → ngày áp dụng trống → hàng thành
+  phẩm tồn từ trước W08 bị chặn bán. Đã sửa; **patch D152 chạy bù** (đặt = ngày cập nhật nếu còn trống) cho
+  site đã chạy D137. Đã tự khai ngày thì để nguyên. Frappe giả trong test giờ cho doctype Single "không có
+  bảng" như thật.
+
 ## Báo cáo tháng, chỉ tiêu ATTP (D151 — W25)
 
 - Màn QC → tab **Xem xét** → nút **Báo cáo** (`#/qc/baocao`): chọn tháng (mặc định tháng trước; số liệu
@@ -341,6 +352,7 @@ không thành `…-2`.
   *ĐÃ THỰC HIỆN* — phải có nguyên nhân, hành động, kết quả, ngày xong) → **Đóng**: Trưởng Ban ISO / người
   được giao **kiểm tra hiệu lực**. *Chưa hiệu lực* → phiếu về Mở, đếm số lần làm lại, ghi làm gì tiếp.
   Người làm không tự ghi kết luận / tự đóng (chặn cả Desk); rút lại được khi Ban ISO chưa kiểm.
+- Đóng phiếu sự cố **không** đòi phiếu khắc phục, kể cả sự cố mức Cao (chốt 09/10/2026) — hai phiếu độc lập.
 - Hộp nhắc + Tổng quan ATTP (thẻ thứ 14 *Hành động khắc phục*): phiếu quá hạn (mức cao), phiếu chờ kiểm
   tra hiệu lực quá 7 ngày. In **BM.01.07** từng phiếu; gói hồ sơ cho đoàn có thư mục BM.01.07 (patch d150
   thêm dòng vào danh mục).
@@ -378,7 +390,7 @@ không thành `…-2`.
 - Đèn lấy từ **chính hộp nhắc** (mỗi mục nhắc gắn mảng): có việc mức cao → Đỏ, có việc treo → Vàng,
   không có → Xanh — tổng quan và hộp nhắc không thể nói hai điều. Thêm ba luật hộp nhắc chưa có:
   khiếu nại quá hạn xử lý (cùng số ngày với phiếu sự cố) → Đỏ, đang mở → Vàng; **lô đang thu hồi →
-  Đỏ**; chưa diễn tập truy xuất / quá 12 tháng / lần gần nhất chưa đạt 98% → Vàng; NCC chưa duyệt hoặc
+  Đỏ**; chưa diễn tập truy xuất / quá 12 tháng (chốt 09/10) / lần gần nhất chưa đạt 98% → Vàng; NCC chưa duyệt hoặc
   thiếu hồ sơ → Vàng (không bao giờ Đỏ — W09 chỉ cảnh báo).
 - Mảng nào site chưa có dữ liệu / chưa migrate thì thẻ hiện "chưa có số liệu", các thẻ khác vẫn đủ.
 
@@ -441,17 +453,17 @@ không thành `…-2`.
   có); lưới sàng / rây — không rách, mắt lưới, khung; cân — kiểm định bên ngoài phải có số giấy + hạn.
   Tiêu chí hỏng mà ghi Đạt → app ép Không đạt.
 - **Hạn kiểm**: lần kiểm gần nhất + chu kỳ (mặc định 12 tháng — đồng hồ nhiệt 1 lần/năm theo tài liệu;
-  nam châm, lưới sàng **tạm** 12 tháng, sửa từng thiết bị), hoặc hạn ghi trên giấy hiệu chuẩn; **cân
+  nam châm, lưới sàng 12 tháng — chốt 09/10/2026, sửa từng thiết bị), hoặc hạn ghi trên giấy hiệu chuẩn; **cân
   theo hạn giấy kiểm định gần nhất** (kiểm nội bộ bằng quả chuẩn không kéo dài hạn). Chưa kiểm lần nào
   → hạn **31/10/2026** (*SX QC Setting → Hạn kiểm lần đầu*).
 - **Không đạt hoặc quá hạn → NGỪNG DÙNG + phiếu sự cố BM.08.02** (nguồn Thiết bị đo, mức Cao): Không đạt
   lập ngay; quá hạn do lịch chạy nền mỗi ngày quét — một phiếu gộp cho các thiết bị mới quá hạn, không
   lập lại cho cùng hạn. Kiểm lại Đạt → dùng lại. Hộp nhắc: quá hạn / không đạt (cao), đến hạn 30 ngày.
 - In **BM.06.01** (danh mục), **BM.06.02 / 06.03 / 06.04** (các lần kiểm trong năm).
-- **Người kiểm đồng hồ nhiệt — chờ anh chọn (W17 f)**: *SX QC Setting → Người kiểm đồng hồ nhiệt*
-  để trống / "Đào tạo nội bộ" = chỉ lưu biên bản đào tạo ở bảng ngay dưới; "Giữ chứng chỉ" = người
-  tự kiểm đồng hồ nhiệt (nội bộ) phải có chứng chỉ còn hạn trong bảng, không thì app chặn ghi.
-  C20 (cân phối trộn) chưa đưa vào.
+- **Người kiểm đồng hồ nhiệt (W17 f) — chốt 09/10/2026: Đào tạo nội bộ** (patch D152 đặt vào *SX QC
+  Setting → Người kiểm đồng hồ nhiệt*): app chỉ lưu biên bản đào tạo ở bảng ngay dưới. Đổi sang "Giữ chứng
+  chỉ" thì người tự kiểm đồng hồ nhiệt (nội bộ) phải có chứng chỉ còn hạn trong bảng, không thì app chặn ghi.
+  C20 (cân phối trộn): muốn theo dõi thì thêm ở màn Thiết bị đo, loại Cân — không cần sửa app.
 
 ## Số đo theo máy rang M1–M3, máy gói bột (D142 — W16)
 
