@@ -138,6 +138,46 @@ kiem("chỉ thiếu, không thừa: 1 Repack + 1 phiếu xuất = 2 chứng từ
 kiem("HSD đúng ngày chốt chưa tính là hết hạn", K.chia_chung_tu({"TP-DO": K.lap_ke_hoach(
     [lo("DO-150926", 4, ngay="2026-09-15")], {"2026-10-09": 4}, lambda h: None)}, "2026-10-09")["repack"])
 
+print("\n-- bán thành phẩm: kế hoạch theo LÔ (hàm thuần, D155) --")
+R1, R5 = lo("R-011026", 40), lo("R-051026", 25.5)
+ke = K.lap_ke_hoach_lo([R1, R5, lo("R-070926", 3, thu_hoi=True), lo("BBS-061026", -2)],
+                       {"R-011026": 38.4, "R-280926": 2, "BBS-061026": 0.5})
+kiem("lô cân ÍT hơn sổ: giữ phần cân thấy, xuất THIẾU phần chênh",
+     {"batch": "R-011026", "hsd": None, "so": 38.4} in ke["giu"]
+     and ke["xuat"] == [{"batch": "R-011026", "hsd": None, "so": 1.6}], ke)
+kiem("lô CHƯA CÂN giữ nguyên — không vào sổ / đếm của phiếu, không sinh chứng từ",
+     all("R-051026" not in str(ke[k]) for k in ("giu", "xuat", "nhap_lo", "bu_am")) and ke["so_sach"] == 38.0, ke)
+kiem("lô sổ không có mà cân thấy hàng → NHẬP THỪA vào đúng lô đó",
+     {"batch": "R-280926", "so": 2.0} in ke["nhap_lo"], ke["nhap_lo"])
+kiem("lô âm: bù về 0 rồi nhập phần cân thấy", ke["bu_am"] == [{"batch": "BBS-061026", "hsd": None, "so": 2.0}]
+     and {"batch": "BBS-061026", "so": 0.5} in ke["nhap_lo"], ke)
+kiem("lô thu hồi: bỏ qua dù có số cân, sổ 40 + 0 − 2 = 38, cân 38,4 + 2 + 0,5 = 40,9",
+     ke["bo_qua"] == [{"batch": "R-070926", "hsd": None, "so": 3.0}] and ke["dem"] == 40.9, ke)
+ke = K.lap_ke_hoach_lo([lo("R-070926", 3, thu_hoi=True)], {"R-070926": 1})
+kiem("… số cân của lô thu hồi không tính vào đếm", ke["dem"] == 0 and not K.co_thay_doi(ke), ke)
+ke = K.lap_ke_hoach_lo([R5], {"R-051026": 25.5})
+kiem("cân khớp sổ → không thay đổi gì", not K.co_thay_doi(ke) and ke["giu"] == [{"batch": "R-051026", "hsd": None,
+                                                                                    "so": 25.5}], ke)
+kiem("chỉ thừa (nhap_lo) cũng là có thay đổi", K.co_thay_doi(K.lap_ke_hoach_lo([R5], {"R-051026": 26})))
+ke = K.lap_ke_hoach_lo([lo(None, 30)], {None: 31.25})
+kiem("mã không quản lý lô: cân cả mã (lô None)", ke["nhap_lo"] == [{"batch": None, "so": 1.25}], ke)
+ke = K.lap_ke_hoach_lo([R1, lo("R-280926", 0.0000001)], {"R-011026": 0, "R-280926": 0})
+kiem("cân 0 = lô đã hết: xuất hết; lô sổ 0 cân 0 không đẻ dòng rác",
+     ke["xuat"] == [{"batch": "R-011026", "hsd": None, "so": 40.0}] and not ke["nhap_lo"] and not ke["giu"], ke)
+ke = K.lap_ke_hoach_lo([R1], {"R-011026": -5})
+kiem("số cân âm (dữ liệu hỏng) coi như 0 — không bao giờ đẻ nhập âm", ke["dem"] == 0 and ke["xuat"] == [
+    {"batch": "R-011026", "hsd": None, "so": 40.0}] and not ke["nhap_lo"], ke)
+ke = K.lap_ke_hoach_lo([R1, lo("BBS-061026", -2)], {"R-011026": 41, "BBS-061026": 0})
+bang = K.theo_lo(ke, lambda h: None)
+kiem("bảng theo lô: R-011026 40 → 41 (nhập thừa 1), lô âm −2 → 0 (bù lô âm 2)",
+     (bang["R-011026"]["truoc"], bang["R-011026"]["sau"], bang["R-011026"]["viec"]) == (40, 41, [("thua", None, 1.0)])
+     and (bang["BBS-061026"]["truoc"], bang["BBS-061026"]["sau"]) == (-2, 0), bang)
+ct = K.chia_chung_tu({"BOT-NEN": ke}, "2026-10-09")
+kiem("chứng từ: không Repack; nhập đúng lô (thừa + bù âm) — 1 phiếu nhập",
+     not ct["repack"] and not ct["xuat"] and K.so_chung_tu(ct) == 1
+     and {"item": "BOT-NEN", "hsd": None, "batch": "R-011026", "so": 1.0} in ct["nhap"]
+     and {"item": "BOT-NEN", "hsd": None, "batch": "BBS-061026", "so": 2.0} in ct["nhap"], ct)
+
 # ═══════════════════════════════ 2. controller + API trên Frappe giả ═══════════════════════════════
 print("\n-- phiếu kiểm kê: đếm, xem trước, chốt --")
 F.CAI_DAT_SX.update({"kho_tp": "Kho TP", "cong_ty": "RVHG"})
@@ -146,7 +186,8 @@ for i, ten, lo_, han, pre in (("TP-SEN", "Bánh đậu xanh sen", 1, 270, "SEN")
                               ("TP-KL", "Bánh không lô", 0, 270, "KL"), ("TP-MOI", "Hộp quà mới", 1, 365, "MOI")):
     F.bang("Item")[i] = {"name": i, "item_name": ten, "stock_uom": "Hộp", "custom_sx_nhom": "TP", "disabled": 0,
                          "has_batch_no": lo_, "shelf_life_in_days": han, "custom_batch_prefix": pre}
-F.bang("Item")["BOT-NEN"] = {"name": "BOT-NEN", "item_name": "Bột nền", "stock_uom": "Kg", "custom_sx_nhom": "BTP"}
+F.bang("Item")["BOT-NEN"] = {"name": "BOT-NEN", "item_name": "Bột nền", "stock_uom": "Kg", "custom_sx_nhom": "BTP-Bot",
+                             "has_batch_no": 1, "disabled": 0}
 F.bang("UOM Conversion Detail")["u1"] = {"name": "u1", "parent": "TP-SEN", "parenttype": "Item", "uom": "Thùng",
                                          "conversion_factor": 12}
 for p in ("Repack", "Material Issue", "Material Receipt"):
@@ -160,6 +201,9 @@ for b, i, hsd, nsx in (("SEN-100926", "TP-SEN", None, "2026-09-10"), ("SEN-20092
                           "creation": f"{nsx} 08:00:00", "custom_thu_hoi": 1 if b == "SEN-010926" else 0}
 
 SO = {}             # sổ cái kho giả: (item, batch) → tồn tại Kho TP
+SOB, SOX = {}, {}   # … tại Kho BTP, Kho Xuong (bán thành phẩm — D155)
+SO_KHO = {KHO: SO, "Kho BTP": SOB, "Kho Xuong": SOX}
+CHO_AM = {"v": False}  # site cho tồn âm (Stock Settings) — có lô âm trong kho nghĩa là đang bật
 for (i, b), q in {("TP-SEN", "SEN-100926"): 100, ("TP-SEN", "SEN-200926"): 50, ("TP-SEN", "SEN-HSD080627"): 30,
                   ("TP-SEN", "SEN-010926"): 10, ("TP-DO", "DO-150926"): 40, ("TP-KL", None): 5}.items():
     SO[(i, b)] = q
@@ -174,8 +218,11 @@ class StockEntry(F.Document):
         for r in self.items or []:
             assert r.get("qty", 0) > 0, ("qty", r)
             assert bool(r.get("s_warehouse")) != bool(r.get("t_warehouse")), ("kho", r)
-            assert r.get("use_serial_batch_fields") == 1 and r.get("batch_no"), ("lô", r)
-            assert F.bang("Batch").get(r["batch_no"], {}).get("item") == r["item_code"], ("lô sai mã", r)
+            if F.bang("Item")[r["item_code"]].get("has_batch_no", 1):
+                assert r.get("use_serial_batch_fields") == 1 and r.get("batch_no"), ("lô", r)
+                assert F.bang("Batch").get(r["batch_no"], {}).get("item") == r["item_code"], ("lô sai mã", r)
+            else:                                    # ERPNext: mã không lô mà dòng có lô → lỗi
+                assert not r.get("batch_no") and not r.get("use_serial_batch_fields"), ("mã không lô có lô", r)
             if p == "Material Issue":
                 assert r.get("s_warehouse"), r
             if p == "Material Receipt":
@@ -190,11 +237,12 @@ class StockEntry(F.Document):
 
     def _ghi(self, dau):
         for r in self.items:
-            k = (r["item_code"], r["batch_no"])
-            co = SO.get(k, 0)
+            so = SO_KHO[r.get("t_warehouse") or r.get("s_warehouse")]
+            k = (r["item_code"], r.get("batch_no"))
+            co = so.get(k, 0)
             q = r["qty"] * (1 if r.get("t_warehouse") else -1) * dau
-            assert co + q > -1e-9, ("âm kho", k, co, q)
-            SO[k] = co + q
+            assert co + q > -1e-9 or CHO_AM["v"], ("âm kho", k, co, q)
+            so[k] = round(co + q, 6)
 
     def on_submit(self):
         self._ghi(1)
@@ -228,7 +276,7 @@ xxq = types.ModuleType("sx.qc.xuat_xuong")
 xxq.chua_duyet = lambda cap: [(i, str(h)[:10], None) for i, h in cap if (i, str(h)[:10]) not in XX_CAI["duyet"]]
 sys.modules["sx.qc.xuat_xuong"] = xxq
 C = F.nap("sx.sx.doctype.sx_kiem_ke.sx_kiem_ke", "sx/sx/doctype/sx_kiem_ke/sx_kiem_ke.py")
-C._so_lo = lambda kho, items: [F.Doc(item=i, b=b, q=q) for (i, b), q in SO.items() if i in items and kho == KHO]
+C._so_lo = lambda kho, items: [F.Doc(item=i, b=b, q=q) for (i, b), q in SO_KHO.get(kho, {}).items() if i in items]
 F.dang_ky("SX Kiem Ke", C.SXKiemKe)
 A = F.nap("sx.api.kiemke", "sx/api/kiemke.py")
 
@@ -246,7 +294,7 @@ kiem("chưa có phiếu: thẻ bày tồn từng mã — sổ 180 (bỏ lô thu 
 kiem("bàn số có tab thùng / hộp theo bảng quy đổi của mã",
      sen["uoms"] == [{"uom": "Thùng", "he_so": 12}, {"uom": "Hộp", "he_so": 1}], sen["uoms"])
 kiem("mã không quản lý lô: đánh dấu, xếp cuối", hang(tq, "TP-KL")["khong_lo"] and tq["hang"][-1]["item"] == "TP-KL")
-kiem("thủ kho không được chốt", tq["duoc_chot"] is False)
+kiem("thủ kho chốt được (D155)", tq["duoc_chot"] is True)
 
 tq = A.bat_dau()
 P = tq["phieu"]["name"]
@@ -285,17 +333,20 @@ kiem("XEM TRƯỚC: không lỗi; sổ → đếm từng mã", not xt["loi"] and
 kiem("… chuyển 2 lô cũ sang 2 lô HSD, thiếu 22; số chứng từ kho sẽ sinh = 3",
      ma["TP-SEN"]["lo_cu"] == 2 and ma["TP-SEN"]["lo_moi"] == 2 and ma["TP-SEN"]["thieu"] == 22
      and xt["tong"]["phieu_kho"] == 3, (ma["TP-SEN"], xt["tong"]))
-kiem("thủ kho bấm chốt → không được", "quản lý" in (thu(lambda: A.chot(P)) or ""))
+R.CARD_ROLES["kiemke"].append("SX QC")
+F.vai("SX QC", u="qc@x")
+kiem("vai khác thủ kho / quản lý (thẻ có mở cho) → không chốt được", "thủ kho / quản lý" in (thu(lambda: A.chot(P)) or ""))
+R.CARD_ROLES["kiemke"].remove("SX QC")
+F.vai("SX Thu Kho", u="kho@x")
 
 F.bang("SX Phieu Nhap TP")["PN1"] = {"name": "PN1", "docstatus": 0}
 kiem("còn phiếu nhập kho nháp → cảnh báo (không chặn)", any("phiếu nhập kho nháp" in c for c in A.xem_truoc(P)["canh_bao"]))
 F.bang("SX Phieu Nhap TP").clear()
 
-F.vai("SX Quan Ly", u="ql@x")
 kq = A.chot(P)
 d = F.bang("SX Kiem Ke")[P]
-kiem("CHỐT (quản lý): phiếu Đã chốt, người chốt, tổng sổ 220 → đếm 164, lệch −56",
-     d["docstatus"] == 1 and d["trang_thai"] == "Đã chốt" and d["nguoi_chot"] == "ql@x"
+kiem("CHỐT (thủ kho — D155): phiếu Đã chốt, người chốt, tổng sổ 220 → đếm 164, lệch −56",
+     d["docstatus"] == 1 and d["trang_thai"] == "Đã chốt" and d["nguoi_chot"] == "kho@x"
      and (d["tong_so_sach"], d["tong_dem"], d["tong_lech"], d["so_ma"]) == (220, 164, -56, 3), kq)
 ds = json.loads(d["ds_se"])
 se = [F.bang("Stock Entry")[x["name"]] for x in ds]
@@ -456,6 +507,267 @@ kiem("tồn sau chốt: HSD 01/09/26 (hết hạn) 10, HSD 15/03/27 25, lô cũ 
 F.get_doc("SX Kiem Ke", P3).cancel()
 kiem("huỷ phiếu đó: tồn về như trước", all(abs(SO.get(k, 0) - SO_TRUOC.get(k, 0)) < 1e-9 for k in set(SO) | set(SO_TRUOC)))
 
+print("\n-- bán thành phẩm: cân theo lô (D155) --")
+BTP_ = "Bán thành phẩm"
+CHO_AM["v"] = True
+F.CAI_DAT_SX.update({"kho_btp": "Kho BTP", "kho_xuong": "Kho Xuong"})
+for i, ten, nhom, lo_ in (("BOT-BANH-SEN", "Bột bánh sen", "BTP-Banh", 1), ("DUONG-HOAN", "Đường hoán", "BTP-Phu", 0),
+                          ("DO-U", "Đỗ ủ", "BTP-Dau", 1)):
+    F.bang("Item")[i] = {"name": i, "item_name": ten, "stock_uom": "Kg", "custom_sx_nhom": nhom, "has_batch_no": lo_,
+                         "disabled": 0}
+for b, i, nsx, th in (("R-011026", "BOT-NEN", "2026-10-01", 0), ("R-051026", "BOT-NEN", "2026-10-05", 0),
+                      ("R-070926", "BOT-NEN", "2026-09-07", 1), ("R-280926", "BOT-NEN", "2026-09-28", 0),
+                      ("BBS-081026", "BOT-BANH-SEN", "2026-10-08", 0), ("BBS-061026", "BOT-BANH-SEN", "2026-10-06", 0),
+                      ("BBS-091026", "BOT-BANH-SEN", "2026-10-09", 0), ("R-011026-U", "DO-U", "2026-10-01", 0),
+                      ("DH-OLD", "DUONG-HOAN", "2026-01-01", 0)):
+    F.bang("Batch")[b] = {"name": b, "item": i, "manufacturing_date": nsx, "creation": f"{nsx} 08:00:00",
+                          "custom_thu_hoi": th}
+SOB.update({("BOT-NEN", "R-011026"): 40, ("BOT-NEN", "R-051026"): 25.5, ("BOT-NEN", "R-070926"): 3,
+            ("BOT-NEN", None): 1.5, ("BOT-BANH-SEN", "BBS-081026"): 12.5, ("BOT-BANH-SEN", "BBS-061026"): -2,
+            ("DUONG-HOAN", None): 30})
+SOX.update({("DO-U", "R-011026-U"): 8})
+F.bang("Bin")["b3"] = {"name": "b3", "item_code": "BOT-NEN", "warehouse": "Kho BTP", "valuation_rate": 30000}
+F.bang("SX Ngay San Xuat")["NSX-1"] = {"name": "NSX-1", "ngay": "2026-10-08", "docstatus": 0, "chot_ghiso": 1,
+                                       "chot_vaohop": 0}
+
+F.vai("SX Thu Kho", u="kho@x")
+tq = A.tong_quan()
+kiem("thẻ: ba kho để chọn — Thành phẩm (Kho TP), Bán thành phẩm (Kho BTP), Kho xưởng; mặc định Kho TP",
+     [(k["kho"], k["loai"]) for k in tq["cac_kho"]] == [("Kho TP", "Thành phẩm"), ("Kho BTP", BTP_),
+                                                        ("Kho Xuong", BTP_)]
+     and (tq["kho"], tq["loai"]) == ("Kho TP", "Thành phẩm"), tq["cac_kho"])
+tq = A.tong_quan("Kho BTP", BTP_)
+kiem("Kho BTP: mã xếp theo chuyền — bột nền → đường hoán → bột bánh (đỗ ủ nằm kho xưởng, không hiện)",
+     [x["item"] for x in tq["hang"]] == ["BOT-NEN", "DUONG-HOAN", "BOT-BANH-SEN"], [x["item"] for x in tq["hang"]])
+bn = hang(tq, "BOT-NEN")
+kiem("bột nền: lô theo ngày (cũ trước), lô thu hồi đánh dấu; tồn không gắn lô 1,5 báo riêng; sổ 67",
+     [(l["batch"], l["so"], l["thu_hoi"]) for l in bn["lo"]] == [("R-070926", 3, True), ("R-011026", 40, False),
+                                                                 ("R-051026", 25.5, False)]
+     and bn["le"] == 1.5 and bn["so_sach"] == 67 and bn["thu_hoi"] == 3 and bn["con_chua"] == 2
+     and bn["nhom"] == "Bột nền" and not bn["khong_lo"] and not bn["da_dem"], bn)
+kiem("đường hoán (mã không lô): một dòng lô None", hang(tq, "DUONG-HOAN")["khong_lo"]
+     and [l["batch"] for l in hang(tq, "DUONG-HOAN")["lo"]] == [None], hang(tq, "DUONG-HOAN"))
+kiem("cảnh báo: ngày sản xuất chưa chốt Vào hộp (bột chưa trừ sổ) — không chặn",
+     any("chưa chốt Vào hộp (08/10)" in c for c in tq["canh_bao"]) and not any("Ghi sổ" in c for c in tq["canh_bao"]),
+     tq["canh_bao"])
+F.bang("SX Ngay San Xuat")["NSX-2"] = {"name": "NSX-2", "ngay": "2026-10-09", "docstatus": 0, "chot_ghiso": 0,
+                                       "chot_vaohop": 0}
+kiem("… chưa chốt Ghi sổ cũng báo", any("chưa chốt Ghi sổ (09/10)" in c for c in A.tong_quan("Kho BTP", BTP_)["canh_bao"]))
+F.bang("SX Ngay San Xuat").pop("NSX-2")
+F.bang("SX Ngay San Xuat")["NSX-3"] = {"name": "NSX-3", "ngay": "2026-10-12", "docstatus": 0, "chot_ghiso": 0,
+                                       "chot_vaohop": 0}
+kiem("… phiếu ngày lập trước cho ngày SAU hôm nay thì không nhắc",
+     not any("12/10" in c for c in A.tong_quan("Kho BTP", BTP_)["canh_bao"]))
+tx = A.tong_quan("Kho Xuong", BTP_)
+kiem("kho xưởng: không cảnh báo chốt ngày (tầng 1 ghi sổ ngay); đỗ ủ hiện ở đó",
+     not tx["canh_bao"] and [x["item"] for x in tx["hang"]] == ["DO-U"] and tx["hang"][0]["nhom"] == "Đỗ ủ / đỗ vỡ", tx)
+kiem("kho không kiểm kê ở đây → chặn", "Không kiểm kê kho" in (thu(lambda: A.tong_quan("Kho NVL")) or ""))
+
+PT_TP = A.bat_dau()["phieu"]["name"]
+tq = A.bat_dau("Kho BTP", BTP_)
+PB = tq["phieu"]["name"]
+kiem("mở phiếu bán thành phẩm song song phiếu thành phẩm — mỗi kho một phiếu",
+     PB != PT_TP and F.bang("SX Kiem Ke")[PB]["loai"] == BTP_ and A.tong_quan()["phieu"]["name"] == PT_TP
+     and A.bat_dau("Kho BTP", BTP_)["phieu"]["name"] == PB and tq["loai"] == BTP_, (PB, PT_TP))
+kiem("+ MÃ KHÁC: bán thành phẩm chưa có trên sổ kho này", [x["item"] for x in tq["danh_muc"]] == ["DO-U"], tq["danh_muc"])
+kiem("+ LÔ KHÁC: lô của mã không có trên sổ kho này, mới nhất trước",
+     [x["batch"] for x in A.lo_khac(PB, "BOT-NEN")] == ["R-280926"] and A.lo_khac(PB, "BOT-NEN")[0]["ngay"] == "2026-09-28"
+     and [x["batch"] for x in A.lo_khac(PB, "BOT-BANH-SEN")] == ["BBS-091026"], A.lo_khac(PB, "BOT-NEN"))
+kiem("… tìm theo mã lô", A.lo_khac(PB, "BOT-NEN", tim="2809") and not A.lo_khac(PB, "BOT-NEN", tim="xyz"))
+
+tq = A.ghi_lo(PB, "BOT-NEN", "R-011026", 38.4)
+bn = hang(tq, "BOT-NEN")
+kiem("cân một lô: số kg lẻ ghi vào lô; lệch của mã chỉ tính lô đã cân (−1,6)",
+     next(l for l in bn["lo"] if l["batch"] == "R-011026")["can"] == 38.4 and bn["lech"] == -1.6
+     and bn["con_chua"] == 1 and bn["da_dem"] and bn["tong_dem"] == 38.4 and bn["so_sach_dem"] == 40, bn)
+A.ghi_lo(PB, "BOT-NEN", "R-051026", 25.5)
+tq = A.ghi_lo(PB, "BOT-NEN", "R-280926", 2)
+kiem("cân lô sổ không có (+ LÔ KHÁC): thêm dòng sổ 0, kèm ngày lô",
+     any(l["batch"] == "R-280926" and l["so"] == 0 and l["can"] == 2 and l["ngay"] == "2026-09-28"
+         for l in hang(tq, "BOT-NEN")["lo"]), hang(tq, "BOT-NEN")["lo"])
+kiem("… lô đã cân không còn trong + LÔ KHÁC", not A.lo_khac(PB, "BOT-NEN"))
+for mo_ta_, can_co, f in (
+        ("mã quản lý lô mà không chọn lô", "chọn lô", lambda: A.ghi_lo(PB, "BOT-NEN", None, 5)),
+        ("lô của mã khác", "không phải lô của", lambda: A.ghi_lo(PB, "BOT-NEN", "BBS-081026", 1)),
+        ("lô đang thu hồi", "THU HỒI", lambda: A.ghi_lo(PB, "BOT-NEN", "R-070926", 3)),
+        ("thành phẩm", "không phải bán thành phẩm", lambda: A.ghi_lo(PB, "TP-SEN", "SEN-100926", 1)),
+        ("mã không lô mà chọn lô", "không quản lý theo lô", lambda: A.ghi_lo(PB, "DUONG-HOAN", "DH-OLD", 1)),
+        ("số âm", "Số cân không được âm", lambda: A.ghi_lo(PB, "BOT-NEN", "R-011026", -1)),
+        ("ghi kiểu thành phẩm (HSD) vào phiếu bán thành phẩm", "cân theo lô",
+         lambda: A.ghi(PB, "BOT-NEN", hsd=H1, so_dem=1)),
+        ("cân lô vào phiếu thành phẩm", "đếm theo HSD", lambda: A.ghi_lo(PT_TP, "BOT-NEN", "R-011026", 1))):
+    kiem(f"chặn: {mo_ta_}", can_co in (thu(f) or ""), thu(f))
+tq = A.ghi_lo(PB, "DUONG-HOAN", None, 31.25)
+kiem("mã không lô: cân cả mã", hang(tq, "DUONG-HOAN")["lo"][0]["can"] == 31.25 and hang(tq, "DUONG-HOAN")["lech"] == 1.25)
+tq = A.het_hang(PB, "BOT-BANH-SEN")
+kiem("KHÔNG CÒN: mọi lô trên sổ của mã ghi cân 0",
+     sorted((l["batch"], l["can"]) for l in hang(tq, "BOT-BANH-SEN")["lo"]) == [("BBS-061026", 0), ("BBS-081026", 0)],
+     hang(tq, "BOT-BANH-SEN")["lo"])
+tq = A.ghi_lo(PB, "BOT-BANH-SEN", "BBS-081026", 12)
+kiem("cân lại một lô = ghi đè số cũ (không thêm dòng)",
+     sorted((l["batch"], l["can"]) for l in hang(tq, "BOT-BANH-SEN")["lo"]) == [("BBS-061026", 0), ("BBS-081026", 12)]
+     and len([r for r in F.bang("SX Kiem Ke")[PB]["dong"] if r["item"] == "BOT-BANH-SEN"]) == 2)
+tq = A.bo_lo(PB, "BOT-NEN", "R-280926")
+kiem("BỎ SỐ CÂN một lô (cân nhầm lô): lô về chưa cân — lô ngoài sổ thì rời danh sách, về lại + LÔ KHÁC",
+     not any(l["batch"] == "R-280926" for l in hang(tq, "BOT-NEN")["lo"]) and A.lo_khac(PB, "BOT-NEN"))
+kiem("… bỏ lô chưa cân → báo", "chưa cân" in (thu(lambda: A.bo_lo(PB, "BOT-NEN", "R-280926")) or ""))
+A.ghi_lo(PB, "BOT-NEN", "R-280926", 2)
+tq = A.dem_lai(PB, "DUONG-HOAN")
+kiem("CÂN LẠI cả mã: bỏ mọi số cân của mã", not hang(tq, "DUONG-HOAN")["da_dem"])
+A.ghi_lo(PB, "DUONG-HOAN", None, 31.25)
+
+xt = A.xem_truoc(PB)
+ma = {x["item"]: x for x in xt["ma"]}
+kiem("XEM TRƯỚC: không lỗi; bột nền 3 lô cân, sổ 65,5 → cân 65,9 (thiếu 1,6, thừa 2)",
+     not xt["loi"] and xt["loai"] == BTP_ and ma["BOT-NEN"]["lo_can"] == 3 and ma["BOT-NEN"]["so_sach"] == 65.5
+     and ma["BOT-NEN"]["dem"] == 65.9 and ma["BOT-NEN"]["thieu"] == 1.6 and ma["BOT-NEN"]["thua"] == 2, xt)
+kiem("… bột bánh: bù lô âm 2, thiếu 0,5; đường hoán thừa 1,25; 2 chứng từ (1 xuất + 1 nhập), không chuyển lô",
+     ma["BOT-BANH-SEN"]["bu_am"] == 2 and ma["BOT-BANH-SEN"]["thieu"] == 0.5 and ma["DUONG-HOAN"]["thua"] == 1.25
+     and xt["tong"]["phieu_kho"] == 2 and xt["tong"]["chuyen"] == 0 and xt["tong"]["so_lo"] == 6, xt["tong"])
+kiem("… cảnh báo chốt ngày đi theo xem trước", any("Vào hộp" in c for c in xt["canh_bao"]), xt["canh_bao"])
+html = A.bien_ban(PB)
+ok = ("BẢN NHÁP" in html and "Biên bản kiểm kê kho bán thành phẩm" in html and "R-011026" in html
+      and "38,4" in html and "-1,6" in html and "HSD" not in html)
+kiem("in bản nháp bán thành phẩm: BẢN NHÁP, từng lô sổ / cân / lệch (sổ 40 → cân 38,4: −1,6)", ok,
+     "" if ok else html[-2500:])
+
+dd = F.bang("SX Kiem Ke")[PB]
+for r in dd["dong"]:
+    r["dem_luc"] = "2026-10-09 09:00:00"
+F.bang("Stock Ledger Entry")["b1"] = {"name": "b1", "item_code": "BOT-NEN", "warehouse": "Kho BTP",
+                                      "voucher_type": "Stock Entry", "voucher_no": "SE-ME-1", "actual_qty": -5,
+                                      "serial_and_batch_bundle": "SBB-1", "creation": "2026-10-09 09:30:00",
+                                      "modified": "2026-10-09 09:30:00", "is_cancelled": 0}
+F.bang("Serial and Batch Entry")["e1"] = {"name": "e1", "parent": "SBB-1", "batch_no": "R-051026", "qty": -5}
+F.bang("Stock Ledger Entry")["b2"] = {"name": "b2", "item_code": "BOT-BANH-SEN", "warehouse": "Kho BTP",
+                                      "voucher_type": "Stock Entry", "voucher_no": "SE-ME-2", "actual_qty": 8,
+                                      "batch_no": "BBS-091026", "creation": "2026-10-09 09:40:00",
+                                      "modified": "2026-10-09 09:40:00", "is_cancelled": 0}
+F.bang("Stock Ledger Entry")["b3"] = {"name": "b3", "item_code": "BOT-NEN", "warehouse": "Kho Xuong",
+                                      "voucher_type": "Stock Entry", "voucher_no": "SE-XUONG", "actual_qty": 4,
+                                      "batch_no": "R-011026", "creation": "2026-10-09 09:45:00",
+                                      "modified": "2026-10-09 09:45:00", "is_cancelled": 0}
+SOB[("BOT-NEN", "R-051026")] -= 5
+SOB[("BOT-BANH-SEN", "BBS-091026")] = 8
+loi = " ".join(A.xem_truoc(PB)["loi"])
+kiem("chứng từ sau lúc cân xét theo LÔ: lô đã cân bị trừ (qua bundle) → chặn, nói cân lại lô đó",
+     "Bột nền lô R-051026" in loi and "SE-ME-1 (-5)" in loi and "Cân lại lô này" in loi, loi)
+kiem("… mẻ mới ra lô CHƯA cân, chứng từ ở kho khác → không chặn",
+     "SE-ME-2" not in loi and "SE-XUONG" not in loi and "R-011026" not in loi, loi)
+F.vai("SX Thu Kho", u="kho2@x")
+kiem("chốt lúc đó → không được", "Cân lại" in (thu(lambda: A.chot(PB)) or ""))
+A.ghi_lo(PB, "BOT-NEN", "R-051026", 20.5)
+kiem("cân lại lô đó → hết chặn", not A.xem_truoc(PB)["loi"], A.xem_truoc(PB)["loi"])
+
+kq = A.chot(PB)
+d = F.bang("SX Kiem Ke")[PB]
+kiem("CHỐT (thủ kho khác người lập cũng chốt được): Đã chốt; sổ 101 → cân 104,15 (+3,15), 3 mã, 2 chứng từ",
+     d["docstatus"] == 1 and d["trang_thai"] == "Đã chốt" and d["nguoi_chot"] == "kho2@x" and d["so_ma"] == 3
+     and (d["tong_so_sach"], d["tong_dem"], d["tong_lech"]) == (101, 104.15, 3.15) and kq["so_phieu_kho"] == 2, kq)
+se = [F.bang("Stock Entry")[x["name"]] for x in json.loads(d["ds_se"])]
+kiem("chứng từ: Material Issue (thiếu) → Material Receipt (thừa + bù âm), không Repack",
+     [x["purpose"] for x in se] == ["Material Issue", "Material Receipt"], [x["purpose"] for x in se])
+kiem("xuất thiếu ĐÚNG LÔ: R-011026 1,6; BBS-081026 0,5",
+     sorted((r["item_code"], r["batch_no"], r["qty"]) for r in se[0]["items"])
+     == [("BOT-BANH-SEN", "BBS-081026", 0.5), ("BOT-NEN", "R-011026", 1.6)], se[0]["items"])
+kiem("nhập thừa đúng lô (lô ngoài sổ, bù lô âm); mã không lô thì dòng không lô; theo giá vốn đang chạy",
+     sorted((r["item_code"], r.get("batch_no") or "", r["qty"]) for r in se[1]["items"])
+     == [("BOT-BANH-SEN", "BBS-061026", 2), ("BOT-NEN", "R-280926", 2), ("DUONG-HOAN", "", 1.25)]
+     and next(r for r in se[1]["items"] if r["item_code"] == "BOT-NEN")["basic_rate"] == 30000, se[1]["items"])
+kiem("TỒN SAU CHỐT = SỐ CÂN từng lô; lô chưa cân, lô thu hồi, tồn không lô của mã có lô giữ nguyên",
+     SOB[("BOT-NEN", "R-011026")] == 38.4 and SOB[("BOT-NEN", "R-051026")] == 20.5 and SOB[("BOT-NEN", "R-280926")] == 2
+     and SOB[("BOT-BANH-SEN", "BBS-081026")] == 12 and SOB[("BOT-BANH-SEN", "BBS-061026")] == 0
+     and SOB[("DUONG-HOAN", None)] == 31.25 and SOB[("BOT-NEN", "R-070926")] == 3 and SOB[("BOT-NEN", None)] == 1.5
+     and SOB[("BOT-BANH-SEN", "BBS-091026")] == 8, SOB)
+lo_bang = {(r["item"], r["batch"]): r for r in d["lo"]}
+kiem("bảng kết quả từng lô: sổ trước → sau + việc",
+     (lo_bang[("BOT-NEN", "R-011026")]["so_truoc"], lo_bang[("BOT-NEN", "R-011026")]["so_sau"]) == (40, 38.4)
+     and "xuất thiếu 1.6" in lo_bang[("BOT-NEN", "R-011026")]["viec"]
+     and "nhập thừa 2" in lo_bang[("BOT-NEN", "R-280926")]["viec"]
+     and "bù lô âm 2" in lo_bang[("BOT-BANH-SEN", "BBS-061026")]["viec"]
+     and "đang thu hồi" in lo_bang[("BOT-NEN", "R-070926")]["viec"]
+     and lo_bang[("DUONG-HOAN", None)]["so_sau"] == 31.25
+     and lo_bang[("BOT-NEN", "R-051026")]["viec"] == "khớp sổ — giữ nguyên",
+     {k: (v["so_truoc"], v["so_sau"], v["viec"]) for k, v in lo_bang.items()})
+kiem("không đánh dấu lô 'tồn cũ' (việc của lô thành phẩm theo HSD)",
+     not any(v.get("custom_kiem_ke") == PB for v in F.bang("Batch").values()))
+html = A.bien_ban(PB)
+ok = ("Biên bản kiểm kê kho bán thành phẩm" in html and "R-280926" in html and "Cân thật" in html
+      and "38,4" in html and "31,25" in html and se[0]["name"] in html and "Kế toán" in html
+      and "HSD" not in html and "BẢN NHÁP" not in html and "(không lô)" in html
+      and "-1,6" in html and "+3,15" in html and "Cộng 3 mã, 6 lô" in html)
+kiem("biên bản bán thành phẩm: tiêu đề, lô, cân thật, sổ lúc chốt → lệch từng lô, số kiểu VN, chứng từ, chỗ ký; "
+     "không cột HSD", ok,
+     "" if ok else html[-2500:])
+gd = A.tong_quan("Kho BTP", BTP_)["gan_day"]
+kiem("thẻ Kho BTP: phiếu vừa chốt vào gần đây; thẻ Kho TP không lẫn",
+     gd and gd[0]["name"] == PB and all(g["name"] != PB for g in A.tong_quan()["gan_day"]), gd)
+
+print("\n-- bán thành phẩm: chốt chặn khi sửa trên Desk, huỷ, kho xưởng --")
+F.vai("SX Thu Kho", u="kho@x")
+PB2 = A.bat_dau("Kho BTP", BTP_)["phieu"]["name"]
+for mo_ta_, dong, can_co in (
+        ("số cân âm", {"item": "BOT-NEN", "batch": "R-011026", "so_dem": -1}, "âm"),
+        ("lô của mã khác", {"item": "BOT-NEN", "batch": "BBS-081026", "so_dem": 1}, "không phải lô của")):
+    dd = F.get_doc("SX Kiem Ke", PB2)
+    dd.append("dong", dong)
+    kiem(f"lưu phiếu (Desk): {mo_ta_} → chặn", can_co in (thu(dd.save) or ""), thu(dd.save))
+dd = F.get_doc("SX Kiem Ke", PB2)
+dd.append("dong", {"item": "BOT-NEN", "batch": "R-011026", "so_dem": 1})
+dd.append("dong", {"item": "BOT-NEN", "batch": "R-011026", "so_dem": 2})
+kiem("lưu phiếu có hai dòng cùng (mã, lô) → chặn, bảo gộp", "gộp" in (thu(dd.save) or ""))
+dd = F.get_doc("SX Kiem Ke", PB2)
+dd.append("dong", {"item": "BOT-NEN", "batch": "R-011026", "hsd": H1, "so_dem": 38.4})
+dd.append("dong", {"item": "BOT-NEN", "batch": None, "so_dem": 1.5})
+dd.append("dong", {"item": "DUONG-HOAN", "batch": "DH-OLD", "so_dem": 30})
+dd.append("dong", {"item": "BOT-NEN", "batch": "R-070926", "so_dem": 3})
+dd.save()
+kiem("lưu được; HSD trên dòng bán thành phẩm bị bỏ",
+     next(r for r in F.bang("SX Kiem Ke")[PB2]["dong"] if r["batch"] == "R-011026")["hsd"] is None)
+loi = " ".join(A.xem_truoc(PB2)["loi"])
+kiem("chốt chặn: dòng không lô của mã có lô / dòng có lô của mã không lô / lô thu hồi",
+     "không ghi lô" in loi and "có ghi lô" in loi and "THU HỒI" in loi and "lô R-070926" in loi, loi)
+tq = A.het_hang(PB2, "BOT-NEN")
+kiem("KHÔNG CÒN: chỉ lô có trên sổ, bỏ lô thu hồi và tồn không gắn lô; xoá dòng cũ của mã",
+     sorted((l["batch"], l["can"]) for l in hang(tq, "BOT-NEN")["lo"] if l["can"] is not None)
+     == [("R-011026", 0), ("R-051026", 0), ("R-280926", 0)]
+     and sorted(r["batch"] or "" for r in F.bang("SX Kiem Ke")[PB2]["dong"] if r["item"] == "BOT-NEN")
+     == ["R-011026", "R-051026", "R-280926"], F.bang("SX Kiem Ke")[PB2]["dong"])
+kiem("… mã không có lô nào trên sổ kho này → báo", "không còn lô nào" in (thu(lambda: A.het_hang(PB2, "DO-U")) or ""))
+A.huy(PB2)
+A.huy(PT_TP)
+kiem("bỏ hai phiếu nháp", PB2 not in F.bang("SX Kiem Ke") and PT_TP not in F.bang("SX Kiem Ke"))
+
+F.vai("System Manager", u="admin@x")
+F.get_doc("SX Kiem Ke", PB).cancel()
+kiem("huỷ phiếu bán thành phẩm đã chốt: chứng từ huỷ ngược, tồn từng lô về như trước",
+     SOB[("BOT-NEN", "R-011026")] == 40 and SOB[("BOT-NEN", "R-280926")] == 0 and SOB[("DUONG-HOAN", None)] == 30
+     and SOB[("BOT-BANH-SEN", "BBS-061026")] == -2 and SOB[("BOT-BANH-SEN", "BBS-081026")] == 12.5
+     and F.bang("SX Kiem Ke")[PB]["trang_thai"] == "Đã huỷ"
+     and [x[2] for x in SE_LOG if x[0] == "cancel"][-2:] == ["Material Receipt", "Material Issue"], SOB)
+
+F.vai("SX Quan Ly", u="ql@x")
+PX = A.bat_dau("Kho Xuong", BTP_)["phieu"]["name"]
+A.ghi_lo(PX, "DO-U", "R-011026-U", 7.2)
+A.chot(PX)
+kiem("kho xưởng: đỗ ủ cân 7,2 → tồn lô 7,2 (xuất thiếu 0,8 ở chính kho xưởng)",
+     SOX[("DO-U", "R-011026-U")] == 7.2 and F.bang("SX Kiem Ke")[PX]["kho"] == "Kho Xuong", SOX)
+F.CAI_DAT_SX.update({"kho_btp": "Kho TP", "kho_xuong": None})
+kiem("chưa có Kho xưởng riêng → không có ô Kho xưởng; Kho BTP trùng Kho TP vẫn tách hai loại",
+     [(k["kho"], k["loai"]) for k in A.cac_kho()] == [("Kho TP", "Thành phẩm"), ("Kho TP", BTP_)], A.cac_kho())
+F.vai("SX Thu Kho", u="kho@x")
+PT2 = A.bat_dau()["phieu"]["name"]
+tq = A.tong_quan("Kho TP", BTP_)
+kiem("cùng một kho: thẻ bán thành phẩm không lấy phiếu / lịch sử của thành phẩm",
+     tq["loai"] == BTP_ and tq["phieu"] is None and tq["gan_day"] == [] and A.tong_quan()["gan_day"], tq["gan_day"])
+PB3 = A.bat_dau("Kho TP", BTP_)["phieu"]["name"]
+kiem("… mở phiếu bán thành phẩm riêng, thẻ thành phẩm vẫn là phiếu thành phẩm",
+     PB3 != PT2 and A.tong_quan()["phieu"]["name"] == PT2 and A.tong_quan("Kho TP", BTP_)["phieu"]["name"] == PB3)
+A.huy(PB3)
+A.huy(PT2)
+F.CAI_DAT_SX.update({"kho_btp": "Kho BTP", "kho_xuong": "Kho Xuong"})
+CHO_AM["v"] = False
+
 print("\n-- dây nối --")
 kiem("thẻ kiemke: thủ kho + quản lý; nằm ở màn Nhập kho (sau phiếu nhập) và Quản lý",
      R.CARD_ROLES["kiemke"] == [R.THU_KHO, R.QUAN_LY] and R.VIEW_CARDS["nhapkho"][:2] == ["nhapkhotp", "kiemke"]
@@ -475,5 +787,15 @@ for d_ in ("sx_kiem_ke", "sx_kiem_ke_dong", "sx_kiem_ke_lo"):
 dt = json.load(open("sx/sx/doctype/sx_kiem_ke/sx_kiem_ke.json", encoding="utf-8"))
 kiem("SX Kiem Ke submittable, có amended_from, bảng dòng + lô",
      dt["is_submittable"] == 1 and {"amended_from", "dong", "lo", "ds_se"} <= {f["fieldname"] for f in dt["fields"]})
+loai_ = next(f for f in dt["fields"] if f["fieldname"] == "loai")
+kiem("SX Kiem Ke: ô loại hàng Thành phẩm / Bán thành phẩm, mặc định Thành phẩm (phiếu D154 cũ migrate ra thành phẩm)",
+     loai_["options"].split("\n") == ["Thành phẩm", "Bán thành phẩm"] and loai_["default"] == "Thành phẩm"
+     and C.TP == "Thành phẩm" and C.BTP == "Bán thành phẩm")
+for d_ in ("sx_kiem_ke_dong", "sx_kiem_ke_lo"):
+    j = json.load(open(f"sx/sx/doctype/{d_}/{d_}.json", encoding="utf-8"))
+    kiem(f"{d_}: cột lưới ≤ 10 (Frappe bỏ bớt cột thừa trên Desk)",
+         sum(f.get("columns") or 0 for f in j["fields"] if f.get("in_list_view")) <= 10)
+kiem("bảng dòng có cột lô (bán thành phẩm cân theo lô)", "batch" in {f["fieldname"] for f in json.load(open(
+    "sx/sx/doctype/sx_kiem_ke_dong/sx_kiem_ke_dong.json", encoding="utf-8"))["fields"]})
 
 F.ket_thuc("KIEMKE")

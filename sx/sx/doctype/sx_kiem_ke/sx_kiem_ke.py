@@ -3,7 +3,7 @@
 ĐANG ĐẾM (nháp): thủ kho / quản lý ghi số đếm theo (mã, HSD in trên hộp) ở màn Nhập kho → Kiểm kê. Mã
 nào đã có dòng là mã đã đếm; dòng không HSD số 0 = đã đếm, không còn hộp nào.
 
-CHỐT (submit — quản lý): số đếm THAY tồn của từng mã đã đếm trong kho. sx/kiem_ke.py tính kế hoạch từng
+CHỐT (submit — thủ kho / quản lý, D155): số đếm THAY tồn của từng mã đã đếm trong kho. sx/kiem_ke.py tính kế hoạch từng
 lô, ở đây kiểm rồi sinh chứng từ kho:
   · mỗi mã có hàng phải chuyển lô: một Stock Entry Repack riêng — tiêu lô cũ, ra lô theo HSD. Repack chia
     giá vốn đầu vào cho đầu ra, nên một phiếu một mã (gộp nhiều mã là trộn giá vốn của mã này sang mã kia).
@@ -17,6 +17,11 @@ làm từ ngày áp dụng BM.08.04 mà chưa duyệt thì không cho chốt), n
 
 Chặn chốt khi mã đã đếm có chứng từ kho SAU lúc đếm (bán, nhập, huỷ phiếu…): số đếm không còn khớp sổ — đếm
 lại mã đó. Huỷ phiếu đã chốt (Desk) = huỷ các chứng từ kho theo thứ tự ngược.
+
+BÁN THÀNH PHẨM (D155, loai = "Bán thành phẩm", Kho BTP / Kho xưởng): hàng rời tính kg, lô theo ngày làm / lô
+rang, không có HSD — CÂN TỪNG LÔ. Mỗi (mã, lô) một dòng; lô đã cân thì số cân thay số sổ của lô đó, lô chưa cân
+giữ nguyên (sx/kiem_ke.lap_ke_hoach_lo). Chỉ sinh Material Issue (thiếu) / Material Receipt (thừa, bù lô âm) —
+không chuyển lô. Chứng từ sau lúc cân xét theo TỪNG LÔ: xưởng vẫn chạy lô khác thì không chặn lô đã cân.
 """
 
 import json
@@ -26,9 +31,10 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, nowdate
 
-from sx.kiem_ke import chia_chung_tu, co_thay_doi, lap_ke_hoach, theo_lo
+from sx.kiem_ke import chia_chung_tu, co_thay_doi, lap_ke_hoach, lap_ke_hoach_lo, theo_lo
 
 DANG_DEM, DA_CHOT, DA_HUY = "Đang đếm", "Đã chốt", "Đã huỷ"
+TP, BTP = "Thành phẩm", "Bán thành phẩm"
 
 VIEC = {"chuyen_di": "chuyển {so} sang lô HSD {hsd}", "nhan": "nhận {so} từ lô {lo}",
         "thieu": "xuất thiếu {so}", "thua": "nhập thừa {so}", "bu_am": "bù lô âm {so}",
@@ -105,11 +111,37 @@ def ton_lo(kho, items):
 
 
 class SXKiemKe(Document):
+    def la_btp(self):
+        return (self.loai or TP) == BTP
+
     # ─────────────────────────────── nháp ───────────────────────────────
     def validate(self):
         if self.docstatus == 0:
             self.trang_thai = DANG_DEM
-        self._chuan_dong()
+        if self.la_btp():
+            self._chuan_dong_lo()
+        else:
+            self._chuan_dong()
+
+    def _chuan_dong_lo(self):
+        """BTP: mỗi (mã, lô) một dòng; số ≥ 0 (0 = lô đã hết); lô phải là lô của chính mã đó."""
+        giu = [r for r in self.dong or [] if r.item]
+        lo = {b.name: b.item for b in frappe.get_all(
+            "Batch", filters={"name": ("in", [r.batch for r in giu if r.batch] or [""])}, fields=["name", "item"])}
+        thay = set()
+        for r in giu:
+            ten = r.ten or r.item
+            if flt(r.so_dem) < 0:
+                frappe.throw(_("Dòng {0} ({1}): số cân không được âm.").format(r.idx, ten))
+            r.hsd = None
+            if r.batch and lo.get(r.batch) != r.item:
+                frappe.throw(_("Lô {0} không phải lô của {1}.").format(r.batch, ten))
+            k = (r.item, r.batch or None)
+            if k in thay:
+                frappe.throw(_("{0} có hai dòng cùng lô {1} — gộp lại thành một dòng.").format(
+                    ten, r.batch or _("(không lô)")))
+            thay.add(k)
+        self.set("dong", giu)
 
     def _chuan_dong(self):
         """Mỗi (mã, HSD) một dòng; số ≥ 0; số > 0 phải có HSD; mã đã có dòng số > 0 thì bỏ dòng "không còn"."""
@@ -146,11 +178,30 @@ class SXKiemKe(Document):
                 d[h] = d.get(h, 0.0) + flt(r.so_dem)
         return ra
 
+    def dem_theo_lo(self):
+        """BTP: {item: {lô: số cân}} — lô đã cân (lô None = tồn không lô của mã)."""
+        ra = {}
+        for r in self.dong or []:
+            d = ra.setdefault(r.item, {})
+            d[r.batch or None] = d.get(r.batch or None, 0.0) + flt(r.so_dem)
+        return ra
+
     # ─────────────────────────────── chốt ───────────────────────────────
     def lap_ke(self):
         """Kế hoạch của mọi mã đã đếm: ({item: kế hoạch}, {(item, hsd): lô nhận}, {item: tên}).
         Dùng chung cho xem trước (API) và chốt — một chỗ tính."""
         from sx.utils import ma_lo_hsd, nsx_tu_hsd
+
+        if self.la_btp():
+            dem = self.dem_theo_lo()
+            items = list(dem)
+            ten = {i.name: i.item_name or i.name for i in frappe.get_all(
+                "Item", filters={"name": ("in", items or [""])}, fields=["name", "item_name"])}
+            self.flags.ten_ma = ten
+            self.flags.ton_khong_lo = {}
+            lots = ton_lo(self.kho, items)
+            self.flags.lo_thu_hoi = {(i, l["batch"]) for i in items for l in lots.get(i, []) if l["thu_hoi"]}
+            return {i: lap_ke_hoach_lo(lots.get(i, []), dem[i]) for i in items}, {}, ten
 
         dem = self.dem_theo_ma()
         items = list(dem)
@@ -179,6 +230,8 @@ class SXKiemKe(Document):
         loi = []
         if not ke:
             return [_("Chưa đếm mã nào.")]
+        if self.la_btp():
+            return self._kiem_btp(ke)
         # Mã tắt "Has Batch No" mà đã có giao dịch kho thì ERPNext không cho bật lô nữa (mfg.dam_bao_quan_ly_lo)
         # — không có lô thì không mang HSD được. Mã chưa từng có giao dịch thì lúc chốt tự bật.
         khong_lo = [i.item_name or i.name for i in frappe.get_all(
@@ -196,46 +249,88 @@ class SXKiemKe(Document):
         loi += self._xuat_xuong(ke)
         return loi
 
+    def _kiem_btp(self, ke):
+        """Lỗi chặn chốt của phiếu BÁN THÀNH PHẨM."""
+        loi = []
+        co_lo = {i.name for i in frappe.get_all(
+            "Item", filters={"name": ("in", list(ke)), "has_batch_no": 1}, fields=["name"])}
+        thieu_lo = sorted({r.item for r in self.dong or [] if not r.batch and r.item in co_lo})
+        if thieu_lo:
+            loi.append(_("Mã quản lý theo lô mà dòng cân không ghi lô — cân theo từng lô: {0}.").format(
+                ", ".join(self._ten(i) for i in thieu_lo)))
+        thua_lo = sorted({r.item for r in self.dong or [] if r.batch and r.item not in co_lo})
+        if thua_lo:
+            loi.append(_("Mã không quản lý theo lô mà dòng cân có ghi lô — bỏ lô ở dòng đó: {0}.").format(
+                ", ".join(self._ten(i) for i in thua_lo)))
+        th = getattr(self.flags, "lo_thu_hoi", None) or set()
+        cham = sorted({(r.item, r.batch) for r in self.dong or [] if (r.item, r.batch) in th})
+        if cham:
+            loi.append(_("Lô đang THU HỒI không kiểm ở đây (để riêng, xử lý theo phiếu thu hồi): {0}.").format(
+                ", ".join(f"{self._ten(i)} lô {b}" for i, b in cham)))
+        return loi + self._giao_dich_sau_dem(list(ke))
+
     def _giao_dich_sau_dem(self, items):
-        """Mã có chứng từ kho ở kho này SAU lúc đếm (dòng đếm sớm nhất của mã) → số đếm không còn khớp sổ.
-        Tính chứng từ MỚI (creation sau mốc, chưa huỷ) và chứng từ HUỶ sau mốc — không tính SLE chỉ bị
-        repost lại giá (modified đổi mà số không đổi)."""
+        """Có chứng từ kho ở kho này SAU lúc đếm → số đếm không còn khớp sổ. Thành phẩm xét theo MÃ (số đếm thay cả
+        mã; mốc = dòng đếm sớm nhất của mã); bán thành phẩm xét theo LÔ (mốc = lúc cân lô đó) — xưởng chạy lô khác
+        thì lô đã cân vẫn đúng. Tính chứng từ MỚI (creation sau mốc, chưa huỷ) và chứng từ HUỶ sau mốc — không
+        tính SLE chỉ bị repost lại giá (modified đổi mà số không đổi)."""
+        lo_rieng = self.la_btp()
         moc = {}
         for r in self.dong or []:
             if r.item in items and r.dem_luc:
+                k = (r.item, r.batch or None) if lo_rieng else r.item
                 t = get_datetime(r.dem_luc)
-                moc[r.item] = min(moc.get(r.item, t), t)
+                moc[k] = min(moc.get(k, t), t)
         if not moc:
             return []
         t0 = min(moc.values())
+        ma = sorted({k[0] for k in moc} if lo_rieng else set(moc))
         truong = ["name", "item_code", "voucher_type", "voucher_no", "actual_qty", "creation", "modified",
-                  "is_cancelled"]
+                  "is_cancelled", "batch_no", "serial_and_batch_bundle"]
         gap = {}
         for f in ("creation", "modified"):
             for s in frappe.get_all("Stock Ledger Entry", filters={
-                    "warehouse": self.kho, "item_code": ("in", list(moc)), f: (">", t0)}, fields=truong):
+                    "warehouse": self.kho, "item_code": ("in", ma), f: (">", t0)}, fields=truong):
                 gap[s.name] = s
+        phan = {}                      # SLE → [(lô, số)] — một SLE có thể chạm nhiều lô qua bundle
+        if lo_rieng:
+            goi = [s.serial_and_batch_bundle for s in gap.values() if s.get("serial_and_batch_bundle")]
+            ent = {}
+            if goi:
+                for e in frappe.get_all("Serial and Batch Entry", filters={"parent": ("in", goi)},
+                                        fields=["parent", "batch_no", "qty"]):
+                    ent.setdefault(e.parent, []).append((e.batch_no or None, flt(e.qty)))
+            for s in gap.values():
+                phan[s.name] = ent.get(s.get("serial_and_batch_bundle")) or [(s.get("batch_no") or None,
+                                                                              flt(s.actual_qty))]
         sau = {}
         for s in gap.values():
-            t = moc.get(s.item_code)
-            if not t:
-                continue
-            moi, huy = get_datetime(s.creation) > t, cint(s.is_cancelled)
-            if moi and not huy:
-                anh = flt(s.actual_qty)
-            elif not moi and huy and get_datetime(s.modified) > t:
-                anh = -flt(s.actual_qty)
-            else:
-                continue
-            g = sau.setdefault(s.item_code, {})
-            g[(s.voucher_type, s.voucher_no)] = g.get((s.voucher_type, s.voucher_no), 0.0) + anh
+            for b, q in (phan[s.name] if lo_rieng else [(None, flt(s.actual_qty))]):
+                k = (s.item_code, b) if lo_rieng else s.item_code
+                t = moc.get(k)
+                if not t:
+                    continue
+                moi, huy = get_datetime(s.creation) > t, cint(s.is_cancelled)
+                if moi and not huy:
+                    anh = q
+                elif not moi and huy and get_datetime(s.modified) > t:
+                    anh = -q
+                else:
+                    continue
+                g = sau.setdefault(k, {})
+                g[(s.voucher_type, s.voucher_no)] = g.get((s.voucher_type, s.voucher_no), 0.0) + anh
         loi = []
-        for item, g in sorted(sau.items()):
+        for k, g in sorted(sau.items(), key=lambda x: str(x[0])):
             ct = [f"{vt} {vn} ({'+' if q > 0 else ''}{_so(q)})" for (vt, vn), q in sorted(g.items())
                   if abs(q) > 1e-9]
-            if ct:
+            if not ct:
+                continue
+            if lo_rieng:
+                loi.append(_("{0} lô {1}: có chứng từ kho sau lúc cân — {2}. Cân lại lô này rồi chốt.").format(
+                    self._ten(k[0]), k[1] or _("(không lô)"), ", ".join(ct)))
+            else:
                 loi.append(_("{0}: có chứng từ kho sau lúc đếm — {1}. Bấm ĐẾM LẠI mã này, đếm lại rồi chốt.")
-                           .format(self._ten(item), ", ".join(ct)))
+                           .format(self._ten(k), ", ".join(ct)))
         return loi
 
     def _xuat_xuong(self, ke):
@@ -276,7 +371,7 @@ class SXKiemKe(Document):
         self.set("lo", [])
         for i in sorted(ke, key=lambda x: ten.get(x, x)):
             bang = theo_lo(ke[i], lambda h, i=i: ten_lo[(i, h)])
-            for b, g in sorted(bang.items(), key=lambda x: (x[1]["hsd"] or "", x[0])):
+            for b, g in sorted(bang.items(), key=lambda x: (x[1]["hsd"] or "", x[0] or "")):
                 self.append("lo", {"item": i, "ten": ten.get(i, i), "batch": b, "hsd": g["hsd"],
                                    "so_truoc": g["truoc"], "so_sau": g["sau"],
                                    "chenh": flt(g["sau"] - g["truoc"], 6), "viec": mo_ta_viec(g["viec"])})
@@ -305,6 +400,9 @@ class SXKiemKe(Document):
 
         def zero(i):
             return {} if gia.get(i, 0) > 0 else {"allow_zero_valuation_rate": 1}
+
+        def lo_cua(b):
+            return {"use_serial_batch_fields": 1, "batch_no": b} if b else {}
 
         def phieu(purpose, ghi_chu, dong):
             se = frappe.new_doc("Stock Entry")
@@ -338,19 +436,20 @@ class SXKiemKe(Document):
                      for h, q in sorted(den.items())])
 
         # 2. Thiếu (sổ có, đếm không thấy) + nguồn của phần chuyển dính lô hết hạn.
-        xuat = [{"item_code": x["item"], "qty": x["so"], "s_warehouse": self.kho, "use_serial_batch_fields": 1,
-                 "batch_no": x["batch"], **zero(x["item"])} for x in ct["xuat"]]
+        xuat = [{"item_code": x["item"], "qty": x["so"], "s_warehouse": self.kho, **lo_cua(x["batch"]),
+                 **zero(x["item"])} for x in ct["xuat"]]
         if xuat:
             phieu("Material Issue", _("Kiểm kê {0}: xuất điều chỉnh phần THIẾU (sổ có, đếm không thấy); hàng hết "
                                       "hạn chuyển lô đi đường xuất / nhập.").format(self.name), xuat)
 
         # 3. Thừa (vào lô theo HSD) + bù lô âm + đích của phần chuyển hết hạn — giá vốn đang chạy của mã.
         def vao(i, b, so):
-            d = {"item_code": i, "qty": so, "t_warehouse": self.kho, "use_serial_batch_fields": 1, "batch_no": b}
+            d = {"item_code": i, "qty": so, "t_warehouse": self.kho, **lo_cua(b)}
             d.update({"basic_rate": gia[i]} if gia.get(i, 0) > 0 else {"allow_zero_valuation_rate": 1})
             return d
 
-        nhap = [vao(x["item"], x["batch"] or ten_lo[(x["item"], x["hsd"])], x["so"]) for x in ct["nhap"]]
+        nhap = [vao(x["item"], x["batch"] or (ten_lo[(x["item"], x["hsd"])] if x["hsd"] else None), x["so"])
+                for x in ct["nhap"]]
         if nhap:
             phieu("Material Receipt", _("Kiểm kê {0}: nhập điều chỉnh phần THỪA (đếm thấy, sổ không có), bù lô "
                                         "âm; hàng hết hạn chuyển lô đi đường xuất / nhập.").format(self.name), nhap)

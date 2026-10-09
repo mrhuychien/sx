@@ -1,4 +1,4 @@
-{#- Biên bản kiểm kê kho thành phẩm theo HSD (D154). A4 dọc. -#}
+{#- Biên bản kiểm kê kho: thành phẩm theo HSD (D154) / bán thành phẩm theo lô, kg (D155). A4 dọc. -#}
 <style>
   @page { size: A4 portrait; margin: 12mm 12mm; }
   .kk { font: 12px/1.4 "Times New Roman", serif; color: #000; }
@@ -18,12 +18,38 @@
 </style>
 <div class="kk">
   {% if cong_ty %}<div class="ct">{{ cong_ty }}</div>{% endif %}
-  <h1>Biên bản kiểm kê kho thành phẩm</h1>
+  <h1>Biên bản kiểm kê kho {{ "bán thành phẩm" if btp else "thành phẩm" }}</h1>
   <div class="ma">Số {{ d.name }} &nbsp;·&nbsp; Kho: {{ d.kho }} &nbsp;·&nbsp; Ngày kiểm kê {{ vn(d.ngay) }}
     {% if d.chot_luc %}&nbsp;·&nbsp; Chốt {{ vn(d.chot_luc) }} {{ (d.chot_luc|string)[11:16] }}{% endif %}</div>
   {% if nhap %}<div class="nhap">BẢN NHÁP — chưa chốt; số sổ sách tính tới lúc in</div>{% endif %}
   {% if huy %}<div class="nhap">PHIẾU ĐÃ HUỶ — các chứng từ kho của phiếu đã huỷ</div>{% endif %}
 
+  {% if btp %}
+  <h2>I. Số cân theo lô (kg)</h2>
+  <table>
+    <tr><th style="width:5%">STT</th><th>Bán thành phẩm</th><th style="width:18%">Lô</th><th class="s" style="width:11%">Cân thật</th>
+      <th class="s" style="width:11%">Sổ sách</th><th class="s" style="width:11%">Chênh lệch</th></tr>
+    {% for m in ma %}
+      {% set stt = loop.index %}
+      {% set n = m.dem|length %}
+      {% for x in m.dem %}
+      <tr>
+        {% if loop.first %}<td rowspan="{{ n }}">{{ stt }}</td>
+          <td rowspan="{{ n }}">{{ m.ten }}</td>{% endif %}
+        <td>{{ x.batch or "(không lô)" }}</td>
+        <td class="s">{{ so(x.so) }}</td>
+        <td class="s">{{ so(x.so_sach) }}</td>
+        <td class="s">{% if x.lech is not none %}{{ "+" if x.lech > 0 else "" }}{{ so(x.lech) }}{% endif %}</td>
+      </tr>
+      {% endfor %}
+    {% endfor %}
+    <tr class="tong"><td colspan="3">Cộng {{ ma|length }} mã, {{ tong.so_lo }} lô</td><td class="s">{{ so(tong.dem) }}</td>
+      <td class="s">{{ so(tong.so_sach) }}</td>
+      <td class="s">{% if tong.lech is not none %}{{ "+" if tong.lech > 0 else "" }}{{ so(tong.lech) }}{% endif %}</td></tr>
+  </table>
+  <div class="gc">Lô đã cân: số cân thay số sổ của lô đó (lô đang thu hồi để riêng, không kiểm). Lô không có trong
+    biên bản: giữ nguyên số sổ sách.</div>
+  {% else %}
   <h2>I. Số đếm theo HSD in trên hộp</h2>
   <table>
     <tr><th style="width:5%">STT</th><th>Sản phẩm</th><th style="width:14%">HSD</th><th class="s" style="width:11%">Số đếm</th>
@@ -48,19 +74,21 @@
   </table>
   <div class="gc">Mã đã đếm: số đếm thay toàn bộ tồn của mã trong kho (trừ lô đang thu hồi — để riêng, không kiểm).
     Mã không có trong biên bản: giữ nguyên số sổ sách.</div>
+  {% endif %}
 
   {% if d.lo %}
   <h2>II. Điều chỉnh theo lô</h2>
   <table>
-    <tr><th>Sản phẩm</th><th style="width:20%">Lô</th><th style="width:11%">HSD</th><th class="s" style="width:10%">Sổ trước</th>
-      <th class="s" style="width:10%">Sau</th><th style="width:28%">Việc</th></tr>
+    <tr><th>{{ "Bán thành phẩm" if btp else "Sản phẩm" }}</th><th style="width:20%">Lô</th>{% if not btp %}<th style="width:11%">HSD</th>{% endif %}
+      <th class="s" style="width:10%">Sổ trước</th><th class="s" style="width:10%">Sau</th><th style="width:28%">Việc</th></tr>
     {% for r in d.lo %}
-    <tr><td>{{ r.ten or r.item }}</td><td>{{ r.batch }}</td><td>{{ vn(r.hsd) if r.hsd else "chưa có" }}</td>
+    <tr><td>{{ r.ten or r.item }}</td><td>{{ r.batch or "(không lô)" }}</td>{% if not btp %}<td>{{ vn(r.hsd) if r.hsd else "chưa có" }}</td>{% endif %}
       <td class="s">{{ so(r.so_truoc) }}</td><td class="s">{{ so(r.so_sau) }}</td><td>{{ r.viec }}</td></tr>
     {% endfor %}
   </table>
-  <div class="gc">Hàng chuyển từ lô cũ sang lô theo HSD giữ nguyên giá vốn (Stock Entry Repack); phần thiếu / thừa ghi
-    điều chỉnh kho (Material Issue / Material Receipt).{% if se %} Chứng từ kho: {{ se|join(", ") }}.{% endif %}</div>
+  <div class="gc">{% if btp %}Phần thiếu / thừa của từng lô ghi điều chỉnh kho (Material Issue / Material Receipt), theo
+    giá vốn đang chạy của mã.{% else %}Hàng chuyển từ lô cũ sang lô theo HSD giữ nguyên giá vốn (Stock Entry Repack); phần
+    thiếu / thừa ghi điều chỉnh kho (Material Issue / Material Receipt).{% endif %}{% if se %} Chứng từ kho: {{ se|join(", ") }}.{% endif %}</div>
   {% endif %}
 
   <table class="ky"><tr><td><b>Người kiểm kê</b><br>(ký, ghi rõ họ tên)</td><td><b>Kế toán</b><br>(ký, ghi rõ họ tên)</td>

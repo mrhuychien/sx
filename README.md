@@ -315,6 +315,30 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê bán thành phẩm theo lô, thủ kho chốt luôn (D155)
+
+- **Thủ kho chốt được kiểm kê** (cả thành phẩm lẫn bán thành phẩm) — không phải chờ quản lý. Bỏ phiếu đang đếm
+  vẫn chỉ quản lý hoặc người lập (bỏ là mất số người khác đã đếm).
+- Thẻ kiểm kê có thêm hàng chọn kho: **Thành phẩm** (Kho TP — đếm theo HSD như D154) · **Bán thành phẩm** (Kho BTP)
+  · **Kho xưởng** (đỗ ủ / đỗ vỡ — chỉ hiện khi SX Settings có Kho xưởng riêng). Máy nhớ kho đang kiểm; mỗi kho một
+  phiếu riêng, mở song song được.
+- **Bán thành phẩm cân TỪNG LÔ (kg)**: mã xếp theo chuyền (đỗ → bột nền → đường hoán → bột bánh → bột đậu), mỗi lô
+  trên sổ một ô **CÂN** (mã lô, ngày lô, số sổ). Bấm → bàn số kg có dấu phẩy, ô bên phải đọc lại sổ và lệch theo số
+  đang gõ. Lô hết thật → **LÔ HẾT · 0** (LƯU khi chưa gõ số bị chặn — bấm nhầm là xoá sạch lô); lô cân nhầm → mở lại,
+  **BỎ SỐ CÂN**. Cân thấy hàng của lô sổ kho này không có → **+ LÔ KHÁC** (các lô của mã, mới nhất trước, tìm theo mã
+  lô); mã không có trên sổ → **+ MÃ KHÁC**. Mã không quản lý lô cân cả mã. **Không còn** = mọi lô trên sổ của mã cân 0.
+- **Chốt**: lô đã cân thì số cân **thay số sổ của lô đó**; lô chưa cân **giữ nguyên** (khác thành phẩm — ở đó số đếm
+  thay cả mã). Thiếu → Material Issue đúng lô, thừa / bù lô âm → Material Receipt đúng lô (giá vốn đang chạy của mã).
+  Không chuyển lô, không đổi HSD, không đánh dấu "tồn cũ".
+- **Không cho chốt khi**: lô đã cân có chứng từ kho **sau lúc cân** (xét theo từng lô — xưởng vẫn chạy lô khác thì
+  không sao; lô bị chặn thì bấm lô đó cân lại); dòng thiếu lô của mã quản lý lô / dòng có lô của mã không lô (sửa trên
+  Desk); lô đang thu hồi (để riêng). Tồn không gắn lô của mã có lô hiện riêng, không cân được — sửa trên Desk.
+- **Nhắc** (không chặn) ở Kho BTP: ngày sản xuất chưa chốt **Ghi sổ** (mẻ chưa vào sổ — bột bánh / bột đậu chưa nhập,
+  bột nền / đường hoán chưa trừ) hoặc chưa chốt **Vào hộp** (bột đã vào hộp chưa trừ sổ): chốt ngày trước rồi cân.
+- Biên bản bán thành phẩm: từng lô cân thật / sổ sách / chênh lệch, điều chỉnh từng lô, chứng từ kho, chỗ ký.
+- Cần `bench --site site1.local migrate` (thêm ô *Loại hàng* trên SX Kiem Ke, ô *Lô* trên dòng đếm — phiếu cũ tự là
+  Thành phẩm) rồi `bench restart` (số build sx-123).
+
 ## Kiểm kê kho thành phẩm theo HSD (D154)
 
 - **Màn Nhập kho → thẻ "Kiểm kê kho thành phẩm"** (có cả ở màn Quản lý). Bấm **BẮT ĐẦU KIỂM KÊ** → app mở một phiếu
@@ -324,7 +348,7 @@ không thành `…-2`.
   là các HSD đang có trên sổ, không điền sẵn — phải đọc trên hộp). Mỗi HSD một dòng; bấm dòng để sửa, sửa về 0 là bỏ
   dòng; trùng HSD thì chặn. Mã không còn hộp nào → **Không còn**; đếm thấy mã không có trên sổ → **+ MÃ KHÁC**; hàng
   hết hạn vẫn đếm được. Mỗi lần LƯU ghi thẳng vào phiếu trên server — tải lại trang, đổi máy, hai người cùng đếm đều được.
-- **Chốt — chỉ quản lý** (thủ kho đếm xong báo quản lý): **XEM TRƯỚC & CHỐT** cho thấy từng mã sổ → đếm, chuyển bao
+- **Chốt — thủ kho hoặc quản lý** (D155; trước đó chỉ quản lý): **XEM TRƯỚC & CHỐT** cho thấy từng mã sổ → đếm, chuyển bao
   nhiêu từ lô cũ sang lô theo HSD, thiếu / thừa, số chứng từ kho sẽ sinh. Chốt thì số đếm **thay toàn bộ tồn của mã
   trong Kho TP** (mã chưa đếm giữ nguyên):
   - lô cũ chưa có HSD (và phần dư của lô có HSD mà đếm ít hơn) chuyển sang lô theo HSD (`…-HSDddmmyy`) bằng Stock

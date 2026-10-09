@@ -610,28 +610,248 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   c.querySelector('#kk-xem').bam();
   await choRe();
   let xm = MO[MO.length - 1];
-  kiem('thủ kho XEM TRƯỚC: thấy kế hoạch, KHÔNG có nút chốt, nhắc báo quản lý',
+  kiem('không được chốt (duoc_chot = false) XEM TRƯỚC: thấy kế hoạch, KHÔNG có nút chốt, nhắc báo người chốt',
     MO.length > nhanTruoc && /180 → 120/.test(xm.body.innerHTML) && !xm.body.kids.some((k) => k.textContent === 'CHỐT KIỂM KÊ')
-    && xm.body.kids.some((k) => /báo quản lý/.test(k.textContent)), xm.body.kids.map((k) => k.textContent));
+    && xm.body.kids.some((k) => /báo thủ kho \/ quản lý/.test(k.textContent)), xm.body.kids.map((k) => k.textContent));
   KH.chot = true;
   KH.loi = ['Bánh sen: có chứng từ kho sau lúc đếm'];
   c.querySelector('#kk-xem').bam();
   await choRe();
   xm = MO[MO.length - 1];
-  kiem('quản lý xem trước mà còn lỗi chặn → hiện lỗi, KHÔNG có nút chốt',
+  kiem('người chốt (thủ kho / quản lý) xem trước mà còn lỗi chặn → hiện lỗi, KHÔNG có nút chốt',
     /sau lúc đếm/.test(xm.body.innerHTML) && !xm.body.kids.some((k) => k.textContent === 'CHỐT KIỂM KÊ'));
   KH.loi = [];
   c.querySelector('#kk-xem').bam();
   await choRe();
   xm = MO[MO.length - 1];
   const nut = xm.body.kids.find((k) => k.textContent === 'CHỐT KIỂM KÊ');
-  kiem('quản lý, không lỗi → có nút CHỐT KIỂM KÊ', !!nut);
+  kiem('được chốt, không lỗi → có nút CHỐT KIỂM KÊ', !!nut);
   nut.bam();
   await HOI[HOI.length - 1].onConfirm();
   await choRe();
   kiem('CHỐT → xác nhận 2 bước rồi gọi chot(phiếu), thẻ về trạng thái chưa có phiếu',
     loiGoi('sx.api.kiemke.chot')[1].name === 'KK-1' && !!c.querySelector('#kk-bat')
     && TOAST.some(([t]) => /Đã chốt KK-1/.test(t)));
+}
+
+// ═════════════════════════════════════════════════════════════════════
+console.log('\n-- Kiểm kê bán thành phẩm (D155): chọn kho, cân từng lô bằng bàn số kg --');
+{
+  /** Điều khiển bàn số openNumpad đang mở (cửa sổ cuối cùng). */
+  function banSo(m = MO[MO.length - 1]) {
+    const tat = (e) => [e, ...e.kids.flatMap(tat)];
+    const all = () => tat(m.body);
+    const grid = () => all().find((e) => e.classList.contains('sx-numpad-grid'));
+    const man = () => all().find((e) => e.classList.contains('sx-numpad-display'));
+    return {
+      m,
+      la: () => !!grid(),
+      go(chuoi) { for (const k of String(chuoi)) grid().kids.find((b) => b.textContent === k).bam(); },
+      so: () => (man().innerHTML.match(/sx-numpad-value">([^<]*)</) || [])[1],
+      don: () => (man().innerHTML.match(/sx-numpad-unit">([^<]*)</) || [])[1],
+      goiY: () => ((man().innerHTML.match(/sx-np-hint">([^<]*)</) || [])[1] || '').trim(),
+      phim: () => grid().kids.map((b) => b.textContent),
+      nut: (t) => all().find((e) => e.tagName === 'BUTTON' && e.textContent === t),
+      dong: () => m.dong,
+    };
+  }
+  function moiSo(nut) {
+    const truoc = MO.length;
+    nut.bam();
+    const m = MO[MO.length - 1];
+    const b = MO.length > truoc && !m.dong ? banSo(m) : null;
+    return b && b.la() ? b : null;
+  }
+  const goi = [];
+  const BTP = 'Bán thành phẩm';
+  const KHO = [{ kho: 'Kho TP', loai: 'Thành phẩm', nhan: 'Thành phẩm' }, { kho: 'Kho BTP', loai: BTP, nhan: BTP },
+    { kho: 'Kho Xuong', loai: BTP, nhan: 'Kho xưởng' }];
+  const st = { kho: 'Kho TP', loai: 'Thành phẩm', phieu: null, can: {} };   // can: "mã|lô" → kg
+  const LO = {
+    'BOT-NEN': [{ batch: 'R-070926', so: 3, ngay: '2026-09-07', thu_hoi: true },
+      { batch: 'R-011026', so: 40, ngay: '2026-10-01', thu_hoi: false },
+      { batch: 'R-051026', so: 25.5, ngay: '2026-10-05', thu_hoi: false }],
+    'DUONG-HOAN': [{ batch: null, so: 30, ngay: null, thu_hoi: false }],
+  };
+  const TEN = { 'BOT-NEN': 'Bột nền', 'DUONG-HOAN': 'Đường hoán' };
+  const tq = () => {
+    const chung = { kho: st.kho, loai: st.loai, cac_kho: KHO, duoc_chot: true, hom_nay: NGAY, gan_day: [] };
+    if (st.loai !== BTP) return { ...chung, phieu: null, danh_muc: [], canh_bao: [], hang: [] };
+    const hang = Object.entries(LO).map(([item, ls]) => {
+      const lo = ls.map((l) => ({ ...l, can: st.can[`${item}|${l.batch}`] ?? null }));
+      for (const [k, v] of Object.entries(st.can)) {
+        const [it, b] = k.split('|');
+        if (it === item && !lo.some((l) => String(l.batch) === b)) lo.push({ batch: b, so: 0, ngay: '2026-09-28', thu_hoi: false, can: v });
+      }
+      const xong = lo.filter((l) => l.can != null);
+      return { item, ten: TEN[item], dvt: 'Kg', nhom: TEN[item], khong_lo: item === 'DUONG-HOAN', lo,
+        le: item === 'BOT-NEN' ? 1.5 : 0, so_sach: lo.filter((l) => !l.thu_hoi).reduce((a, l) => a + l.so, 0),
+        da_dem: xong.length > 0, tong_dem: xong.reduce((a, l) => a + l.can, 0),
+        lech: xong.reduce((a, l) => a + l.can - l.so, 0), con_chua: lo.filter((l) => l.can == null && !l.thu_hoi).length };
+    });
+    return { ...chung, phieu: st.phieu, hang, canh_bao: ['1 ngày chưa chốt Vào hộp (08/10): bột đã vào hộp chưa trừ sổ.'],
+      danh_muc: st.phieu ? [{ item: 'BOT-BANH', ten: 'Bột bánh sen', dvt: 'Kg', nhom: 'Bột bánh', khong_lo: false },
+        { item: 'DUONG-MOI', ten: 'Đường hoán mới', dvt: 'Kg', nhom: 'Đường hoán', khong_lo: true }] : [] };
+  };
+  const call = async (m, a = {}) => {
+    goi.push([m, a]);
+    if (m === 'sx.api.kiemke.tong_quan' && a.kho) { st.kho = a.kho; st.loai = a.loai; }
+    if (m === 'sx.api.kiemke.bat_dau') st.phieu = { name: 'KK-B1', bat_dau_luc: '2026-10-09 08:15', duoc_huy: true };
+    if (m === 'sx.api.kiemke.ghi_lo') st.can[`${a.item}|${a.batch || null}`] = Number(a.so_dem);
+    if (m === 'sx.api.kiemke.bo_lo') delete st.can[`${a.item}|${a.batch || null}`];
+    if (m === 'sx.api.kiemke.dem_lai') Object.keys(st.can).filter((k) => k.startsWith(`${a.item}|`)).forEach((k) => delete st.can[k]);
+    if (m === 'sx.api.kiemke.lo_khac') return [{ batch: 'R-280926', ngay: '2026-09-28' }];
+    if (m === 'sx.api.kiemke.xem_truoc') {
+      return { name: 'KK-B1', loai: BTP, loi: [], canh_bao: [], duoc_chot: true,
+        ma: [{ item: 'BOT-NEN', ten: 'Bột nền', so_sach: 65.5, dem: 65.9, chuyen: 0, lo_cu: 0, thieu: 1.6, thua: 2,
+          bu_am: 0, thu_hoi: 3, lo_can: 3 }], tong: { so_ma: 1, so_lo: 3, so_sach: 65.5, dem: 65.9, phieu_kho: 2 } };
+    }
+    if (m === 'sx.api.kiemke.chot') { st.phieu = null; st.can = {}; return { name: 'KK-B1', so_ma: 1, tong_lech: 0.4, so_phieu_kho: 2 }; }
+    return tq();
+  };
+  const loiGoi = (m) => goi.filter((g) => g[0] === m).pop();
+  kho.delete('sx-kk-kho');
+  let c = new E('div');
+  await KK.render({ container: c, call, boot: {} });
+  const chip = c.querySelectorAll('[data-kho]');
+  kiem('ba kho để chọn, máy chưa nhớ kho nào → mở Kho TP', chip.length === 3 && /sx-np-chip-on/.test(
+    c.innerHTML.match(/<button[^>]*data-kho="0"[^>]*>/)[0]) && bang(goi[0], ['sx.api.kiemke.tong_quan', {}]),
+  chip.map((b) => b.textContent));
+  chip[1].bam();
+  await choRe();
+  kiem('chọn Bán thành phẩm → tải Kho BTP; màn chưa mở phiếu: số mã / lô trên sổ + cảnh báo chốt ngày',
+    bang(loiGoi('sx.api.kiemke.tong_quan')[1], { kho: 'Kho BTP', loai: BTP })
+    && /Kiểm kê kho bán thành phẩm/.test(c.innerHTML) && /2 mã · 3 lô trên sổ Kho BTP/.test(c.innerHTML)
+    && /chưa chốt Vào hộp/.test(c.innerHTML), c.textContent.slice(0, 300));
+  kiem('… máy nhớ kho vừa chọn', kho.get('sx-kk-kho') === JSON.stringify({ kho: 'Kho BTP', loai: BTP }), kho.get('sx-kk-kho'));
+  c = new E('div');
+  await KK.render({ container: c, call, boot: {} });
+  kiem('mở lại thẻ → vào thẳng kho đã nhớ', bang(goi[goi.length - 1], ['sx.api.kiemke.tong_quan', { kho: 'Kho BTP', loai: BTP }])
+    && /bán thành phẩm/.test(c.innerHTML));
+  c.querySelector('#kk-bat').bam();
+  await choRe();
+  kiem('BẮT ĐẦU → mở phiếu cho đúng kho / loại', bang(loiGoi('sx.api.kiemke.bat_dau')[1], { kho: 'Kho BTP', loai: BTP }));
+  kiem('đang cân: nhóm theo chuyền, mỗi lô một ô CÂN; lô thu hồi chỉ ghi, không bấm được; tồn không lô báo riêng',
+    /sx-kk-nhom">Bột nền/.test(c.innerHTML) && /sx-kk-nhom">Đường hoán/.test(c.innerHTML)
+    && !!c.querySelector('[data-lo="0:1"]') && !!c.querySelector('[data-lo="0:2"]') && !c.querySelector('[data-lo="0:0"]')
+    && /R-070926 · thu hồi 3 kg/.test(c.innerHTML) && /1,5 kg tồn KHÔNG gắn lô/.test(c.innerHTML)
+    && /Đã cân 0\/3 lô/.test(c.innerHTML), c.textContent.slice(0, 400));
+  kiem('… + LÔ KHÁC cho mã có lô (không cho mã không lô); không có nút quét hộp; lọc ghi "Chưa cân"',
+    !!c.querySelector('[data-lokhac="0"]') && !c.querySelector('[data-lokhac="1"]') && !c.querySelector('#kk-quet')
+    && /Chưa cân <b>2/.test(c.innerHTML));
+  let b = moiSo(c.querySelector('[data-lo="0:1"]'));
+  kiem('bấm lô → bàn số kg có dấu phẩy, tên lô, sổ của lô', b && b.m.title === 'Lô R-011026' && /Bột nền$/.test(b.m.kicker)
+    && b.don() === 'Cân thật · kg' && b.phim().includes(',') && b.goiY() === 'sổ 40' && !!b.nut('LÔ HẾT · 0'),
+  b && [b.m.title, b.don(), b.goiY(), b.phim()]);
+  b.go('38,4');
+  kiem('… gõ 38,4 → đọc lại lệch ngay trên bàn số', b.so() === '38.4' && b.goiY() === 'sổ 40 · -1,6', [b.so(), b.goiY()]);
+  b.nut('LƯU').bam();
+  await choRe();
+  kiem('LƯU → ghi_lo(mã, lô, 38,4)', bang(loiGoi('sx.api.kiemke.ghi_lo')[1],
+    { name: 'KK-B1', item: 'BOT-NEN', batch: 'R-011026', so_dem: 38.4 }), loiGoi('sx.api.kiemke.ghi_lo'));
+  kiem('… ô lô hiện số cân + lệch; tiến độ 1/3 lô, lệch -1,6 kg',
+    /R-011026 · <b>38,4<\/b> kg <i>\(-1,6\)<\/i>/.test(c.innerHTML) && /Đã cân 1\/3 lô · lệch <span class="sx-kk-lech">-1,6 kg/.test(c.innerHTML),
+  c.textContent.slice(0, 300));
+  const nGhi = goi.filter((g) => g[0] === 'sx.api.kiemke.ghi_lo').length;
+  b = moiSo(c.querySelector('[data-lo="0:2"]'));
+  b.nut('LƯU').bam();
+  await choRe();
+  kiem('lô chưa cân: LƯU khi chưa gõ số → chặn (bấm nhầm là xoá cả lô), chỉ cách bấm LÔ HẾT',
+    goi.filter((g) => g[0] === 'sx.api.kiemke.ghi_lo').length === nGhi && TOAST.some(([t, k]) => k === 'err' && /LÔ HẾT/.test(t)));
+  b = moiSo(c.querySelector('[data-lo="0:2"]'));
+  b.nut('LÔ HẾT · 0').bam();
+  await choRe();
+  kiem('LÔ HẾT → ghi_lo số 0; lô cân 0 vẫn là lô ĐÃ cân (2/3)', bang(loiGoi('sx.api.kiemke.ghi_lo')[1],
+    { name: 'KK-B1', item: 'BOT-NEN', batch: 'R-051026', so_dem: 0 })
+    && /R-051026 · <b>0<\/b> kg/.test(c.innerHTML) && /Đã cân 2\/3 lô/.test(c.innerHTML), c.textContent.slice(0, 200));
+  b = moiSo(c.querySelector('[data-lo="0:1"]'));
+  kiem('bấm lô đã cân → bàn số điền sẵn số cân, nút phụ BỎ SỐ CÂN', b && b.so() === '38.4' && !!b.nut('BỎ SỐ CÂN')
+    && b.goiY() === 'sổ 40 · -1,6', b && [b.so(), b.goiY()]);
+  b.nut('BỎ SỐ CÂN').bam();
+  await choRe();
+  kiem('BỎ SỐ CÂN → bo_lo(mã, lô); lô về chưa cân', bang(loiGoi('sx.api.kiemke.bo_lo')[1],
+    { name: 'KK-B1', item: 'BOT-NEN', batch: 'R-011026' }) && /R-011026 <i>01\/10<\/i> · sổ 40 · <b>CÂN/.test(c.innerHTML),
+  c.textContent.slice(0, 300));
+  c.querySelector('[data-lokhac="0"]').bam();
+  await choRe();
+  let m = MO[MO.length - 1];
+  const dsLo = m.body.querySelector('#kk-ds-lo');           // ô danh sách: vẽ lại sau khi tải xong
+  kiem('+ LÔ KHÁC → danh sách lô của mã không có trên sổ', bang(loiGoi('sx.api.kiemke.lo_khac')[1],
+    { name: 'KK-B1', item: 'BOT-NEN', tim: '' }) && !!dsLo.querySelector('[data-b="R-280926"]'), dsLo.innerHTML.slice(0, 200));
+  // Mạng chậm: gõ tìm khi danh sách đầu chưa về — kết quả CŨ về sau không được đè kết quả mới.
+  {
+    let tra;
+    const cham = async (mm, a = {}) => {
+      if (mm === 'sx.api.kiemke.lo_khac' && !a.tim) { await new Promise((r) => { tra = r; }); return [{ batch: 'R-CU', ngay: '2026-09-01' }]; }
+      if (mm === 'sx.api.kiemke.lo_khac') return [{ batch: 'R-250926', ngay: '2026-09-25' }];
+      return call(mm, a);
+    };
+    const c2 = new E('div');
+    await KK.render({ container: c2, call: cham, boot: {} });
+    c2.querySelector('[data-lokhac="0"]').bam();
+    const m2 = MO[MO.length - 1];
+    const o2 = m2.body.querySelector('#kk-tim-lo');
+    o2.value = '2509';
+    (o2.nghe.input || []).forEach((f) => f({ target: o2 }));
+    await new Promise((r) => { setTimeout(r, 320); });
+    tra();
+    await choRe();
+    const ds2 = m2.body.querySelector('#kk-ds-lo');
+    kiem('+ LÔ KHÁC, mạng chậm: danh sách cũ về sau không đè kết quả tìm mới',
+      !!ds2.querySelector('[data-b="R-250926"]') && !ds2.querySelector('[data-b="R-CU"]'), ds2.innerHTML.slice(0, 200));
+    m2.close();
+  }
+  b = moiSo(dsLo.querySelector('[data-b="R-280926"]'));
+  kiem('… chọn lô → bàn số cân lô đó (sổ 0)', b && b.m.title === 'Lô R-280926' && b.goiY() === 'sổ 0' && m.dong);
+  b.go('2');
+  b.nut('LƯU').bam();
+  await choRe();
+  kiem('… LƯU → ghi_lo lô khác', bang(loiGoi('sx.api.kiemke.ghi_lo')[1], { name: 'KK-B1', item: 'BOT-NEN', batch: 'R-280926', so_dem: 2 }));
+  b = moiSo(c.querySelector('[data-lo="1:0"]'));
+  kiem('mã không lô: bàn số mang tên mã', b && b.m.title === 'Đường hoán (không lô)', b && b.m.title);
+  b.go('31,25');
+  b.nut('LƯU').bam();
+  await choRe();
+  kiem('… LƯU → ghi_lo không lô (batch rỗng), 31,25', bang(loiGoi('sx.api.kiemke.ghi_lo')[1],
+    { name: 'KK-B1', item: 'DUONG-HOAN', batch: '', so_dem: 31.25 }));
+  c.querySelector('#kk-them').bam();
+  m = MO[MO.length - 1];
+  b = moiSo(m.body.querySelector('#kk-ds-ma').querySelector('[data-ma="DUONG-MOI"]'));
+  kiem('+ MÃ KHÁC → mã không lô: vào thẳng bàn số', b && b.m.title === 'Đường hoán mới (không lô)' && m.dong);
+  c.querySelector('#kk-them').bam();
+  m = MO[MO.length - 1];
+  m.body.querySelector('#kk-ds-ma').querySelector('[data-ma="BOT-BANH"]').bam();
+  await choRe();
+  kiem('+ MÃ KHÁC → mã có lô: chọn lô trước', MO[MO.length - 1].kicker === 'Kiểm kê · Bột bánh sen'
+    && loiGoi('sx.api.kiemke.lo_khac')[1].item === 'BOT-BANH');
+  c.querySelector('[data-lai="0"]').bam();
+  await choRe();
+  kiem('CÂN LẠI cả mã → dem_lai(mã), báo đã bỏ số cân', loiGoi('sx.api.kiemke.dem_lai')[1].item === 'BOT-NEN'
+    && TOAST.some(([t]) => /Đã bỏ số cân của Bột nền — cân lại mã này/.test(t)));
+  c.querySelector('#kk-xem').bam();
+  await choRe();
+  const xm = MO[MO.length - 1];
+  kiem('XEM TRƯỚC: kg, số lô cân, thiếu / thừa từng mã', /1 mã · 3 lô · sổ 65,5 → cân 65,9 kg · /.test(xm.body.innerHTML)
+    && /3 lô · thiếu 1,6 kg · thừa 2 kg/.test(xm.body.innerHTML) && /Lô chưa cân giữ nguyên/.test(xm.body.innerHTML),
+  xm.body.innerHTML.slice(0, 400));
+  xm.body.kids.find((k) => k.textContent === 'CHỐT KIỂM KÊ').bam();
+  kiem('… xác nhận chốt nói số lô', /1 mã, 3 lô: sổ 65,5 → cân 65,9 kg \(\+0,4\)/.test(HOI[HOI.length - 1].message),
+    HOI[HOI.length - 1].message);
+  await HOI[HOI.length - 1].onConfirm();
+  await choRe();
+  kiem('CHỐT → về đúng kho đang kiểm (không nhảy sang Kho TP)', bang(loiGoi('sx.api.kiemke.tong_quan')[1], { kho: 'Kho BTP', loai: BTP })
+    && !!c.querySelector('#kk-bat') && /bán thành phẩm/.test(c.innerHTML)
+    && TOAST.some(([t]) => /Đã chốt KK-B1: 1 mã, lệch \+0,4 kg, 2 chứng từ kho/.test(t)));
+  kho.set('sx-kk-kho', JSON.stringify({ kho: 'Kho Cu', loai: BTP }));
+  const loiKho = async (mm, a = {}) => {
+    if (mm === 'sx.api.kiemke.tong_quan' && a.kho === 'Kho Cu') throw new Error('Không kiểm kê kho Kho Cu ở đây.');
+    return call(mm, a);
+  };
+  c = new E('div');
+  await KK.render({ container: c, call: loiKho, boot: {} });
+  kiem('kho đã nhớ không còn (đổi cấu hình) → về kho mặc định, không treo thẻ', !!c.querySelector('#kk-bat')
+    && bang(goi[goi.length - 1], ['sx.api.kiemke.tong_quan', {}]), c.textContent.slice(0, 200));
+  kho.delete('sx-kk-kho');
 }
 
 console.log(hong ? `SOHSD-FAIL (${hong} ca)` : 'SOHSD-OK');

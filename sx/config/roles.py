@@ -116,7 +116,7 @@ VIEW_CARDS = {
     # nobom: sổ nợ BOM (D97) — thành phẩm nhập lúc chưa có định mức. Đặt ngay
     # dưới phiếu nhập để thủ kho thấy phần mình vừa nhập tạm đang nằm đâu.
     # lohsd (D131): lô thành phẩm cũ chưa có HSD — tự ẩn khi không còn lô nào.
-    # kiemke (D154): kiểm kê kho TP theo HSD — đếm theo HSD in trên hộp, quản lý chốt.
+    # kiemke (D154/D155): kiểm kê kho TP theo HSD, kho BTP / xưởng cân theo lô — thủ kho / quản lý chốt.
     "nhapkho": ["nhapkhotp", "kiemke", "nobom", "lohsd", "lichnhapkho"],
     # D122: vào hộp Tết — một thẻ làm trọn: số + HSD -> phiếu nhập nháp + công nhật.
     "tet": ["vaohoptet"],
@@ -161,8 +161,8 @@ CARD_ROLES = {
     "nobom": [THU_KHO, QUAN_LY],
     # Lô cũ chưa có HSD (D131): thủ kho soát theo bao bì, quản lý cũng ghi được.
     "lohsd": [THU_KHO, QUAN_LY],
-    # Kiểm kê kho TP (D154): thủ kho + quản lý ĐẾM; CHỐT (sinh chứng từ kho, ghi thừa / thiếu) chỉ quản lý
-    # — chốt riêng trong sx/api/kiemke._duoc_chot, như chốt ngày (D33: người nhập khác người chốt).
+    # Kiểm kê kho TP (D154) / bán thành phẩm (D155): thủ kho + quản lý đếm / cân và CHỐT (D155: thủ kho chốt
+    # luôn — sx/api/kiemke._duoc_chot); bỏ phiếu đang đếm chỉ quản lý hoặc người lập.
     "kiemke": [THU_KHO, QUAN_LY],
     # Sổ nợ đơn giá (D99): áp giá là SỬA LƯƠNG của người khác — chỉ quản lý.
     "nogia": [QUAN_LY],

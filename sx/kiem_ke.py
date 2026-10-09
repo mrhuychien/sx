@@ -101,6 +101,49 @@ def lap_ke_hoach(lots, dem, nsx_cua=None):
     return ke
 
 
+def lap_ke_hoach_lo(lots, dem):
+    """Kế hoạch kiểm kê BÁN THÀNH PHẨM (D155) cho MỘT mã ở MỘT kho — kiểm theo LÔ, hàm thuần.
+
+    BTP là hàng rời tính kg (bột nền, bột bánh, đỗ ủ…), lô theo ngày làm / lô rang, không có HSD in trên bao:
+    cân từng lô. Lô nào đã cân thì số cân THAY số sổ của lô đó; lô chưa cân giữ nguyên (khác thành phẩm — ở đó
+    số đếm thay cả mã, vì hộp không mang mã lô). Cùng cấu trúc kết quả với lap_ke_hoach:
+      giu      phần sổ của lô còn nguyên
+      xuat     lô cân thấy ít hơn sổ → xuất THIẾU phần chênh
+      nhap_lo  lô cân thấy nhiều hơn sổ → nhập THỪA phần chênh vào ĐÚNG lô đó
+      bu_am    lô đang âm → nhập bù về 0 (rồi nhap_lo phần cân thấy)
+      bo_qua   lô đang thu hồi → không đụng (màn hình không cho cân)
+    lots  [{batch, qty, thu_hoi}] — batch None = tồn không lô (mã tắt quản lý lô)
+    dem   {batch: số cân} — chỉ lô đã cân
+    """
+    ke = {"giu": [], "chuyen": [], "xuat": [], "nhap": [], "nhap_lo": [], "bu_am": [], "bo_qua": [],
+          "so_sach": 0.0, "dem": 0.0}
+    ton = {}
+    for l in lots or []:
+        if l.get("thu_hoi"):
+            if abs(float(l.get("qty") or 0)) > EPS:
+                ke["bo_qua"].append({"batch": l["batch"], "hsd": None, "so": _r(l["qty"])})
+            continue
+        ton[l["batch"]] = ton.get(l["batch"], 0.0) + float(l.get("qty") or 0)
+    bo = {x["batch"] for x in ke["bo_qua"]}
+    for b in sorted(dem, key=lambda x: str(x or "")):
+        if b in bo:
+            continue
+        q, c = ton.get(b, 0.0), max(0.0, float(dem[b] or 0))
+        ke["so_sach"] += q
+        ke["dem"] += c
+        if q < -EPS:
+            ke["bu_am"].append({"batch": b, "hsd": None, "so": _r(-q)})
+            q = 0.0
+        if min(q, c) > EPS:
+            ke["giu"].append({"batch": b, "hsd": None, "so": _r(min(q, c))})
+        if q - c > EPS:
+            ke["xuat"].append({"batch": b, "hsd": None, "so": _r(q - c)})
+        elif c - q > EPS:
+            ke["nhap_lo"].append({"batch": b, "so": _r(c - q)})
+    ke["so_sach"], ke["dem"] = _r(ke["so_sach"]), _r(ke["dem"])
+    return ke
+
+
 def chia_chung_tu(ke_theo_ma, hom_nay):
     """Chia kế hoạch các mã thành chứng từ kho — hàm thuần.
 
@@ -125,6 +168,7 @@ def chia_chung_tu(ke_theo_ma, hom_nay):
         ra["xuat"] += [{"item": i, "batch": x["batch"], "so": x["so"]} for x in k["xuat"]]
         ra["nhap"] += [{"item": i, "hsd": x["hsd"], "batch": None, "so": x["so"]} for x in k["nhap"]]
         ra["nhap"] += [{"item": i, "hsd": x["hsd"], "batch": x["batch"], "so": x["so"]} for x in k["bu_am"]]
+        ra["nhap"] += [{"item": i, "hsd": None, "batch": x["batch"], "so": x["so"]} for x in k.get("nhap_lo", [])]
     return ra
 
 
@@ -135,7 +179,7 @@ def so_chung_tu(ct):
 
 def co_thay_doi(ke):
     """Kế hoạch có sinh chứng từ kho nào không (khớp hết thì không)."""
-    return bool(ke["chuyen"] or ke["xuat"] or ke["nhap"] or ke["bu_am"])
+    return bool(ke["chuyen"] or ke["xuat"] or ke["nhap"] or ke["bu_am"] or ke.get("nhap_lo"))
 
 
 def theo_lo(ke, ten_lo_hsd):
@@ -170,6 +214,10 @@ def theo_lo(ke, ten_lo_hsd):
         g = lo(x["batch"], x["hsd"])
         g["truoc"] -= x["so"]
         g["viec"].append(("bu_am", None, x["so"]))
+    for x in ke.get("nhap_lo", []):
+        g = lo(x["batch"], None)
+        g["sau"] += x["so"]
+        g["viec"].append(("thua", None, x["so"]))
     for x in ke["bo_qua"]:
         g = lo(x["batch"], x["hsd"])
         g["truoc"] += x["so"]

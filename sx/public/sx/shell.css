@@ -2118,6 +2118,14 @@ b.sx-tx-kl-loi { background: none; }
 .sx-kk-phu { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
 .sx-kk-phu .sx-btn { flex: 1 1 0; min-width: 0; font-size: var(--sx-f-sm); padding-left: var(--sx-s2);
   padding-right: var(--sx-s2); }
+/* D155 — kiểm kê bán thành phẩm: chọn kho, nhóm theo chuyền, ô lô chưa cân viền đứt */
+.sx-kk-kho { flex-wrap: nowrap; }
+.sx-kk-kho .sx-np-chip { flex: 1 1 auto; min-width: 0; min-height: 40px; padding: 0 8px; font-size: var(--sx-f-xs);
+  line-height: 1.15; }
+.sx-kk-nhom { margin-top: var(--sx-s1); font-size: var(--sx-f-xs); font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--sx-text-2); }
+.sx-kk-lo-chua { border-style: dashed; border-color: var(--sx-warning); }
+.sx-kk-lo-chua b { color: var(--sx-warning-text); }
 
 /* D131 — thẻ "Lô cũ chưa có HSD": ô ngày gọn bên phải mỗi dòng */
 .sx-lh-o { width: 160px; flex: none; margin: 0; min-height: 44px; }

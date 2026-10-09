@@ -7,6 +7,7 @@
   "item",
   "ten",
   "dvt",
+  "batch",
   "hsd",
   "so_dem",
   "chi_tiet",
@@ -18,10 +19,10 @@
    "fieldname": "item",
    "fieldtype": "Link",
    "options": "Item",
-   "label": "Sản phẩm",
+   "label": "Mã hàng",
    "reqd": 1,
    "in_list_view": 1,
-   "columns": 3
+   "columns": 2
   },
   {
    "fieldname": "ten",
@@ -38,6 +39,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "batch",
+   "fieldtype": "Link",
+   "options": "Batch",
+   "label": "Lô (bán thành phẩm)",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
    "fieldname": "hsd",
    "fieldtype": "Date",
    "label": "HSD in trên hộp",
@@ -47,7 +56,7 @@
   {
    "fieldname": "so_dem",
    "fieldtype": "Float",
-   "label": "Số đếm",
+   "label": "Số đếm / cân",
    "non_negative": 1,
    "in_list_view": 1,
    "columns": 2
@@ -75,7 +84,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-09 14:00:00.000000",
+ "modified": "2026-10-09 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Kiem Ke Dong",

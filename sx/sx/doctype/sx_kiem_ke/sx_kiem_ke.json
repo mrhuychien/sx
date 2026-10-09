@@ -9,6 +9,7 @@
   "trang_thai",
   "column_break_head",
   "kho",
+  "loai",
   "nguoi_lap",
   "bat_dau_luc",
   "section_dong",
@@ -71,6 +72,17 @@
    "in_list_view": 1
   },
   {
+   "fieldname": "loai",
+   "fieldtype": "Select",
+   "label": "Loại hàng",
+   "options": "Thành phẩm\nBán thành phẩm",
+   "default": "Thành phẩm",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Thành phẩm: đếm theo HSD in trên hộp, số đếm thay cả mã. Bán thành phẩm: cân từng lô (kg), lô đã cân thay số sổ của lô đó."
+  },
+  {
    "fieldname": "nguoi_lap",
    "fieldtype": "Link",
    "options": "User",
@@ -86,8 +98,8 @@
   {
    "fieldname": "section_dong",
    "fieldtype": "Section Break",
-   "label": "Số đếm theo HSD",
-   "description": "Mỗi (mã, HSD) một dòng. Mã đã đếm thì số đếm THAY toàn bộ tồn của mã đó trong kho lúc chốt (trừ lô đang thu hồi). Dòng không HSD, số 0 = đã đếm, không còn hộp nào."
+   "label": "Số đếm",
+   "description": "Thành phẩm: mỗi (mã, HSD) một dòng; số đếm THAY toàn bộ tồn của mã lúc chốt (trừ lô đang thu hồi); dòng không HSD, số 0 = không còn hàng. Bán thành phẩm: mỗi (mã, lô) một dòng — số cân thay số sổ của lô đó, lô không có dòng giữ nguyên."
   },
   {
    "fieldname": "dong",
@@ -185,7 +197,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-09 14:00:00.000000",
+ "modified": "2026-10-09 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Kiem Ke",
