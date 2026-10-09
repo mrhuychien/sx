@@ -496,3 +496,7 @@ button.sx-qc-tag-chon {
 .sx-hs-co-do { background: var(--sx-danger); display: inline-block; vertical-align: middle; }
 .sx-hs-co-vang { background: var(--sx-warning); display: inline-block; vertical-align: middle; }
 .sx-hs-ngung { opacity: .65; }
+
+/* ── D151 (W25): báo cáo tháng, chỉ tiêu ATTP ──────────────────────────────── */
+.sx-bc-bang td.sx-bc-ten { text-align: left; white-space: normal; min-width: 170px; }
+.sx-bc-bang td { font-variant-numeric: tabular-nums; }

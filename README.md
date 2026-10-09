@@ -315,6 +315,22 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Báo cáo tháng, chỉ tiêu ATTP (D151 — W25)
+
+- Màn QC → tab **Xem xét** → nút **Báo cáo** (`#/qc/baocao`): chọn tháng (mặc định tháng trước; số liệu
+  tính tới hết hôm qua) → chỉ tiêu ATTP năm (Đạt / Không đạt theo tháng và lũy kế năm), bảng **chỉ số từ
+  đầu năm** (T01 → tháng báo cáo + lũy kế), nút **🖨 IN BÁO CÁO THÁNG** (A4 ngang, cho họp xem xét của lãnh
+  đạo: chỉ tiêu, chỉ số, sự cố, khiếu nại, hành động khắc phục, kết quả kiểm nghiệm, việc đang treo, chỗ ký
+  Ban ISO / Giám đốc).
+- **Chỉ số** app tự tính: lượt kiểm hoàn tất (3 lượt / ngày sản xuất), ghi đúng khung giờ, ngày thiếu lượt,
+  lượt nhập lại từ giấy, sự cố (bỏ diễn tập), sự cố mức Cao, sự cố đóng đúng hạn, khiếu nại, mẫu kiểm nghiệm
+  đạt, lô xuất xưởng được duyệt, rework, dấu hiệu động vật gây hại, phiếu khắc phục đúng hạn; tại ngày lập:
+  thiết bị đo còn hạn, sản phẩm có kết quả kiểm nghiệm đạt còn hạn, NCC đã duyệt. Tỷ lệ lũy kế cộng tử / mẫu
+  (không lấy trung bình các tháng); tháng không có việc là 0; hồ sơ site chưa có thì "—".
+- **Chỉ tiêu** (`SX Chi Tieu ATTP`): Ban ISO / quản lý đặt theo văn bản mục tiêu ATTP — chỉ số nào, ≥ / ≤,
+  mục tiêu, năm; mỗi chỉ số một chỉ tiêu mỗi năm, ngừng được. App **không có chỉ tiêu mặc định**.
+- Gói hồ sơ cho đoàn có thư mục báo cáo tháng (mỗi tháng trong kỳ một báo cáo; patch d151).
+
 ## Phiếu hành động khắc phục BM.01.07 (D150 — W24)
 
 - Màn QC → tab **Sự cố** → nút **Khắc phục** (`#/qc/khacphuc`, doctype `SX Khac Phuc`, số CAR-YYYY-###).

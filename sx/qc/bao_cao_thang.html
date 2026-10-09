@@ -1,0 +1,133 @@
+{#- Báo cáo ATTP tháng (W25, D151) — cho họp xem xét của lãnh đạo. A4 ngang.
+    1 chỉ tiêu ATTP · 2 chỉ số từ đầu năm · 3 sự cố · 4 khiếu nại · 5 hành động khắc phục · 6 kiểm nghiệm ·
+    7 việc đang treo tại ngày lập. Danh sách nào site chưa có hồ sơ (None) thì ghi "chưa có trên app". -#}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .bc { font: 11px/1.35 "Times New Roman", serif; color: #000; }
+  .bc h1 { font-size: 16px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .bc .ma { text-align: center; font-size: 10.5px; margin-bottom: 8px; }
+  .bc h2 { font-size: 12.5px; margin: 12px 0 4px; }
+  .bc table { width: 100%; border-collapse: collapse; }
+  .bc td, .bc th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
+  .bc th { background: #eee; }
+  .bc tr { break-inside: avoid; }
+  .bc .so { text-align: right; white-space: nowrap; }
+  .bc .khong { font-weight: bold; color: #b91c1c; }
+  .bc .rong { color: #555; font-style: italic; }
+  .bc .ky { margin-top: 14px; width: 100%; }
+  .bc .ky td { border: 0; text-align: center; height: 56px; }
+</style>
+{%- macro kq(d) -%}{{ "Đạt" if d == True else ("KHÔNG ĐẠT" if d == False else "—") }}{%- endmacro -%}
+<div class="bc">
+  <h1>Báo cáo an toàn thực phẩm tháng {{ thang[5:7] }}/{{ nam }}</h1>
+  <div class="ma">Số liệu tới hết {{ frappe.utils.formatdate(cat, "dd/MM/yyyy") }} &nbsp;·&nbsp; Lập lúc {{ lap_luc }}
+    &nbsp;·&nbsp; {{ nguoi }}</div>
+
+  <h2>1. Chỉ tiêu ATTP năm {{ nam }}</h2>
+  {% if chi_tieu %}
+  <table>
+    <tr><th style="width:3%">#</th><th>Chỉ tiêu</th><th style="width:10%">Mục tiêu</th>
+      <th style="width:10%">Tháng {{ thang[5:7] }}</th><th style="width:9%">Kết quả tháng</th>
+      <th style="width:10%">Lũy kế năm</th><th style="width:9%">Kết quả năm</th></tr>
+    {% for c in chi_tieu %}
+    <tr><td>{{ loop.index }}</td><td>{{ c.ten }}{% if c.kieu == "hien_tai" %} <small>(tại ngày lập)</small>{% endif %}</td>
+      <td class="so">{{ c.so_sanh }} {{ hien(c.muc_tieu, c.don_vi) }}</td>
+      <td class="so">{{ hien(c.ky, c.don_vi) }}</td><td class="{{ 'khong' if c.dat_ky == False else '' }}">{{ kq(c.dat_ky) }}</td>
+      <td class="so">{{ hien(c.nam, c.don_vi) }}</td><td class="{{ 'khong' if c.dat_nam == False else '' }}">{{ kq(c.dat_nam) }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <div class="rong">Chưa đặt chỉ tiêu ATTP năm {{ nam }} trên app (Ban ISO nhập ở màn Xem xét → Báo cáo, theo văn bản mục tiêu ATTP).</div>
+  {% endif %}
+
+  <h2>2. Chỉ số theo tháng (từ đầu năm)</h2>
+  <table>
+    <tr><th>Chỉ số</th><th style="width:4%">ĐV</th>
+      {% for t in cac_thang %}<th style="width:5%">T{{ t[5:7] }}</th>{% endfor %}<th style="width:7%">Lũy kế</th></tr>
+    {% for x in bang if x.kieu == "thang" %}
+    <tr><td>{{ x.ten }}</td><td>{{ x.don_vi }}</td>
+      {% for t in cac_thang %}<td class="so">{{ hien(x.thang[t], x.don_vi) }}</td>{% endfor %}
+      <td class="so"><b>{{ hien(x.nam, x.don_vi) }}</b></td></tr>
+    {% endfor %}
+  </table>
+  <table style="margin-top:6px">
+    <tr><th>Tại ngày lập</th>{% for x in bang if x.kieu == "hien_tai" %}<th>{{ x.ten }}</th>{% endfor %}</tr>
+    <tr><td></td>{% for x in bang if x.kieu == "hien_tai" %}<td class="so">{{ hien(x.ky, x.don_vi) }}</td>{% endfor %}</tr>
+  </table>
+
+  <h2>3. Sự cố trong tháng (không tính diễn tập)</h2>
+  {% if ct.su_co is none %}<div class="rong">Chưa có trên app.</div>
+  {% elif not ct.su_co %}<div class="rong">Không có sự cố.</div>
+  {% else %}
+  <table>
+    <tr><th style="width:9%">Số</th><th style="width:7%">Ngày</th><th style="width:12%">Công đoạn</th><th style="width:7%">Loại</th>
+      <th style="width:6%">Mức</th><th>Mô tả</th><th style="width:7%">Trạng thái</th><th style="width:9%">Khắc phục</th></tr>
+    {% for x in ct.su_co %}
+    <tr><td>{{ x.name }}</td><td>{{ frappe.utils.formatdate(x.ngay, "dd/MM") }}</td><td>{{ x.cong_doan or "—" }}</td>
+      <td>{{ x.loai or "—" }}</td><td>{{ x.muc_do or "—" }}</td><td>{{ x.mo_ta or "" }}</td><td>{{ x.trang_thai }}</td>
+      <td>{{ x.car_so or "—" }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <h2>4. Khiếu nại khách hàng trong tháng</h2>
+  {% if ct.khieu_nai is none %}<div class="rong">Chưa có trên app.</div>
+  {% elif not ct.khieu_nai %}<div class="rong">Không có khiếu nại.</div>
+  {% else %}
+  <table>
+    <tr><th style="width:10%">Số</th><th style="width:7%">Ngày</th><th style="width:18%">Khách</th><th style="width:16%">Phân loại</th>
+      <th>Nội dung</th><th style="width:8%">Trạng thái</th></tr>
+    {% for x in ct.khieu_nai %}
+    <tr><td>{{ x.name }}</td><td>{{ frappe.utils.formatdate(x.opening_date, "dd/MM") }}</td><td>{{ x.customer_name or "—" }}</td>
+      <td>{{ x.custom_phan_loai_kn or "—" }}</td><td>{{ x.subject or "" }}</td><td>{{ x.status }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <h2>5. Hành động khắc phục BM.01.07 (lập / đóng trong tháng, đang quá hạn)</h2>
+  {% if ct.khac_phuc is none %}<div class="rong">Chưa có trên app.</div>
+  {% elif not ct.khac_phuc %}<div class="rong">Không có phiếu.</div>
+  {% else %}
+  <table>
+    <tr><th style="width:11%">Số</th><th style="width:7%">Lập</th><th>Điều không phù hợp</th><th style="width:9%">Trạng thái</th>
+      <th style="width:7%">Hạn</th><th style="width:7%">Xong</th><th style="width:10%">Hiệu lực</th></tr>
+    {% for x in ct.khac_phuc %}
+    <tr><td>{{ x.name }}</td><td>{{ frappe.utils.formatdate(x.ngay, "dd/MM") }}</td><td>{{ x.mo_ta or "" }}</td>
+      <td>{{ x.trang_thai }}</td><td>{{ frappe.utils.formatdate(x.han, "dd/MM") if x.han else "—" }}</td>
+      <td>{{ frappe.utils.formatdate(x.ngay_xong, "dd/MM") if x.ngay_xong else "—" }}</td><td>{{ x.hieu_luc or "—" }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <h2>6. Kết quả kiểm nghiệm nhận trong tháng</h2>
+  {% if ct.kiem_nghiem is none %}<div class="rong">Chưa có trên app.</div>
+  {% elif not ct.kiem_nghiem %}<div class="rong">Không có kết quả nào.</div>
+  {% else %}
+  <table>
+    <tr><th style="width:11%">Phiếu</th><th style="width:10%">Đối tượng</th><th>Mẫu</th><th style="width:8%">Gửi</th>
+      <th style="width:8%">Kết quả ngày</th><th style="width:9%">Kết quả</th><th style="width:12%">Số phiếu KQ</th></tr>
+    {% for x in ct.kiem_nghiem %}
+    <tr><td>{{ x.name }}</td><td>{{ x.doi_tuong }}</td><td>{{ x.ten_san_pham or x.mo_ta_mau or "" }}</td>
+      <td>{{ frappe.utils.formatdate(x.ngay_gui, "dd/MM") if x.ngay_gui else "—" }}</td>
+      <td>{{ frappe.utils.formatdate(x.ngay_kq, "dd/MM") }}</td>
+      <td class="{{ 'khong' if x.ket_qua != 'Đạt' else '' }}">{{ x.ket_qua }}</td><td>{{ x.so_phieu or "—" }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <h2>7. Việc đang treo tại ngày lập (Tổng quan ATTP)</h2>
+  {% if not treo %}<div class="rong">Không có mảng nào đang Đỏ / Vàng.</div>
+  {% else %}
+  <table>
+    <tr><th style="width:20%">Mảng hồ sơ</th><th style="width:7%">Đèn</th><th>Việc đang treo</th></tr>
+    {% for x in treo %}
+    <tr><td>{{ x.ten }} <small>{{ x.bieu_mau }}</small></td>
+      <td class="{{ 'khong' if x.den == 'do' else '' }}">{{ "ĐỎ" if x.den == "do" else "Vàng" }}</td>
+      <td>{% for n in x.nhac %}{{ n.tieu_de }}{% if not loop.last %}; {% endif %}{% endfor %}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  <table class="ky"><tr><td><b>Người lập (Ban ISO)</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Giám đốc</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

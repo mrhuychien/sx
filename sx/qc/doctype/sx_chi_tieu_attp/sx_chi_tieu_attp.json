@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 21:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 21:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "autoname": "hash",
+ "name": "SX Chi Tieu ATTP",
+ "field_order": [
+  "nam",
+  "chi_so",
+  "ten_chi_so",
+  "ten",
+  "column_break_1",
+  "so_sanh",
+  "muc_tieu",
+  "ngung",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "nam",
+   "fieldtype": "Int",
+   "label": "Năm",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "chi_so",
+   "fieldtype": "Select",
+   "label": "Chỉ số (mã)",
+   "options": "ty_le_luot\nty_le_dung_gio\nngay_thieu_luot\nnhap_lai_giay\nsu_co\nsu_co_cao\nsu_co_dung_han\nkhieu_nai\nkn_dat\nxx_duyet\nrework\ndong_vat\nkp_dung_han\ntb_con_han\nkn_con_han\nncc_duyet",
+   "reqd": 1,
+   "description": "Mã chỉ số app tự tính — tên đầy đủ hiện ở ô bên dưới và trên màn Báo cáo."
+  },
+  {
+   "fieldname": "ten_chi_so",
+   "fieldtype": "Data",
+   "label": "Chỉ số",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên chỉ tiêu theo văn bản mục tiêu",
+   "description": "Để trống thì dùng tên chỉ số."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "so_sanh",
+   "fieldtype": "Select",
+   "label": "So sánh",
+   "options": "≥\n≤",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "muc_tieu",
+   "fieldtype": "Float",
+   "label": "Mục tiêu",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngung",
+   "fieldtype": "Check",
+   "label": "Ngừng"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú / căn cứ"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "nam",
+ "sort_order": "DESC",
+ "title_field": "ten_chi_so",
+ "track_changes": 1
+}

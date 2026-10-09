@@ -420,4 +420,10 @@ python3 scripts/test-khacphuc.py > /tmp/sx-khacphuc.log 2>&1 \
   && tail -1 /tmp/sx-khacphuc.log \
   || { cat /tmp/sx-khacphuc.log; loi=1; }
 
+# D151 (W25): báo cáo tháng, chỉ tiêu ATTP. Lũy kế tỷ lệ lấy trung bình, tháng không việc thành "—",
+# lượt bổ sung / diễn tập lọt vào số liệu, so sánh chỉ tiêu ngược, một hồ sơ lỗi hỏng cả báo cáo — đều im lặng.
+python3 scripts/test-baocao.py > /tmp/sx-baocao.log 2>&1 \
+  && tail -1 /tmp/sx-baocao.log \
+  || { cat /tmp/sx-baocao.log; loi=1; }
+
 exit $loi

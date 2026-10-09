@@ -239,6 +239,11 @@ def _in(bm, tu, den):
         ds = frappe.get_all(Q.DHM, filters={"trang_thai": "Đã huỷ", "xac_nhan_luc": ("between", [tu, den])},
                             pluck="name", order_by="xac_nhan_luc asc")
         return [(f"{HS.slug(n)}.html", _trang(f"Biên bản huỷ mẫu {n}", Q.in_bien_ban_huy(n))) for n in ds]
+    if bm == "BC.THANG":
+        from sx.api import qc_baocao
+        hom_qua = add_days(getdate(nowdate()), -1)
+        return [(f"{t}.html", _trang(f"Báo cáo ATTP {t}", qc_baocao.in_bao_cao(t))) for t, a, _b in thang
+                if a.replace(day=1) <= hom_qua]
     if bm == "TU_CONG_BO":
         ds = frappe.get_all(SP, filters={"ngung_san_xuat": 0}, order_by="so_cong_bo asc",
                             fields=["so_cong_bo", "ten_san_pham", "loai", "tccs", "han_dung_thang", "quy_cach"])

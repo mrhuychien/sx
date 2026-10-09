@@ -49,6 +49,7 @@ BIEU_MAU = {
     "BM.02.04": ("Diễn tập truy xuất (phụ lục)", "truy_xuat"),
     "HUY_MAU": ("Biên bản huỷ mẫu lưu", "luu_mau"),
     "TU_CONG_BO": ("Danh mục sản phẩm tự công bố", None),
+    "BC.THANG": ("Báo cáo ATTP tháng, chỉ tiêu ATTP", None),
 }
 
 
