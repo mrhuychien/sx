@@ -1,0 +1,42 @@
+{#- BM.08.05 — sổ giặt vải ủ, một tháng (W29, D163). A4 ngang, đúng cột giấy HD.08.02 lần BH 01. -#}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .vu { font: 11px/1.3 "Times New Roman", serif; color: #000; }
+  .vu h1 { font-size: 15px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .vu .ma { text-align: center; font-size: 10px; margin-bottom: 4px; }
+  .vu .hd { font-size: 10px; margin-bottom: 6px; }
+  .vu table { width: 100%; border-collapse: collapse; }
+  .vu td, .vu th { border: 1px solid #000; padding: 2px 4px; text-align: center; vertical-align: top; }
+  .vu th { background: #eee; }
+  .vu td.t { text-align: left; }
+  .vu tr { break-inside: avoid; }
+  .vu .thieu { font-weight: bold; }
+  .vu .xem { margin-top: 12px; }
+  .vu .xem td { border: 0; text-align: left; height: 40px; }
+</style>
+<div class="vu">
+  <h1>Sổ giặt vải ủ — tháng {{ thang }}</h1>
+  <div class="ma">BM.08.05 &nbsp;·&nbsp; Lần BH 01 &nbsp;·&nbsp; HD.08.02{% if cd.noi_giat %} &nbsp;·&nbsp; Giặt tại: {{ cd.noi_giat }}{% endif %}{% if cd.thu_giat %} &nbsp;·&nbsp; Ngày giặt cố định: {{ cd.thu_giat }}{% endif %}</div>
+  <div class="hd">Mỗi lần giặt định kỳ (1 lần/tuần), giặt ngoài lịch, nhập vải mới hoặc loại vải: một dòng. Kiểm tra vải hằng ngày ghi BM.08.01 mục 5. Đun sôi tính từ lúc nước sôi lại, ít nhất {{ phut_soi }} phút.</div>
+  <table>
+    <tr><th style="width:6%">Ngày</th><th style="width:11%">Việc</th><th class="t" style="width:14%">Mã vải (V01-A…) hoặc số lượng</th>
+      <th class="t" style="width:16%">Lý do giặt ngoài lịch, loại vải</th><th style="width:13%">Đun sôi: giờ sôi lại → giờ vớt (phút)</th>
+      <th class="t" style="width:15%">Phơi tại; khô hẳn, cất lúc</th><th style="width:11%">Người làm</th><th style="width:14%">QC ký</th></tr>
+    {% for x in ds %}
+    <tr>
+      <td>{{ frappe.utils.formatdate(x.ngay, "dd/MM") }}</td>
+      <td>{{ x.viec }}</td>
+      <td class="t">{{ x.vai | join(", ") }}{% if x.vai and x.so_luong %} · {% endif %}{% if x.so_luong %}{{ x.so_luong }} vải{% endif %}</td>
+      <td class="t">{{ x.ly_do or "" }}{% if x.su_co %} · sự cố {{ x.su_co }}{% endif %}</td>
+      <td{% if x.so_phut is not none and x.so_phut < phut_soi %} class="thieu"{% endif %}>{% if x.gio_soi_lai or x.gio_vot %}{{ x.gio_soi_lai or "…" }} → {{ x.gio_vot or "…" }}{% if x.so_phut is not none %} ({{ x.so_phut }}′){% endif %}{% endif %}</td>
+      <td class="t">{{ x.phoi_tai or "" }}{% if x.cat_luc %}; {{ x.cat_luc[11:16] }} {{ frappe.utils.formatdate(x.cat_luc, "dd/MM") }}{% endif %}</td>
+      <td>{{ x.nguoi_lam or "" }}</td>
+      <td>{% if x.qc_ky_luc %}{{ x.ten_ky }} · {{ frappe.utils.formatdate(x.qc_ky_luc, "dd/MM") }}{% else %}<b>CHƯA KÝ</b>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8">Tháng này chưa có dòng nào.</td></tr>
+    {% endfor %}
+  </table>
+  <table class="xem"><tr><td><b>Trưởng Ban ISO xem xét cuối tháng:</b>
+    {% if xem %}{{ xem.nhan_xet or "Đã xem" }} &nbsp;·&nbsp; {{ xem.ten }} &nbsp;·&nbsp; Ngày {{ frappe.utils.formatdate(xem.luc, "dd/MM/yyyy") }}{% else %}…………………………………… &nbsp; Ngày ……/……/20……{% endif %}</td></tr></table>
+</div>

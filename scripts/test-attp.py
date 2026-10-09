@@ -45,7 +45,7 @@ kiem("mục nhắc vào đúng thẻ theo `nhom`; mảng không số liệu vẫ
 kiem("thẻ đỏ lên đầu, rồi vàng, rồi xanh; cùng màu giữ thứ tự danh mục; việc mức cao đứng trước",
      [x["ma"] for x in r["linh_vuc"]][:2] == ["thiet_bi", "cat"]
      and [x["ma"] for x in r["linh_vuc"]][2:] == [m for m in MA if m not in ("thiet_bi", "cat")]
-     and th["thiet_bi"]["nhac"][0]["muc_do"] == "cao" and r["dem"] == {"do": 1, "vang": 1, "xanh": 12})
+     and th["thiet_bi"]["nhac"][0]["muc_do"] == "cao" and r["dem"] == {"do": 1, "vang": 1, "xanh": 13})
 kiem("số kiểu tờ giấy: 99.25 → 99,25; 15.0 → 15", A._so(99.25) == "99,25" and A._so(15.0) == "15")
 
 
@@ -225,8 +225,11 @@ kiem("rework: 2 phiếu trong kỳ (bỏ phiếu ngoài kỳ), cao nhất 8%", t
 kiem("việc định kỳ: 1 quá hạn → Đỏ; 'tiếp theo' là việc chưa tới hạn (bỏ việc quá hạn, việc đã ngừng)",
      th["viec_dinh_ky"]["so"] == "1" and th["viec_dinh_ky"]["den"] == A.DO
      and th["viec_dinh_ky"]["dong"] == ["Tiếp theo: Thử khôi phục dữ liệu — 30/11/2026"], th["viec_dinh_ky"])
-kiem("đếm đèn 5 đỏ · 4 vàng · 5 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
-     r["dem"] == {"do": 5, "vang": 4, "xanh": 5}
+kiem("vải ủ (W29): chưa khai vải, chưa ghi sổ giặt → '–', không nhắc gì (C31) → Xanh",
+     th["vai_u"]["so"] == "–" and th["vai_u"]["den"] == A.XANH and th["vai_u"]["bieu_mau"] == "BM.08.05",
+     th["vai_u"])
+kiem("đếm đèn 5 đỏ · 4 vàng · 6 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
+     r["dem"] == {"do": 5, "vang": 4, "xanh": 6}
      and [x["ma"] for x in r["linh_vuc"][:5]] == ["su_co", "xuat_xuong", "truy_xuat", "kiem_nghiem", "viec_dinh_ky"],
      r["dem"])
 F.vai("SX QC")

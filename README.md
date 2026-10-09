@@ -315,6 +315,35 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sổ giặt vải ủ BM.08.05 (D163 — W29)
+
+- Màn QC → Hôm nay → **🧺 Sổ giặt vải ủ** (`#/qc/vaiu`, ngay sau nhật ký cát), theo HD.08.02 lần BH 01. **Mỗi việc
+  một dòng** (`SX Giat Vai`): *Giặt định kỳ* (1 lần/tuần) · *Giặt ngoài lịch* · *Nhập vải mới* · *Loại vải* — đúng cột
+  giấy: ngày, việc, mã vải (V01-A…) hoặc số lượng, lý do, **đun sôi giờ sôi lại → giờ vớt (phút)**, phơi tại, khô hẳn
+  cất lúc, người làm, QC ký.
+- Người giặt có thể không có tài khoản: **QC ghi hộ** (ô *Người làm* điền sẵn người giặt trong cài đặt) và **ký**
+  (*LƯU VÀ KÝ* hoặc *Lưu, ký sau*). App tính số phút đun = giờ vớt − giờ sôi lại (vớt qua nửa đêm vẫn đúng); giặt mà
+  **dưới 10 phút → QC không ký được**, màn báo đỏ "đun lại cho đủ 10 phút" ngay khi gõ giờ. Ký giặt còn cần chỗ phơi và
+  giờ cất (vải khô hẳn mới cất). Nhập / loại vải không bắt đun; đã ghi giờ đun thì cũng phải đủ 10 phút.
+- Giặt định kỳ chọn sẵn **toàn bộ vải đang dùng**. Dòng đã QC ký hoặc Trưởng Ban ISO đã xem thì **khoá** (Ban ISO sửa /
+  xoá trên Desk); người ghi xoá được dòng mình ghi trong ngày khi chưa ký.
+- **Danh mục vải** (tab thứ hai, `SX Vai U`, tên = mã vải): QLSX / Ban ISO khai vải (thùng tự đọc từ mã: V01-A → 01),
+  đổi *Đang dùng ↔ Dự phòng*. **App không khai sẵn vải** (C31: số thùng, số vải HD.08.02 còn để trống). *Nhập vải mới*
+  với mã chưa có → app thêm vào danh mục (Dự phòng). *Loại vải* → vải chuyển **Đã loại** (không xoá — mã vải nằm trong
+  hồ sơ 2 năm); loại tay ở danh mục bị chặn. Vải thay mới **khâu lại đúng mã** của thùng (HD.08.02 mục 8): ghi *Nhập
+  vải mới* với mã đó → vải về Dự phòng. Sửa / xoá dòng nhập, loại thì danh mục tính lại theo dòng mới nhất.
+- **Trưởng Ban ISO**: nút **ĐÃ XEM THÁNG MM/YYYY** + nhận xét — ký mọi dòng chưa xem của tháng (dòng ghi bù sau đó lại
+  thành "chưa xem"). Bản in **🖨 IN BM.08.05** theo tháng, đúng cột giấy, dòng "Trưởng Ban ISO xem xét cuối tháng".
+- **Hộp nhắc** (mảng mới *Vải ủ* ở Tổng quan ATTP): quá 7 ngày chưa có dòng Giặt định kỳ (quá 14 ngày: mức cao) —
+  **chỉ khi đã khai ít nhất một vải Đang dùng**; hôm nay là ngày giặt cố định mà chưa ghi; dòng chờ QC ký quá 1 ngày;
+  tháng đã qua ngày 5 của tháng sau mà Trưởng Ban ISO chưa xem.
+- *SX QC Setting → Vải ủ*: ngày giặt cố định (thứ), nơi giặt, người giặt — để trống được (QLSX / Ban ISO điền khi chốt).
+  **Giặt, đun sôi sau mỗi lần dùng**: bật khi thẩm tra (nấm men, nấm mốc bột sau nghiền — HD.08.02 mục 9) không đạt →
+  nhắc khi quá 2 ngày chưa giặt, tính cả giặt ngoài lịch. Việc gửi mẫu thẩm tra 3 tháng đầu khai ở W35 (kiểm nghiệm).
+- BM.08.05 vào danh mục hồ sơ cho đoàn đánh giá (patch `d163_vai_u`, chỉ thêm khi chưa có mã) và gói zip (mỗi tháng
+  một tệp). Kiểm vải hằng ngày vẫn ghi BM.08.01 mục 5 — không ghi hai nơi.
+- Cần `bench --site site1.local migrate` (3 DocType mới, ô cài đặt, patch) rồi `bench restart`.
+
 ## Bỏ đo độ ẩm khi nhận đỗ, lạc (D162 — W40)
 
 - Quyết định 09/10/2026: tiếp nhận đỗ xanh, đỗ đen, lạc **chỉ cảm quan** (khô, không mốc); không đo độ ẩm, không mua

@@ -189,6 +189,9 @@ def _in(bm, tu, den):
     if bm == "BM.08.03":
         from sx.api import qc_cat
         return [(f"{t}.html", _trang(f"BM.08.03 — {t}", qc_cat.in_bm0803(t))) for t, _a, _b in thang]
+    if bm == "BM.08.05":
+        from sx.api import qc_vaiu
+        return [(f"{t}.html", _trang(f"BM.08.05 — {t}", qc_vaiu.in_bm0805(t))) for t, _a, _b in thang]
     if bm == "BM.08.04":
         ds = frappe.get_all(XX, filters={"trang_thai": "Đã duyệt", "kiem_luc": ("between", [tu, den])},
                             pluck="name", order_by="kiem_luc asc")

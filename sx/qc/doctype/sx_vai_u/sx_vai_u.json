@@ -1,0 +1,161 @@
+{
+ "actions": [],
+ "autoname": "field:ma",
+ "creation": "2026-10-09 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ma",
+  "thung",
+  "trang_thai",
+  "column_break_1",
+  "ngay_nhap",
+  "dong_nhap",
+  "ghi_chu",
+  "section_loai",
+  "ngay_loai",
+  "dong_loai",
+  "column_break_2",
+  "ly_do_loai"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã vải",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "set_only_once": 1,
+   "description": "Theo số thùng (HD.08.02 mục 3): thùng 01 dùng vải V01-A, V01-B. Mã khâu bằng chỉ ở mép nằm ngoài thùng."
+  },
+  {
+   "fieldname": "thung",
+   "fieldtype": "Data",
+   "label": "Thùng số",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Để trống: app đọc từ mã (V01-A → 01). Vải của thùng nào chỉ dùng cho thùng đó."
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "reqd": 1,
+   "default": "Dự phòng",
+   "options": "Đang dùng\nDự phòng\nĐã loại",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Đang dùng / Dự phòng: QLSX đổi tự do. Đã loại: chỉ qua dòng Loại vải của sổ giặt (BM.08.05) — app tự chuyển."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ngay_nhap",
+   "fieldtype": "Date",
+   "label": "Ngày nhập",
+   "description": "Vải nhập qua dòng Nhập vải mới thì app ghi theo dòng đó."
+  },
+  {
+   "fieldname": "dong_nhap",
+   "fieldtype": "Data",
+   "label": "Dòng sổ nhập vải",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  },
+  {
+   "fieldname": "section_loai",
+   "fieldtype": "Section Break",
+   "label": "Loại vải",
+   "depends_on": "eval:doc.trang_thai=='Đã loại'"
+  },
+  {
+   "fieldname": "ngay_loai",
+   "fieldtype": "Date",
+   "label": "Ngày loại",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dong_loai",
+   "fieldtype": "Data",
+   "label": "Dòng sổ loại vải",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ly_do_loai",
+   "fieldtype": "Small Text",
+   "label": "Lý do loại",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-09 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX Vai U",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "Production Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "report": 1
+  }
+ ],
+ "sort_field": "ma",
+ "sort_order": "ASC",
+ "title_field": "ma",
+ "track_changes": 1
+}

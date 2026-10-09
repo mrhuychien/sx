@@ -53,7 +53,7 @@ def _nhom(ma, ds):
 
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
-         cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None):
+         cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None, vai_u=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -64,7 +64,8 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `thiet_bi` = sx/qc/thiet_bi.nhac(): quá hạn, không đạt, sắp đến hạn, loại chưa khai — W17 (D143).
     `kiem_nghiem` = sx/qc/kiem_nghiem.nhac(): sản phẩm quá / đến hạn gửi mẫu, chờ kết quả lâu — W18 (D144).
     `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn — W21 (D146).
-    `khac_phuc` = sx/qc/khac_phuc.nhac(): phiếu BM.01.07 quá hạn, chờ kiểm tra hiệu lực lâu — W24 (D150)."""
+    `khac_phuc` = sx/qc/khac_phuc.nhac(): phiếu BM.01.07 quá hạn, chờ kiểm tra hiệu lực lâu — W24 (D150).
+    `vai_u` = sx/qc/vai_u.nhac(): quá chu kỳ chưa giặt vải ủ, dòng chờ QC ký, tháng chưa xem — W29 (D163)."""
     nay = _d(hom_nay)
     ra = []
     # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (oPRP-3), nên thuộc mảng vòng kiểm.
@@ -77,6 +78,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
                 + _nhac_xem_xet(nay, luot))
     ra += _nhom("dong_vat", _nhac_dong_vat(dong_vat or {}))
     ra += _nhom("cat", _nhac_cat(cat or {}))
+    ra += _nhom("vai_u", _nhac_vai_u(nay, vai_u or {}))
     ra += _nhom("thiet_bi", _nhac_thiet_bi(nay, thiet_bi or {}))
     ra += _nhom("kiem_nghiem", _nhac_kiem_nghiem(kiem_nghiem or {}))
     ra += _nhom("viec_dinh_ky", _nhac_viec_dinh_ky(viec_dinh_ky or {}))
@@ -307,6 +309,43 @@ def _nhac_cat(c):
     if c.get("hom_nay_chua"):
         ra.append(_m(THUONG, "Hôm nay có rang — chưa ghi nhật ký cát",
                      "Ghi trong ngày: nguồn cát, có thay cát không, vệ sinh thùng / khay.", "#/qc/cat"))
+    return ra
+
+
+def _nhac_vai_u(nay, v):
+    """Sổ giặt vải ủ BM.08.05 (W29). Nhắc giặt CHỈ khi đã khai ít nhất một vải Đang dùng (C31: số thùng,
+    số vải HD.08.02 còn để trống — chưa khai thì app không biết có vải để giặt):
+      · quá chu kỳ (7 ngày; giặt sau mỗi lần dùng: 2 ngày) chưa giặt — gấp đôi chu kỳ là mức cao;
+      · hôm nay là ngày giặt cố định mà chưa ghi (khi QLSX đã chọn ngày, chưa quá hạn).
+    Dòng chờ QC ký quá 1 ngày, tháng đã qua hạn xem mà Trưởng Ban ISO chưa xem: nhắc dù chưa khai vải."""
+    ra = []
+    dang = int(v.get("dang_dung") or 0)
+    ck = int(v.get("chu_ky") or 7)
+    ten = "giặt (giặt sau mỗi lần dùng)" if v.get("giat_moi_lan") else "giặt định kỳ"
+    cuoi = v.get("lan_cuoi")
+    qua = cuoi is not None and (nay - _d(cuoi)).days > ck
+    if dang and not cuoi:
+        ra.append(_m(THUONG, "Sổ giặt vải ủ chưa có lần giặt định kỳ nào",
+                     f"Đã khai {dang} vải đang dùng. Giặt, đun sôi ≥ 10 phút 1 lần/tuần (HD.08.02) — ghi lần giặt "
+                     f"gần nhất vào sổ BM.08.05 (ghi bù từ sổ giấy được).", "#/qc/vaiu"))
+    elif dang and qua:
+        n = (nay - _d(cuoi)).days
+        ra.append(_m(CAO if n > 2 * ck else THUONG, f"Vải ủ {n} ngày chưa {ten}",
+                     f"Lần gần nhất {_d(cuoi).strftime('%d/%m')}. Giặt, đun sôi toàn bộ vải đang dùng ≥ 10 phút tính "
+                     f"từ lúc nước sôi lại rồi ghi sổ BM.08.05.", "#/qc/vaiu"))
+    elif dang and v.get("hom_nay_la_ngay_giat") and not v.get("hom_nay_da_giat") and not v.get("giat_moi_lan"):
+        ra.append(_m(THUONG, f"Hôm nay ({str(v.get('thu_giat') or '').lower()}) là ngày giặt vải ủ",
+                     "Giặt, đun sôi toàn bộ vải đang dùng; ngày giặt thay vải còn lại của từng thùng. Ghi sổ "
+                     "BM.08.05 — QC ký.", "#/qc/vaiu"))
+    cho = v.get("cho_ky") or []
+    if cho:
+        ra.append(_m(THUONG, f"{len(cho)} dòng sổ giặt vải ủ chờ QC ký",
+                     f"Sớm nhất ngày {_d(cho[0]['ngay']).strftime('%d/%m')} ({str(cho[0].get('viec') or '').lower()}). "
+                     f"Xem giờ đun sôi (≥ 10 phút), chỗ phơi, giờ cất rồi ký.", "#/qc/vaiu"))
+    for t in v.get("chua_xem") or []:
+        ra.append(_m(THUONG, f"Sổ giặt vải ủ tháng {t[5:7]}/{t[:4]} chưa được Trưởng Ban ISO xem",
+                     "Trưởng Ban ISO xem BM.08.05 cuối tháng (HD.08.02 mục 9) — bấm \"Đã xem tháng\" trên màn Sổ "
+                     "giặt vải ủ.", "#/qc/vaiu"))
     return ra
 
 

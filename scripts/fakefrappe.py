@@ -25,6 +25,7 @@ BAO = []               # msgprint
 NGUOI = {"u": "qc@x", "roles": ["SX QC"]}
 NGAY = {"d": date(2026, 10, 9)}
 LOP = {}               # doctype → lớp controller
+CON = {}               # (doctype cha, ô bảng con) → doctype con — xem bang_con()
 TEN_THEO = {}          # doctype → field đặt tên (autoname field:x)
 SO = {"n": 0}
 try:
@@ -276,6 +277,7 @@ class Document:
         self._goi("validate")
         dt = self._d["doctype"]
         bang(dt)[self._d["name"]] = copy.deepcopy(self._d)
+        _chep_con(dt, self._d)
         self._goi("on_update")
         self.__dict__["_moi"] = False
         self.__dict__["_cu"] = copy.deepcopy(self._d)
@@ -336,8 +338,28 @@ def delete_doc(dt, ten, **k):
     if hasattr(d, "_goi"):
         d._goi("on_trash")
     bang(dt).pop(ten)
+    _chep_con(dt, {"name": ten}, xoa=True)
     if hasattr(d, "_goi"):
         d._goi("after_delete")
+
+
+def bang_con(dt, f, dt_con):
+    """Khai ô bảng con: lưu doc cha thì chép các dòng con ra bảng riêng (có parent, parenttype, parentfield,
+    idx) như frappe thật — để get_all chạy được trên doctype con. Xoá doc cha thì xoá dòng con."""
+    CON[(dt, f)] = dt_con
+
+
+def _chep_con(dt, d, xoa=False):
+    for (cha, f), con in CON.items():
+        if cha != dt:
+            continue
+        b = bang(con)
+        for k in [k for k, v in b.items() if v.get("parent") == d["name"] and v.get("parentfield") == f]:
+            b.pop(k)
+        for i, r in enumerate([] if xoa else (d.get(f) or []), 1):
+            h = dict(r, parent=d["name"], parenttype=dt, parentfield=f, idx=i)
+            h["name"] = f"{d['name']}-{f}-{i}"
+            b[h["name"]] = h
 
 
 def dang_ky(dt, lop, ten_theo=None):
@@ -423,7 +445,7 @@ def nap(ten, p):
 def nap_qc():
     """Nạp chuỗi module QC mà sx/api/qc.py cần, theo đúng thứ tự phụ thuộc."""
     for t in ("muc", "nguong", "quyen", "san_pham", "su_co", "xuat", "nhac", "dong_vat", "cat", "so_do",
-              "thiet_bi", "kiem_nghiem", "viec_dinh_ky", "khac_phuc"):
+              "thiet_bi", "kiem_nghiem", "viec_dinh_ky", "khac_phuc", "vai_u"):
         nap(f"sx.qc.{t}", f"sx/qc/{t}.py")
     return nap("sx.api.qc", "sx/api/qc.py")
 

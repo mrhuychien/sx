@@ -23,6 +23,7 @@ from sx.qc import muc as M
 from sx.qc import nhac as NH
 from sx.qc import rework as RW
 from sx.qc import thiet_bi as TBM
+from sx.qc import vai_u as VU
 from sx.qc import viec_dinh_ky as VD
 from sx.qc.khieu_nai import MO as KHIEU_NAI_MO
 from sx.qc.nguong import nguong
@@ -123,6 +124,17 @@ def _cat(dl):
             "toi_da": cint(c.get("toi_da")), "cho_kln": len(c.get("cho_kln") or [])}
 
 
+def _vai_u(tu, den, dl):
+    v = dl.get("vai_u")
+    if not v:                     # {} = chưa migrate
+        return None
+    dem = {tt: frappe.db.count(VU.VAI, {"trang_thai": tt}) for tt in VU.TRANG_THAI}
+    return {"dang_dung": dem[VU.DANG_DUNG], "du_phong": dem[VU.DU_PHONG], "da_loai": dem[VU.DA_LOAI],
+            "so_lan": frappe.db.count(VU.PT, {"viec": ("in", VU.GIAT), "ngay": ("between", [tu, den])}),
+            "lan_cuoi": v.get("lan_cuoi"), "chu_ky": cint(v.get("chu_ky")),
+            "cho_ky": frappe.db.count(VU.PT, {"qc_ky_luc": ("is", "not set")})}
+
+
 def _dong_vat(tu, den, dl):
     return {"dau_hieu": frappe.db.count("SX Dau Hieu Dong Vat", {"ngay": ("between", [tu, den])}),
             "khu_hai_tuan": len((dl.get("dong_vat") or {}).get("khu_hai_tuan") or [])}
@@ -171,6 +183,7 @@ def tong_quan(ngay=None):
         "thiet_bi": _thu(lambda: _thiet_bi(dl)),
         "kiem_nghiem": _thu(lambda: _kiem_nghiem(d)),
         "cat": _thu(lambda: _cat(dl)),
+        "vai_u": _thu(lambda: _vai_u(tu, den, dl)),
         "dong_vat": _thu(lambda: _dong_vat(tu, den, dl)),
         "ncc": _thu(lambda: _ncc(d)),
         "luu_mau": _thu(lambda: _luu_mau(dl)),

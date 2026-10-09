@@ -32,6 +32,7 @@ LINH_VUC = (
     ("thiet_bi", "Thiết bị đo", "BM.06.01–06.04", "#/qc/thietbi"),
     ("kiem_nghiem", "Kiểm nghiệm sản phẩm", "KH.KN.01", "#/qc/kiemnghiem"),
     ("cat", "Cát rang", "BM.08.03", "#/qc/cat"),
+    ("vai_u", "Vải ủ", "BM.08.05", "#/qc/vaiu"),
     ("dong_vat", "Động vật gây hại", "BM.PRP.01 / 03", "#/qc/dvgh"),
     ("ncc", "Nhà cung cấp", "BM.07.02", "#/qc/review"),
     ("luu_mau", "Lưu mẫu", "", "#/qc/luumau"),
@@ -161,6 +162,17 @@ def _cat(s):
             "nhan_so": "ngày cát đang dùng" + (f" / tối đa {s['toi_da']}" if s.get("toi_da") else ""), "dong": dong}
 
 
+def _vai_u(s):
+    if not s.get("dang_dung") and not s.get("so_lan"):
+        return {"so": "–", "nhan_so": "chưa khai vải ủ / chưa ghi sổ giặt", "dong": []}
+    dong = [f"Giặt gần nhất {_ngay(s['lan_cuoi'])} · chu kỳ {s.get('chu_ky') or 7} ngày" if s.get("lan_cuoi")
+            else "Chưa có lần giặt định kỳ nào",
+            f"{s.get('dang_dung', 0)} vải đang dùng · {s.get('du_phong', 0)} dự phòng · {s.get('da_loai', 0)} đã loại"]
+    if s.get("cho_ky"):
+        dong.append(f"{s['cho_ky']} dòng chờ QC ký")
+    return {"so": str(s.get("so_lan", 0)), "nhan_so": "lần giặt trong kỳ", "dong": dong}
+
+
 def _dong_vat(s):
     k = int(s.get("khu_hai_tuan") or 0)
     return {"so": str(s.get("dau_hieu", 0)), "nhan_so": "lần thấy dấu hiệu trong kỳ",
@@ -200,7 +212,7 @@ def _viec_dinh_ky(s):
 
 THE = {"vong_kiem": _vong_kiem, "su_co": _su_co, "khac_phuc": _khac_phuc, "xuat_xuong": _xuat_xuong,
        "thiet_bi": _thiet_bi,
-       "kiem_nghiem": _kiem_nghiem, "cat": _cat, "dong_vat": _dong_vat, "luu_mau": _luu_mau,
+       "kiem_nghiem": _kiem_nghiem, "cat": _cat, "vai_u": _vai_u, "dong_vat": _dong_vat, "luu_mau": _luu_mau,
        "rework": _rework, "viec_dinh_ky": _viec_dinh_ky}
 THE_ROUTE = {"khieu_nai": _khieu_nai, "truy_xuat": _truy_xuat, "ncc": _ncc}
 

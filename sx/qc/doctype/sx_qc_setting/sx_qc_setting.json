@@ -41,6 +41,12 @@
   "luu_mau_so_thang",
   "section_cat",
   "cat_so_ngay_toi_da",
+  "section_vai_u",
+  "vai_u_thu_giat",
+  "vai_u_noi_giat",
+  "column_break_vai_u",
+  "vai_u_nguoi_giat",
+  "vai_u_giat_moi_lan",
   "section_thiet_bi",
   "thiet_bi_han_dau",
   "chung_chi_dong_ho",
@@ -276,6 +282,41 @@
    "label": "Cát dùng tối đa bao nhiêu ngày",
    "default": "0",
    "description": "W20 / C19: CHƯA CHỐT — để 0 thì app chỉ đếm số ngày cát đã dùng, không nhắc. Điền số ngày khi đã chốt: tới ngưỡng thì hộp nhắc QC báo thay cát."
+  },
+  {
+   "fieldname": "section_vai_u",
+   "fieldtype": "Section Break",
+   "label": "Vải ủ (HD.08.02, sổ giặt BM.08.05)",
+   "description": "C31: HD.08.02 còn để trống ngày giặt, nơi giặt, người giặt — để trống được. Chưa khai vải ủ Đang dùng (QC → Sổ giặt vải ủ → Danh mục vải) thì app không nhắc giặt."
+  },
+  {
+   "fieldname": "vai_u_thu_giat",
+   "fieldtype": "Select",
+   "label": "Ngày giặt cố định trong tuần",
+   "options": "\nThứ Hai\nThứ Ba\nThứ Tư\nThứ Năm\nThứ Sáu\nThứ Bảy\nChủ nhật",
+   "description": "QLSX chọn, cố định (HD.08.02 mục 6). Đặt rồi thì hôm đó hộp nhắc QC nhắc giặt tới khi có dòng Giặt định kỳ. Dù đặt hay không, quá 7 ngày chưa giặt định kỳ vẫn nhắc."
+  },
+  {
+   "fieldname": "vai_u_noi_giat",
+   "fieldtype": "Data",
+   "label": "Nơi giặt",
+   "description": "Ban ISO chỉ định, ngoài khu bột. Hiện trên màn Sổ giặt vải ủ."
+  },
+  {
+   "fieldname": "column_break_vai_u",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vai_u_nguoi_giat",
+   "fieldtype": "Data",
+   "label": "Người giặt",
+   "description": "Điền sẵn ô Người làm khi QC ghi dòng sổ giặt (sửa được từng dòng)."
+  },
+  {
+   "fieldname": "vai_u_giat_moi_lan",
+   "fieldtype": "Check",
+   "label": "Giặt, đun sôi sau mỗi lần dùng",
+   "description": "Bật khi kết quả thẩm tra (nấm men, nấm mốc bột sau nghiền — HD.08.02 mục 9) không đạt: nhắc giặt khi quá 2 ngày chưa giặt (một lần ủ tối đa 48 giờ), tính cả giặt ngoài lịch."
   },
   {
    "fieldname": "section_thiet_bi",

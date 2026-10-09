@@ -3,7 +3,7 @@
 // classList, sự kiện click / input / change, querySelectorAll theo tên thẻ (segment() dùng).
 //
 // Dùng:
-//   import { napView, kiem, ketThuc, tim, nut, dangChon, cho, MO, PAD, TOAST } from './fakedom.mjs';
+//   import { napView, kiem, ketThuc, tim, nut, dangChon, cho, MO, PAD, TOAST, XAC } from './fakedom.mjs';
 //   const V = await napView('views/qc_xuatxuong.js');
 
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
@@ -53,9 +53,9 @@ export class E {
   }
 
   querySelectorAll(q) {
-    const tag = q.toUpperCase();
+    const tag = q.toUpperCase().split(',').map((t) => t.trim());
     const ra = [];
-    const di = (e) => e.kids.forEach((k) => { if (k.tagName === tag) ra.push(k); di(k); });
+    const di = (e) => e.kids.forEach((k) => { if (tag.includes(k.tagName)) ra.push(k); di(k); });
     di(this);
     return ra;
   }
@@ -71,7 +71,9 @@ globalThis.window = { open: () => null };
 export const MO = [];
 export const PAD = [];
 export const TOAST = [];
+export const XAC = [];         // confirm2Step: ghi lại, KHÔNG tự xác nhận — test gọi XAC[i].onConfirm()
 globalThis.__gia = {
+  confirm: (o) => { XAC.push(o); },
   openModal: (o) => { const m = { ...o, body: new E('div'), dong: false, close() { m.dong = true; } }; MO.push(m); return m; },
   numpad: (o) => { PAD.push(o); },
   toast: (s, k) => { TOAST.push([s, k]); },
@@ -89,7 +91,7 @@ export async function napView(rel) {
     writeFileSync(tep(r), doiDuong(readFileSync(GOC + r, 'utf8')));
   }
   writeFileSync(tep('components/modal.js'), 'export const openModal = (o) => globalThis.__gia.openModal(o);\n'
-    + 'export const confirm2Step = () => {};\n');
+    + 'export const confirm2Step = (o) => globalThis.__gia.confirm(o);\n');
   writeFileSync(tep('components/toast.js'), 'export const toast = (s, k) => globalThis.__gia.toast(s, k);\n'
     + "export const toastErr = (s) => globalThis.__gia.toast(s, 'err');\n");
   writeFileSync(tep('components/numpad.js'), 'export const openNumpad = (o) => globalThis.__gia.numpad(o);\n');

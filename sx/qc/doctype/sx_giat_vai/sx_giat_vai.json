@@ -1,0 +1,261 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-09 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "ngay",
+  "viec",
+  "column_break_1",
+  "vai",
+  "so_luong",
+  "ly_do",
+  "section_dun",
+  "gio_soi_lai",
+  "gio_vot",
+  "so_phut",
+  "column_break_2",
+  "phoi_tai",
+  "cat_luc",
+  "section_ky",
+  "nguoi_lam",
+  "ghi_boi",
+  "su_co",
+  "column_break_3",
+  "qc_ky_boi",
+  "qc_ky_luc",
+  "section_xem",
+  "xem_boi",
+  "xem_luc",
+  "column_break_4",
+  "xem_nhan_xet"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "GVU-.YYYY.-.#####",
+   "default": "GVU-.YYYY.-.#####",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "viec",
+   "fieldtype": "Select",
+   "label": "Việc",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "options": "\nGiặt định kỳ\nGiặt ngoài lịch\nNhập vải mới\nLoại vải",
+   "description": "Mỗi lần giặt định kỳ (1 lần/tuần), giặt ngoài lịch, nhập vải mới hoặc loại vải: một dòng."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vai",
+   "fieldtype": "Table MultiSelect",
+   "label": "Mã vải",
+   "options": "SX Giat Vai Ma",
+   "description": "Nhập vải mới qua màn QC: mã chưa có thì app tự thêm vào danh mục (Dự phòng). Loại vải: vải chuyển Đã loại (không xoá)."
+  },
+  {
+   "fieldname": "so_luong",
+   "fieldtype": "Int",
+   "label": "Số lượng vải",
+   "description": "Ghi khi chưa có mã (vải mới chưa khâu mã, vải cũ không mã)."
+  },
+  {
+   "fieldname": "ly_do",
+   "fieldtype": "Small Text",
+   "label": "Lý do giặt ngoài lịch, loại vải",
+   "depends_on": "eval:['Giặt ngoài lịch','Loại vải'].includes(doc.viec)",
+   "description": "Vải ẩm, có mùi, ố, đọng nước, dính dấu chuột, côn trùng, rách, sờn… (HD.08.02 mục 5, 8)."
+  },
+  {
+   "fieldname": "section_dun",
+   "fieldtype": "Section Break",
+   "label": "Đun sôi, phơi, cất"
+  },
+  {
+   "fieldname": "gio_soi_lai",
+   "fieldtype": "Time",
+   "label": "Giờ sôi lại",
+   "description": "Thả vải vào nước đang sôi, tính từ lúc nước SÔI LẠI."
+  },
+  {
+   "fieldname": "gio_vot",
+   "fieldtype": "Time",
+   "label": "Giờ vớt"
+  },
+  {
+   "fieldname": "so_phut",
+   "fieldtype": "Int",
+   "label": "Số phút đun sôi",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "App tính = giờ vớt − giờ sôi lại. Giặt mà dưới 10 phút thì QC không ký được — đun lại cho đủ 10 phút."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "phoi_tai",
+   "fieldtype": "Data",
+   "label": "Phơi tại",
+   "description": "Dây, giá riêng cho vải ủ, dưới mái che có lưới chắn chim (HD.08.02 mục 7)."
+  },
+  {
+   "fieldname": "cat_luc",
+   "fieldtype": "Datetime",
+   "label": "Khô hẳn, cất lúc",
+   "description": "Vải còn ẩm thì không cất, không dùng."
+  },
+  {
+   "fieldname": "section_ky",
+   "fieldtype": "Section Break",
+   "label": "Người làm, QC ký"
+  },
+  {
+   "fieldname": "nguoi_lam",
+   "fieldtype": "Data",
+   "label": "Người làm",
+   "reqd": 1,
+   "description": "Người giặt (có thể không có tài khoản)."
+  },
+  {
+   "fieldname": "ghi_boi",
+   "fieldtype": "Link",
+   "label": "Người ghi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố (nếu có)",
+   "options": "SX Su Co",
+   "description": "Vải rách, thiếu mảnh khi lấy đỗ; vải dính dấu chuột… — phiếu BM.08.02 liên quan."
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qc_ky_boi",
+   "fieldtype": "Link",
+   "label": "QC ký",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qc_ky_luc",
+   "fieldtype": "Datetime",
+   "label": "QC ký lúc",
+   "read_only": 1,
+   "description": "Đã ký thì khoá — chỉ Ban ISO sửa / xoá."
+  },
+  {
+   "fieldname": "section_xem",
+   "fieldtype": "Section Break",
+   "label": "Trưởng Ban ISO xem xét cuối tháng"
+  },
+  {
+   "fieldname": "xem_boi",
+   "fieldtype": "Link",
+   "label": "Trưởng Ban ISO xem",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xem_luc",
+   "fieldtype": "Datetime",
+   "label": "Xem lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "xem_nhan_xet",
+   "fieldtype": "Small Text",
+   "label": "Nhận xét",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-09 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX Giat Vai",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1
+  },
+  {
+   "role": "Production Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "ngay",
+ "sort_order": "DESC",
+ "title_field": "viec",
+ "track_changes": 1
+}

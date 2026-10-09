@@ -35,6 +35,7 @@ BIEU_MAU = {
     "BM.01.07": ("Phiếu hành động khắc phục", "khac_phuc"),
     "BM.08.03": ("Nhật ký cát rang", "cat"),
     "BM.08.04": ("Kiểm tra xuất xưởng theo lô", "xuat_xuong"),
+    "BM.08.05": ("Sổ giặt vải ủ", "vai_u"),
     "BM.11.01": ("Sổ khiếu nại khách hàng", "khieu_nai"),
     "BM.15.01": ("Phiếu rework", "rework"),
     "BM.06.01": ("Danh mục thiết bị đo", "thiet_bi"),

@@ -465,4 +465,13 @@ python3 scripts/test-rangdo.py > /tmp/sx-rangdo.log 2>&1 \
   && tail -1 /tmp/sx-rangdo.log \
   || { cat /tmp/sx-rangdo.log; loi=1; }
 
+# D163 (W29): sổ giặt vải ủ BM.08.05. QC ký được lần đun chưa đủ 10 phút, loại vải tay ở danh mục (mất dòng sổ),
+# xoá dòng loại mà vải vẫn Đã loại, nhắc giặt khi chưa khai vải nào — đều lặng lẽ.
+python3 scripts/test-vaiu.py > /tmp/sx-vaiu.log 2>&1 \
+  && tail -1 /tmp/sx-vaiu.log \
+  || { cat /tmp/sx-vaiu.log; loi=1; }
+node scripts/test-vaiu.mjs > /tmp/sx-vaiu-js.log 2>&1 \
+  && tail -1 /tmp/sx-vaiu-js.log \
+  || { cat /tmp/sx-vaiu-js.log; loi=1; }
+
 exit $loi

@@ -136,10 +136,12 @@ export async function render({ container, call, st }) {
   //  · W19 (D145) phiếu rework BM.15.01 — ≤ 10% mẻ, không lạc vào sản phẩm không lạc.
   //  · W21 (D146) việc định kỳ cho hồ sơ giấy — việc năm / quý lên hộp nhắc.
   //  · W33 (D160) tiếp nhận nguyên liệu BM.07.03 + kiểm xe — phiếu nhập mua nháp, QC không cần Desk.
-  const so = el('div', 'sx-qc-so');
+  //  · W29 (D163) sổ giặt vải ủ BM.08.05 — giặt, đun sôi ≥ 10 phút 1 lần/tuần, QC ký.
+  const so = el('div', 'sx-qc-luoi-so');
   [['#/qc/tiepnhan', '📦 Tiếp nhận NL', 'BM.07.03 · phiếu nhập mua'],
     ['#/qc/dvgh', '🐀 Động vật gây hại', 'theo trạm · BM.PRP'],
     ['#/qc/cat', '♨ Nhật ký cát rang', 'BM.08.03 · đếm ngày cát'],
+    ['#/qc/vaiu', '🧺 Sổ giặt vải ủ', 'BM.08.05 · đun sôi ≥ 10 phút'],
     ['#/qc/thietbi', '🌡 Thiết bị đo', 'BM.06 · hạn hiệu chuẩn'],
     ['#/qc/kiemnghiem', '🧪 Kiểm nghiệm', 'KH.KN.01 · gửi mẫu năm'],
     ['#/qc/rework', '♻ Rework', 'BM.15.01 · ≤ 10% mẻ'],
