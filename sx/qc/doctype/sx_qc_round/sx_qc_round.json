@@ -59,10 +59,20 @@
   "thung_khay_cat_sach",
   "section_buoc_5",
   "u_thung_vai_sach",
+  "u_thung_go_vai",
   "section_buoc_6",
   "nam_cham_da_kiem",
   "nam_cham_vat",
   "nam_cham_mat_kim_loai",
+  "nc01_da_kiem",
+  "nc01_vat",
+  "nc01_mat_kim_loai",
+  "nc02_da_kiem",
+  "nc02_vat",
+  "nc02_mat_kim_loai",
+  "nc02_da_kiem_m2",
+  "nc02_vat_m2",
+  "nc02_mat_kim_loai_m2",
   "section_buoc_7",
   "do_min_dat",
   "hat_tho",
@@ -469,9 +479,16 @@
    "options": "\nĐạt\nKhông đạt"
   },
   {
+   "fieldname": "u_thung_go_vai",
+   "fieldtype": "Select",
+   "label": "5 Thùng ủ gỗ, vải ủ: sạch, khô, không mốc, không đọng nước, phủ kín; vải nguyên vẹn, đúng mã thùng; ủ ≤ 48 giờ",
+   "description": "không mốc, không đọng nước, phủ kín; vải nguyên vẹn, đúng mã thùng (HD.08.02)",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
    "fieldname": "section_buoc_6",
    "fieldtype": "Section Break",
-   "label": "6. Vỡ đỗ · Nam châm",
+   "label": "6. Vỡ đỗ · Nam châm  (oPRP-2)",
    "collapsible": 1
   },
   {
@@ -490,6 +507,63 @@
    "fieldname": "nam_cham_mat_kim_loai",
    "fieldtype": "Check",
    "label": "6c Có mạt kim loại",
+   "description": "tích = tạo sự cố",
+   "default": "0"
+  },
+  {
+   "fieldname": "nc01_da_kiem",
+   "fieldtype": "Select",
+   "label": "6 NC-01 (máy vỡ đỗ): đã tháo, lau sạch, còn hút",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "nc01_vat",
+   "fieldtype": "Data",
+   "label": "6b NC-01: vật bắt được",
+   "description": "để trống nếu không có"
+  },
+  {
+   "fieldname": "nc01_mat_kim_loai",
+   "fieldtype": "Check",
+   "label": "6c NC-01: có mạt kim loại",
+   "description": "tích = tạo sự cố",
+   "default": "0"
+  },
+  {
+   "fieldname": "nc02_da_kiem",
+   "fieldtype": "Select",
+   "label": "6 NC-02 (M1, sau nghiền): đã tháo, lau sạch, còn hút",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "nc02_vat",
+   "fieldtype": "Data",
+   "label": "6b NC-02 (M1): vật bắt được",
+   "description": "để trống nếu không có"
+  },
+  {
+   "fieldname": "nc02_mat_kim_loai",
+   "fieldtype": "Check",
+   "label": "6c NC-02 (M1): có mạt kim loại",
+   "description": "tích = tạo sự cố",
+   "default": "0"
+  },
+  {
+   "fieldname": "nc02_da_kiem_m2",
+   "fieldtype": "Select",
+   "label": "6 NC-02 (M2, sau nghiền): đã tháo, lau sạch, còn hút",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "nc02_vat_m2",
+   "fieldtype": "Data",
+   "label": "6b NC-02 (M2): vật bắt được",
+   "description": "để trống nếu không có"
+  },
+  {
+   "fieldname": "nc02_mat_kim_loai_m2",
+   "fieldtype": "Check",
+   "label": "6c NC-02 (M2): có mạt kim loại",
    "description": "tích = tạo sự cố",
    "default": "0"
   },

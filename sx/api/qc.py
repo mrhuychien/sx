@@ -1148,7 +1148,7 @@ def _to_ngay(ngay, kem_style=True):
                      + (f" ({oprp})" if oprp else "")})
         for m in muc_buoc:
             nhan = m["nhan"]
-            if m["may_so"] == 1 and m["may"] in nhieu_may:
+            if m["may_so"] == 1 and m["may"] in nhieu_may and not m.get("nhan_mau"):
                 nhan += f' — {M.ten_may_so(m["may"], 1)}'
             hang.append({
                 "buoc": False, "so": m["so"], "nhan": nhan,

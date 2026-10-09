@@ -230,7 +230,7 @@ def sc(**kw):
 # ═══ 1. Phiên bản bộ mục ════════════════════════════════════════════════
 print("-- phiên bản: phiếu cũ giữ bộ cũ, phiếu mới theo bộ mới --")
 MOI = {"a5_chuyen_doi", "thung_khay_cat_sach", "u_thung_vai_sach", "hat_tho", "di_vat_ray"}
-kiem("bộ mục hiện hành là bản 2", M.PHIEN_BAN == 2)
+kiem("bộ mục hiện hành từ bản 2 trở lên (bản 3 — W30, xem test-namcham.py)", M.PHIEN_BAN >= 2)
 kiem("phiếu trước D129 (phiên bản trống) KHÔNG có mục mới",
      not (MOI & ap_pb("Tuần", 0)), str(MOI & ap_pb("Tuần", 0)))
 kiem("phiếu trước D129 vẫn có T11 quả chuẩn (số đã ghi không biến mất)",
@@ -318,7 +318,7 @@ kiem("máy nghiền mang mã M1 / M2", M.ten_may_so("nghien", 1) == "M1" and M.t
 kiem("máy rang mang mã M1 / M2 / M3 (W16)", [M.ten_may_so("rang", k) for k in (1, 2, 3)] == ["M1", "M2", "M3"])
 kiem("nhóm chưa có mã (máy gói bột — chờ C10) vẫn là 'máy k'", M.ten_may_so("goi_bot", 3) == "máy 3")
 kiem("7a / 7b / 7c theo từng máy, máy 2 đi sau trọn máy 1",
-     [m["f"] for m in M.MUC if m["may"] == "nghien"]
+     [m["f"] for m in M.MUC if m["may"] == "nghien" and m["buoc"] == "7"]
      == ["do_min_dat", "hat_tho", "di_vat_ray", "do_min_dat_m2", "hat_tho_m2", "di_vat_ray_m2"])
 kiem("máy 1 giữ fieldname cũ do_min_dat (phiếu cũ đọc nguyên)", M.THEO_F["do_min_dat"]["so"] == "7a")
 kiem("nhãn máy 2 ghi M2", M.THEO_F["hat_tho_m2"]["nhan"].endswith("M2"))

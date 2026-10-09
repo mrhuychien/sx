@@ -203,8 +203,9 @@ def ap(f, l, bot=0):
 kiem("phần A chỉ ở Đầu sáng và Tuần",
      ap("a1_ve_sinh", M.DAU_SANG) and ap("a1_ve_sinh", M.TUAN)
      and not ap("a1_ve_sinh", M.TRUA) and not ap("a1_ve_sinh", M.CUOI_CHIEU))
-kiem("nam châm chỉ ở Đầu sáng / Tuần",
-     ap("nam_cham_da_kiem", M.DAU_SANG) and not ap("nam_cham_da_kiem", M.CUOI_CHIEU))
+kiem("nam châm chỉ ở Đầu sáng / Tuần (bản 3: NC-01, NC-02 — W30)",
+     ap("nc01_da_kiem", M.DAU_SANG) and ap("nc02_da_kiem", M.TUAN)
+     and not ap("nc01_da_kiem", M.CUOI_CHIEU) and not ap("nc02_da_kiem", M.TRUA))
 kiem("mối hàn túi chỉ ở Trưa / Cuối chiều",
      ap("moi_han_kin", M.TRUA) and ap("moi_han_kin", M.CUOI_CHIEU)
      and not ap("moi_han_kin", M.DAU_SANG) and not ap("moi_han_kin", M.TUAN))
@@ -311,6 +312,7 @@ day_du["rang_vong_quay"] = 6.5
 # ĐẾM được 1 thùng quá hạn LÀ một sự cố. Để nguyên 1 ở đây thì "lượt sạch" của
 # bài dưới không sạch — và đó là bài học của chính luật này.
 day_du["thung_bot_qua_han"] = 0
+day_du["phien_ban"] = M.PHIEN_BAN     # lượt mở hôm nay mang bộ mục hiện hành
 
 d = luot(**day_du)
 kiem("chấm đủ → qua", thu(d, R.SXQCRound.kiem_de_trong) is None)

@@ -23,7 +23,11 @@ module qc phải bê nguyên sang app khác được (xem sx/qc/README.md).
 #   2  W01/W02 08/10/2026: 1e chuyển đổi trong ngày, 4b thùng/khay cát, 5 Ủ, 7 rây
 #      kiểm RY-01 (hạt thô, dị vật), B7c vệ sinh chuyển đổi sữa; bỏ T11 quả chuẩn
 #      (sang quản lý thiết bị đo — W17)
-PHIEN_BAN = 2
+#   3  W30 09/10/2026 (bản giấy tách 3 dòng nam châm): mục 5 theo HD.08.02 — thùng ủ gỗ,
+#      vải ủ, đúng mã thùng, ủ ≤ 48 giờ — chỉ lượt Đầu sáng (HD.08.01 bảng 3); mục 6 tách
+#      ba nam châm NC-01 (máy vỡ đỗ), NC-02 M1 / M2 (sau máy nghiền, lắp 06/10/2026), mỗi
+#      cái Đ/K + vật bắt được + mạt kim loại
+PHIEN_BAN = 3
 
 # ── Lượt ──────────────────────────────────────────────────────────────────
 # MỘT NGÀY BA LƯỢT, không chia ca (D95). Trước D95 là 3 lượt × 2 ca Sáng/Chiều;
@@ -120,7 +124,7 @@ BUOC = [
     ("3",  "Rang",             "oPRP-1",  ""),
     ("4",  "Sàng cát",         "oPRP-2",  ""),
     ("5",  "Ủ",                "",        ""),
-    ("6",  "Vỡ đỗ · Nam châm", "",        ""),
+    ("6",  "Vỡ đỗ · Nam châm", "oPRP-2",  ""),
     ("7",  "Nghiền",           "oPRP-2",  ""),
     ("8",  "Kho bột",          "oPRP-3",  ""),
     ("10", "Ủ sau trộn",       "",        ""),
@@ -197,7 +201,7 @@ SUA_DOI = "doi"
 
 def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
        dv="", goi_y="", batbuoc=False, phu=False, ngan="", may=None, lac=None,
-       oprp=None, sua=None, loai=None, tu=1, den=None):
+       oprp=None, sua=None, loai=None, tu=1, den=None, kem=(), nc=None):
     """Một mục kiểm.
 
     ap   = tuple lượt áp dụng, None = mọi lượt
@@ -217,13 +221,22 @@ def _m(f, so, nhan, buoc, cd, kieu="chon", ap=None, goi=False, bot=False,
     sua  = SUA_DOI — chỉ áp dụng khi có làm vị có sữa bột (lượt này / lượt trước)
     loai = loại sự cố khi mục Không đạt, nếu khác loại suy từ công đoạn (PRP…)
     tu, den = phiên bản bộ mục mục này có mặt: [tu, den) — xem PHIEN_BAN
+    kem  = bước khác cũng phải đang chạy thì mục mới áp dụng (W30: nam châm NC-02 nằm ở mục
+           6 trên bản giấy nhưng gắn máy nghiền — hôm không nghiền thì không kiểm)
+    nc   = mã nam châm (W30: "NC-01" / "NC-02") — luật sự cố ghi đúng nam châm nào
+    Nhãn có "{may}" (W30) thì mỗi máy điền mã của mình vào đó ("NC-02 (M2, sau nghiền)…")
+    thay vì nối " — M2" vào cuối — bản giấy ghi mã máy ở giữa nhãn.
     """
-    return {"f": f, "so": so, "nhan": nhan, "ngan": ngan or nhan, "buoc": buoc, "cd": cd, "kieu": kieu,
+    ngan = ngan or nhan
+    mau = {"nhan_mau": nhan, "ngan_mau": ngan} if may and "{may}" in nhan else {}
+    if mau:
+        nhan, ngan = nhan.format(may=ten_may_so(may, 1)), ngan.format(may=ten_may_so(may, 1))
+    return {"f": f, "so": so, "nhan": nhan, "ngan": ngan, "buoc": buoc, "cd": cd, "kieu": kieu,
             "ap": tuple(ap) if ap else None, "goi": goi, "bot": bot,
             "dv": dv, "goi_y": goi_y, "batbuoc": batbuoc, "phu": phu,
             "may": may, "may_so": 1 if may else 0, "goc": f, "lac": lac,
             "oprp": oprp or _oprp_buoc(buoc), "sua": sua, "loai": loai,
-            "tu": tu, "den": den}
+            "tu": tu, "den": den, "kem": tuple(kem), "nc": nc, **mau}
 
 
 MUC = [
@@ -260,17 +273,43 @@ MUC = [
        ngan="Lưới sàng nguyên vẹn", goi_y="sàng cát và sàng lại"),
     _m("thung_khay_cat_sach", "4b", "Thùng, khay cát sạch", "4", "4 Sàng cát",
        ap=DAU_NGAY_HOAC_TUAN, loai="PRP", tu=2),
-    # W01 (D129): mục 5 trên bản giấy. Vải ủ (không phải "khăn phủ"). Chất vải, giặt
-    # mỗi lần hay mỗi tuần, số tấm, giờ ủ tối đa: CHỜ quyết định — chỉ kiểm sạch/khô.
+    # W01 (D129): mục 5 trên bản giấy. Vải ủ (không phải "khăn phủ"). Bản 2: chỉ kiểm sạch/khô,
+    # mọi lượt. Từ bản 3 (W30) theo HD.08.02 — thay bằng u_thung_go_vai bên dưới.
     _m("u_thung_vai_sach", "5", "Thùng ủ, vải ủ sạch, khô", "5", "5 Ủ",
-       loai="PRP", tu=2, ngan="Thùng ủ, vải ủ sạch khô"),
+       loai="PRP", tu=2, den=3, ngan="Thùng ủ, vải ủ sạch khô"),
+    # W30: chữ đúng bản giấy BM.08.01 09/10/2026; lượt Đầu sáng như HD.08.01 bảng 3 mục 5.
+    _m("u_thung_go_vai", "5", "Thùng ủ gỗ, vải ủ: sạch, khô, không mốc, không đọng nước, phủ "
+       "kín; vải nguyên vẹn, đúng mã thùng; ủ ≤ 48 giờ", "5", "5 Ủ",
+       ap=DAU_NGAY_HOAC_TUAN, loai="PRP", tu=3, ngan="Thùng gỗ, vải ủ: sạch, khô, ủ ≤ 48 giờ",
+       goi_y="không mốc, không đọng nước, phủ kín; vải nguyên vẹn, đúng mã thùng (HD.08.02)"),
+    # Bản 1–2: một bộ nam châm (chính là NC-01 ở máy vỡ đỗ). Từ bản 3 (W30): ba nam châm.
     _m("nam_cham_da_kiem", "6", "Nam châm đã kiểm, vệ sinh",
-       "6", "6 Vỡ đỗ, nam châm", ap=DAU_NGAY_HOAC_TUAN),
+       "6", "6 Vỡ đỗ, nam châm", ap=DAU_NGAY_HOAC_TUAN, den=3),
     _m("nam_cham_vat", "6b", "Vật bắt được", "6", "6 Vỡ đỗ, nam châm",
-       kieu="chu", ap=DAU_NGAY_HOAC_TUAN, goi_y="để trống nếu không có", phu=True),
+       kieu="chu", ap=DAU_NGAY_HOAC_TUAN, goi_y="để trống nếu không có", phu=True, den=3),
     _m("nam_cham_mat_kim_loai", "6c", "Có mạt kim loại",
        "6", "6 Vỡ đỗ, nam châm", kieu="co_khong", ap=DAU_NGAY_HOAC_TUAN,
-       goi_y="tích = tạo sự cố", phu=True),
+       goi_y="tích = tạo sự cố", phu=True, den=3),
+    # W30: NC-01 ở máy vỡ đỗ (5.000 G, thay khi < 4.500); NC-02 hai nam châm thanh 11.000 G sau
+    # máy nghiền M1, M2 và rây RY-01 (thay khi < 5.000) — ô theo máy nghiền đang chạy, hôm không
+    # nghiền (tắt bước 7) thì không kiểm.
+    _m("nc01_da_kiem", "6", "NC-01 (máy vỡ đỗ): đã tháo, lau sạch, còn hút", "6",
+       "6 Vỡ đỗ, nam châm", ap=DAU_NGAY_HOAC_TUAN, tu=3, nc="NC-01",
+       ngan="NC-01 máy vỡ đỗ: tháo, lau sạch, còn hút"),
+    _m("nc01_vat", "6b", "NC-01: vật bắt được", "6", "6 Vỡ đỗ, nam châm", kieu="chu",
+       ap=DAU_NGAY_HOAC_TUAN, goi_y="để trống nếu không có", phu=True, tu=3, nc="NC-01"),
+    _m("nc01_mat_kim_loai", "6c", "NC-01: có mạt kim loại", "6", "6 Vỡ đỗ, nam châm",
+       kieu="co_khong", ap=DAU_NGAY_HOAC_TUAN, goi_y="tích = tạo sự cố", phu=True, tu=3,
+       nc="NC-01"),
+    _m("nc02_da_kiem", "6", "NC-02 ({may}, sau nghiền): đã tháo, lau sạch, còn hút", "6",
+       "6 Vỡ đỗ, nam châm", ap=DAU_NGAY_HOAC_TUAN, may="nghien", kem=("7",), tu=3, nc="NC-02",
+       ngan="NC-02 {may}: tháo, lau sạch, còn hút"),
+    _m("nc02_vat", "6b", "NC-02 ({may}): vật bắt được", "6", "6 Vỡ đỗ, nam châm", kieu="chu",
+       ap=DAU_NGAY_HOAC_TUAN, may="nghien", kem=("7",), goi_y="để trống nếu không có", phu=True,
+       tu=3, nc="NC-02"),
+    _m("nc02_mat_kim_loai", "6c", "NC-02 ({may}): có mạt kim loại", "6", "6 Vỡ đỗ, nam châm",
+       kieu="co_khong", ap=DAU_NGAY_HOAC_TUAN, may="nghien", kem=("7",), goi_y="tích = tạo sự cố",
+       phu=True, tu=3, nc="NC-02"),
     # W02 (D129): rây kiểm RY-01 theo từng máy nghiền M1 / M2 — Đ/K, đếm hạt thô,
     # có dị vật. Máy 1 giữ fieldname cũ (do_min_dat) để phiếu trước D129 đọc nguyên.
     _m("do_min_dat", "7a", "Rây kiểm RY-01: độ mịn đạt (rây 0,2 mm)", "7", "7 Nghiền",
@@ -363,14 +402,19 @@ def _mo_rong_may(ds):
             i += 1
             continue
         j = i
-        while j < len(ds) and ds[j]["may"] == m["may"]:
+        # Khối dừng ở ranh bước (W30): NC-02 (bước 6) và rây kiểm (bước 7) cùng nhóm máy nghiền
+        # nhưng là hai mục khác nhau trên bản giấy — máy 2 của mỗi mục đi ngay sau máy 1 của nó.
+        while j < len(ds) and ds[j]["may"] == m["may"] and ds[j]["buoc"] == m["buoc"]:
             j += 1
         khoi = ds[i:j]
         ra.extend(khoi)
         for k in range(2, NHOM_MAY[m["may"]][1] + 1):
+            ten = ten_may_so(m["may"], k)
             for g in khoi:
                 ra.append(dict(g, f=f'{g["f"]}_m{k}', may_so=k,
-                               nhan=f'{g["nhan"]} — {ten_may_so(m["may"], k)}'))
+                               nhan=g["nhan_mau"].format(may=ten) if g.get("nhan_mau")
+                               else f'{g["nhan"]} — {ten}',
+                               ngan=g["ngan_mau"].format(may=ten) if g.get("ngan_mau") else g["ngan"]))
         i = j
     return ra
 
@@ -475,7 +519,7 @@ def ap_dung(muc, luot, bc):
     bc = boi_canh(bc)
     if not con_hieu_luc(muc, bc.get("pb", PHIEN_BAN)):
         return False
-    if muc["buoc"] in bc.get("nghi", ()):
+    if muc["buoc"] in bc.get("nghi", ()) or any(b in bc.get("nghi", ()) for b in muc.get("kem") or ()):
         return False
     if muc["bot"] and not bc["bot"]:
         return False
@@ -514,6 +558,26 @@ def buoc_nghi(v):
 def ten_may(m):
     """' (máy k)' / ' (M2)' cho câu sự cố — rỗng với mục không theo máy."""
     return f' ({ten_may_so(m["may"], m["may_so"])})' if m.get("may") else ""
+
+
+# ═══ Nam châm (W30) ════════════════════════════════════════════════════════
+NC_DA_KIEM = ("nc01_da_kiem", "nc02_da_kiem")       # mục GỐC (máy 2 = `<f>_m2`)
+NC_MAT = ("nc01_mat_kim_loai", "nc02_mat_kim_loai")
+NC_VAT = ("nc01_vat", "nc02_vat")
+
+
+def ten_nam_cham(m):
+    """'NC-01' / 'NC-02 M1' / 'NC-02 M2' — nam châm của một ô mục 6 từ bản 3."""
+    return f'{m["nc"]} {ten_may_so(m["may"], m["may_so"])}' if m.get("may") else (m.get("nc") or "")
+
+
+def o_vat(m):
+    """Fieldname ô "vật bắt được" của cùng nam châm với ô `m` (đã kiểm / mạt kim loại)."""
+    f = m["f"]
+    for duoi in ("_mat_kim_loai", "_da_kiem"):
+        if duoi in f:
+            return f.replace(duoi, "_vat")
+    return f
 
 
 # ═══ Loại bột + lạc (D100) ═════════════════════════════════════════════════

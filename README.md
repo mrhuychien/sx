@@ -315,6 +315,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## BM.08.01 bản 3: thùng ủ gỗ, ba nam châm (D158 — W30)
+
+- Lượt mở từ bản này mang bộ mục **bản 3**; lượt đã mở trước giữ bộ cũ (tờ in các ngày trước không đổi).
+- **Mục 5** theo bản giấy 09/10/2026 / HD.08.02: "Thùng ủ gỗ, vải ủ: sạch, khô, không mốc, không đọng nước, phủ
+  kín; vải nguyên vẹn, đúng mã thùng; ủ ≤ 48 giờ" — chỉ lượt **Đầu sáng** (và lượt Tuần) như bản giấy và HD.08.01
+  bảng 3; bản 2 hỏi mục 5 ở cả ba lượt.
+- **Mục 6** tách ba nam châm: **NC-01** (máy vỡ đỗ), **NC-02 M1**, **NC-02 M2** (sau máy nghiền và rây RY-01). Mỗi
+  nam châm: Đ/K "đã tháo, lau sạch, còn hút" · vật bắt được · có mạt kim loại. NC-02 đi theo máy nghiền đang chạy:
+  một máy thì chỉ NC-02 M1; "+ THÊM MÁY NGHIỀN BỘT M2" (ở mục 6 hay mục 7 đều được) mở cả NC-02 M2 lẫn rây M2; tắt
+  bước 7 (hôm không nghiền) thì không hỏi NC-02.
+- Sự cố ghi đúng nam châm: K → oPRP mức Thường "Mục 6 nam châm NC-02 M2: Không đạt…"; mạt kim loại → oPRP mức Cao
+  "Nam châm NC-01 bắt được mạt kim loại (vật: …)". Bước 6 mang nhãn **oPRP-2** như bản giấy (trước đây K ở nam châm
+  vào loại "Khác"). Vật bắt được mà không phải kim loại → cảnh báo ghi tên nam châm.
+- Tờ in ngày: phiếu bản 3 in ba dòng nam châm (dòng M2 chỉ khi máy M2 chạy); phiếu cũ in đúng một dòng như lúc ghi.
+- **Dữ liệu cần nhập trên site (không phải code):** màn QC → Thiết bị đo (BM.06.01) khai hai nam châm **NC-02 M1**,
+  **NC-02 M2**: nam châm thanh 11.000 Gauss, thay khi < 5.000 Gauss, lắp 06/10/2026, vị trí sau máy nghiền M1 / M2.
+  NC-03 chỉ là đề xuất — không khai.
+- Cần `bench --site site1.local migrate` (thêm ô mới vào SX QC Round) rồi `bench restart`.
+
 ## Sửa lỗi migrate ở danh mục hồ sơ (D157 — W46)
 
 - Ô *Biểu mẫu app* (Select) của **SX Ho So Danh Muc** thiếu `BM.01.07` và `BC.THANG`, trong khi patch D150, D151

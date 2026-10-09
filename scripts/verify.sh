@@ -438,4 +438,10 @@ python3 scripts/test-kiemke.py > /tmp/sx-kiemke.log 2>&1 \
   && tail -1 /tmp/sx-kiemke.log \
   || { cat /tmp/sx-kiemke.log; loi=1; }
 
+# D158 (W30): BM.08.01 bản 3 — ba nam châm NC-01, NC-02 M1 / M2, mục 5 theo HD.08.02. Phiếu cũ chen dòng mới,
+# sự cố không ghi nam châm nào, NC-02 bắt ghi khi máy nghiền không chạy — đều im lặng.
+python3 scripts/test-namcham.py > /tmp/sx-namcham.log 2>&1 \
+  && tail -1 /tmp/sx-namcham.log \
+  || { cat /tmp/sx-namcham.log; loi=1; }
+
 exit $loi

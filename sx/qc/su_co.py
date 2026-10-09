@@ -49,6 +49,22 @@ def phat_hien(doc):
         goc = m["goc"]            # ô máy 2/3 theo đúng luật của ô gốc (D100)
         may = M.ten_may(m) if M.boi_canh(doc)["may"].get(m.get("may"), 1) > 1 else ""
 
+        # Nam châm từ bản 3 (W30): ghi đúng nam châm nào (NC-01 / NC-02 M1 / NC-02 M2) — đi nhặt
+        # mạt kim loại ở máy vỡ đỗ hay ở máy nghiền M2 là hai việc khác nhau. oPRP-2 như mục 6 cũ.
+        if goc in M.NC_DA_KIEM:
+            if v == M.KHONG_DAT:
+                ra.append((m["f"], m["cd"], "oPRP", THUONG,
+                           _("Mục 6 nam châm {0}: Không đạt — chưa tháo, lau sạch hoặc không còn "
+                             "hút").format(M.ten_nam_cham(m))))
+            continue
+        if goc in M.NC_MAT:
+            if cint(v):
+                vat = doc.get(M.o_vat(m))
+                ra.append((m["f"], m["cd"], "oPRP", CAO,
+                           _("Nam châm {0} bắt được mạt kim loại{1} — báo cơ điện kiểm máy").format(
+                               M.ten_nam_cham(m), _(" (vật: {0})").format(vat) if vat else "")))
+            continue
+
         if m["kieu"] == "chon" and v == M.KHONG_DAT:
             ra.append((m["f"], m["cd"], _loai(m), THUONG,
                        _("Mục {0} {1}: Không đạt").format(
@@ -156,10 +172,14 @@ def canh_bao(doc):
     if cint(doc.get("t2_so_bay_dau_hieu")) > 0:
         ra.append(_("Lượt tuần: {0} trạm bẫy có dấu hiệu — theo dõi tuần sau").format(
             cint(doc.get("t2_so_bay_dau_hieu"))))
-    ap = {m["f"] for m in M.muc_ap_dung(doc.get("luot"), doc)}
+    ap_dung = M.muc_ap_dung(doc.get("luot"), doc)
+    ap = {m["f"] for m in ap_dung}
     if ("nam_cham_vat" in ap and doc.get("nam_cham_vat")
             and not cint(doc.get("nam_cham_mat_kim_loai"))):
         ra.append(_("Nam châm bắt được: {0}").format(doc.get("nam_cham_vat")))
+    for m in ap_dung:                     # W30: từng nam châm
+        if m["goc"] in M.NC_VAT and doc.get(m["f"]) and not cint(doc.get(m["f"].replace("_vat", "_mat_kim_loai"))):
+            ra.append(_("Nam châm {0} bắt được: {1}").format(M.ten_nam_cham(m), doc.get(m["f"])))
     return ra
 
 
