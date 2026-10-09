@@ -1,6 +1,6 @@
-"""D172 (W43): khung "Sổ" ghi theo dòng — tạo định nghĩa 5 sổ theo sx/qc/seed/so.json (BM.06.05, BM.PRP.06,
-BM.03.01, BM.03.02, BM.03.03), máy sản xuất đã có mã trong BM.06.01 (để sổ bảo dưỡng trỏ tới), các dòng hồ sơ cho
-đoàn đánh giá (W27).
+"""D172 (W43): khung "Sổ" ghi theo dòng — tạo định nghĩa các sổ theo sx/qc/seed/so.json (W43: BM.06.05, BM.PRP.06,
+BM.03.01, BM.03.02, BM.03.03; seed W44 thêm 5 danh mục — site mới tạo luôn ở đây, site đã chạy bản cũ thì d173 tạo),
+máy sản xuất đã có mã trong BM.06.01 (để sổ bảo dưỡng trỏ tới), các dòng hồ sơ cho đoàn đánh giá (W27).
 
 Chỉ TẠO cái còn thiếu: sổ đã có (Ban ISO đã sửa cột, vai trên site) thì không đè; máy, hồ sơ đã có mã thì bỏ qua.
 Role mới của W42 (SX Co Dien, SX Hanh Chinh, SX Bao Ve) do after_migrate tạo — chạy SAU patch, nên patch tự gọi

@@ -217,9 +217,9 @@ kiem("sửa: chỉ đổi các ô gửi lên; xoá hạn → hết cờ", g2["te
      and g2["het_han"] is None)
 for vai, duoc in (("SX QC", False), ("Production Manager", False), ("SX Quan Ly", True)):
     F.vai(vai)
-    kiem(f"{vai}: {'xem / sửa / tải được' if duoc else 'không xem, không sửa, không tải gói'}",
+    kiem(f"{vai}: {'xem / sửa / tải / in BM.01.04 được' if duoc else 'không xem, không sửa, không tải gói, không in'}",
          all((thu(f) is None) == duoc for f in (API.tong_quan, lambda: API.luu(json.dumps({"name": g["name"]})),
-                                                lambda: API.tai_goi("2026-10-01", "2026-10-09"))))
+                                                lambda: API.tai_goi("2026-10-01", "2026-10-09"), API.in_bm0104)))
 F.vai("ISO Manager")
 
 # ═══ 4. Gói zip ════════════════════════════════════════════════════════════
@@ -292,7 +292,7 @@ kiem("W36: SLM và BM.07.03 mỗi tháng một tờ (tháng 9, tháng 10) — đ
      and "Lần BH: Sửa đổi 01" in z.read(next(x for x in ten if "BM.07.03/" in x)).decode("utf-8"),
      [x for x in ten if "SLM" in x or "07.03" in x])
 kiem("hồ sơ app kỳ này không có bản ghi (BM.08.04) → mục lục nói rõ, không có thư mục rỗng",
-     "kỳ này không có bản ghi" in mlt and not any("BM.08.04" in x for x in ten))
+     "Kỳ này không có bản ghi" in mlt and not any("BM.08.04" in x for x in ten))
 goc = Q.month_sheets
 Q.month_sheets = lambda *a: 1 / 0
 FR.local.response = F.Doc()
@@ -305,6 +305,34 @@ kiem("một tờ in lỗi (BM.08.01) → mục lục ghi 'Không in được', g
 kiem("kỳ ngược / quá 24 tháng → chặn", "trước" in (thu(lambda: API.tai_goi("2026-10-09", "2026-10-01")) or "")
      and "24 tháng" in (thu(lambda: API.tai_goi("2024-01-01", "2026-10-09")) or ""))
 
+# ═══ 4b. BM.01.04 theo cột giấy (W44, D173) ═══════════════════════════════
+print("\n-- BM.01.04: in theo cột giấy, dòng BM.01.04 trong gói --")
+API.luu(json.dumps({"ma": "BM.01.04", "ten": "Danh mục hồ sơ", "nhom": "Hệ thống quản lý", "nguon": HS.APP,
+                    "bieu_mau": "BM.01.04", "thoi_gian_luu": "Lâu dài", "nguoi_luu": "Ban ISO; các bộ phận"}))
+b4 = co_cua(API.tong_quan()["ds"], "BM.01.04")
+kiem("lưu thời gian lưu, người lưu (ô mới W44)", (b4["thoi_gian_luu"], b4["nguoi_luu"]) == ("Lâu dài",
+                                                                                         "Ban ISO; các bộ phận"), b4)
+h = API.in_bm0104()
+t = re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", h))
+kiem("in BM.01.04: đầu trang chung, cột như giấy (tên hồ sơ, ký hiệu, vị trí lưu, thời gian lưu, người lưu, ghi ở "
+     "đâu, ghi chú), ngày cập nhật; không cờ, không đường dẫn gói, không ô ký (giấy không có)",
+     "BM.01.04" in t and "Danh mục hồ sơ</div>" in h and all(c in t for c in (
+         "Tên hồ sơ / file", "Ký hiệu", "Vị trí lưu", "Thời gian lưu", "Người lưu", "Ghi ở đâu", "Ghi chú"))
+     and "Lâu dài Ban ISO; các bộ phận App" in t and "Cập nhật" in t and "ĐỎ" not in t and "Người lập" not in t
+     and "href=" not in h, t[:700])
+kiem("vị trí lưu: dòng app chưa ghi → 'Phần mềm'; bản giấy → nơi lưu (Tủ ISO); văn bản đã ngừng (CV 10) không in",
+     "Danh mục hồ sơ BM.01.04 Phần mềm" in t and "GCN ATTP (sửa) GCN ATTP Tủ ISO" in t
+     and "Công văn 10 (cũ)" not in t, t[:1500])
+kiem("STT liền (1, 2, 3…), dòng tiêu đề nhóm chen trong bảng", h.count('class="nhom"') >= 3
+     and re.search(r"<td class=\"c\">1</td>", h) and re.search(r"<td class=\"c\">2</td>", h))
+FR.local.response = F.Doc()
+API.tai_goi("2026-09-01", "2026-10-09")
+z3 = zipfile.ZipFile(io.BytesIO(FR.local.response.filecontent))
+ml3 = z3.read("00-MUC-LUC.html").decode("utf-8")
+kiem("gói zip: dòng BM.01.04 trỏ tới chính 00-MUC-LUC.html, không có thư mục riêng; mục lục vẫn có cờ, ô ký",
+     '<a href="00-MUC-LUC.html">00-MUC-LUC.html</a>' in ml3 and not any("BM.01.04" in x for x in z3.namelist())
+     and "Người lập" in ml3 and "Cờ:" in ml3 and "Lâu dài" in ml3)
+
 # ═══ 5. Màn hình ══════════════════════════════════════════════════════════
 print("\n-- màn hình --")
 kiem("patch có trong patches.txt", all(f"sx.patches.{p}" in open("sx/patches.txt", encoding="utf-8").read()
@@ -314,9 +342,10 @@ ui = open("sx/public/sx/components/qcui.js", encoding="utf-8").read()
 kiem("route #/qc/hoso; nút thứ ba 'Hồ sơ đánh giá' trong tab Xem xét",
      "hoso: '/assets/sx/sx/views/qc_hoso.js'" in qj and "['hoso', 'Hồ sơ đánh giá']" in ui)
 js = open("sx/public/sx/views/qc_hoso.js", encoding="utf-8").read()
-kiem("màn hồ sơ: tải gói (GET), gắn / bỏ bản scan, thêm / sửa / xoá",
+kiem("màn hồ sơ: tải gói (GET), gắn / bỏ bản scan, thêm / sửa / xoá, in BM.01.04, ô thời gian lưu / người lưu",
      all(x in js for x in ("sx.api.qc_hoso.tai_goi?", "sx.api.qc_hoso.them_tep", "sx.api.qc_hoso.bo_tep",
-                           "sx.api.qc_hoso.luu", "sx.api.qc_hoso.xoa", "tabXemXet('hoso')")))
+                           "sx.api.qc_hoso.luu", "sx.api.qc_hoso.xoa", "tabXemXet('hoso')", "sx.api.qc_hoso.in_bm0104",
+                           "thoi_gian_luu: tgLuu.value", "nguoi_luu: nguoiLuu.value")))
 
 shutil.rmtree(KHO, ignore_errors=True)
 F.ket_thuc("HOSO")

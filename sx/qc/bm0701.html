@@ -1,0 +1,87 @@
+{#- BM.07.01 Phiếu đánh giá nhà cung cấp lần BH 02 (W44, D173) — sx/api/qc_danhgiancc.html. A4 dọc, như giấy:
+    đầu phiếu (ô ☑ theo lựa chọn), phần A 7 mục hồ sơ, phần B chấm điểm (điểm ghi ở dòng mức đã chọn; mục V theo mục
+    A7), quy tắc kết luận, kết luận app tính (+ quyết định của Giám đốc với phiếu Xem xét), mã NCC trên phần mềm, hạn
+    đánh giá lại, ba ô ký "Ký trên phần mềm: Họ tên, giờ" (C23). -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
+{%- macro o(chon) -%}{{ "☑" if chon else "☐" }}{%- endmacro -%}
+<style>
+  @page { size: A4 portrait; margin: 12mm 12mm; }
+  .dg { font: 11.5px/1.4 "Times New Roman", serif; color: #000; }
+  .dg .dong { margin: 2px 0; }
+  .dg .gach { border-bottom: 1px dotted #000; display: inline-block; min-width: 60%; }
+  .dg h3 { font-size: 12.5px; margin: 10px 0 4px; }
+  .dg table.bang { width: 100%; border-collapse: collapse; margin-top: 2px; }
+  .dg .bang td, .dg .bang th { border: 1px solid #000; padding: 3px 4px; vertical-align: top; }
+  .dg .bang th { background: #eee; }
+  .dg .bang td.c { text-align: center; }
+  .dg .bang tr { break-inside: avoid; }
+  .dg .bang tr.chi td { font-weight: bold; }
+  .dg .nho { font-size: 10px; }
+  .dg .quy { margin-top: 6px; font-size: 11px; }
+  .dg .kl { margin-top: 8px; }
+  .dg .ky { width: 100%; margin-top: 10px; border-collapse: collapse; }
+  .dg .ky td { border: 1px solid #000; width: 33%; text-align: center; vertical-align: top; height: 70px; padding: 4px; }
+  .dg .ky .ten { font-weight: bold; }
+  .dg .ky .so { font-size: 10px; margin-top: 6px; }
+  .dg .chua { font-weight: bold; }
+</style>
+<div class="dg">
+  {{ dau_trang("BM.07.01", "Phiếu đánh giá nhà cung cấp", d.name, lan="02") }}
+  <div class="dong">Tên nhà cung cấp: <b>{{ d.ten_ncc }}</b></div>
+  <div class="dong">Mặt hàng cung cấp: {{ d.mat_hang or "…………………………………………" }}</div>
+  <div class="dong">Địa chỉ: {{ d.dia_chi or "…………………………………………" }}</div>
+  <div class="dong">Người liên hệ, điện thoại: {{ d.nguoi_lien_he or "…………………………………………" }}</div>
+  <div class="dong">Mã số thuế / số ĐKKD: {{ d.mst or "…………………………" }}</div>
+  <div class="dong">Phân loại (QT.07 mục 4): {% for x in d.lua_chon.phan_loai %}&nbsp; {{ o(d.phan_loai == x) }} {{ x }}{% endfor %}</div>
+  <div class="dong">Nguồn gốc hàng: {% for x in d.lua_chon.nguon %}&nbsp; {{ o(d.nguon == x) }} {{ x }}{% endfor %}</div>
+  <div class="dong">Hình thức: {% for x in d.lua_chon.hinh_thuc %}&nbsp; {{ o(d.hinh_thuc == x) }} {{ x }}{% endfor %}</div>
+
+  <h3>A. HỒ SƠ PHÁP LÝ VÀ AN TOÀN THỰC PHẨM (mục 1–6 bắt buộc khi áp dụng; thiếu một mục: không được duyệt)</h3>
+  <table class="bang">
+    <tr><th style="width:5%">TT</th><th>Hồ sơ</th><th style="width:14%">Áp dụng</th><th style="width:17%">Kết quả</th>
+      <th style="width:19%">Số, ngày, hiệu lực</th></tr>
+    {% for x in d.ho_so %}
+    <tr>
+      <td class="c">{{ x.tt }}</td><td>{{ x.ten }}</td><td>{{ x.ap_dung }}</td>
+      <td>{{ o(x.ket_qua == CO) }} Có &nbsp;{{ o(x.ket_qua == KHONG) }} Không{% if x.co_kad %} / {{ o(x.ket_qua == KAD) }} KAD{% endif %}</td>
+      <td>{{ x.so_ngay }}{% if x.hieu_luc %}{% if x.so_ngay %}<br>{% endif %}hiệu lực {{ frappe.utils.formatdate(x.hieu_luc, "dd/MM/yyyy") }}{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <div class="nho">KAD: không áp dụng. Bản sao hồ sơ lưu kèm phiếu này tại Mua hàng; hồ sơ có thời hạn ghi rõ ngày hết hạn để đánh giá lại.
+    {%- if d.thieu_a %} <b>Thiếu phần A: {{ d.thieu_a | join("; ") }}.</b>{% endif %}</div>
+
+  <h3>B. ĐÁNH GIÁ NĂNG LỰC (CHẤM ĐIỂM)</h3>
+  <table class="bang">
+    <tr><th style="width:6%">Tt</th><th>Chỉ tiêu đánh giá</th><th style="width:13%">Chuẩn mực</th><th style="width:15%">Điểm đạt được</th></tr>
+    {% for b in d.muc_b %}
+    {%- set chon = (d.diem_v | string) if b.tu_tinh else d[b.k] -%}
+    <tr class="chi"><td class="c">{{ b.so }}</td><td colspan="3">{{ b.ten }}:</td></tr>
+    {% for m in b.muc %}
+    <tr><td></td><td>- {{ m.nhan }}</td><td class="c">{{ m.diem }}</td>
+      <td class="c">{{ m.diem if chon != "" and (chon | int) == m.diem else "" }}</td></tr>
+    {% endfor %}
+    {% endfor %}
+    <tr class="chi"><td class="c">VI</td><td>Tổng điểm</td><td class="c">{{ d.toi_da }}</td><td class="c">{{ d.tong if d.du_diem else "" }}</td></tr>
+  </table>
+  <div class="quy">Chấp nhận: đủ hồ sơ bắt buộc phần A, tổng điểm 30–42 và điểm chất lượng ≥ 5<br>
+    Xem xét: tổng điểm 20–29 (Giám đốc quyết định; có thể yêu cầu bổ sung hồ sơ, giao lô thử)<br>
+    Loại bỏ: dưới 20 điểm, hoặc điểm chất lượng &lt; 5, hoặc thiếu hồ sơ bắt buộc phần A</div>
+  <div class="kl">Kết luận: &nbsp;{{ o(d.ket_luan == "Chấp nhận") }} Chấp nhận – đưa vào BM.07.02 &nbsp;&nbsp;
+    {{ o(d.ket_luan == "Xem xét") }} Xem xét &nbsp;&nbsp;{{ o(d.ket_luan == "Loại bỏ") }} Loại bỏ
+    {%- if d.quyet_dinh %}<br>Giám đốc quyết định (phiếu Xem xét): <b>{{ d.quyet_dinh }}</b>{% endif %}
+    {%- if d.ket_qua %}<br>Kết quả sau duyệt: <b>{{ d.ket_qua }}</b>{% elif d.trang_thai != "Đã duyệt" %}<br><span class="chua">CHƯA DUYỆT ({{ d.trang_thai }})</span>{% endif %}</div>
+  <div class="dong">Mã NCC trên phần mềm (Mua hàng mở sau khi Giám đốc duyệt): <b>{{ d.supplier }}</b></div>
+  <div class="dong">Hạn đánh giá lại: {{ frappe.utils.formatdate(d.han_danh_gia_lai, "dd/MM/yyyy") if d.han_danh_gia_lai else "……/……/20……" }}</div>
+  {%- set nd = (d.ngay | string)[:10].split("-") %}
+  <div class="dong">Ngày {{ nd[2] }} tháng {{ nd[1] }} năm {{ nd[0] }}</div>
+  {% if d.y_kien_qc or d.y_kien_gd %}<div class="dong nho">{% if d.y_kien_qc %}Ý kiến QC: {{ d.y_kien_qc }}{% endif %}
+    {%- if d.y_kien_gd %}{% if d.y_kien_qc %}<br>{% endif %}Ý kiến Giám đốc: {{ d.y_kien_gd }}{% endif %}</div>{% endif %}
+  <table class="ky">
+    <tr>
+      <td><div class="ten">Người đánh giá (Mua hàng)</div><div class="so">{{ d.ky.danh_gia }}</div></td>
+      <td><div class="ten">QC (vật tư loại 1)</div><div class="so">{{ d.ky.qc if d.can_qc else "Không áp dụng (vật tư loại 2)" }}</div></td>
+      <td><div class="ten">Giám đốc phê duyệt</div><div class="so">{{ d.ky.duyet }}</div></td>
+    </tr>
+  </table>
+</div>

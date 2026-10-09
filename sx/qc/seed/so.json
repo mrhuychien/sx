@@ -26,7 +26,8 @@
    {"key": "da_ve_sinh", "nhan": "Đã vệ sinh, không sót dụng cụ", "kieu": "Check", "bat_buoc": 1},
    {"key": "can_hieu_chuan", "nhan": "Cần hiệu chuẩn / kiểm lại (thiết bị đo — BM.06.02 / 06.03 / 06.04)", "kieu": "Link", "link_doctype": "SX Thiet Bi Do", "lua_chon": ["Đồng hồ nhiệt", "Nam châm", "Lưới sàng, rây"]},
    {"key": "nguoi_lam", "nhan": "Người làm (Cơ điện)", "kieu": "Data", "bat_buoc": 1}
-  ]
+  ],
+  "nhom_theo": ""
  },
  {
   "ma": "BM.PRP.06",
@@ -56,7 +57,8 @@
    {"key": "gio_vao", "nhan": "Giờ vào", "kieu": "Time", "bat_buoc": 1},
    {"key": "gio_ra", "nhan": "Giờ ra", "kieu": "Time"},
    {"key": "ghi_chu", "nhan": "Ghi chú", "kieu": "Text"}
-  ]
+  ],
+  "nhom_theo": ""
  },
  {
   "ma": "BM.03.01",
@@ -86,7 +88,8 @@
    {"key": "han_tiep", "nhan": "Hạn kiểm / nạp tiếp", "kieu": "Date", "han": 1, "bao_truoc": 30, "hien_ds": 1},
    {"key": "so_tem_giay", "nhan": "Số tem / giấy kiểm định", "kieu": "Data"},
    {"key": "ghi_chu", "nhan": "Ghi chú", "kieu": "Text"}
-  ]
+  ],
+  "nhom_theo": ""
  },
  {
   "ma": "BM.03.02",
@@ -111,7 +114,8 @@
    {"key": "bien_phap", "nhan": "Biện pháp ứng phó", "kieu": "Text", "bat_buoc": 1, "hien_ds": 1},
    {"key": "nguoi_tiep_nhan", "nhan": "Người tiếp nhận thông tin (Ký xác nhận)", "kieu": "Data", "bat_buoc": 1},
    {"key": "ghi_chu", "nhan": "Ghi chú", "kieu": "Text"}
-  ]
+  ],
+  "nhom_theo": ""
  },
  {
   "ma": "BM.03.03",
@@ -139,6 +143,161 @@
    {"key": "han_tiep", "nhan": "Hạn kiểm định tiếp", "kieu": "Date", "han": 1, "bao_truoc": 30, "hien_ds": 1},
    {"key": "so_tem_giay", "nhan": "Số tem / giấy kiểm định", "kieu": "Data"},
    {"key": "ghi_chu", "nhan": "Ghi chú", "kieu": "Text"}
+  ],
+  "nhom_theo": ""
+ },
+ {
+  "ma": "BM.PRP.04",
+  "ten": "Danh mục hóa chất",
+  "kieu": "Danh mục",
+  "quy_trinh": "PRP SSOP 10",
+  "mang": "so_khac",
+  "tinh_toan": "",
+  "nhom_theo": "",
+  "nhan_xac_nhan": "Trưởng Ban ISO duyệt",
+  "xem_cuoi_thang": 0,
+  "nhan_xem_thang": "",
+  "nhac_khong_ghi_ngay": 0,
+  "vai_ghi": ["SX Co Dien"],
+  "vai_xac_nhan": ["ISO Manager"],
+  "vai_xem": ["SX QC", "SX QC Packing", "Production Manager"],
+  "vai_xem_thang": [],
+  "dau_trang_ghi_chu": "Cơ điện lập, cập nhật khi thêm, bỏ, đổi hóa chất. Chỉ dùng hóa chất được phép; dầu bôi trơn cho bộ phận có thể tiếp xúc sản phẩm là cấp thực phẩm H1; hóa chất có nhãn, để tủ hoặc khu riêng có khóa ngoài khu sản xuất; không đựng trong chai lọ thực phẩm. QC kiểm tủ hóa chất hằng tuần (BM.08.01 T5). Không dùng hóa chất, bả độc diệt chuột, côn trùng trong xưởng và kho (SSOP 7).",
+  "ghi_chu": "Chất tẩy rửa, khử trùng, chế phẩm diệt côn trùng, dầu bôi trơn (SSOP 10). Cơ điện lập, Trưởng Ban ISO duyệt từng dòng; sửa dòng đã duyệt thì chờ duyệt lại. Tải bảng an toàn (MSDS); hạn hồ sơ (số đăng ký, chứng nhận H1) nhắc trước 30 ngày. Hóa chất bỏ không dùng: ghi ngày ngừng rồi Ngừng dòng.",
+  "cot": [
+   {"key": "ten_hoa_chat", "nhan": "Tên hóa chất (tên thương mại)", "kieu": "Data", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "loai_muc_dich", "nhan": "Loại / mục đích sử dụng", "kieu": "Data", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "so_dang_ky", "nhan": "Số đăng ký Bộ Y tế / chứng nhận H1", "kieu": "Data"},
+   {"key": "noi_de", "nhan": "Nơi để (tủ, khu)", "kieu": "Data", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "khu_vuc_dung", "nhan": "Khu vực được dùng", "kieu": "Data"},
+   {"key": "cach_pha", "nhan": "Cách pha, liều dùng (nồng độ)", "kieu": "Text"},
+   {"key": "nguoi_phu_trach", "nhan": "Người phụ trách", "kieu": "Data", "bat_buoc": 1},
+   {"key": "ncc", "nhan": "Nhà cung cấp", "kieu": "Data"},
+   {"key": "msds", "nhan": "Bảng an toàn hóa chất (MSDS)", "kieu": "Attach"},
+   {"key": "han_ho_so", "nhan": "Hạn hồ sơ (số đăng ký, chứng nhận)", "kieu": "Date", "han": 1, "bao_truoc": 30, "hien_ds": 1},
+   {"key": "ngay_bat_dau", "nhan": "Ngày bắt đầu dùng", "kieu": "Date"},
+   {"key": "ngay_ngung", "nhan": "Ngày ngừng dùng", "kieu": "Date"}
+  ]
+ },
+ {
+  "ma": "BM.PRP.05",
+  "ten": "Danh mục kính, nhựa giòn",
+  "kieu": "Danh mục",
+  "quy_trinh": "PRP SSOP 11",
+  "mang": "so_khac",
+  "tinh_toan": "",
+  "nhom_theo": "",
+  "nhan_xac_nhan": "Trưởng Ban ISO duyệt",
+  "xem_cuoi_thang": 0,
+  "nhan_xem_thang": "",
+  "nhac_khong_ghi_ngay": 0,
+  "vai_ghi": ["SX Co Dien"],
+  "vai_xac_nhan": ["ISO Manager"],
+  "vai_xem": ["SX QC", "SX QC Packing", "Production Manager"],
+  "vai_xem_thang": [],
+  "dau_trang_ghi_chu": "Liệt kê mọi vật bằng kính, nhựa giòn trong xưởng và kho (đèn, cửa kính, đồng hồ, màn hình, kính che máy…). Cơ điện lập, cập nhật khi thay đổi. QC kiểm nguyên vẹn hằng tuần, ghi BM.08.01 mục T4. Vỡ kính: dừng khu vực, cách ly sản phẩm hở trong bán kính 3 m, dọn sạch, kiểm thiết bị, lập BM.08.02 trước khi chạy lại.",
+  "ghi_chu": "Có dòng (đang dùng) thì mục T4 của lượt Tuần mở danh sách vật này để QC tích Đạt / Không đạt từng vật; vật Không đạt → phiếu sự cố. Cơ điện lập, Trưởng Ban ISO duyệt.",
+  "cot": [
+   {"key": "ma", "nhan": "Mã", "kieu": "Data", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "vat", "nhan": "Vật (kính / nhựa giòn)", "kieu": "Data", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "vi_tri", "nhan": "Vị trí (phòng, khu)", "kieu": "Data", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "so_luong", "nhan": "Số lượng", "kieu": "Int", "bat_buoc": 1},
+   {"key": "phia_tren_sp_ho", "nhan": "Phía trên sản phẩm hở? (Có/Không)", "kieu": "Select", "lua_chon": ["Có", "Không"], "bat_buoc": 1},
+   {"key": "bao_ve", "nhan": "Bảo vệ (chụp, ống, màng chống vỡ)", "kieu": "Data", "hien_ds": 1},
+   {"key": "tinh_trang_khi_lap", "nhan": "Tình trạng khi lập", "kieu": "Data"},
+   {"key": "ghi_chu", "nhan": "Ghi chú", "kieu": "Text"}
+  ]
+ },
+ {
+  "ma": "BM.PRP.07",
+  "ten": "Danh sách theo dõi khám sức khỏe, tập huấn kiến thức ATTP",
+  "kieu": "Danh mục",
+  "quy_trinh": "PRP SSOP 5, 14",
+  "mang": "so_khac",
+  "tinh_toan": "suc_khoe",
+  "nhom_theo": "", "rieng_tu": 1,
+  "nhan_xac_nhan": "",
+  "xem_cuoi_thang": 0,
+  "nhan_xem_thang": "",
+  "nhac_khong_ghi_ngay": 0,
+  "vai_ghi": ["SX Hanh Chinh"],
+  "vai_xac_nhan": [],
+  "vai_xem": [],
+  "vai_xem_thang": [],
+  "dau_trang_ghi_chu": "Hành chính lập, cập nhật khi có người mới, nghỉ việc, khám, tập huấn. Người tiếp xúc trực tiếp sản phẩm khám sức khỏe 1 lần/năm và có giấy xác nhận tập huấn kiến thức ATTP còn hiệu lực; tổ chức khám, tập huấn trước khi hết hạn. Bản sao giấy khám, giấy xác nhận lưu kèm; lưu theo hiệu lực từng người.",
+  "ghi_chu": "Dữ liệu cá nhân: chỉ Hành chính, Trưởng Ban ISO, Giám đốc xem. Một dòng mỗi người (nhân viên trên hệ thống). Ghi ngày khám mà để trống hạn khám lại → app tính ngày khám + 12 tháng. Hạn khám lại, hạn tập huấn nhắc trước 30 ngày — khám theo hạn từng người, không dồn một tháng. Người nghỉ việc: Ngừng dòng.",
+  "cot": [
+   {"key": "nhan_vien", "nhan": "Họ và tên (nhân viên)", "kieu": "Link", "link_doctype": "Employee", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "bo_phan", "nhan": "Bộ phận / công việc", "kieu": "Data", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "tiep_xuc_truc_tiep", "nhan": "Tiếp xúc trực tiếp sản phẩm (Có/Không)", "kieu": "Select", "lua_chon": ["Có", "Không"], "bat_buoc": 1},
+   {"key": "ngay_kham", "nhan": "Ngày khám sức khỏe", "kieu": "Date"},
+   {"key": "ket_luan", "nhan": "Kết luận", "kieu": "Data"},
+   {"key": "han_kham_lai", "nhan": "Hạn khám lại", "kieu": "Date", "han": 1, "bao_truoc": 30, "hien_ds": 1},
+   {"key": "anh_giay_kham", "nhan": "Ảnh / bản scan giấy khám", "kieu": "Attach"},
+   {"key": "giay_tap_huan", "nhan": "Giấy xác nhận tập huấn ATTP (số, ngày)", "kieu": "Data"},
+   {"key": "ngay_tap_huan", "nhan": "Ngày tập huấn", "kieu": "Date"},
+   {"key": "han_tap_huan", "nhan": "Hạn tập huấn (xác nhận kiến thức)", "kieu": "Date", "han": 1, "bao_truoc": 30, "hien_ds": 1},
+   {"key": "ghi_chu", "nhan": "Ghi chú", "kieu": "Text"}
+  ]
+ },
+ {
+  "ma": "BM.05.01",
+  "ten": "Bảng xác định các bên quan tâm",
+  "kieu": "Danh mục",
+  "quy_trinh": "QT.05",
+  "mang": "so_khac",
+  "tinh_toan": "",
+  "nhom_theo": "nhom",
+  "nhan_xac_nhan": "Giám đốc phê duyệt",
+  "xem_cuoi_thang": 0,
+  "nhan_xem_thang": "",
+  "nhac_khong_ghi_ngay": 0,
+  "vai_ghi": ["ISO Manager", "Production Manager"],
+  "vai_xac_nhan": ["SX Quan Ly"],
+  "vai_xem": [],
+  "vai_xem_thang": [],
+  "dau_trang_ghi_chu": "",
+  "ghi_chu": "Bốn nhóm: cơ quan quản lý nhà nước, khách hàng, nhà cung cấp, nội bộ. Trưởng bộ phận, Ban ISO lập; Giám đốc phê duyệt. Xác định lại hằng năm trước họp xem xét của lãnh đạo (việc định kỳ) hoặc khi yêu cầu các bên thay đổi; kết quả là đầu vào BM.01.10.",
+  "cot": [
+   {"key": "nhom", "nhan": "Nhóm bên quan tâm", "kieu": "Select", "lua_chon": ["Cơ quan quản lý nhà nước", "Khách hàng", "Nhà cung cấp", "Nội bộ"], "bat_buoc": 1, "hien_ds": 1},
+   {"key": "ben_quan_tam", "nhan": "Bên quan tâm", "kieu": "Data", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "noi_dung_tuan_thu", "nhan": "Nội dung cần tuân thủ (yêu cầu)", "kieu": "Text", "bat_buoc": 1},
+   {"key": "quy_dinh_lien_quan", "nhan": "Quy định liên quan", "kieu": "Text"},
+   {"key": "trach_nhiem", "nhan": "Trách nhiệm thực hiện", "kieu": "Data", "bat_buoc": 1},
+   {"key": "cach_dap_ung", "nhan": "Cách đáp ứng, mức độ đáp ứng", "kieu": "Text"}
+  ]
+ },
+ {
+  "ma": "BM.05.02",
+  "ten": "Bảng xác định rủi ro và kế hoạch thực hiện kiểm soát rủi ro",
+  "kieu": "Danh mục",
+  "quy_trinh": "QT.05",
+  "mang": "so_khac",
+  "tinh_toan": "rr_abcd",
+  "nhom_theo": "",
+  "nhan_xac_nhan": "Giám đốc phê duyệt",
+  "xem_cuoi_thang": 0,
+  "nhan_xem_thang": "",
+  "nhac_khong_ghi_ngay": 0,
+  "vai_ghi": ["ISO Manager", "Production Manager"],
+  "vai_xac_nhan": ["SX Quan Ly"],
+  "vai_xem": [],
+  "vai_xem_thang": [],
+  "dau_trang_ghi_chu": "Khả năng xuất hiện (A): chắc chắn xảy ra 4; nhiều khả năng xảy ra 3; có thể xảy ra 2; không có khả năng xảy ra 1. Hậu quả (B): rất lớn 4; lớn 3; nhỏ 2; không đáng kể 1. Mức độ nghiêm trọng (C): cực kỳ nghiêm trọng 4; nghiêm trọng 3; vừa hoặc trung bình 2; nhẹ 1. Khả năng phát hiện (D): không thể phát hiện 4; rất khó phát hiện 3; có thể phát hiện 2; rất dễ phát hiện 1. Rủi ro cần kiểm soát RR = A + B + C + D. Cấp độ 1 (12–16 điểm), cấp độ 2 (10–11 điểm), cấp độ 3 (≤ 9 điểm).",
+  "ghi_chu": "Chọn điểm A, B, C, D (1–4) — app tính RR và cấp độ: cấp độ 1 (12–16) xây dựng phương án ứng phó kịp thời; cấp độ 2 (10–11) xây dựng kế hoạch kiểm soát; cấp độ 3 (≤ 9) nhận biết, theo dõi. Vấn đề bối cảnh ghi như hoạt động, chọn loại Bối cảnh bên ngoài (B) / nội bộ (N). Xác định lại hằng năm trước họp xem xét của lãnh đạo (việc định kỳ).",
+  "cot": [
+   {"key": "loai", "nhan": "Loại (hoạt động / bối cảnh)", "kieu": "Select", "lua_chon": ["Hoạt động", "Bối cảnh bên ngoài (B)", "Bối cảnh nội bộ (N)"]},
+   {"key": "hoat_dong", "nhan": "Hoạt động", "kieu": "Text", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "rui_ro", "nhan": "Rủi ro", "kieu": "Text", "bat_buoc": 1, "hien_ds": 1},
+   {"key": "a", "nhan": "A (khả năng xuất hiện)", "kieu": "Select", "lua_chon": ["1", "2", "3", "4"], "bat_buoc": 1},
+   {"key": "b", "nhan": "B (hậu quả)", "kieu": "Select", "lua_chon": ["1", "2", "3", "4"], "bat_buoc": 1},
+   {"key": "c", "nhan": "C (mức độ nghiêm trọng)", "kieu": "Select", "lua_chon": ["1", "2", "3", "4"], "bat_buoc": 1},
+   {"key": "d", "nhan": "D (khả năng phát hiện)", "kieu": "Select", "lua_chon": ["1", "2", "3", "4"], "bat_buoc": 1},
+   {"key": "rr", "nhan": "RR = A + B + C + D", "kieu": "Int", "hien_ds": 1},
+   {"key": "cap_do", "nhan": "Cấp độ kiểm soát", "kieu": "Select", "lua_chon": ["Cấp độ 1", "Cấp độ 2", "Cấp độ 3"], "hien_ds": 1},
+   {"key": "bien_phap", "nhan": "Biện pháp kiểm soát", "kieu": "Text"},
+   {"key": "trach_nhiem", "nhan": "Trách nhiệm", "kieu": "Data"},
+   {"key": "co_hoi", "nhan": "Cơ hội (nếu có)", "kieu": "Text"}
   ]
  }
 ]

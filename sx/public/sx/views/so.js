@@ -6,6 +6,8 @@
 //                 xác nhận, ngừng, bản ký tay, lịch sử sửa); ĐÃ XEM THÁNG; IN SỔ.
 // Phiếu ghi SINH TỪ CỘT của sổ (dùng lại ô nhập của qcui.js) — thêm sổ mới chỉ khai định nghĩa, không sửa JS.
 // Luật ở sx/qc/so.py, API sx/api/qc_so.py.
+// W44 (D173): thẻ BM.07.01 (đánh giá nhà cung cấp — DocType riêng, không phải sổ) mở màn views/danhgiancc.js:
+//   #/so/BM.07.01, #/so/BM.07.01/<phiếu>.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
@@ -22,8 +24,10 @@ export const viecCho = (nhan) => String(nhan || '').replace(/\s*\(ký\)\s*$/, ''
 export function tachRoute() {
   const h = (window.location.hash || '#/so').split('?')[0];
   const phan = h.replace('#/so', '').split('/').filter(Boolean);
-  return { ma: phan[0] ? decodeURIComponent(phan[0]) : null };
+  return { ma: phan[0] ? decodeURIComponent(phan[0]) : null, phieu: phan[1] ? decodeURIComponent(phan[1]) : null };
 }
+
+const MA_DG = 'BM.07.01';     // đánh giá NCC — màn riêng, nạp khi mở (không import tĩnh màn khác)
 
 /** "2026-10" ± n tháng. */
 export function doiThang(t, n) {
@@ -63,10 +67,14 @@ export async function render(api) {
   container.innerHTML = '';
   const wrap = el('div', 'sx-qc sx-so');
   container.appendChild(wrap);
-  const { ma } = tachRoute();
+  const { ma, phieu } = tachRoute();
   const ctx = { ...api, container: wrap, lai: () => render(api) };
   try {
-    if (ma) await veSo(ctx, ma);
+    if (ma === MA_DG) {
+      const mod = await import(`/assets/sx/sx/views/danhgiancc.js?v=${encodeURIComponent(
+        (api.ctx && api.ctx.assetVersion) || Date.now())}`);
+      await mod.render({ ...ctx, phieu });
+    } else if (ma) await veSo(ctx, ma);
     else veDanhSach(ctx, await call(`${API}.ds_so`, {}));
   } catch (e) {
     wrap.appendChild(khungTrong(e.message || 'Không mở được sổ.'));
@@ -92,14 +100,16 @@ export function veDanhSach(ctx, dl) {
     a.appendChild(el('div', 'sx-qc-sc-ten', `<span class="sx-tl-ma">${esc(s.ma)}</span> ${esc(s.ten)}`));
     const meta = el('div', 'sx-qc-sc-meta');
     meta.appendChild(el('span', null, esc(s.kieu === 'Danh mục' ? `${s.so_dong} đang dùng`
-      : `${s.so_dong} dòng tháng này`)));
+      : (s.kieu === 'Phiếu' ? `${s.so_dong} NCC Chấp nhận còn hạn` : `${s.so_dong} dòng tháng này`))));
     if (s.cho) meta.appendChild(chip(`${s.cho} chờ ${viecCho(s.nhan_xac_nhan)}`, 'oprp'));
-    if (s.han) meta.appendChild(chip(`${s.han} hạn đến / quá`, 'han'));
+    if (s.han) meta.appendChild(chip(s.kieu === 'Phiếu' ? `${s.han} NCC đến hạn đánh giá lại` : `${s.han} hạn đến / quá`,
+      'han'));
     if (s.chua_xem.length) meta.appendChild(chip(`${s.chua_xem.length} tháng chưa xem xét`, 'oprp'));
     if (s.kiem_lai) meta.appendChild(chip(`${s.kiem_lai} thiết bị chờ kiểm lại`, 'cao'));
     if (s.bao_duong) meta.appendChild(chip(`${s.bao_duong} máy quá hạn bảo dưỡng`, 'oprp'));
     const q = s.quyen || {};
-    const vai = [q.ghi ? 'ghi' : '', q.xac_nhan ? 'xác nhận' : '', q.xem_thang ? 'xem xét tháng' : '']
+    const vai = (s.kieu === 'Phiếu' ? [q.lap ? 'lập, chấm' : '', q.qc ? 'QC ký' : '', q.duyet ? 'duyệt' : '']
+      : [q.ghi ? 'ghi' : '', q.xac_nhan ? 'xác nhận' : '', q.xem_thang ? 'xem xét tháng' : ''])
       .filter(Boolean).join(', ');
     meta.appendChild(el('span', null, esc(vai ? `bạn: ${vai}` : 'bạn: chỉ xem')));
     a.appendChild(meta);
@@ -447,6 +457,12 @@ function oNhieu(m, v, dat, lua) {
   return w;
 }
 
+/** Chữ một lựa chọn: thiết bị "mã · tên (loại)"; nhân viên (an_ma) "họ tên · mã" — mã chỉ để phân biệt trùng tên. */
+export function tenChon(x) {
+  if (x.an_ma && x.nhan) return `${esc(x.nhan)} · ${esc(x.v)}`;
+  return `${esc(x.v)}${x.nhan ? ` · ${esc(x.nhan)}` : ''}${x.loai ? ` (${esc(x.loai)})` : ''}`;
+}
+
 /** Ô chọn từ danh sách (Link / User): tải lựa chọn từ server lúc mở phiếu. */
 function oLienKet(ctx, dl, c, m, v, dat) {
   const w = el('div', 'sx-qc-oso');
@@ -457,8 +473,8 @@ function oLienKet(ctx, dl, c, m, v, dat) {
   s.addEventListener('change', () => dat(s.value || null));
   w.appendChild(s);
   ctx.call(`${API}.goi_y`, { so: dl.dn.ma, key: c.key }).then((ds) => {
-    s.innerHTML = `<option value="">— chọn —</option>${ds.map((x) => `<option value="${esc(x.v)}">${esc(x.v)}${
-      x.nhan ? ` · ${esc(x.nhan)}` : ''}${x.loai ? ` (${esc(x.loai)})` : ''}</option>`).join('')}`;
+    s.innerHTML = `<option value="">— chọn —</option>${ds.map((x) => `<option value="${esc(x.v)}">${
+      tenChon(x)}</option>`).join('')}`;
     s.value = v || '';
   }).catch((e) => toastErr(e.message));
   return w;
@@ -510,15 +526,22 @@ export function moPhieu(ctx, dl, x) {
   n.addEventListener('change', () => { ngay = n.value; });
   wn.appendChild(n);
   m.body.appendChild(wn);
-  dn.cot.forEach((c) => m.body.appendChild(oCot(ctx, dl, c, du[c.key], (v) => {
+  // Ô app tự tính (vd RR, cấp độ BM.05.02) không cho nhập — server tính lại mỗi lần lưu.
+  const tinh = new Set(dn.cot_tinh || []);
+  const nhap = dn.cot.filter((c) => !tinh.has(c.key));
+  nhap.forEach((c) => m.body.appendChild(oCot(ctx, dl, c, du[c.key], (v) => {
     if (v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length)) delete du[c.key];
     else du[c.key] = v;
   })));
+  if (tinh.size) {
+    m.body.appendChild(el('div', 'sx-qc-goiy', esc(`App tự tính: ${dn.cot.filter((c) => tinh.has(c.key))
+      .map((c) => c.nhan).join(', ')}.`)));
+  }
   if (x && dn.kieu === 'Danh mục' && x.trang_thai === 'Đã xác nhận') {
     m.body.appendChild(el('div', 'sx-qc-goiy', 'Dòng đã xác nhận — sửa xong phải xác nhận lại.'));
   }
   const ok = nut(x ? 'LƯU SỬA' : 'GHI DÒNG', 'sx-btn-primary sx-btn-big', async () => {
-    const t = thieu(dn.cot, du);
+    const t = thieu(nhap, du);
     if (t.length) { toastErr(`Chưa ghi: ${t.join(', ')}`); return; }
     ok.disabled = true;
     try {

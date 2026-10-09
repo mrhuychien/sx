@@ -123,6 +123,76 @@ export function hangChon(m, giaTri, onSet, khoa) {
   return row;
 }
 
+/** T4 theo vật (W44, D173): giá trị mục T4 từ các vật đã tích — có vật Không đạt → Không đạt; mọi vật Đạt → Đạt;
+ *  còn vật chưa tích → '' (chưa chấm). Bản sao client của sx/qc/so.t4_theo_vat — server tính lại khi lưu. */
+export function t4TheoVat(ds) {
+  if (ds.some((x) => x.ket_qua === KHONG_DAT)) return KHONG_DAT;
+  if (ds.length && ds.every((x) => x.ket_qua === DAT)) return DAT;
+  return '';
+}
+
+/** Mục T4 "Đèn, kính có bảo vệ" khi danh mục kính, nhựa giòn BM.PRP.05 có vật: mỗi vật một hàng ✓ Đạt / ✕ Không
+ *  (bấm lại nút đang chọn = bỏ trống); Không đạt thì ô ghi chú (vỡ, mất chụp…). `vk` = {so, ds: [{vat, ma, ten,
+ *  ket_qua, ghi_chu}]}; `onSetVat(x)` gọi sau mỗi lần đổi một vật. */
+export function oVatKinh(m, vk, onSetVat, khoa) {
+  const wrap = el('div', 'sx-qc-vat');
+  wrap.dataset.f = m.f;
+  const dau = el('div', 'sx-qc-hang');
+  dau.appendChild(el('div', 'sx-qc-nhan', nhan(m, false)));
+  const tt = el('span', 'sx-qc-vat-tt');
+  dau.appendChild(tt);
+  wrap.appendChild(dau);
+  wrap.appendChild(el('div', 'sx-qc-goiy sx-qc-vat-hd', esc(`Theo danh mục ${vk.so}: tích từng vật. Có vật Không đạt `
+    + '→ T4 Không đạt, mỗi vật một phiếu sự cố.')));
+  const veTong = () => {
+    const v = t4TheoVat(vk.ds);
+    const con = vk.ds.filter((x) => !x.ket_qua).length;
+    tt.textContent = v === KHONG_DAT ? '✕ Không đạt' : (v === DAT ? '✓ Đạt' : `còn ${con} vật`);
+    tt.className = `sx-qc-vat-tt${v === KHONG_DAT ? ' sx-qc-vat-k' : (v === DAT ? ' sx-qc-vat-d' : '')}`;
+    wrap.dataset.tt = v;
+  };
+  vk.ds.forEach((x) => {
+    const row = el('div', 'sx-qc-hang sx-qc-vat-hang');
+    row.appendChild(el('div', 'sx-qc-nhan', `<div class="sx-qc-ten">${esc([x.ma, x.ten].filter(Boolean).join(' · ')
+      || x.vat)}</div>`));
+    const nut2 = el('div', 'sx-qc-nut2');
+    const a = el('button', null, '✓ Đạt');
+    const b = el('button', null, '✕ Không');
+    nut2.appendChild(a);
+    nut2.appendChild(b);
+    row.appendChild(nut2);
+    const gc = el('input', 'sx-textarea sx-qc-vat-gc');
+    gc.type = 'text';
+    gc.maxLength = 140;
+    gc.placeholder = 'Không đạt vì… (vỡ, nứt, mất chụp)';
+    gc.value = x.ghi_chu || '';
+    gc.disabled = !!khoa;
+    const ve = () => {
+      row.dataset.tt = x.ket_qua || '';
+      a.classList.toggle('sx-qc-dat-on', x.ket_qua === DAT);
+      b.classList.toggle('sx-qc-khong-on', x.ket_qua === KHONG_DAT);
+      gc.style.display = x.ket_qua === KHONG_DAT ? '' : 'none';
+      veTong();
+    };
+    [[a, DAT], [b, KHONG_DAT]].forEach(([n, gt]) => {
+      n.type = 'button';
+      n.disabled = !!khoa;
+      n.addEventListener('click', () => {
+        x.ket_qua = x.ket_qua === gt ? '' : gt;
+        if (x.ket_qua !== KHONG_DAT) { x.ghi_chu = ''; gc.value = ''; }
+        ve();
+        onSetVat(x);
+      });
+    });
+    gc.addEventListener('change', () => { x.ghi_chu = gc.value.trim(); onSetVat(x); });
+    wrap.appendChild(row);
+    wrap.appendChild(gc);
+    ve();
+  });
+  veTong();
+  return wrap;
+}
+
 /** Dòng phụ NGẮN cho ô mực của bàn số. Phải ngắn: nó nằm cạnh con số trong một
  *  ô hẹp, câu dài thì vỡ layout hoặc bị cắt giữa chừng. Câu đầy đủ vẫn ở dưới ô
  *  nhập trên màn chính. */

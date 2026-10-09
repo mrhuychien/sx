@@ -1,0 +1,355 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Danh Gia NCC",
+ "autoname": "DGNCC-.YYYY.-.####",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "Purchase Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "Purchase User",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "title_field": "ten_ncc",
+ "search_fields": "supplier,ten_ncc",
+ "field_order": [
+  "supplier",
+  "ten_ncc",
+  "mat_hang",
+  "dia_chi",
+  "nguoi_lien_he",
+  "mst",
+  "column_break_1",
+  "ngay",
+  "hinh_thuc",
+  "phan_loai",
+  "nguon",
+  "loai_ncc",
+  "trang_thai",
+  "section_a",
+  "ho_so",
+  "thieu_a",
+  "section_b",
+  "diem_i",
+  "goi_y_i",
+  "diem_ii",
+  "diem_iii",
+  "column_break_2",
+  "diem_iv",
+  "diem_v",
+  "tong",
+  "ket_luan",
+  "section_ky",
+  "nguoi_danh_gia",
+  "danh_gia_luc",
+  "qc_ky",
+  "qc_luc",
+  "y_kien_qc",
+  "column_break_3",
+  "duyet_boi",
+  "duyet_luc",
+  "quyet_dinh",
+  "y_kien_gd",
+  "ket_qua",
+  "han_danh_gia_lai",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Nhà cung cấp",
+   "options": "Supplier",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ten_ncc",
+   "fieldtype": "Data",
+   "label": "Tên nhà cung cấp",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "mat_hang",
+   "fieldtype": "Data",
+   "label": "Mặt hàng cung cấp"
+  },
+  {
+   "fieldname": "dia_chi",
+   "fieldtype": "Data",
+   "label": "Địa chỉ"
+  },
+  {
+   "fieldname": "nguoi_lien_he",
+   "fieldtype": "Data",
+   "label": "Người liên hệ, điện thoại"
+  },
+  {
+   "fieldname": "mst",
+   "fieldtype": "Data",
+   "label": "Mã số thuế / số ĐKKD"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày đánh giá",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "hinh_thuc",
+   "fieldtype": "Select",
+   "label": "Hình thức",
+   "options": "Đánh giá lần đầu\nĐánh giá lại hằng năm\nĐánh giá lại đột xuất",
+   "reqd": 1
+  },
+  {
+   "fieldname": "phan_loai",
+   "fieldtype": "Select",
+   "label": "Phân loại (QT.07 mục 4)",
+   "options": "Vật tư loại 1 (ảnh hưởng ATTP)\nVật tư loại 2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "nguon",
+   "fieldtype": "Select",
+   "label": "Nguồn gốc hàng",
+   "options": "Nhập khẩu\nTrong nước",
+   "reqd": 1
+  },
+  {
+   "fieldname": "loai_ncc",
+   "fieldtype": "Data",
+   "label": "Loại NCC (BM.07.02)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Nháp\nChờ QC\nChờ duyệt\nĐã duyệt\nTrả lại",
+   "default": "Nháp",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "section_a",
+   "fieldtype": "Section Break",
+   "label": "A. Hồ sơ pháp lý và an toàn thực phẩm (mục 1–6 bắt buộc khi áp dụng)"
+  },
+  {
+   "fieldname": "ho_so",
+   "fieldtype": "Table",
+   "label": "Hồ sơ",
+   "options": "SX Danh Gia NCC Ho So"
+  },
+  {
+   "fieldname": "thieu_a",
+   "fieldtype": "Small Text",
+   "label": "Thiếu phần A",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_b",
+   "fieldtype": "Section Break",
+   "label": "B. Đánh giá năng lực (chấm điểm)"
+  },
+  {
+   "fieldname": "diem_i",
+   "fieldtype": "Select",
+   "label": "I. Chất lượng (10 / 5 / 0)",
+   "options": "\n10\n5\n0"
+  },
+  {
+   "fieldname": "goi_y_i",
+   "fieldtype": "Small Text",
+   "label": "Gợi ý điểm I (lô 12 tháng)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "diem_ii",
+   "fieldtype": "Select",
+   "label": "II. Dịch vụ (10 / 5 / 0)",
+   "options": "\n10\n5\n0"
+  },
+  {
+   "fieldname": "diem_iii",
+   "fieldtype": "Select",
+   "label": "III. Giá cả (10 / 4)",
+   "options": "\n10\n4"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "diem_iv",
+   "fieldtype": "Select",
+   "label": "IV. Tiến độ giao hàng (10 / 6 / 0)",
+   "options": "\n10\n6\n0"
+  },
+  {
+   "fieldname": "diem_v",
+   "fieldtype": "Int",
+   "label": "V. Giấy chứng nhận (2 / 0 — theo mục A7)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tong",
+   "fieldtype": "Int",
+   "label": "Tổng điểm (tối đa 42)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ket_luan",
+   "fieldtype": "Select",
+   "label": "Kết luận (app tính)",
+   "options": "\nChấp nhận\nXem xét\nLoại bỏ",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_ky",
+   "fieldtype": "Section Break",
+   "label": "Ký, duyệt"
+  },
+  {
+   "fieldname": "nguoi_danh_gia",
+   "fieldtype": "Link",
+   "label": "Người đánh giá (Mua hàng)",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "danh_gia_luc",
+   "fieldtype": "Datetime",
+   "label": "Gửi duyệt lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qc_ky",
+   "fieldtype": "Link",
+   "label": "QC (vật tư loại 1)",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qc_luc",
+   "fieldtype": "Datetime",
+   "label": "QC ký lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "y_kien_qc",
+   "fieldtype": "Small Text",
+   "label": "Ý kiến QC",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "duyet_boi",
+   "fieldtype": "Link",
+   "label": "Giám đốc phê duyệt",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duyet_luc",
+   "fieldtype": "Datetime",
+   "label": "Duyệt lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "quyet_dinh",
+   "fieldtype": "Select",
+   "label": "Quyết định của Giám đốc (phiếu Xem xét)",
+   "options": "\nChấp nhận\nKhông chấp nhận",
+   "read_only": 1
+  },
+  {
+   "fieldname": "y_kien_gd",
+   "fieldtype": "Small Text",
+   "label": "Ý kiến Giám đốc / trả lại",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Select",
+   "label": "Kết quả",
+   "options": "\nChấp nhận\nLoại bỏ",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "han_danh_gia_lai",
+   "fieldtype": "Date",
+   "label": "Hạn đánh giá lại",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

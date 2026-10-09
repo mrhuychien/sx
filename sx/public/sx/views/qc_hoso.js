@@ -3,6 +3,7 @@
 // Danh mục hồ sơ / văn bản (mã, căn cứ pháp lý, nằm ở đâu, hạn) kèm cờ Đỏ / Vàng, và nút tải GÓI ZIP
 // cho đoàn: mục lục + bản in các biểu mẫu app lập trong kỳ + bản scan đính kèm. Luật cờ ở
 // sx/qc/ho_so.py; đèn của các mảng app lấy từ Tổng quan ATTP.
+// W44 (D173): danh mục này là BM.01.04 — thêm vị trí lưu, thời gian lưu, người lưu; nút IN BM.01.04 theo cột giấy.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
@@ -65,6 +66,14 @@ export async function render(api) {
     toast('Đang đóng gói — trình duyệt sẽ tải tệp zip về.');
   });
   goi.appendChild(tai);
+  const inBm = el('button', 'sx-btn sx-btn-ghost', '🖨 IN BM.01.04 DANH MỤC HỒ SƠ');
+  inBm.type = 'button';
+  inBm.addEventListener('click', async () => {
+    try {
+      inHtml(await call('sx.api.qc_hoso.in_bm0104', {}), 'BM.01.04 Danh mục hồ sơ');
+    } catch (e) { toastErr(e.message); }
+  });
+  goi.appendChild(inBm);
   container.appendChild(goi);
 
   // ── danh mục theo nhóm ───────────────────────────────────────────────
@@ -90,6 +99,17 @@ export async function render(api) {
   }
 }
 
+/** Mở bản in trong cửa sổ mới rồi gọi in (mỗi màn tự có — màn không nạp màn khác). */
+function inHtml(html, tieuDe) {
+  const w = window.open('', '_blank');
+  if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+  w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${esc(tieuDe)}</title>`
+    + `</head><body>${html}</body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 400);
+}
+
 function theHoSo(x, dl, api, lai) {
   const the = el('div', `sx-qc-sc ${x.co === 'do' ? 'sx-qc-sc-mo' : 'sx-qc-sc-dong'}${x.ngung ? ' sx-hs-ngung' : ''}`);
   the.appendChild(el('div', 'sx-qc-sc-ten', `${x.co ? `<span class="sx-attp-cham sx-hs-co-${x.co}" `
@@ -98,7 +118,10 @@ function theHoSo(x, dl, api, lai) {
   meta.appendChild(chip(x.nguon === 'App lập' ? `App · ${x.bieu_mau || ''}` : x.nguon));
   if (x.het_han) meta.appendChild(chip(`hạn ${ngayDu(x.het_han)}`, x.co === 'do' ? 'cao' : ''));
   if (x.thay_the) meta.appendChild(el('span', null, `thay ${esc(x.thay_the)}`));
-  if (x.nguon === 'Bản giấy' && x.noi_luu) meta.appendChild(el('span', null, `lưu: ${esc(x.noi_luu)}`));
+  if (x.noi_luu) meta.appendChild(el('span', null, `lưu: ${esc(x.noi_luu)}`));
+  if (x.thoi_gian_luu || x.nguoi_luu) {
+    meta.appendChild(el('span', null, esc([x.thoi_gian_luu, x.nguoi_luu].filter(Boolean).join(' · '))));
+  }
   the.appendChild(meta);
   if (x.can_cu) the.appendChild(el('div', 'sx-qc-goiy', `Căn cứ: ${esc(x.can_cu)}`));
   (x.ly_do || []).forEach((l) => the.appendChild(el('div', `sx-attp-viec sx-attp-viec-${l.muc === 'do' ? 'cao' : 'thuong'}`,
@@ -195,18 +218,18 @@ function moSua(x, dl, api, lai) {
   m.body.appendChild(el('div', 'sx-qc-goiy', 'Nằm ở đâu'));
   let nguon = v.nguon;
   const bmWrap = el('div');
-  const giayWrap = el('div');
   const hien = () => {
     bmWrap.style.display = nguon === 'App lập' ? '' : 'none';
-    giayWrap.style.display = nguon === 'Bản giấy' ? '' : 'none';
   };
   m.body.appendChild(segment(dl.nguon, nguon, (g) => { nguon = g || nguon; hien(); }, false));
   const bm = oChon(bmWrap, 'Biểu mẫu app', [['', '— chọn —']].concat(dl.bieu_mau.map((b) => [b.ma, `${b.ma} · ${b.ten}`])),
     v.bieu_mau || '');
   m.body.appendChild(bmWrap);
-  const noiLuu = oNhap(giayWrap, 'Nơi lưu bản giấy (tủ / bìa số…)', v.noi_luu);
-  m.body.appendChild(giayWrap);
   hien();
+  const noiLuu = oNhap(m.body, 'Vị trí lưu (bản giấy: tủ / bìa / bộ phận giữ; hồ sơ trên app để trống = "Phần mềm")',
+    v.noi_luu);
+  const tgLuu = oNhap(m.body, 'Thời gian lưu (vd 2 năm, 3 năm, Lâu dài, Theo hiệu lực)', v.thoi_gian_luu);
+  const nguoiLuu = oNhap(m.body, 'Người / bộ phận lưu (Ban ISO, QC, Cơ điện, Mua hàng…)', v.nguoi_luu);
   const canCu = oNhap(m.body, 'Căn cứ / nguồn pháp lý (vd "Ban hành theo QĐ 11")', v.can_cu, 'ta');
   const thay = oNhap(m.body, 'Thay thế văn bản (mã văn bản cũ, vd CV 10)', v.thay_the);
   const nbh = oNhap(m.body, 'Ngày ban hành', v.ngay_ban_hanh, 'date');
@@ -233,7 +256,7 @@ function moSua(x, dl, api, lai) {
     try {
       await api.call('sx.api.qc_hoso.luu', { payload: JSON.stringify({
         name: x ? x.name : null, ma: ma.value, ten: ten.value, nhom: nhom.value, nguon, bieu_mau: bm.value,
-        noi_luu: noiLuu.value, can_cu: canCu.value, thay_the: thay.value, ngay_ban_hanh: nbh.value, het_han: hh.value,
+        noi_luu: noiLuu.value, thoi_gian_luu: tgLuu.value, nguoi_luu: nguoiLuu.value, can_cu: canCu.value, thay_the: thay.value, ngay_ban_hanh: nbh.value, het_han: hh.value,
         thu_tu: tt.value, ghi_chu: gc.value, bat_buoc: bb.checked ? 1 : 0, ngung: ng.checked ? 1 : 0 }) });
       toast('Đã lưu');
       m.close();

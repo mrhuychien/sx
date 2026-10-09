@@ -496,6 +496,33 @@ kiem("sự cố PRP ở bước có oPRP (4b thùng, khay cát — bước 4 oPR
      [(x["muc"].split()[0], x["loai"], x["oprp"]) for x in DA_TAO] == [("4b", "PRP", "")],
      str([(x["muc"], x["loai"], x["oprp"]) for x in DA_TAO]))
 
+# W44 (D173): T4 theo từng vật của danh mục kính, nhựa giòn BM.PRP.05 — mỗi vật Không đạt một phiếu.
+print("\n-- W44: T4 theo từng vật kính, nhựa giòn (BM.PRP.05) --")
+tuan = {"luot": M.TUAN}
+VK = [{"vat": "SOD-1", "ma": "K-01", "ten": "Đèn huỳnh quang · Phòng đóng gói", "ket_qua": "Không đạt",
+       "ghi_chu": "vỡ chụp"},
+      {"vat": "SOD-2", "ma": "K-02", "ten": "Cửa kính · Kho", "ket_qua": "Đạt", "ghi_chu": ""},
+      {"vat": "SOD-3", "ma": "K-03", "ten": "Đồng hồ treo tường · Xưởng bánh", "ket_qua": "Không đạt", "ghi_chu": ""}]
+s4 = pt(t4_den_kinh="Không đạt", vat_kinh=VK, **tuan)
+kiem("T4 Không đạt theo vật → mỗi vật Không đạt một sự cố PRP mức Thường (K-01 kèm ghi chú, K-03); vật Đạt không",
+     [(x[0], x[2], x[3]) for x in s4] == [("t4_den_kinh", "PRP", "Thường")] * 2
+     and "K-01 Đèn huỳnh quang · Phòng đóng gói: Không đạt (vỡ chụp)" in s4[0][4] and "K-03" in s4[1][4]
+     and not any("K-02" in x[4] for x in s4), str(s4))
+kiem("T4 Không đạt mà lượt không tích theo vật (danh mục trống / phiếu cũ) → một sự cố chung như trước",
+     [x[4] for x in pt(t4_den_kinh="Không đạt", **tuan)] == ["Mục T4 Đèn, kính có bảo vệ: Không đạt"],
+     str(pt(t4_den_kinh="Không đạt", **tuan)))
+kiem("tên vật dài → mô tả vẫn vừa ô 140 ký tự của bảng sự cố trong lượt",
+     all(len(x[4]) <= 140 for x in pt(t4_den_kinh="Không đạt", vat_kinh=[dict(VK[0], ten="Đèn " + "rất dài " * 30)],
+                                       **tuan)))
+kiem("T4 Đạt (mọi vật Đạt) → không sự cố; lượt không phải Tuần → T4 không áp dụng",
+     not pt(t4_den_kinh="Đạt", vat_kinh=[VK[1]], **tuan) and not pt(t4_den_kinh="Không đạt", vat_kinh=VK))
+DA_TAO[:] = []
+d = luot(**{**day_du, "luot": M.TUAN, "t4_den_kinh": "Không đạt", "vat_kinh": VK})
+SC.tao_tu_vong_kiem(d)
+kiem("hoàn tất lượt Tuần: 2 phiếu sự cố (một mỗi vật), cùng mục T4, gắn hai chiều với lượt",
+     len(DA_TAO) == 2 and all(x["muc"] == "T4 Đèn, kính có bảo vệ" and x["qc_round"] == "QC-0001" for x in DA_TAO)
+     and [r["incident"] for r in d["su_co"]] == [x["name"] for x in DA_TAO], str([x["muc"] for x in DA_TAO]))
+
 # ═══ 9. Sự cố không có luật nào thì không sinh ════════════════════════════
 DA_TAO[:] = []
 d = luot(**day_du)

@@ -35,6 +35,11 @@ def _loai(m):
     return "oPRP" if m.get("oprp") else "Khác"
 
 
+def _ngan(s, toi_da=140):
+    """Mô tả sự cố vừa ô Data của bảng con lượt (SX QC Round Incident.mo_ta, 140 ký tự)."""
+    return s if len(s) <= toi_da else s[:toi_da - 1] + "…"
+
+
 def phat_hien(doc):
     """[(muc_key, cong_doan, loai, muc_do, mo_ta)] — mọi chỗ lệch của một lượt.
 
@@ -64,6 +69,19 @@ def phat_hien(doc):
                            _("Nam châm {0} bắt được mạt kim loại{1} — báo cơ điện kiểm máy").format(
                                M.ten_nam_cham(m), _(" (vật: {0})").format(vat) if vat else "")))
             continue
+
+        # T4 theo vật (W44, D173): danh mục kính, nhựa giòn BM.PRP.05 → mỗi vật Không đạt một phiếu (mỗi chỗ vỡ /
+        # thiếu chụp là một việc xử lý riêng: dừng khu vực, cách ly sản phẩm hở, dọn, kiểm — SSOP 11).
+        if goc == "t4_den_kinh" and v == M.KHONG_DAT:
+            hong = [r for r in doc.get("vat_kinh") or [] if r.get("ket_qua") == M.KHONG_DAT]
+            for r in hong:
+                ten = " ".join(x for x in (r.get("ma"), r.get("ten")) if x) or r.get("vat")
+                gc = f" ({r.get('ghi_chu')})" if r.get("ghi_chu") else ""
+                ra.append((m["f"], m["cd"], _loai(m), THUONG, _ngan(
+                    _("T4 kính, nhựa giòn {0}: Không đạt{1} — vỡ thì dừng khu vực, cách ly sản phẩm hở 3 m "
+                      "(SSOP 11)").format(ten, gc))))
+            if hong:
+                continue
 
         if m["kieu"] == "chon" and v == M.KHONG_DAT:
             ra.append((m["f"], m["cd"], _loai(m), THUONG,

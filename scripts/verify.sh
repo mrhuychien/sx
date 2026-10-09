@@ -506,4 +506,13 @@ node scripts/test-so.mjs > /tmp/sx-so-js.log 2>&1 \
   && tail -1 /tmp/sx-so-js.log \
   || { cat /tmp/sx-so-js.log; loi=1; }
 
+# D173 (W44): đánh giá nhà cung cấp BM.07.01. Biên 20 / 29 / 30, điểm chất lượng < 5, thiếu hồ sơ phần A tính sai là
+# NCC không đủ điều kiện vẫn vào BM.07.02; người chấm tự duyệt, tích Đã duyệt không có phiếu Chấp nhận (C26).
+python3 scripts/test-danhgiancc.py > /tmp/sx-danhgiancc.log 2>&1 \
+  && tail -1 /tmp/sx-danhgiancc.log \
+  || { cat /tmp/sx-danhgiancc.log; loi=1; }
+node scripts/test-danhgiancc.mjs > /tmp/sx-danhgiancc-js.log 2>&1 \
+  && tail -1 /tmp/sx-danhgiancc-js.log \
+  || { cat /tmp/sx-danhgiancc-js.log; loi=1; }
+
 exit $loi

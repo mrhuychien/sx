@@ -169,7 +169,8 @@ hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 
 Thêm hai tab cho mọi vai: **📚 Tài liệu** (W42 — thấy tài liệu phân phối cho mình) và **📒 Sổ** (W43 — chỉ hiện khi
 được giao ít nhất một sổ; quyền ghi / xác nhận / xem theo từng sổ). Vai mới C24 `SX Co Dien`, `SX Hanh Chinh`,
-`SX Bao Ve` chỉ có hai tab này — xem mục D171, D172.
+`SX Bao Ve` chỉ có hai tab này — xem mục D171, D172. Mua hàng (`Purchase User`) có tab Sổ để lập phiếu đánh giá nhà
+cung cấp BM.07.01 (D173).
 
 **QC chế biến ≠ QC vào hộp** — hai người, hai việc, hai role. Ai làm cả hai thì gán cả hai.
 
@@ -318,6 +319,62 @@ bao bì đã trừ, nợ BOM / nợ vào hộp của phiếu → *Đã huỷ*, s
 bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ chứng từ xuất trước. Duyệt lại
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
+
+## Danh mục có hạn, T4 theo vật, BM.01.04, đánh giá nhà cung cấp BM.07.01 (D173 — W44)
+
+**Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).**
+
+- **5 danh mục trên khung Sổ** (`sx/qc/seed/so.json`, patch `d173_danh_muc_ncc` tạo sổ còn thiếu):
+
+  | Sổ | Ghi | Xác nhận | Xem | Hàm riêng / ghi chú |
+  |---|---|---|---|---|
+  | BM.PRP.04 hóa chất | Cơ điện | Trưởng Ban ISO ("duyệt") | QC, QC gói, QLSX | MSDS (tệp), hạn hồ sơ báo trước 30 ngày |
+  | BM.PRP.05 kính, nhựa giòn | Cơ điện | Trưởng Ban ISO | QC, QC gói, QLSX | nối mục T4 lượt Tuần (dưới) |
+  | BM.PRP.07 khám sức khỏe, tập huấn | Hành chính | — | **không ai khác** | `suc_khoe`: hạn khám lại = ngày khám + 12 tháng khi để trống; nhân viên chọn từ Employee (người đã nghỉ không có trong danh sách, hiện họ tên); **dữ liệu cá nhân** (`rieng_tu`): chỉ Hành chính, Trưởng Ban ISO, Giám đốc xem — hộp nhắc chung chỉ ghi số mục + ngày hạn, không ghi tên |
+  | BM.05.01 bên quan tâm | Ban ISO, QLSX | Giám đốc ("phê duyệt") | — | bản in gom theo 4 nhóm (cột `nhom_theo`), đánh số lại trong nhóm |
+  | BM.05.02 rủi ro | Ban ISO, QLSX | Giám đốc | — | `rr_abcd`: chọn A, B, C, D (1–4), app tính **RR = A + B + C + D**, cấp độ 1 = 12–16, 2 = 10–11, 3 ≤ 9 (ô gõ tay bị tính đè, phiếu ghi không cho nhập) |
+
+  Việc định kỳ "xác định lại bên quan tâm, rủi ro" hằng năm, hạn **15/12/2026** (Lịch biểu mẫu: T12/26, cùng tháng xem
+  xét lãnh đạo), nhắc trước 30 ngày. Khung Sổ thêm: `nhom_theo` (gom bản in theo cột Select), `rieng_tu`, Link
+  `Employee`, cột app tính (`TINH_COT`). Chọn thiết bị (BM.06.05) giờ bỏ đúng thiết bị đã thanh lý (bộ lọc cũ không
+  chạy vì thiếu ô).
+- **T4 lượt Tuần theo vật**: danh mục BM.PRP.05 có vật đang dùng → mục T4 "Đèn, kính có bảo vệ" mở danh sách vật, QC
+  tích ✓ Đạt / ✕ Không từng vật (Không đạt ghi lý do). Lưu vào bảng con `vat_kinh` (`SX QC Round Vat`: dòng danh mục,
+  mã, tên chép lại lúc tích) qua `save_round` khóa `vat_kinh:<dòng>` (mỗi vật một giờ ghi — hai máy, ngoại tuyến không
+  đè nhau); **T4 = Không đạt nếu có vật Không đạt, Đạt khi mọi vật Đạt**, server tính, ô T4 gửi thẳng bị bỏ qua. Hoàn
+  tất: **mỗi vật Không đạt một phiếu sự cố** PRP. Tờ BM.08.01 ghi từng vật (Đ / K). Danh mục trống → T4 tích một lần
+  như cũ.
+- **BM.01.04 Danh mục hồ sơ** (= `SX Ho So Danh Muc`): thêm **thời gian lưu**, **người lưu** (Vị trí lưu dùng ô cũ);
+  nút **🖨 IN BM.01.04** ở màn Hồ sơ đánh giá theo cột giấy (tên hồ sơ, ký hiệu, vị trí lưu, thời gian lưu, người lưu,
+  ghi ở đâu app / giấy, ghi chú; dòng tiêu đề nhóm; ngày cập nhật; không ô ký như giấy). Tệp `00-MUC-LUC.html` của gói
+  zip dùng chung mẫu (thêm cờ, hạn, đường dẫn trong gói); dòng BM.01.04 trong gói trỏ tới chính tệp mục lục. Patch
+  thêm dòng hồ sơ còn thiếu của biểu mẫu W29–W44 và **điền thời gian lưu, người lưu theo BM.01.04 giấy 21/9/2026 vào
+  dòng còn trống** (dòng Ban ISO đã ghi giữ nguyên). Biên bản huỷ mẫu, CV 21 chưa có trên giấy → Ban ISO tự điền.
+- **BM.07.01 Phiếu đánh giá nhà cung cấp** — DocType `SX Danh Gia NCC` (`DGNCC-.YYYY.-.####`), thẻ **BM.07.01** trong
+  màn Sổ (`#/so/BM.07.01`, màn `views/danhgiancc.js`; Mua hàng `Purchase User` giờ có tab Sổ):
+  - **Phần A** 7 mục như giấy, **tự điền** từ hồ sơ NCC (Supplier → hồ sơ NCC): còn hạn → Có + số, ngày, hiệu lực;
+    hết hạn / không có → Không; mục không áp dụng (theo loại 1 / 2, nhập khẩu / trong nước; cát rang chỉ hợp đồng +
+    ĐKKD) → KAD khóa; mục 6 (đỗ, lạc, dầu) người chấm chọn. Mục 1–6 áp dụng mà không Có / hết hiệu lực → thiếu phần A.
+  - **Phần B** chọn mức như giấy: I 10 / 5 / 0, II 10 / 5 / 0, III 10 / 4, IV 10 / 6 / 0, V 2 / 0 (theo mục A7). Đánh
+    giá lại: **gợi ý điểm I** từ lô 12 tháng (BM.07.03 trên phiếu nhập mua / hoá đơn mua trừ kho + phiếu sự cố sau nhận
+    gắn lô): 0 % → 10, < 10 % → 5, ≥ 10 % → 0.
+  - **Kết luận app tính**: Chấp nhận = đủ A, 30–42, I ≥ 5; Xem xét = 20–29; Loại bỏ = < 20, I < 5 hoặc thiếu A.
+  - **Luồng**: Mua hàng lập, chấm, gửi → vật tư loại 1: QC cùng chấm, ký → Giám đốc (SX Quan Ly) duyệt (phiếu Xem
+    xét: chọn Chấp nhận / Không chấp nhận) hoặc trả lại kèm ý kiến. Người chấm không tự ký QC / tự duyệt. Duyệt Chấp
+    nhận → **hạn đánh giá lại = ngày duyệt + 12 tháng**. Duyệt xong là khóa (cả Desk); Desk chỉ đọc.
+  - **C26** (`sx/qc/ncc.py`): từ **ngày áp dụng** (SX QC Setting → Đánh giá nhà cung cấp; patch điền ngày triển khai),
+    tích "Đã duyệt" NCC phải có phiếu BM.07.01 **Chấp nhận còn hạn**. NCC duyệt trước ngày đó không bị chặn, chỉ nhắc
+    đánh giá lại (hạn lần đầu ở Setting, mặc định **31/12/2026** — Lịch: T12/26). Mua của NCC chưa duyệt vẫn chỉ cảnh báo.
+  - **Nhắc** (mảng Nhà cung cấp): quá / sắp đến hạn đánh giá lại (30 ngày), NCC duyệt trước C26 chưa có phiếu, phiếu
+    Chấp nhận chưa vào BM.07.02, phiếu Loại bỏ mà NCC vẫn đang duyệt, phiếu chờ QC ký / chờ Giám đốc duyệt.
+  - **In** `sx/qc/bm0701.html` theo giấy lần BH 02 (ô ☑, điểm ở dòng mức đã chọn, ba ô "Ký trên phần mềm"); gói hồ sơ
+    zip: mỗi phiếu đã duyệt trong kỳ một tệp.
+- **Mặc định đã chọn (§5 chưa trả lời)**: hạn xem xét BM.05.01 / 05.02 theo Lịch biểu mẫu (T12/2026), không theo
+  "tháng 3" của bản tóm tắt; PRP.04 / PRP.05 do Trưởng Ban ISO duyệt từng dòng; BM.05.01 thêm cột app "cách đáp ứng";
+  BM.05.02 thêm cột "loại" (hoạt động / bối cảnh bên ngoài / nội bộ); phân loại BM.07.01 gợi ý từ loại NCC (nguyên
+  liệu, phụ gia, bao bì tiếp xúc, cát rang → loại 1); "Mã NCC trên phần mềm" = mã Supplier (NCC phải có trên hệ thống,
+  chưa tích Đã duyệt, trước khi đánh giá); lô Cách ly không tính là không đạt khi gợi ý điểm I (ghi riêng trong gợi ý).
+- Build **sx-137**. Deploy (sau Orion): `git pull` → `bench --site site1.local migrate` → `bench restart`.
 
 ## Sổ ghi theo dòng: BM.06.05, BM.PRP.06, BM.03.01, BM.03.02, BM.03.03 (D172 — W43)
 

@@ -14,7 +14,7 @@ import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { kb, nenAnh } from '/assets/sx/sx/lib/anh.js';
 import { confirm2Step, openModal } from '/assets/sx/sx/components/modal.js';
 import {
-  batTatBot, chip, hangChon, oCheck, oChon3, oChonBot, oChu, oGio, oSo, tieuDeBuoc,
+  batTatBot, chip, hangChon, oCheck, oChon3, oChonBot, oChu, oGio, oSo, oVatKinh, t4TheoVat, tieuDeBuoc,
 } from '/assets/sx/sx/components/qcui.js';
 import { formatTime } from '/assets/sx/sx/lib/format.js';
 
@@ -184,6 +184,14 @@ export async function render({ container, call, tham_so }) {
     hen = setTimeout(gui, 300);
   }
 
+  // T4 theo vật (W44, D173): mỗi vật một khóa "vat_kinh:<dòng BM.PRP.05>" trong hàng chờ — gửi lại / ngoại tuyến
+  // không đè vật khác. Giá trị T4 trên máy chỉ để vẽ tiến độ; server tính lại từ các vật.
+  const vatKinh = dl.vat_kinh && dl.vat_kinh.ds.length ? dl.vat_kinh : null;
+  function onSetVat(x) {
+    giaTri.t4_den_kinh = t4TheoVat(vatKinh.ds);
+    onSet(`vat_kinh:${x.vat}`, { ket_qua: x.ket_qua || '', ghi_chu: x.ghi_chu || '' });
+  }
+
   // ── có sản xuất bột — cho RIÊNG lượt này (D98) ──────────────────────
   // Trước D98 lượt đã mở thì không có cách nào thêm phần bột: dây chuyền bột
   // chạy từ 10h mà lượt Trưa mở lúc 9h là mất hẳn phần B của lượt đó.
@@ -280,7 +288,8 @@ export async function render({ container, call, tham_so }) {
       if (m.may && !(truoc && truoc.may === m.may && truoc.may_so === m.may_so)) {
         than.appendChild(dauMay(m));
       }
-      than.appendChild(veMuc(m, giaTri[m.f], onSetMuc, hom, khoa));
+      than.appendChild(m.f === 't4_den_kinh' && vatKinh ? oVatKinh(m, vatKinh, onSetVat, khoa)
+        : veMuc(m, giaTri[m.f], onSetMuc, hom, khoa));
       if (m.may && !(sau && sau.may === m.may)) {
         const n = nutThemMay(m.may);
         if (n) than.appendChild(n);

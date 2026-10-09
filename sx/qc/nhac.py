@@ -55,7 +55,7 @@ def _nhom(ma, ds):
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
          cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None, vai_u=None,
-         kiem_xe=None, tai_lieu=None, so=None):
+         kiem_xe=None, tai_lieu=None, so=None, danh_gia_ncc=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -73,7 +73,9 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `tai_lieu` = sx/qc/tai_lieu.nhac(): đợt ban hành quá 7 ngày còn người chưa xác nhận đọc, đề nghị BM.01.01 chờ
                  lâu, tài liệu bên ngoài quá 12 tháng chưa soát xét, đợt nháp thiếu PDF — W42 (D171).
     `so` = sx/qc/so.nhac(): sổ ghi theo dòng — hạn, không ghi, chờ xác nhận, chưa xem tháng; BM.06.05 kiểm lại sau sửa
-           chữa, máy quá hạn bảo dưỡng. Mỗi sổ vào mảng của nó (`mang`) — W43 (D172)."""
+           chữa, máy quá hạn bảo dưỡng. Mỗi sổ vào mảng của nó (`mang`) — W43 (D172).
+    `danh_gia_ncc` = sx/qc/danh_gia_ncc.nhac(): đánh giá lại NCC quá / sắp đến hạn, NCC duyệt trước C26 chưa có phiếu,
+                     phiếu Chấp nhận chưa vào BM.07.02, Loại bỏ mà vẫn duyệt, phiếu chờ QC / Giám đốc — W44 (D173)."""
     nay = _d(hom_nay)
     ra = []
     # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (PRP từ W38), nên thuộc mảng vòng kiểm.
@@ -90,6 +92,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhom("kiem_xe", _nhac_kiem_xe(kiem_xe or {}))
     ra += _nhom("tai_lieu", _nhac_tai_lieu(tai_lieu or {}))
     ra += _nhac_so(so or {})
+    ra += _nhom("ncc", _nhac_danh_gia_ncc(nay, danh_gia_ncc or {}))
     ra += _nhom("thiet_bi", _nhac_thiet_bi(nay, thiet_bi or {}))
     ra += _nhom("kiem_nghiem", _nhac_kiem_nghiem(kiem_nghiem or {}))
     ra += _nhom("viec_dinh_ky", _nhac_viec_dinh_ky(viec_dinh_ky or {}))
@@ -422,15 +425,17 @@ def _nhac_so(so):
         han = s.get("han") or []
         qua = [h for h in han if h["con"] < 0]
         sap = [h for h in han if h["con"] >= 0]
+        # Sổ dữ liệu cá nhân (BM.PRP.07): hộp nhắc ai có màn QC cũng thấy → không ghi họ tên, chỉ hạn.
+        ai = (lambda h: "") if s.get("rieng_tu") else (lambda h: f"{h.get('tom_tat') or h.get('dong')} — ")
         if qua:
             h = qua[0]
             m.append(_m(THUONG, f"{ten}: {len(qua)} mục quá hạn",
-                        f"Quá hạn lâu nhất: {h.get('tom_tat') or h.get('dong')} — {h['nhan'].lower()} "
+                        f"Quá hạn lâu nhất: {ai(h)}{h['nhan'].lower()} "
                         f"{_d(h['han']).strftime('%d/%m/%Y')}. Kiểm / nạp / kiểm định xong thì cập nhật sổ.", r))
         if sap:
             h = sap[0]
             m.append(_m(THUONG, f"{ten}: {len(sap)} mục sắp đến hạn",
-                        f"Sớm nhất: {h.get('tom_tat') or h.get('dong')} — {h['nhan'].lower()} "
+                        f"Sớm nhất: {ai(h)}{h['nhan'].lower()} "
                         f"{_d(h['han']).strftime('%d/%m/%Y')} (còn {h['con']} ngày).", r))
         k = s.get("khong_ghi")
         if k:
@@ -458,6 +463,44 @@ def _nhac_so(so):
                                 f"{'…' if len(cx) > 3 else ''} chưa xem xét cuối tháng",
                         f"{s.get('nhan_xem_thang') or 'Xem xét cuối tháng'}: mở sổ, chọn tháng, bấm \"Đã xem tháng\".", r))
         ra += _nhom(s.get("mang") or "so_khac", m)
+    return ra
+
+
+def _nhac_danh_gia_ncc(nay, dg):
+    """Đánh giá nhà cung cấp BM.07.01 (W44, D173) — mảng Nhà cung cấp. Mua vẫn chỉ cảnh báo (W09) nên mức thường."""
+    r = "#/so/BM.07.01"
+    ds = lambda xs: ", ".join(x.get("ten") or x.get("ncc") or "" for x in xs[:3]) + ("…" if len(xs) > 3 else "")  # noqa: E731
+    ra = []
+    x = dg.get("loai_bo_dang_duyet") or []
+    if x:
+        ra.append(_m(THUONG, f"{len(x)} nhà cung cấp bị Loại bỏ (BM.07.01) mà vẫn đang duyệt",
+                     f"{ds(x)} — bỏ tích Đã duyệt, dừng đặt hàng, ghi ngày dừng và lý do trên BM.07.02 (QT.07).", r))
+    x = dg.get("qua_han") or []
+    if x:
+        ra.append(_m(THUONG, f"{len(x)} nhà cung cấp quá hạn đánh giá lại (BM.07.01)",
+                     f"{ds(x)} — hạn sớm nhất {_d(x[0]['han']).strftime('%d/%m/%Y')}. Đánh giá lại hằng năm "
+                     "(QT.07): Mua hàng chấm, Giám đốc duyệt.", r))
+    x = dg.get("sap_han") or []
+    if x:
+        ra.append(_m(THUONG, f"{len(x)} nhà cung cấp sắp đến hạn đánh giá lại (BM.07.01)",
+                     f"{ds(x)} — hạn sớm nhất {_d(x[0]['han']).strftime('%d/%m/%Y')} (còn {x[0]['con']} ngày).", r))
+    x = dg.get("chua_co") or []
+    if x:
+        han = _d(dg["han_dau"])
+        con = (han - nay).days
+        ra.append(_m(THUONG, f"{len(x)} nhà cung cấp đã duyệt chưa có phiếu đánh giá BM.07.01",
+                     f"Hạn đánh giá lại lần đầu {han.strftime('%d/%m/%Y')} "
+                     f"({f'còn {con} ngày' if con >= 0 else f'quá {-con} ngày'}): {ds(x)}.", r))
+    x = dg.get("chap_nhan_chua_duyet") or []
+    if x:
+        ra.append(_m(THUONG, f"{len(x)} nhà cung cấp đã Chấp nhận (BM.07.01) chưa vào BM.07.02",
+                     f"{ds(x)} — Trưởng Ban ISO / người được giao tích Đã duyệt trên nhà cung cấp.", r))
+    for k, ten in (("cho_qc", "chờ QC ký"), ("cho_duyet", "chờ Giám đốc duyệt")):
+        x = dg.get(k) or []
+        if x:
+            ra.append(_m(THUONG, f"{len(x)} phiếu đánh giá nhà cung cấp {ten}",
+                         f"{', '.join((p.get('ten_ncc') or p.get('supplier') or '') for p in x[:3])}"
+                         f"{'…' if len(x) > 3 else ''}.", r))
     return ra
 
 

@@ -51,6 +51,7 @@ C_TB = F.nap("c_tb", "sx/qc/doctype/sx_thiet_bi_do/sx_thiet_bi_do.py")
 C_KT = F.nap("c_kt", "sx/qc/doctype/sx_kiem_thiet_bi/sx_kiem_thiet_bi.py")
 C_HS = F.nap("c_hs", "sx/qc/doctype/sx_ho_so_danh_muc/sx_ho_so_danh_muc.py")
 A = F.nap("sx.api.qc_so", "sx/api/qc_so.py")
+F.nap("sx.api.qc_danhgiancc", "sx/api/qc_danhgiancc.py")       # thẻ BM.07.01 trong danh sách sổ (W44)
 ROLE_TAO = []
 st = types.ModuleType("sx.setup")
 st.dam_bao_role = lambda: ROLE_TAO.append(1) or []
@@ -112,11 +113,12 @@ print("\n-- định nghĩa sổ, kiểm dữ liệu (hàm thuần) --")
 kiem("mảng của sổ = mã thẻ Tổng quan ATTP + 'so_khac' (một danh sách, hai nơi khai — chốt khớp)",
      set(SO.MANG) == {x[0] for x in AT.LINH_VUC} and "so_khac" in SO.MANG)
 SEED = json.load(open("sx/qc/seed/so.json", encoding="utf-8"))
-kiem("seed: đúng 5 sổ md W43, mã duy nhất", [x["ma"] for x in SEED] == ["BM.06.05", "BM.PRP.06", "BM.03.01",
-                                                                        "BM.03.02", "BM.03.03"])
+W43 = ["BM.06.05", "BM.PRP.06", "BM.03.01", "BM.03.02", "BM.03.03"]
+W44 = ["BM.PRP.04", "BM.PRP.05", "BM.PRP.07", "BM.05.01", "BM.05.02"]
+kiem("seed: 5 sổ md W43 rồi 5 danh mục md W44, mã duy nhất", [x["ma"] for x in SEED] == W43 + W44)
 loi_seed = {x["ma"]: SO.loi_dinh_nghia(dict(P.doc_so(x), cot=[dict(c, idx=i) for i, c in enumerate(
     P.doc_so(x)["cot"], 1)], **{o: [r["role"] for r in P.doc_so(x)[o]] for o in SO.VAI_O})) for x in SEED}
-kiem("5 định nghĩa seed hợp lệ (khóa, kiểu, lựa chọn, Link được phép, cột hạn là ngày)",
+kiem("10 định nghĩa seed hợp lệ (khóa, kiểu, lựa chọn, Link được phép, cột hạn là ngày, cột gom nhóm)",
      not any(loi_seed.values()), loi_seed)
 kiem("BM.03.01, BM.03.03 kiểu Danh mục, có cột app Ngày kiểm gần nhất, Hạn tiếp (báo trước 30 ngày), Số tem / giấy",
      all(x["kieu"] == "Danh mục" and {"ngay_kiem_gan_nhat", "han_tiep", "so_tem_giay"} <= {c["key"] for c in x["cot"]}
@@ -273,12 +275,12 @@ kiem("thiết bị sản xuất: không hạn kiểm (không quá hạn, không 
      and TBM.chu_ky({"loai": TBM.SAN_XUAT}) == 6 and TBM.SAN_XUAT in TBM.LOAI and TBM.SAN_XUAT not in TBM.LOAI_DO)
 
 # ═══ 2. Patch d172 ════════════════════════════════════════════════════════
-print("\n-- patch d172: tạo 5 sổ, máy sản xuất có mã, dòng hồ sơ — chỉ tạo cái thiếu --")
+print("\n-- patch d172: tạo các sổ trong seed, máy sản xuất có mã, dòng hồ sơ — chỉ tạo cái thiếu --")
 F.bang("Role").update({r: {"name": r} for r in R.VAI_MAC_DINH})
 F.bang(HS.PT)["HS-1"] = {"name": "HS-1", "ma": "bm.03.02", "ten": "Sổ dịch bệnh (Ban ISO tự thêm)", "nguon": HS.GIAY}
 P.execute()
-kiem("tạo đủ 5 sổ; gọi tạo role trước (role W42 do after_migrate tạo — chạy SAU patch)",
-     sorted(F.bang(SO.PT)) == ["BM.03.01", "BM.03.02", "BM.03.03", "BM.06.05", "BM.PRP.06"] and ROLE_TAO == [1])
+kiem("tạo đủ sổ trong seed (site mới chạy d172 có luôn 5 danh mục W44); gọi tạo role trước (role W42 do "
+     "after_migrate tạo — chạy SAU patch)", sorted(F.bang(SO.PT)) == sorted(W43 + W44) and ROLE_TAO == [1])
 d65 = SO.dinh_nghia("BM.06.05")
 kiem("BM.06.05: 9 cột theo thứ tự giấy, vai ghi / xác nhận / xem / xem tháng đúng seed, lựa chọn mỗi dòng một",
      [c["key"] for c in d65["cot"]] == ["thiet_bi", "loai", "noi_dung", "dau_mo", "gio_dung", "gio_ban_giao",
@@ -301,7 +303,7 @@ doc.append("cot", {"key": "so_cccd", "nhan": "Số CCCD", "kieu": "Data"})
 doc.save()
 P.execute()
 kiem("chạy lại: không nhân đôi, không đè sổ Ban ISO đã sửa (tên, cột thêm)",
-     len(F.bang(SO.PT)) == 5 and F.bang(SO.PT)["BM.PRP.06"]["ten"] == "Sổ khách (Ban ISO sửa)"
+     len(F.bang(SO.PT)) == 10 and F.bang(SO.PT)["BM.PRP.06"]["ten"] == "Sổ khách (Ban ISO sửa)"
      and len(SO.dinh_nghia("BM.PRP.06")["cot"]) == 11 and len(F.bang(HS.PT)) == 5)
 
 # ═══ 3. Quyền theo sổ, tab Sổ ═════════════════════════════════════════════
@@ -310,15 +312,22 @@ THAY = {}
 for u in ("cd@x", "qc@x", "goi@x", "ql@x", "bv@x", "hc@x", "iso@x", "gd@x", "gs@x"):
     la(u)
     THAY[u] = [x["ma"] for x in A.ds_so()["ds"]]
-kiem("Cơ điện: BM.03.01, BM.06.05; QC, QC gói: BM.06.05 (xác nhận); QLSX: BM.03.03, BM.06.05 (xem), BM.PRP.06; Bảo "
-     "vệ: BM.PRP.06; Hành chính: 3 sổ QT.03",
-     THAY["cd@x"] == ["BM.03.01", "BM.06.05"] and THAY["qc@x"] == THAY["goi@x"] == ["BM.06.05"]
-     and THAY["ql@x"] == ["BM.03.03", "BM.06.05", "BM.PRP.06"] and THAY["bv@x"] == ["BM.PRP.06"]
-     and THAY["hc@x"] == ["BM.03.01", "BM.03.02", "BM.03.03"], THAY)
-kiem("Trưởng Ban ISO, Giám đốc thấy cả 5 sổ; Ghi sổ không được giao sổ nào → danh sách trống",
-     len(THAY["iso@x"]) == len(THAY["gd@x"]) == 5 and THAY["gs@x"] == [])
-kiem("co_so: Ghi sổ False (không có tab Sổ); Cơ điện, ISO True",
-     not SO.co_so({"SX Ghi So"}) and SO.co_so({"SX Co Dien"}) and SO.co_so({"ISO Manager"}) and SO.co_so(set(), True))
+kiem("Cơ điện: BM.03.01, BM.06.05, hóa chất, kính (ghi); QC, QC gói: BM.06.05 (xác nhận), hóa chất, kính (xem) — "
+     "QC thêm thẻ BM.07.01 (ký phiếu đánh giá NCC loại 1); QLSX: BM.03.03, bên quan tâm, rủi ro (ghi), BM.06.05, hóa "
+     "chất, kính (xem), BM.PRP.06; Bảo vệ: BM.PRP.06; Hành chính: 3 sổ QT.03 + khám sức khỏe",
+     THAY["cd@x"] == ["BM.03.01", "BM.06.05", "BM.PRP.04", "BM.PRP.05"]
+     and THAY["qc@x"] == ["BM.06.05", "BM.07.01", "BM.PRP.04", "BM.PRP.05"]
+     and THAY["goi@x"] == ["BM.06.05", "BM.PRP.04", "BM.PRP.05"]
+     and THAY["ql@x"] == ["BM.03.03", "BM.05.01", "BM.05.02", "BM.06.05", "BM.PRP.04", "BM.PRP.05", "BM.PRP.06"]
+     and THAY["bv@x"] == ["BM.PRP.06"] and THAY["hc@x"] == ["BM.03.01", "BM.03.02", "BM.03.03", "BM.PRP.07"], THAY)
+kiem("Trưởng Ban ISO, Giám đốc thấy cả 10 sổ + thẻ BM.07.01; Ghi sổ không được giao sổ nào → danh sách trống",
+     len(THAY["iso@x"]) == len(THAY["gd@x"]) == 11 and "BM.07.01" in THAY["gd@x"] and THAY["gs@x"] == [])
+kiem("BM.PRP.07 (dữ liệu cá nhân): chỉ Hành chính, Trưởng Ban ISO, Giám đốc — QC, QLSX, Cơ điện không thấy",
+     all("BM.PRP.07" not in THAY[u] for u in ("cd@x", "qc@x", "goi@x", "ql@x", "bv@x"))
+     and all("BM.PRP.07" in THAY[u] for u in ("hc@x", "iso@x", "gd@x")))
+kiem("co_so: Ghi sổ False (không có tab Sổ); Cơ điện, ISO True; Mua hàng True (thẻ BM.07.01 — W44)",
+     not SO.co_so({"SX Ghi So"}) and SO.co_so({"SX Co Dien"}) and SO.co_so({"ISO Manager"}) and SO.co_so(set(), True)
+     and SO.co_so({"Purchase User"}) and SO.vao_bm0701({"Purchase User"}) and not SO.vao_bm0701({"SX Co Dien"}))
 la("ngoai@x")
 kiem("không có vai app → không vào màn Sổ", isinstance(thu(lambda: A.ds_so()), str)
      and "quyền" in thu(lambda: A.ds_so()))
@@ -633,5 +642,289 @@ kiem("thẻ 'Sổ khác' ở Tổng quan ATTP: số dòng trong kỳ, đèn theo
      th["so_khac"]["so"] == "3" and th["so_khac"]["route"] == "#/so" and th["so_khac"]["den"] in (AT.VANG, AT.XANH))
 kiem("thiết bị sản xuất không làm hỏng nhắc thiết bị đo (không hạn kiểm)",
      all("TBSX" not in str(x) for x in TBM.nhac("2026-10-09").get("qua_han", [])))
+
+# ═══ 9. W44: danh mục có hạn — rủi ro, bên quan tâm, sức khỏe, hóa chất, kính ════════════════
+print("\n-- W44: RR = A + B + C + D, cấp độ (hàm thuần) --")
+S44 = {x["ma"]: x for x in SEED}
+kiem("biên cấp độ md W44: RR 16, 12 → cấp độ 1; 11, 10 → cấp độ 2; 9, 4 → cấp độ 3",
+     [SO.rr_cap_do(*x) for x in ((4, 4, 4, 4), (3, 3, 3, 3), (3, 3, 3, 2), (3, 3, 2, 2), (3, 2, 2, 2), (1, 1, 1, 1))]
+     == [(16, "Cấp độ 1"), (12, "Cấp độ 1"), (11, "Cấp độ 2"), (10, "Cấp độ 2"), (9, "Cấp độ 3"), (4, "Cấp độ 3")])
+kiem("ô trống / ngoài 1–4 / chữ / lẻ → không tính; ô Select gửi chuỗi ' 3 ' vẫn tính",
+     all(SO.rr_cap_do(*x) == (None, None) for x in ((0, 1, 1, 1), (5, 1, 1, 1), ("", 1, 1, 1), (None, 1, 1, 1),
+                                                      ("a", 1, 1, 1), (2.5, 1, 1, 1)))
+     and SO.rr_cap_do("3", "3", "3", " 3 ") == (12, "Cấp độ 1"))
+kiem("tên cấp độ trong code = lựa chọn cột cap_do của seed BM.05.02; cột app tính (rr, cap_do) có trong seed",
+     [t for _n, t in SO.CAP_DO] == next(c for c in S44["BM.05.02"]["cot"] if c["key"] == "cap_do")["lua_chon"]
+     and set(SO.TINH_COT[SO.RR_ABCD]) <= {c["key"] for c in S44["BM.05.02"]["cot"]})
+kiem("BM.05.02: A, B, C, D bắt buộc, chọn 1–4",
+     all(c.get("bat_buoc") and c["lua_chon"] == ["1", "2", "3", "4"] for c in S44["BM.05.02"]["cot"]
+         if c["key"] in ("a", "b", "c", "d")))
+dn01 = dict(P.doc_so(S44["BM.05.01"]), cot=cot(*P.doc_so(S44["BM.05.01"])["cot"]))
+kiem("gom bản in theo cột: phải là khóa một cột Select (BM.05.01 'nhom' được; 'ben_quan_tam' kiểu Data, khóa lạ → lỗi)",
+     not SO.loi_dinh_nghia(dn01) and any("phải là khóa một cột kiểu Select" in x for x in SO.loi_dinh_nghia(
+         dict(dn01, nhom_theo="ben_quan_tam"))) and SO.loi_dinh_nghia(dict(dn01, nhom_theo="khong_co")))
+kiem("hạn khám lại = ngày khám + 12 tháng khi để trống; có hạn ghi tay thì giữ; sổ khác không đụng",
+     SO.bo_sung({"tinh_toan": SO.SUC_KHOE}, {"ngay_kham": "2025-11-01"})["han_kham_lai"] == "2026-11-01"
+     and SO.bo_sung({"tinh_toan": SO.SUC_KHOE}, {"ngay_kham": "2024-02-29"})["han_kham_lai"] == "2025-02-28"
+     and SO.bo_sung({"tinh_toan": SO.SUC_KHOE}, {"ngay_kham": "2025-11-01", "han_kham_lai": "2026-06-30"})[
+         "han_kham_lai"] == "2026-06-30"
+     and "han_kham_lai" not in SO.bo_sung({"tinh_toan": SO.SUC_KHOE}, {"ngay_kham": "sai"})
+     and "han_kham_lai" not in SO.bo_sung({}, {"ngay_kham": "2025-11-01"}))
+
+print("\n-- BM.05.02 rủi ro: app tính RR, cấp độ; Giám đốc phê duyệt --")
+F.dat_ngay("2026-10-09")
+la("ql@x")
+RR = {"loai": "Hoạt động", "hoat_dong": "Rang đỗ", "rui_ro": "Cháy máy rang", "a": "3", "b": "3", "c": "3", "d": "2",
+      "rr": 4, "cap_do": "Cấp độ 3", "bien_phap": "Kiểm đồng hồ nhiệt hằng ngày", "trach_nhiem": "Cơ điện"}
+R1 = A.ghi("BM.05.02", json.dumps({"du_lieu": RR}))["name"]
+dl = SO.doc_json(F.bang(SO.PT_DONG)[R1]["du_lieu"])
+kiem("QLSX ghi A3 B3 C3 D2 kèm RR 4 / Cấp độ 3 gõ tay → app tính đè: RR 11, Cấp độ 2",
+     dl["rr"] == 11 and dl["cap_do"] == "Cấp độ 2", dl)
+e = thu(lambda: A.ghi("BM.05.02", json.dumps({"du_lieu": dict(RR, d="")})))
+kiem("thiếu D → không ghi được (không có RR)", e and "D (khả năng phát hiện)" in e, e)
+e = thu(lambda: A.ghi("BM.05.02", json.dumps({"du_lieu": dict(RR, d="5")})))
+kiem("D = 5 (ngoài 1–4) → không ghi được", e and "D (khả năng phát hiện)" in e, e)
+la("iso@x")
+A.sua(R1, json.dumps({"du_lieu": dict(RR, d="3")}))
+dl = SO.doc_json(F.bang(SO.PT_DONG)[R1]["du_lieu"])
+kiem("Trưởng Ban ISO sửa D thành 3 → tính lại RR 12, Cấp độ 1", dl["rr"] == 12 and dl["cap_do"] == "Cấp độ 1", dl)
+x = A.xem("BM.05.02")
+kiem("màn sổ nhận danh sách cột app tính (rr, cap_do) — phiếu ghi không cho nhập; tóm tắt có RR và cấp độ",
+     x["dn"]["cot_tinh"] == ["rr", "cap_do"] and "12 · Cấp độ 1" in x["ds"][0]["tom_tat"]
+     and A.xem("BM.06.05")["dn"]["cot_tinh"] == [], (x["dn"].get("cot_tinh"), x["ds"][0]["tom_tat"]))
+la("ql@x")
+kiem("QLSX (vai ghi) không phê duyệt được", "quyền" in (thu(lambda: A.xac_nhan(R1)) or ""))
+la("gd@x")
+A.xac_nhan(R1, "Đồng ý")
+kiem("Giám đốc phê duyệt → Đã xác nhận", F.bang(SO.PT_DONG)[R1]["trang_thai"] == SO.DA_XAC_NHAN)
+
+print("\n-- BM.05.01 bên quan tâm: bản in gom 4 nhóm theo thứ tự giấy --")
+la("iso@x")
+for nhom, ben in (("Nội bộ", "Người lao động"), ("Khách hàng", "Orion Food Vina"),
+                  ("Cơ quan quản lý nhà nước", "Chi cục ATTP Hải Dương"), ("Khách hàng", "Đại lý, siêu thị")):
+    A.ghi("BM.05.01", json.dumps({"du_lieu": {"nhom": nhom, "ben_quan_tam": ben, "noi_dung_tuan_thu": "Yêu cầu ATTP",
+                                              "trach_nhiem": "Ban ISO"}}))
+h = A.in_so("BM.05.01")
+txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", h))
+vt = [txt.find(t) for t in ("Cơ quan quản lý nhà nước", "Khách hàng", "Nội bộ")]
+kiem("BM.05.01: dòng tiêu đề nhóm theo thứ tự lựa chọn (nhóm Nhà cung cấp chưa có dòng → không in), đánh số lại trong "
+     "nhóm, cột nhóm không in lặp ở từng dòng, đếm đủ 4 dòng",
+     h.count('class="nhom"') == 3 and -1 not in vt and vt == sorted(vt) and "Nhà cung cấp" not in txt
+     and re.search(r"Khách hàng 1 Orion Food Vina .* 2 Đại lý, siêu thị", txt) and "Nhóm bên quan tâm" not in txt
+     and "4 dòng đang dùng" in txt and "Giám đốc phê duyệt" in txt, txt[:900])
+kiem("sổ không gom (BM.03.03): đánh số liền, không có dòng nhóm", 'class="nhom"' not in A.in_so("BM.03.03"))
+F.bang(SO.PT_DONG)["SOD-CU-NHOM"] = {"name": "SOD-CU-NHOM", "so": "BM.05.01", "ngay": "2026-01-05",
+                                     "trang_thai": SO.DA_GHI, "du_lieu": SO.ghi_json({"nhom": "Đối tác (nhóm cũ)",
+                                                                                   "ben_quan_tam": "Ngân hàng"}),
+                                     "tom_tat": "Ngân hàng", "nguoi_ghi": "iso@x", "sua_doi": []}
+txt = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", A.in_so("BM.05.01")))
+kiem("dòng mang lựa chọn nhóm đã bị Ban ISO đổi tên trên Desk → không mất: in cuối, dưới '(chưa chọn nhóm)'",
+     re.search(r"Nội bộ 1 Người lao động .* \(chưa chọn nhóm\) 1 Ngân hàng", txt) is not None, txt[-700:])
+F.bang(SO.PT_DONG).pop("SOD-CU-NHOM")
+
+print("\n-- BM.PRP.07 khám sức khỏe: nhân viên trên hệ thống, hạn tự tính, nhắc, dữ liệu cá nhân --")
+F.bang("Employee").update({
+    "HR-EMP-00001": {"name": "HR-EMP-00001", "employee_name": "Nguyễn Văn Bánh", "status": "Active"},
+    "HR-EMP-00002": {"name": "HR-EMP-00002", "employee_name": "Trần Thị Nghỉ", "status": "Left"},
+    "HR-EMP-00003": {"name": "HR-EMP-00003", "employee_name": "Lê Văn Bột", "status": "Active"}})
+la("hc@x")
+kiem("chọn nhân viên: người đã nghỉ (Left) không có trong danh sách; xếp theo họ tên, đánh dấu hiện tên thay mã",
+     [(x["v"], x["nhan"], x["an_ma"]) for x in A.goi_y("BM.PRP.07", "nhan_vien")]
+     == [("HR-EMP-00003", "Lê Văn Bột", 1), ("HR-EMP-00001", "Nguyễn Văn Bánh", 1)])
+GK = A.tai_len("BM.PRP.07", "giay-kham.png", PNG)["url"]
+SK = {"nhan_vien": "HR-EMP-00001", "bo_phan": "Xưởng bánh", "tiep_xuc_truc_tiep": "Có", "ngay_kham": "2025-11-01",
+      "ket_luan": "Đủ sức khỏe", "anh_giay_kham": GK}
+S1 = A.ghi("BM.PRP.07", json.dumps({"du_lieu": SK}))["name"]
+row = F.bang(SO.PT_DONG)[S1]
+kiem("ngày khám 01/11/2025, để trống hạn → hạn khám lại 01/11/2026; tóm tắt hiện họ tên (không mã HR-EMP)",
+     SO.doc_json(row["du_lieu"])["han_kham_lai"] == "2026-11-01" and "Nguyễn Văn Bánh" in row["tom_tat"]
+     and "HR-EMP" not in row["tom_tat"], row)
+S2 = A.ghi("BM.PRP.07", json.dumps({"du_lieu": dict(SK, nhan_vien="HR-EMP-00003", ngay_kham="2026-03-10",
+                                                    han_kham_lai="2027-03-01", anh_giay_kham="")}))["name"]
+kiem("hạn khám lại ghi tay theo giấy khám → giữ nguyên",
+     SO.doc_json(F.bang(SO.PT_DONG)[S2]["du_lieu"])["han_kham_lai"] == "2027-03-01")
+e = thu(lambda: A.ghi("BM.PRP.07", json.dumps({"du_lieu": dict(SK, nhan_vien="HR-EMP-99999")})))
+kiem("mã nhân viên không có trên hệ thống → không ghi được", bool(e), e)
+n = [x for x in NHAC() if x["tieu_de"].startswith("BM.PRP.07")]
+kiem("9/10: hạn khám lại 01/11 còn 23 ngày (báo trước 30) → nhắc; hạn 01/03/2027 chưa tới mốc → không. Hộp nhắc "
+     "chung KHÔNG ghi họ tên (dữ liệu cá nhân), chỉ hạn",
+     len(n) == 1 and "1 mục sắp đến hạn" in n[0]["tieu_de"] and "còn 23 ngày" in n[0]["chi_tiet"]
+     and "hạn khám lại 01/11/2026" in n[0]["chi_tiet"] and "Nguyễn" not in n[0]["chi_tiet"]
+     and "Bánh" not in str(SO.nhac(F.hom_nay())), n)
+kiem("Hành chính thấy hạn trên thẻ sổ ở màn Sổ", next(x for x in A.ds_so()["ds"] if x["ma"] == "BM.PRP.07")["han"] == 1)
+A.tep(S1, "anh_giay_kham")
+kiem("Hành chính mở được ảnh giấy khám", FR.local.response.filecontent == b"\x89PNG chu ky khach")
+for u in ("qc@x", "ql@x", "cd@x"):
+    la(u)
+    kiem(f"{NGUOI[u][0]}: không xem, không in, không mở ảnh giấy khám",
+         "quyền xem" in (thu(lambda: A.xem("BM.PRP.07")) or "") and "quyền xem" in (thu(
+             lambda: A.in_so("BM.PRP.07")) or "") and "quyền xem" in (thu(lambda: A.tep(S1, "anh_giay_kham")) or ""))
+la("iso@x")
+kiem("Trưởng Ban ISO xem được (không ghi)", len(A.xem("BM.PRP.07")["ds"]) == 2
+     and "quyền ghi" in (thu(lambda: A.ghi("BM.PRP.07", json.dumps({"du_lieu": SK}))) or ""))
+
+print("\n-- BM.PRP.04 hóa chất, BM.PRP.05 kính: Cơ điện lập, Trưởng Ban ISO duyệt --")
+la("cd@x")
+MS = A.tai_len("BM.PRP.04", "msds.pdf", base64.b64encode(b"%PDF-1.4 msds").decode())["url"]
+H1 = A.ghi("BM.PRP.04", json.dumps({"du_lieu": {
+    "ten_hoa_chat": "Javel 5%", "loai_muc_dich": "Khử trùng dụng cụ", "noi_de": "Tủ hóa chất kho phụ",
+    "nguoi_phu_trach": "Phạm Cơ Điện", "msds": MS, "han_ho_so": "2026-10-20"}}))["name"]
+n = [x for x in NHAC() if x["tieu_de"].startswith("BM.PRP.04")]
+kiem("hạn hồ sơ 20/10 (còn 11 ngày) → nhắc, có tên hóa chất", len(n) == 1 and "Javel 5%" in n[0]["chi_tiet"], n)
+la("iso@x")
+A.xac_nhan(H1)
+la("qc@x")
+A.tep(H1, "msds")
+kiem("Trưởng Ban ISO duyệt; QC (vai xem) mở được MSDS",
+     F.bang(SO.PT_DONG)[H1]["trang_thai"] == SO.DA_XAC_NHAN and FR.local.response.filecontent == b"%PDF-1.4 msds")
+kiem("QC chỉ xem: không ghi danh mục hóa chất",
+     "quyền ghi" in (thu(lambda: A.ghi("BM.PRP.04", json.dumps({"du_lieu": {}}))) or ""))
+la("cd@x")
+K1 = A.ghi("BM.PRP.05", json.dumps({"du_lieu": {"ma": "K-01", "vat": "Đèn huỳnh quang", "vi_tri": "Phòng đóng gói",
+                                                 "so_luong": 6, "phia_tren_sp_ho": "Có", "bao_ve": "Máng chụp"}}))
+kiem("BM.PRP.05: ghi vật kính có số lượng, phía trên sản phẩm hở", F.bang(SO.PT_DONG)[K1["name"]]["tom_tat"]
+     .startswith("K-01 · Đèn huỳnh quang · Phòng đóng gói"))
+e = thu(lambda: A.ghi("BM.PRP.05", json.dumps({"du_lieu": {"ma": "K-02", "vat": "Kính", "vi_tri": "Kho",
+                                                             "so_luong": 1, "phia_tren_sp_ho": "Có thể"}})))
+kiem("lựa chọn ngoài Có / Không → không ghi được", bool(e), e)
+
+print("\n-- W44: lượt Tuần — T4 tích từng vật của BM.PRP.05 --")
+RC = F.nap("round_ctl", "sx/qc/doctype/sx_qc_round/sx_qc_round.py")
+DJ = json.load(open("sx/qc/doctype/sx_qc_round/sx_qc_round.json", encoding="utf-8"))["fields"]
+M = sys.modules["sx.qc.muc"]
+
+
+class Luot(RC.SXQCRound):
+    """Bảng con trống trên frappe là [] — Document giả không biết field nào là bảng."""
+
+    def __init__(self, d=None):
+        super().__init__(d)
+        for f in DJ:
+            if f["fieldtype"] == "Table" and self._d.get(f["fieldname"]) is None:
+                self._d[f["fieldname"]] = []
+
+    def reload(self):           # bản ghi giả nằm thẳng trong bảng — không có gì để đọc lại
+        pass
+
+
+F.dang_ky("SX QC Round", Luot)
+kiem("doctype lượt: bảng con vat_kinh (SX QC Round Vat: dòng BM.PRP.05, mã, tên chép lại, kết quả, ghi chú)",
+     next(f for f in DJ if f["fieldname"] == "vat_kinh")["options"] == "SX QC Round Vat"
+     and [f["fieldname"] for f in json.load(open("sx/qc/doctype/sx_qc_round_vat/sx_qc_round_vat.json",
+                                                 encoding="utf-8"))["fields"]] == ["vat", "ma", "ten", "ket_qua",
+                                                                                   "ghi_chu"])
+kiem("hàm thuần t4_theo_vat: có K → K; đủ Đạt → Đạt; thiếu vật → chưa chấm; danh mục rỗng → chưa chấm",
+     SO.t4_theo_vat([{"vat": "a", "ket_qua": "Đạt"}, {"vat": "b", "ket_qua": "Không đạt"}], [{"vat": "a"}])
+     == "Không đạt" and SO.t4_theo_vat([{"vat": "a", "ket_qua": "Đạt"}], [{"vat": "a"}]) == "Đạt"
+     and SO.t4_theo_vat([{"vat": "a", "ket_qua": "Đạt"}], [{"vat": "a"}, {"vat": "b"}]) is None
+     and SO.t4_theo_vat([], []) is None)
+la("cd@x")
+K2 = A.ghi("BM.PRP.05", json.dumps({"du_lieu": {"ma": "K-02", "vat": "Cửa kính", "vi_tri": "Kho thành phẩm",
+                                                 "so_luong": 2, "phia_tren_sp_ho": "Không"}}))["name"]
+K3 = A.ghi("BM.PRP.05", json.dumps({"du_lieu": {"ma": "K-00", "vat": "Kính hỏng cũ", "vi_tri": "Kho",
+                                                 "so_luong": 1, "phia_tren_sp_ho": "Không"}}))["name"]
+A.ngung(K3, "Đã tháo bỏ")
+F.dat_ngay("2026-10-12")
+la("qc@x")
+r = Q.start_round("2026-10-12", M.TUAN)
+ct = Q.chi_tiet_round(r["name"])
+ds = (ct.get("vat_kinh") or {}).get("ds") or []
+kiem("lượt Tuần: T4 mở danh sách vật đang dùng của BM.PRP.05 theo mã (vật đã ngừng không có), chưa tích",
+     [(x["ma"], x["ten"], x["ket_qua"]) for x in ds] == [("K-01", "Đèn huỳnh quang · Phòng đóng gói", ""),
+                                                         ("K-02", "Cửa kính · Kho thành phẩm", "")]
+     and ct["vat_kinh"]["so"] == "BM.PRP.05", ct.get("vat_kinh"))
+v1, v2 = [x["vat"] for x in ds]
+kq = Q.save_round(r["name"], json.dumps({f"vat_kinh:{v1}": {"ket_qua": "Đạt"}, "t4_den_kinh": "Đạt"}),
+                  "2026-10-12 08:00:00")
+d = F.bang("SX QC Round")[r["name"]]
+kiem("tích K-01 Đạt: vào bảng con của lượt (mã, tên chép lại), có nhật ký; T4 chưa chấm vì còn K-02; ô T4 gửi "
+     "thẳng bị bỏ qua (danh mục có vật thì T4 do các vật quyết định)",
+     [(x["ma"], x["ten"], x["ket_qua"]) for x in d["vat_kinh"]] == [("K-01", "Đèn huỳnh quang · Phòng đóng gói",
+                                                                     "Đạt")]
+     and not d.get("t4_den_kinh") and kq["bo_qua"] == ["t4_den_kinh"]
+     and any(x["fieldname"] == f"vat_kinh:{v1}" and x["gia_tri"] == "Đạt" for x in d["log"]), (d["vat_kinh"], kq))
+kq = Q.save_round(r["name"], json.dumps({f"vat_kinh:{v2}": {"ket_qua": "Đạt"}}), "2026-10-12 08:01:00")
+d = F.bang("SX QC Round")[r["name"]]
+kiem("mọi vật Đạt → T4 Đạt (server tính, có dòng nhật ký T4; trả t4 cho máy QC)",
+     d["t4_den_kinh"] == "Đạt" and kq["t4"] == "Đạt" and d["log"][-1]["fieldname"] == "t4_den_kinh")
+Q.save_round(r["name"], json.dumps({f"vat_kinh:{v2}": {"ket_qua": "Không đạt", "ghi_chu": "vỡ kính cửa"}}),
+             "2026-10-12 08:02:00")
+ct = Q.chi_tiet_round(r["name"])
+kiem("K-02 Không đạt (kèm ghi chú) → T4 Không đạt; xem trước: một phiếu sự cố cho riêng K-02",
+     F.bang("SX QC Round")[r["name"]]["t4_den_kinh"] == "Không đạt"
+     and [x["mo_ta"] for x in ct["se_thanh_su_co"] if "T4" in x["mo_ta"]]
+     == ["T4 kính, nhựa giòn K-02 Cửa kính · Kho thành phẩm: Không đạt (vỡ kính cửa) — vỡ thì dừng khu vực, "
+         "cách ly sản phẩm hở 3 m (SSOP 11)"], ct["se_thanh_su_co"])
+kq = Q.save_round(r["name"], json.dumps({f"vat_kinh:{v2}": {"ket_qua": "Đạt"}}), "2026-10-12 07:59:00")
+kiem("máy khác gửi muộn giá trị CŨ hơn cho cùng vật → bỏ qua, không đè", kq["bo_qua"] == [f"vat_kinh:{v2}"]
+     and F.bang("SX QC Round")[r["name"]]["t4_den_kinh"] == "Không đạt")
+kq = Q.save_round(r["name"], json.dumps({f"vat_kinh:{K3}": {"ket_qua": "Đạt"}, "vat_kinh:SOD-LA": "Đạt"}),
+                  "2026-10-12 08:03:00")
+kiem("vật đã ngừng / vật lạ → bỏ qua; kết quả lạ → lỗi", kq["bo_qua"] == [f"vat_kinh:{K3}", "vat_kinh:SOD-LA"]
+     and "Đạt hoặc Không đạt" in (thu(lambda: Q.save_round(r["name"], json.dumps(
+         {f"vat_kinh:{v1}": {"ket_qua": "Tốt"}}), "2026-10-12 08:04:00")) or ""))
+rd = Q.start_round("2026-10-13", M.DAU_SANG)
+kq = Q.save_round(rd["name"], json.dumps({f"vat_kinh:{v1}": {"ket_qua": "Đạt"}}), "2026-10-13 07:10:00")
+kiem("lượt Đầu sáng (T4 không áp dụng): không nhận vật, không có danh sách",
+     kq["bo_qua"] == [f"vat_kinh:{v1}"] and Q.chi_tiet_round(rd["name"])["vat_kinh"] is None)
+Q.save_round(r["name"], json.dumps({"ghi_chu": "thử T4 theo vật", "rang_nhiet_do": 262}), "2026-10-12 08:05:00")
+F.bang("Has Role")["qc@x-SX QC"] = {"name": "qc@x-SX QC", "parent": "qc@x", "parenttype": "User", "role": "SX QC"}
+kq = Q.submit_round(r["name"])
+kiem("hoàn tất: một phiếu sự cố mục T4 cho K-02, nối hai chiều với lượt",
+     [x["muc"] for x in kq["su_co"]] == ["T4 Đèn, kính có bảo vệ"] and "K-02" in kq["su_co"][0]["mo_ta"]
+     and F.bang("SX Su Co")[kq["su_co"][0]["name"]]["qc_round"] == r["name"], kq)
+la("cd@x")
+A.ngung(v2, "Đã thay cửa nhôm")
+la("qc@x")
+ct = Q.chi_tiet_round(r["name"])
+kiem("lượt đã hoàn tất giữ nguyên vật đã tích dù danh mục đổi sau (ngừng K-02)",
+     [(x["ma"], x["ket_qua"]) for x in ct["vat_kinh"]["ds"]] == [("K-01", "Đạt"), ("K-02", "Không đạt")])
+h = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", Q._to_ngay("2026-10-12")))
+kiem("tờ ngày BM.08.01: ghi từng vật của T4 (Đ / K kèm ghi chú) — ô T4 chỉ là tổng",
+     "T4 từng vật kính, nhựa giòn (BM.PRP.05)" in h and "K-01 Đ; K-02 K (vỡ kính cửa)" in h, h[-900:])
+F.dat_ngay("2026-10-09")
+
+print("\n-- chọn thiết bị: thiết bị đã thanh lý không có trong danh sách --")
+F.get_doc({"doctype": TBM.TB, "ma": "DH-CU", "ten": "Đồng hồ nhiệt cũ", "loai": TBM.DONG_HO, "thanh_ly": 1}).insert()
+la("cd@x")
+kiem("goi_y bỏ thiết bị thanh lý (trước D173 bộ lọc 'bo' không chạy vì thiếu ô thanh_ly)",
+     "DH-CU" not in {x["v"] for x in A.goi_y("BM.06.05", "thiet_bi")}
+     and "DH-M1" in {x["v"] for x in A.goi_y("BM.06.05", "thiet_bi")})
+F.dat_ngay("2026-10-09")
+
+# ═══ 10. Patch d173 (W44) ══════════════════════════════════════════════════
+print("\n-- patch d173: sổ W44 còn thiếu, việc định kỳ QT.05, dòng hồ sơ + thời gian lưu BM.01.04, ngày C26 --")
+P173 = F.nap("sx.patches.d173_danh_muc_ncc", "sx/patches/d173_danh_muc_ncc.py")
+F.bang(SO.PT).pop("BM.PRP.04")
+F.bang(HS.PT)["HS-1"]["thoi_gian_luu"] = "5 năm (Ban ISO tự ghi)"
+F.CAI_DAT.pop("ncc_ngay_ap_dung_bm0701", None)
+F.CAI_DAT.pop("ncc_han_danh_gia_dau", None)
+truoc = len(F.bang(HS.PT))
+P173.execute()
+hs = {HS.chuan_ma(v.get("bieu_mau") or v["ma"]): v for v in F.bang(HS.PT).values()}
+kiem("tạo lại sổ W44 còn thiếu (BM.PRP.04) từ seed, không đụng sổ có rồi", "BM.PRP.04" in F.bang(SO.PT)
+     and F.bang(SO.PT)["BM.PRP.06"]["ten"] == "Sổ khách (Ban ISO sửa)")
+kiem("việc định kỳ: xác định lại bên quan tâm, rủi ro — năm, hạn 15/12/2026, nhắc trước 30 ngày",
+     [(v["chu_ky"], str(v["han"]), v["bao_truoc"], v["ho_so"]) for v in F.bang("SX Viec Dinh Ky").values()
+      if "BM.05.01" in v["ten"]] == [("Năm", "2026-12-15", 30, "BM.05.01, BM.05.02")])
+kiem("dòng hồ sơ thêm cho biểu mẫu W29–W44 còn thiếu (BM.08.05, SLM, BC.THANG… BM.07.01, BM.01.04, PRP.07)",
+     {"BM.08.05", "SLM", "BC.THANG", "BM.01.13", "BM.01.04", "BM.05.01", "BM.05.02", "BM.07.01", "BM.PRP.04",
+      "BM.PRP.05", "BM.PRP.07"} <= set(hs) and hs["BM.PRP.07"]["nhom"] == "Điều kiện nhà xưởng (PRP)"
+     and hs["BC.THANG"]["ma"] == "BC ATTP tháng" and hs["BM.07.01"]["nguon"] == HS.APP, sorted(hs))
+kiem("thời gian lưu, người lưu theo BM.01.04 giấy: dòng trống được điền; dòng Ban ISO đã ghi giữ nguyên",
+     (hs["BM.06.05"]["thoi_gian_luu"], hs["BM.06.05"]["nguoi_luu"]) == ("2 năm", "Cơ điện")
+     and (hs["BM.PRP.07"]["thoi_gian_luu"], hs["BM.PRP.07"]["nguoi_luu"]) == ("Theo hiệu lực từng người", "Hành chính")
+     and F.bang(HS.PT)["HS-1"]["thoi_gian_luu"] == "5 năm (Ban ISO tự ghi)"
+     and F.bang(HS.PT)["HS-1"]["nguoi_luu"] == "Hành chính; xưởng sản xuất")
+kiem("C26: ngày áp dụng = ngày chạy patch; hạn đánh giá lại lần đầu 31/12/2026",
+     (F.CAI_DAT.get("ncc_ngay_ap_dung_bm0701"), F.CAI_DAT.get("ncc_han_danh_gia_dau")) == ("2026-10-09", "2026-12-31"))
+sau = len(F.bang(HS.PT))
+F.CAI_DAT["ncc_ngay_ap_dung_bm0701"] = "2026-11-20"
+P173.execute()
+kiem("chạy lại: không nhân đôi sổ, việc, hồ sơ; không đè ngày áp dụng đã đặt",
+     len(F.bang(HS.PT)) == sau > truoc and len([v for v in F.bang("SX Viec Dinh Ky").values() if "BM.05.01" in v["ten"]])
+     == 1 and F.CAI_DAT["ncc_ngay_ap_dung_bm0701"] == "2026-11-20" and len(F.bang(SO.PT)) >= 10)
+kiem("patch có trong patches.txt, sau d172", open("sx/patches.txt", encoding="utf-8").read().index(
+    "sx.patches.d173_danh_muc_ncc") > open("sx/patches.txt", encoding="utf-8").read().index("sx.patches.d172_so"))
 
 F.ket_thuc("SO")

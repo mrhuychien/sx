@@ -13,7 +13,8 @@ Nhắc (mảng theo `mang` của sổ, chữ ở sx/qc/nhac.py): cột hạn đ�
 có dòng; dòng chờ xác nhận quá 2 ngày; tháng trước chưa xem xét sau ngày 5 (sổ có `xem_cuoi_thang`).
 Hàm riêng theo khóa `tinh_toan` (không chạy biểu thức người dùng gõ): `bao_duong` — BM.06.05 nối danh mục thiết bị
 BM.06.01; sửa thiết bị đo / chọn "cần kiểm lại" → nhắc kiểm lại theo BM.06.02–06.04 (QT.06), máy sản xuất quá hạn
-bảo dưỡng định kỳ.
+bảo dưỡng định kỳ. W44 (D173): `rr_abcd` — BM.05.02 RR = A + B + C + D, cấp độ; `suc_khoe` — BM.PRP.07 hạn khám lại
+= ngày khám + 12 tháng. Danh mục kính BM.PRP.05 có vật → mục T4 lượt Tuần tích từng vật (ds_vat_kinh, t4_theo_vat).
 
 Phần thuần (kiểm dữ liệu, quyền, khóa, tóm tắt, hạn, nhắc BM.06.05) không đọc DB — test gọi thẳng; phần đọc DB ở
 cuối. Module qc: không import phần SX khác — siêu quyền do API truyền vào.
@@ -27,6 +28,7 @@ from datetime import date, datetime, timedelta
 import frappe
 from frappe.utils import cint, getdate
 
+from sx.qc import muc as M
 from sx.qc import thiet_bi as TBM
 
 PT, PT_COT, PT_VAI, PT_DONG, PT_SUA, PT_XEM = ("SX So", "SX So Cot", "SX So Vai", "SX So Dong", "SX So Dong Sua",
@@ -47,17 +49,27 @@ CHO_XAC_NHAN_NGAY = 2      # dòng chờ xác nhận quá chừng này ngày th�
 NGAY_XEM = 5               # tháng M phải được xem xét trước hết ngày 5 tháng M+1
 NHAN_XEM_MAC_DINH = "Trưởng Ban ISO xem xét cuối tháng"
 
-# DocType mà cột Link được trỏ tới: ô làm nhãn, ô so với `lua_chon` của cột, bản ghi bỏ khỏi danh sách chọn.
+# DocType mà cột Link được trỏ tới: ô làm nhãn, ô so với `lua_chon` của cột, bản ghi bỏ khỏi danh sách chọn,
+# `an_ma` = hiện nhãn thay cho mã (mã nhân viên HR-EMP-… không ai đọc; mã thiết bị thì in kèm như giấy).
 LINK_DUOC = {
     TBM.TB: {"nhan": "ten", "loai": "loai", "bo": {"thanh_ly": 1}},
+    "Employee": {"nhan": "employee_name", "loai": None, "bo": {"status": "Left"}, "an_ma": 1},     # W44: BM.PRP.07
 }
 
 # Hàm riêng có tên (định nghĩa sổ trỏ tới bằng `tinh_toan`).
-BAO_DUONG = "bao_duong"
+BAO_DUONG, RR_ABCD, SUC_KHOE = "bao_duong", "rr_abcd", "suc_khoe"
 TINH_TOAN = {
     BAO_DUONG: "Sổ bảo dưỡng, sửa chữa (BM.06.05): thiết bị theo danh mục BM.06.01; sửa thiết bị đo / chọn thiết bị "
                "cần kiểm lại → nhắc kiểm lại theo BM.06.02–06.04; máy sản xuất quá hạn bảo dưỡng định kỳ → nhắc.",
+    RR_ABCD: "Bảng rủi ro (BM.05.02): RR = A + B + C + D (mỗi ô 1–4); cấp độ 1 = 12–16, cấp độ 2 = 10–11, "
+             "cấp độ 3 ≤ 9.",
+    SUC_KHOE: "Khám sức khỏe (BM.PRP.07): ghi ngày khám mà để trống hạn khám lại → hạn = ngày khám + 12 tháng "
+              "(SSOP 5: khám 1 lần / năm).",
 }
+# Cột do hàm riêng tính — phiếu ghi không cho nhập, giá trị gõ tay bị tính đè.
+TINH_COT = {RR_ABCD: ("rr", "cap_do")}
+CAP_DO = ((12, "Cấp độ 1"), (10, "Cấp độ 2"), (0, "Cấp độ 3"))      # RR từ ngưỡng này trở lên → cấp độ
+KHAM_LAI_THANG = 12
 # Khóa cột mà hàm bao_duong đọc (định nghĩa trên site đổi khóa thì hàm không làm gì — không vỡ).
 BD_THIET_BI, BD_LOAI, BD_KIEM_LAI = "thiet_bi", "loai", "can_hieu_chuan"
 BD_SUA, BD_BAO_DUONG = "Sửa chữa", "Bảo dưỡng"
@@ -112,6 +124,9 @@ def loi_dinh_nghia(dn):
             loi.append(f"Cột {nhan}: báo trước không âm.")
     if cint(dn.get("nhac_khong_ghi_ngay")) < 0:
         loi.append("Số ngày nhắc không ghi không âm.")
+    nt = dn.get("nhom_theo") or ""
+    if nt and not any(c.get("key") == nt and c.get("kieu") == "Select" for c in cot):
+        loi.append(f"Gom bản in theo '{nt}': phải là khóa một cột kiểu Select.")
     return loi
 
 
@@ -245,7 +260,8 @@ def ngay_vn(s):
 
 
 def hien(c, v, nhan_link=None):
-    """Một ô để đọc (danh sách, bản in): ngày dd/mm/yyyy, Link kèm tên, Check ✓, nhiều lựa chọn nối dấu phẩy."""
+    """Một ô để đọc (danh sách, bản in): ngày dd/mm/yyyy, Link kèm tên (nhân viên: chỉ họ tên), Check ✓, nhiều lựa
+    chọn nối dấu phẩy."""
     if _trong(v):
         return ""
     k = c.get("kieu")
@@ -259,7 +275,9 @@ def hien(c, v, nhan_link=None):
         return ", ".join(v) if isinstance(v, (list, tuple)) else str(v)
     if k in ("Link", "User"):
         t = (nhan_link or {}).get(str(v)) or ""
-        return f"{v} {t}".strip() if k == "Link" else (t or str(v))
+        if k == "User" or (LINK_DUOC.get(c.get("link_doctype")) or {}).get("an_ma"):
+            return t or str(v)
+        return f"{v} {t}".strip()
     if k == "Float":
         return f"{float(v):g}".replace(".", ",")
     return str(v)
@@ -414,13 +432,44 @@ def tinh_thang(thang):
     return dau, sau - timedelta(days=1)
 
 
-# ── BM.06.05: hàm riêng `bao_duong` ───────────────────────────────────────────────────────
+# ── Hàm riêng (`tinh_toan`): rr_abcd, suc_khoe, bao_duong ─────────────────────────────────
+
+def rr_cap_do(a, b, c, d):
+    """(RR, cấp độ) của BM.05.02 — mỗi tiêu chí 1–4 điểm; thiếu / sai một ô → (None, None)."""
+    try:
+        diem = [int(str(x).strip()) for x in (a, b, c, d)]
+    except (TypeError, ValueError):
+        return None, None
+    if any(x < 1 or x > 4 for x in diem):
+        return None, None
+    rr = sum(diem)
+    return rr, next(ten for nguong, ten in CAP_DO if rr >= nguong)
+
 
 def bo_sung(dn, du_lieu, tra=None):
-    """Hàm riêng trước khi kiểm dữ liệu. bao_duong: SỬA một thiết bị đo (đồng hồ nhiệt, nam châm, lưới) mà chưa chọn
-    thiết bị cần kiểm lại → điền chính thiết bị đó (QT.06: sau sửa chữa phải hiệu chuẩn / kiểm lại trước khi dùng)."""
+    """Hàm riêng trước khi kiểm dữ liệu.
+    · bao_duong: SỬA một thiết bị đo (đồng hồ nhiệt, nam châm, lưới) mà chưa chọn thiết bị cần kiểm lại → điền chính
+      thiết bị đó (QT.06: sau sửa chữa phải hiệu chuẩn / kiểm lại trước khi dùng).
+    · rr_abcd: RR, cấp độ tính từ A, B, C, D (gõ tay bị tính đè).
+    · suc_khoe: có ngày khám, chưa có hạn khám lại → ngày khám + 12 tháng."""
     du = dict(du_lieu or {})
-    if dn.get("tinh_toan") != BAO_DUONG or not tra:
+    tt = dn.get("tinh_toan")
+    if tt == RR_ABCD:
+        rr, cap = rr_cap_do(du.get("a"), du.get("b"), du.get("c"), du.get("d"))
+        for k, v in (("rr", rr), ("cap_do", cap)):
+            if v is None:
+                du.pop(k, None)
+            else:
+                du[k] = v
+        return du
+    if tt == SUC_KHOE:
+        if not _trong(du.get("ngay_kham")) and _trong(du.get("han_kham_lai")):
+            try:
+                du["han_kham_lai"] = TBM.cong_thang(_ngay(du["ngay_kham"]), KHAM_LAI_THANG).isoformat()
+            except (TypeError, ValueError):
+                pass
+        return du
+    if tt != BAO_DUONG or not tra:
         return du
     if du.get(BD_LOAI) == BD_SUA and du.get(BD_THIET_BI) and _trong(du.get(BD_KIEM_LAI)):
         tb = tra(TBM.TB, str(du[BD_THIET_BI]).strip())
@@ -472,10 +521,33 @@ def qua_han_bao_duong(dong, may, hom_nay):
     return [x for x in lich_bao_duong(dong, may, hom_nay) if x["han"] < nay]
 
 
+# ── BM.PRP.05 ↔ mục T4 lượt Tuần (W44) ───────────────────────────────────────────────────────
+
+KINH = "BM.PRP.05"          # danh mục kính, nhựa giòn — khóa cột đọc: ma, vat, vi_tri, bao_ve
+T4 = "t4_den_kinh"          # mục "Đèn, kính có bảo vệ" của lượt Tuần (sx/qc/muc.py)
+
+
+def ten_vat_kinh(du):
+    """Nhãn một vật của BM.PRP.05: "Đèn huỳnh quang · Phòng đóng gói" (mã để riêng)."""
+    return " · ".join(str(du.get(k)).strip() for k in ("vat", "vi_tri") if not _trong(du.get(k)))
+
+
+def t4_theo_vat(dong, ds):
+    """Giá trị T4 từ các vật đã tích. `dong` = [{vat, ket_qua}] của lượt; `ds` = [{vat}] danh mục đang dùng.
+    Có vật Không đạt → Không đạt; mọi vật trong danh mục đều Đạt → Đạt; còn vật chưa tích → None (T4 chưa chấm —
+    hoàn tất phải ghi lý do như mọi mục để trống)."""
+    kq = {r.get("vat"): r.get("ket_qua") for r in dong or []}
+    if any(v == M.KHONG_DAT for v in kq.values()):
+        return M.KHONG_DAT
+    if ds and all(kq.get(v["vat"]) == M.DAT for v in ds):
+        return M.DAT
+    return None
+
+
 # ── Đọc DB ────────────────────────────────────────────────────────────────────────────────
 
 TRUONG_DN = ("ma", "ten", "kieu", "quy_trinh", "mang", "ngung", "nhan_xac_nhan", "xem_cuoi_thang", "nhan_xem_thang",
-             "nhac_khong_ghi_ngay", "tinh_toan", "dau_trang_ghi_chu", "ghi_chu", "creation")
+             "nhac_khong_ghi_ngay", "tinh_toan", "nhom_theo", "rieng_tu", "dau_trang_ghi_chu", "ghi_chu", "creation")
 TRUONG_COT = ("key", "nhan", "kieu", "lua_chon", "link_doctype", "bat_buoc", "han", "bao_truoc", "hien_ds", "thu_tu",
               "idx")
 
@@ -532,9 +604,21 @@ def nhan_link(cot, du_lieu):
     return ra
 
 
+def vao_bm0701(roles, sieu=False):
+    """Thẻ BM.07.01 đánh giá nhà cung cấp (W44) ở màn Sổ: Mua hàng, QC, Giám đốc, Trưởng Ban ISO, siêu quyền — khi
+    site đã có DocType. Nạp muộn: danh_gia_ncc kéo theo luật NCC."""
+    try:
+        from sx.qc import danh_gia_ncc as DG
+        return bool(sieu or set(roles or ()) & DG.VAI_XEM) and bool(frappe.db.table_exists(DG.PT))
+    except Exception:
+        return False
+
+
 def co_so(roles, sieu=False):
-    """Người có các role này thấy ít nhất một sổ đang dùng không — để ẩn tab Sổ của người chưa được giao sổ nào.
-    Chưa migrate → False."""
+    """Người có các role này thấy ít nhất một sổ đang dùng (hoặc thẻ BM.07.01) không — để ẩn tab Sổ của người chưa
+    được giao sổ nào. Chưa migrate → False."""
+    if vao_bm0701(roles, sieu):
+        return True
     try:
         ten = frappe.get_all(PT, filters={"ngung": 0}, pluck="name")
         if not ten:
@@ -612,10 +696,11 @@ def bao_duong_may(hom_nay):
 def nhac(hom_nay):
     """Dữ liệu cho hộp nhắc (chữ do sx/qc/nhac.py viết). Chưa migrate → {}.
 
-    {"ds": [{ma, ten, mang, nhan_xac_nhan, nhan_xem_thang, cho_nguong, han: [{dong, tom_tat, nhan, han, con}],
-             cho: [{name, ngay, tom_tat}], khong_ghi: {ngay_cuoi, so_ngay, nguong} | None, chua_xem: ["YYYY-MM"],
-             kiem_lai: [...], bao_duong: [...]}]}
-    Chỉ sổ đang dùng; dòng Ngừng không tính."""
+    {"ds": [{ma, ten, mang, nhan_xac_nhan, nhan_xem_thang, cho_nguong, rieng_tu, han: [{dong, tom_tat, nhan, han,
+             con}], cho: [{name, ngay, tom_tat}], khong_ghi: {ngay_cuoi, so_ngay, nguong} | None,
+             chua_xem: ["YYYY-MM"], kiem_lai: [...], bao_duong: [...]}]}
+    Chỉ sổ đang dùng; dòng Ngừng không tính. Sổ dữ liệu cá nhân (`rieng_tu`, BM.PRP.07): tom_tat trống — hộp nhắc
+    chung không ghi họ tên."""
     nay = getdate(hom_nay)
     try:
         dns = ds_dinh_nghia()
@@ -635,17 +720,18 @@ def nhac(hom_nay):
     ra = []
     for dn in dns:
         ds = theo.get(dn["name"], [])
+        kin = bool(cint(dn.get("rieng_tu")))
         han = []
         for x in ds:
             if not x.han_gan_nhat:
                 continue
             for h in cac_han(dn["cot"], doc_json(x.du_lieu), nay):
                 if han_can_nhac(h):
-                    han.append(dict(h, dong=x.name, tom_tat=x.tom_tat or ""))
+                    han.append(dict(h, dong=x.name, tom_tat="" if kin else x.tom_tat or ""))
         co_xn = quyen(dn, ())["co_xac_nhan"]
         cho = []
         if co_xn:
-            cho = [{"name": x.name, "ngay": str(x.ngay), "tom_tat": x.tom_tat or ""} for x in ds
+            cho = [{"name": x.name, "ngay": str(x.ngay), "tom_tat": "" if kin else x.tom_tat or ""} for x in ds
                    if x.trang_thai == DA_GHI and x.ghi_luc and (nay - getdate(x.ghi_luc)).days > CHO_XAC_NHAN_NGAY]
         khong_ghi = None
         n = cint(dn.get("nhac_khong_ghi_ngay"))
@@ -665,7 +751,25 @@ def nhac(hom_nay):
         ra.append({"ma": dn["name"], "ten": dn.get("ten") or "", "mang": dn.get("mang") or SO_KHAC,
                    "kieu": dn.get("kieu"), "nhan_xac_nhan": dn.get("nhan_xac_nhan") or "",
                    "nhan_xem_thang": dn.get("nhan_xem_thang") or NHAN_XEM_MAC_DINH, "cho_nguong": CHO_XAC_NHAN_NGAY,
-                   "co_xac_nhan": co_xn,
+                   "co_xac_nhan": co_xn, "rieng_tu": kin,
                    "han": sorted(han, key=lambda h: h["han"]), "cho": cho, "khong_ghi": khong_ghi,
                    "chua_xem": chua_xem, **rieng})
     return {"ds": ra}
+
+
+def ds_vat_kinh():
+    """[{vat (tên dòng sổ), ma, ten, bao_ve}] — vật đang dùng của danh mục BM.PRP.05, theo mã. Sổ chưa có / đã ngừng /
+    chưa migrate → [] (mục T4 tích một lần như trước)."""
+    try:
+        if not frappe.db.exists(PT, KINH) or cint(frappe.db.get_value(PT, KINH, "ngung")):
+            return []
+        ds = frappe.get_all(PT_DONG, filters={"so": KINH, "trang_thai": ("!=", NGUNG)}, fields=["name", "du_lieu"],
+                            order_by="creation asc")
+    except Exception:
+        return []
+    ra = []
+    for x in ds:
+        du = doc_json(x.du_lieu)
+        ra.append({"vat": x.name, "ma": "" if _trong(du.get("ma")) else str(du["ma"]).strip(),
+                   "ten": ten_vat_kinh(du), "bao_ve": "" if _trong(du.get("bao_ve")) else str(du["bao_ve"]).strip()})
+    return sorted(ra, key=lambda v: (v["ma"] == "", v["ma"], v["vat"]))

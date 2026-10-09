@@ -288,4 +288,73 @@ kiem('in danh mục: chỉ gửi mã sổ (danh mục hiện hành)', (() => {
   return JSON.stringify(goi('in_so').at(-1)[1]) === JSON.stringify({ so: 'BM.03.03' });
 })());
 
+console.log('\n-- W44: BM.05.02 rủi ro — RR, cấp độ app tính; chọn nhân viên theo họ tên --');
+kiem('lựa chọn nhân viên hiện "họ tên · mã"; thiết bị "mã · tên (loại)"',
+  V.tenChon({ v: 'HR-EMP-00003', nhan: 'Lê Văn Bột', an_ma: 1 }) === 'Lê Văn Bột · HR-EMP-00003'
+  && V.tenChon({ v: 'DH-M1', nhan: 'Đồng hồ nhiệt M1', loai: 'Đồng hồ nhiệt', an_ma: 0 })
+    === 'DH-M1 · Đồng hồ nhiệt M1 (Đồng hồ nhiệt)');
+const RRDN = { ma: 'BM.05.02', ten: 'Bảng xác định rủi ro', kieu: 'Danh mục', cot_tinh: ['rr', 'cap_do'], cot: [
+  { key: 'rui_ro', nhan: 'Rủi ro', kieu: 'Text', bat_buoc: 1, lua_chon: [] },
+  ...['a', 'b', 'c', 'd'].map((k) => ({ key: k, nhan: k.toUpperCase(), kieu: 'Select', bat_buoc: 1,
+    lua_chon: ['1', '2', '3', '4'] })),
+  { key: 'rr', nhan: 'RR = A + B + C + D', kieu: 'Int', lua_chon: [] },
+  { key: 'cap_do', nhan: 'Cấp độ kiểm soát', kieu: 'Select', lua_chon: ['Cấp độ 1', 'Cấp độ 2', 'Cấp độ 3'] }] };
+globalThis.window.location = { hash: '#/so/BM.05.02' };
+traVe = { xem: { dn: RRDN, quyen: { ghi: true, xem: true }, ds: [], hom_nay: '2026-10-09', tu: '', den: '' },
+  ghi: { name: 'SOD-9' } };
+a = api();
+await V.render(a);
+nutCo(a.container, '+ GHI DÒNG').bam();
+m = moCuoi();
+kiem('phiếu không có ô RR, cấp độ (chỉ ngày, rủi ro, A, B, C, D); ghi rõ phần app tự tính',
+  !m.body.chu.includes('Cấp độ 1') && m.body.chu.includes('App tự tính: RR = A + B + C + D, Cấp độ kiểm soát.')
+  && m.body.kids.length === 1 + 5 + 1 + 1, m.body.kids.length);
+tim(m.body, (e) => e.tagName === 'TEXTAREA')[0].doi('Cháy máy rang');
+const ba = tim(m.body, (e) => e.tagName === 'BUTTON' && e.textContent === '3');
+ba[0].bam();
+ba[1].bam();
+ba[2].bam();
+const nGhi = goi('ghi').length;
+nutCo(m.body, 'GHI DÒNG').bam();
+await cho();
+kiem('chưa chọn D → báo "Chưa ghi: D *", không gửi', TOAST.at(-1)[0].startsWith('Chưa ghi: D')
+  && goi('ghi').length === nGhi, TOAST.at(-1));
+tim(m.body, (e) => e.tagName === 'BUTTON' && e.textContent === '2')[3].bam();
+nutCo(m.body, 'GHI DÒNG').bam();
+await cho();
+kiem('gửi A, B, C, D (chuỗi 1–4), không gửi RR / cấp độ — server tính',
+  JSON.stringify(JSON.parse(goi('ghi').at(-1)[1].payload).du_lieu) === JSON.stringify({ rui_ro: 'Cháy máy rang',
+    a: '3', b: '3', c: '3', d: '2' }), goi('ghi').at(-1)[1].payload);
+
+console.log('\n-- W44: mục T4 lượt Tuần theo từng vật (components/qcui.js) --');
+const UI = await napView('components/qcui.js');
+kiem('t4TheoVat: có vật Không đạt → Không đạt; đủ Đạt → Đạt; còn vật trống / danh sách rỗng → chưa chấm',
+  UI.t4TheoVat([{ ket_qua: 'Đạt' }, { ket_qua: 'Không đạt' }]) === 'Không đạt'
+  && UI.t4TheoVat([{ ket_qua: 'Đạt' }]) === 'Đạt' && UI.t4TheoVat([{ ket_qua: 'Đạt' }, { ket_qua: '' }]) === ''
+  && UI.t4TheoVat([]) === '');
+const vk = { so: 'BM.PRP.05', ds: [
+  { vat: 'S1', ma: 'K-01', ten: 'Đèn huỳnh quang · Phòng đóng gói', ket_qua: '', ghi_chu: '' },
+  { vat: 'S2', ma: 'K-02', ten: 'Cửa kính · Kho', ket_qua: 'Đạt', ghi_chu: '' }] };
+const doiVat = [];
+const w = UI.oVatKinh({ f: 't4_den_kinh', so: 'T4', nhan: 'Đèn, kính có bảo vệ' }, vk, (x) => doiVat.push({ ...x }), false);
+const gcK = tim(w, (e) => e.tagName === 'INPUT');
+kiem('mỗi vật một hàng "mã · vật · vị trí"; tổng "còn 1 vật"; ô ghi chú ẩn khi chưa Không đạt',
+  w.chu.includes('K-01 · Đèn huỳnh quang · Phòng đóng gói') && w.chu.includes('K-02 · Cửa kính · Kho')
+  && w.chu.includes('còn 1 vật') && gcK.length === 2 && gcK.every((i) => i.style.display === 'none'), w.chu);
+tim(w, (e) => e.tagName === 'BUTTON' && e.textContent === '✕ Không')[0].bam();
+kiem('bấm ✕ Không ở K-01 → báo đổi đúng vật; tổng T4 "✕ Không đạt"; hiện ô ghi chú của K-01',
+  doiVat.at(-1).vat === 'S1' && doiVat.at(-1).ket_qua === 'Không đạt' && w.chu.includes('✕ Không đạt')
+  && gcK[0].style.display === '' && w.dataset.tt === 'Không đạt', doiVat);
+gcK[0].doi(' vỡ chụp ');
+kiem('ghi chú (cắt khoảng trắng) gửi kèm vật', doiVat.at(-1).vat === 'S1' && doiVat.at(-1).ghi_chu === 'vỡ chụp');
+tim(w, (e) => e.tagName === 'BUTTON' && e.textContent === '✓ Đạt')[0].bam();
+kiem('đổi K-01 sang Đạt → bỏ ghi chú; mọi vật Đạt → tổng "✓ Đạt"', doiVat.at(-1).ket_qua === 'Đạt'
+  && doiVat.at(-1).ghi_chu === '' && w.chu.includes('✓ Đạt') && gcK[0].style.display === 'none');
+tim(w, (e) => e.tagName === 'BUTTON' && e.textContent === '✓ Đạt')[0].bam();
+kiem('bấm lại nút đang chọn → bỏ trống vật đó (T4 về chưa chấm)', doiVat.at(-1).ket_qua === ''
+  && w.chu.includes('còn 1 vật'));
+const wk = UI.oVatKinh({ f: 't4_den_kinh', so: 'T4', nhan: 'Đèn, kính có bảo vệ' }, vk, () => {}, true);
+kiem('lượt đã khóa: nút, ô ghi chú bị khóa', tim(wk, (e) => e.tagName === 'BUTTON' || e.tagName === 'INPUT')
+  .every((e) => e.disabled));
+
 ketThuc('SO-JS');

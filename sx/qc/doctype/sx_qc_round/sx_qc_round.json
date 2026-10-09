@@ -120,6 +120,8 @@
   "b7_chuyen_doi",
   "b7_gio",
   "b7_ve_sinh_sua",
+  "section_vat_kinh",
+  "vat_kinh",
   "section_ghi_chu",
   "ghi_chu",
   "section_xem_xet",
@@ -867,6 +869,20 @@
    "label": "B7c Vệ sinh chuyển đổi sau vị có sữa bột",
    "description": "không chuyển đổi thì bấm Không có",
    "options": "\nKhông có chuyển đổi\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_vat_kinh",
+   "fieldtype": "Section Break",
+   "label": "T4 — từng vật kính, nhựa giòn (BM.PRP.05)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "vat_kinh",
+   "fieldtype": "Table",
+   "label": "Vật kính, nhựa giòn",
+   "options": "SX QC Round Vat",
+   "read_only": 1,
+   "description": "Lượt Tuần, danh mục BM.PRP.05 có vật: QC tích Đạt / Không đạt từng vật; có vật Không đạt thì T4 Không đạt và mỗi vật thành một phiếu sự cố."
   },
   {
    "fieldname": "section_ghi_chu",

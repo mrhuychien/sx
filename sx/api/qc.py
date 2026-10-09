@@ -434,6 +434,7 @@ def chi_tiet_round(name):
         "phai_cham": cint(doc.so_muc_ap_dung),
         "su_co": [{"name": r.incident, "muc": r.muc, "mo_ta": r.mo_ta}
                   for r in doc.su_co],
+        "vat_kinh": _vat_kinh(doc, ap),
         # Xem trước: lệch nào SẼ thành sự cố nếu hoàn tất ngay bây giờ. QC thấy
         # trước thì còn kịp đi xem lại máy, thay vì hoàn tất xong mới biết.
         "se_thanh_su_co": [{"muc": k, "mo_ta": mt, "muc_do": md}
@@ -446,6 +447,44 @@ def chi_tiet_round(name):
         # người khác, nhưng người chốt lượt phải là người đã đi hết lượt đó.
         "duoc_chot": doc.docstatus == 0 and bool(_sieu() or QC in _roles()),
     }
+
+
+def _vat_kinh(doc, ap):
+    """Mục T4 theo từng vật của danh mục kính, nhựa giòn BM.PRP.05 (W44, D173): {so, ds: [{vat, ma, ten, ket_qua,
+    ghi_chu}]} — vật lượt đã tích (giữ nguyên lúc tích) + vật đang dùng chưa tích (lượt còn nháp). None khi T4 không
+    thuộc lượt, hoặc danh mục trống mà lượt chưa tích vật nào — T4 tích một lần như trước."""
+    if _so.T4 not in ap:
+        return None
+    dong = [r for r in doc.get("vat_kinh") or [] if r.get("vat")]
+    co = {r.get("vat") for r in dong}
+    ds = _so.ds_vat_kinh() if doc.docstatus == 0 else []
+    if not ds and not dong:
+        return None
+    ra = [{"vat": r.get("vat"), "ma": r.get("ma") or "", "ten": r.get("ten") or "", "ket_qua": r.get("ket_qua") or "",
+           "ghi_chu": r.get("ghi_chu") or ""} for r in dong]
+    ra += [{"vat": v["vat"], "ma": v["ma"], "ten": v["ten"], "ket_qua": "", "ghi_chu": ""} for v in ds
+           if v["vat"] not in co]
+    return {"so": _so.KINH, "ds": sorted(ra, key=lambda v: (v["ma"] == "", v["ma"], v["vat"]))}
+
+
+VK = "vat_kinh:"      # khóa save_round cho một vật của T4: "vat_kinh:<dòng BM.PRP.05>" → {ket_qua, ghi_chu}
+
+
+def _ghi_vat(doc, vat, v, ds):
+    """Ghi một vật T4 vào bảng con của lượt (chưa lưu). Vật không còn trong danh mục mà lượt chưa có dòng → False."""
+    kq = (v.get("ket_qua") if isinstance(v, dict) else v) or ""
+    gc = str((v.get("ghi_chu") if isinstance(v, dict) else "") or "").strip()[:140]
+    if kq not in ("", M.DAT, M.KHONG_DAT):
+        frappe.throw(_("Vật {0}: chọn Đạt hoặc Không đạt.").format(vat))
+    r = next((r for r in doc.get("vat_kinh") or [] if r.get("vat") == vat), None)
+    if r is not None:
+        r.ket_qua, r.ghi_chu = kq or None, gc
+        return True
+    x = next((x for x in ds if x["vat"] == vat), None)
+    if not x:
+        return False
+    doc.append("vat_kinh", {"vat": vat, "ma": x["ma"], "ten": x["ten"][:140], "ket_qua": kq or None, "ghi_chu": gc})
+    return True
 
 
 # ────────────────────────────────────────────────────────────── ghi lượt ──
@@ -476,7 +515,29 @@ def save_round(name, values, client_ts=None):
     ts = get_datetime(client_ts) if client_ts else now_datetime()
     ap = {m["f"] for m in M.muc_ap_dung(doc.luot, doc)}
     da_ghi, bo_qua = [], []
+    # T4 theo vật (W44): danh mục BM.PRP.05 có vật thì T4 do các vật quyết định — ô T4 gửi thẳng bị bỏ qua.
+    ds_kinh = _so.ds_vat_kinh() if _so.T4 in ap and (
+        _so.T4 in values or any(str(f).startswith(VK) for f in values)) else []
+    doi_vat = False
     for f, v in values.items():
+        if str(f).startswith(VK):
+            if _so.T4 not in ap:
+                bo_qua.append(f)
+                continue
+            cu = _ts_cuoi(doc, f)
+            if (cu and cu > ts) or not _ghi_vat(doc, f[len(VK):], v, ds_kinh):
+                bo_qua.append(f)
+                continue
+            r = next(r for r in doc.vat_kinh if r.get("vat") == f[len(VK):])
+            doc.append("log", {"fieldname": f[:140], "gia_tri": " — ".join(
+                x for x in (r.get("ket_qua") or "", r.get("ghi_chu") or "") if x)[:140],
+                "client_ts": ts, "server_ts": now_datetime(), "boi": frappe.session.user})
+            da_ghi.append(f)
+            doi_vat = True
+            continue
+        if f == _so.T4 and (ds_kinh or doc.get("vat_kinh")):
+            bo_qua.append(f)
+            continue
         if f in TRUONG_PHU:
             # Không phải mục kiểm nên không nằm trong ma trận, nhưng vẫn phải ghi
             # được: bật bột / thêm máy giữa lượt là chuyện thật.
@@ -495,6 +556,12 @@ def save_round(name, values, client_ts=None):
                            "boi": frappe.session.user})
         da_ghi.append(f)
 
+    if doi_vat:
+        t4 = _so.t4_theo_vat(doc.vat_kinh, ds_kinh or doc.vat_kinh)     # danh mục vừa ngừng → theo vật đã tích
+        if t4 != (doc.get(_so.T4) or None):
+            doc.set(_so.T4, t4)
+            doc.append("log", {"fieldname": _so.T4, "gia_tri": t4 or "", "client_ts": ts,
+                               "server_ts": now_datetime(), "boi": frappe.session.user})
     # QC đóng gói mở lượt của người khác ra ghi mục 11–13 → ghi tên vào phiếu.
     if (QC_GOI in _roles() and frappe.session.user != doc.qc_user
             and not doc.qc_goi_user):
@@ -503,7 +570,7 @@ def save_round(name, values, client_ts=None):
     # Đổi vị bột / số máy làm bộ mục áp dụng thay đổi → máy QC phải vẽ lại.
     ap_moi = {m["f"] for m in M.muc_ap_dung(doc.luot, doc)}
     return {"name": doc.name, "da_ghi": da_ghi, "bo_qua": bo_qua,
-            "doi_muc": ap_moi != ap,
+            "doi_muc": ap_moi != ap, "t4": doc.get(_so.T4) if doi_vat else None,
             "da_cham": cint(doc.so_muc_da_cham),
             "phai_cham": cint(doc.so_muc_ap_dung),
             "luc": str(now_datetime())}
@@ -565,7 +632,17 @@ def _du_lieu_nhac(d):
             "dong_vat": _dong_vat.nhac(d), "cat": _cat.nhac(d),
             "thiet_bi": _thiet_bi.nhac(d), "kiem_nghiem": _kiem_nghiem.nhac(d),
             "viec_dinh_ky": _viec_dinh_ky.nhac(d), "khac_phuc": _khac_phuc.nhac(d), "vai_u": _vai_u.nhac(d),
-            "kiem_xe": _kiem_xe.nhac(d), "tai_lieu": _tai_lieu.nhac(d), "so": _so.nhac(d)}
+            "kiem_xe": _kiem_xe.nhac(d), "tai_lieu": _tai_lieu.nhac(d), "so": _so.nhac(d),
+            "danh_gia_ncc": _danh_gia_ncc_nhac(d)}
+
+
+def _danh_gia_ncc_nhac(d):
+    """Đánh giá NCC BM.07.01 (W44, D173). Nạp muộn: module chưa có / chưa migrate → {}."""
+    try:
+        from sx.qc import danh_gia_ncc
+        return danh_gia_ncc.nhac(d)
+    except Exception:
+        return {}
 
 
 def _xuat_xuong_nhac():
@@ -1173,10 +1250,17 @@ def _to_ngay(ngay, kem_style=True):
     ten_buoc = {ma: ten for ma, ten, *_r in M.BUOC}
     buoc_nghi = [(r.luot, ", ".join(f"{ma} {ten_buoc[ma]}" for ma in M.buoc_nghi(r.get("buoc_nghi"))))
                  for r in rounds if M.buoc_nghi(r.get("buoc_nghi"))]
+    # W44 (D173): T4 tích theo từng vật của BM.PRP.05 — ô T4 chỉ là tổng, tờ in ghi từng vật (Đ / K / —).
+    ky = {M.DAT: "Đ", M.KHONG_DAT: "K"}
+    vat_kinh = [(r.luot, "; ".join(f"{x.get('ma') or x.get('ten')} {ky.get(x.get('ket_qua'), '—')}"
+                                   + (f" ({x.get('ghi_chu')})" if x.get("ghi_chu") else "")
+                                   for x in r.get("vat_kinh")))
+                for r in rounds if r.get("vat_kinh")]
     return frappe.render_template("sx/qc/day_sheet.html", {
         "ngay": d, "rounds": rounds, "hang": hang, "co_bot": co_bot,
         "loai_bot": loai_bot,
         "buoc_nghi": buoc_nghi,
+        "vat_kinh": vat_kinh,
         "kem_style": kem_style,
         "su_co": frappe.get_all(
             "SX Su Co", filters={"ngay": d}, order_by="creation",

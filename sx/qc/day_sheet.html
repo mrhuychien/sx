@@ -95,6 +95,10 @@
     <br>Loại bột (B0):
     {%- for l, ten in loai_bot %}<br>· {{ l }}: {{ ten }}{% endfor %}
     {%- endif %}
+    {%- if vat_kinh %}
+    <br>T4 từng vật kính, nhựa giòn (BM.PRP.05):
+    {%- for l, ds in vat_kinh %}<br>· {{ l }}: {{ ds }}{% endfor %}
+    {%- endif %}
     <br><br>
     ✻ = ghi muộn. Cờ này do hệ thống đặt theo giờ ghi thật, không sửa được bằng tay.
     Đ = đạt · K = không đạt · KCĐ = không có chuyển đổi · — = để trống.

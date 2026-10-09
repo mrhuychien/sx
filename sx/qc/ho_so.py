@@ -63,7 +63,17 @@ BIEU_MAU = {
     "BM.03.01": ("Sổ quản lý thiết bị PCCC", "so_khac"),
     "BM.03.02": ("Sổ theo dõi tình hình phát sinh dịch bệnh", "so_khac"),
     "BM.03.03": ("Sổ quản lý thiết bị kiểm định an toàn", "so_khac"),
+    # W44 (D173): danh mục có hạn (SX So kiểu Danh mục — in danh mục hiện hành), phiếu đánh giá nhà cung cấp (phiếu
+    # đã duyệt trong kỳ), chính danh mục hồ sơ này (trong gói zip là tệp 00-MUC-LUC.html).
+    "BM.PRP.04": ("Danh mục hóa chất", "so_khac"),
+    "BM.PRP.05": ("Danh mục kính, nhựa giòn", "so_khac"),
+    "BM.PRP.07": ("Danh sách theo dõi khám sức khỏe, tập huấn kiến thức ATTP", "so_khac"),
+    "BM.05.01": ("Bảng xác định các bên quan tâm", "so_khac"),
+    "BM.05.02": ("Bảng xác định rủi ro và kế hoạch kiểm soát rủi ro", "so_khac"),
+    "BM.07.01": ("Phiếu đánh giá nhà cung cấp", "ncc"),
+    "BM.01.04": ("Danh mục hồ sơ", None),
 }
+MUC_LUC = "BM.01.04"        # dòng này trong gói = tệp 00-MUC-LUC.html
 
 
 def _d(x):

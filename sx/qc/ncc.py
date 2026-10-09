@@ -8,6 +8,10 @@ nếu thiếu / hết hạn, chặn cả Desk.
 Mua của NCC chưa duyệt: CHỈ CẢNH BÁO, không chặn (tài liệu 08/10) — đơn mua, phiếu nhập
 mua, hoá đơn mua đều báo. Cát rang chỉ cần hợp đồng hoặc đơn hàng + ĐKKD.
 
+W44 (D173), C26: từ ngày áp dụng BM.07.01 (SX QC Setting), tích "Đã duyệt" còn phải có phiếu đánh
+giá BM.07.01 kết quả Chấp nhận còn hạn (sx/qc/danh_gia_ncc.py). NCC đã duyệt trước ngày đó giữ
+nguyên — chỉ bị nhắc đánh giá lại. Mua hàng vẫn chỉ cảnh báo.
+
 Bộ hồ sơ theo loại dưới đây là bản TẠM theo quy định chung (chưa có bản BM.07.02 để chép):
 sửa HO_SO_CAN là đổi luật, không đổi dữ liệu.
 """
@@ -114,11 +118,26 @@ def validate_supplier(doc, method=None):
         if thieu:
             frappe.throw(_("Chưa duyệt được — hồ sơ còn thiếu:") + "<br>"
                          + "<br>".join(f"• {x}" for x in thieu), title=_("Hồ sơ NCC"))
+        kiem_bm0701(doc)
         doc.custom_ngay_duyet_ncc = getdate(nowdate())
         doc.custom_duyet_ncc_boi = frappe.session.user
     else:
         doc.custom_ngay_duyet_ncc = None
         doc.custom_duyet_ncc_boi = None
+
+
+def kiem_bm0701(doc):
+    """C26 (W44, D173): duyệt mới từ ngày áp dụng phải có phiếu BM.07.01 Chấp nhận còn hạn. NCC dịch vụ không đánh
+    giá theo BM.07.01."""
+    from sx.qc import danh_gia_ncc as DG      # muộn: danh_gia_ncc import module này
+    ad = DG.ngay_ap_dung()
+    nay = getdate(nowdate())
+    if not ad or nay < ad or doc.get("custom_loai_ncc") == DV:
+        return
+    if not doc.get("name") or not DG.chap_nhan_con_han(doc.name, nay):
+        frappe.throw(_("Chưa duyệt được — chưa có phiếu đánh giá nhà cung cấp BM.07.01 kết quả Chấp nhận còn hạn "
+                       "(màn Sổ → BM.07.01: Mua hàng chấm, Giám đốc duyệt). Áp dụng với NCC duyệt mới từ {0} "
+                       "(C26).").format(ad.strftime("%d/%m/%Y")), title=_("Đánh giá nhà cung cấp"))
 
 
 # ── hook chứng từ mua ──────────────────────────────────────────────────────

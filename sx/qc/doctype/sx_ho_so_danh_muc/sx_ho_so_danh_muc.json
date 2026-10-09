@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "links": [],
- "modified": "2026-10-09 23:00:00.000000",
+ "modified": "2026-10-10 01:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "owner": "Administrator",
@@ -23,6 +23,8 @@
   "het_han",
   "tep",
   "noi_luu",
+  "thoi_gian_luu",
+  "nguoi_luu",
   "bat_buoc",
   "ngung",
   "thu_tu",
@@ -67,7 +69,7 @@
    "fieldname": "bieu_mau",
    "fieldtype": "Select",
    "label": "Biểu mẫu app",
-   "options": "\nBM.08.01\nBM.08.02\nBM.01.07\nBM.08.03\nBM.08.04\nBM.08.05\nBM.11.01\nBM.15.01\nBM.06.01\nBM.06.02\nBM.06.03\nBM.06.04\nKH.KN.01\nBM.07.02\nBM.07.03\nBM.09.01\nBM.PRP.03\nBM.PRP.01\nBM.02.04\nSLM\nHUY_MAU\nTU_CONG_BO\nBC.THANG\nBM.01.02\nBM.01.03\nBM.01.13\nBM.06.05\nBM.PRP.06\nBM.03.01\nBM.03.02\nBM.03.03",
+   "options": "\nBM.08.01\nBM.08.02\nBM.01.07\nBM.08.03\nBM.08.04\nBM.08.05\nBM.11.01\nBM.15.01\nBM.06.01\nBM.06.02\nBM.06.03\nBM.06.04\nKH.KN.01\nBM.07.02\nBM.07.03\nBM.09.01\nBM.PRP.03\nBM.PRP.01\nBM.02.04\nSLM\nHUY_MAU\nTU_CONG_BO\nBC.THANG\nBM.01.02\nBM.01.03\nBM.01.13\nBM.06.05\nBM.PRP.06\nBM.03.01\nBM.03.02\nBM.03.03\nBM.PRP.04\nBM.PRP.05\nBM.PRP.07\nBM.05.01\nBM.05.02\nBM.07.01\nBM.01.04",
    "depends_on": "eval:doc.nguon=='App lập'"
   },
   {
@@ -105,7 +107,20 @@
   {
    "fieldname": "noi_luu",
    "fieldtype": "Data",
-   "label": "Nơi lưu bản giấy"
+   "label": "Vị trí lưu",
+   "description": "Như cột Vị trí lưu của BM.01.04: bản giấy ghi tủ / bìa / bộ phận giữ; hồ sơ trên app để trống thì in \"Phần mềm\" (ghi thêm nếu có bản giấy dự phòng)."
+  },
+  {
+   "fieldname": "thoi_gian_luu",
+   "fieldtype": "Data",
+   "label": "Thời gian lưu",
+   "description": "Vd \"2 năm\", \"3 năm\", \"Lâu dài\", \"Theo hiệu lực từng người\" — theo bảng hồ sơ của quy trình."
+  },
+  {
+   "fieldname": "nguoi_luu",
+   "fieldtype": "Data",
+   "label": "Người / bộ phận lưu",
+   "description": "Bộ phận giữ hồ sơ (Ban ISO, QC, Cơ điện, Mua hàng, Hành chính…)."
   },
   {
    "fieldname": "bat_buoc",

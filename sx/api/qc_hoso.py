@@ -2,6 +2,8 @@
 
 Danh mục (SX Ho So Danh Muc) + cờ Đỏ / Vàng (sx/qc/ho_so.py; đèn của các mảng lấy từ Tổng quan ATTP) +
 GÓI ZIP cho đoàn: mục lục HTML (cờ, căn cứ, chỗ tìm), bản in các biểu mẫu app lập trong kỳ, tệp scan.
+W44 (D173): danh mục chính là BM.01.04 — thêm thời gian lưu, người lưu; in riêng theo cột giấy (in_bm0104); trong
+gói, dòng BM.01.04 trỏ tới chính tệp mục lục.
 
 Một biểu mẫu in lỗi thì mục lục ghi lỗi đó và gói vẫn tải được — đoàn đang ngồi chờ thì một tờ hỏng
 không được chặn cả gói. Bản in gọi đúng các hàm in sẵn có của từng màn (cùng tờ người ta vẫn in).
@@ -24,9 +26,9 @@ from sx.qc import ho_so as HS
 from sx.qc.quyen import la_iso
 
 TRUONG = ["name", "ma", "ten", "nhom", "nguon", "bieu_mau", "can_cu", "thay_the", "ngay_ban_hanh", "het_han",
-          "tep", "noi_luu", "bat_buoc", "ngung", "thu_tu", "ghi_chu"]
+          "tep", "noi_luu", "thoi_gian_luu", "nguoi_luu", "bat_buoc", "ngung", "thu_tu", "ghi_chu", "modified"]
 SUA = ("ma", "ten", "nhom", "nguon", "bieu_mau", "can_cu", "thay_the", "ngay_ban_hanh", "het_han", "noi_luu",
-       "bat_buoc", "ngung", "thu_tu", "ghi_chu")
+       "thoi_gian_luu", "nguoi_luu", "bat_buoc", "ngung", "thu_tu", "ghi_chu")
 SP = "SX San Pham Cong Bo"
 XX = "SX Kiem Tra Xuat Xuong"
 DIEN_TAP = "SX Dien Tap Truy Xuat"
@@ -66,7 +68,7 @@ def _danh_muc(d):
     except Exception:
         sp = []
     for x in ds:
-        for f in ("ngay_ban_hanh", "het_han"):
+        for f in ("ngay_ban_hanh", "het_han", "modified"):
             x[f] = str(x[f]) if x.get(f) else ""
         x["bat_buoc"], x["ngung"] = cint(x.get("bat_buoc")), cint(x.get("ngung"))
     return HS.gan_co(ds, d, den_mang, sp)
@@ -273,6 +275,9 @@ def _in(bm, tu, den):
         return [("danh-muc-san-pham.html", _trang("Sản phẩm tự công bố", _bang(
             "Danh mục sản phẩm tự công bố", f"Lập ngày {HS.ngay_vn(getdate(nowdate()))}",
             ["Số bản tự công bố", "Tên sản phẩm", "Loại", "TCCS", "Hạn dùng", "Quy cách"], hang)))]
+    if bm == "BM.07.01":                             # W44: mỗi phiếu đánh giá NCC đã duyệt trong kỳ một tệp
+        from sx.api import qc_danhgiancc
+        return [(t, _trang(f"BM.07.01 — {t[:-5]}", h)) for t, h in qc_danhgiancc.in_ho_so(tu, den)]
     # W43 (D172): mọi sổ ghi theo dòng (SX So) — mỗi tháng có dòng một bản / danh mục hiện hành.
     if frappe.db.exists("SX So", bm):
         from sx.api import qc_so
@@ -303,6 +308,24 @@ def _theo_nhom(ds):
     return ra
 
 
+def _muc_luc(kq, con, goi=False, **k):
+    """HTML BM.01.04 (sx/qc/ho_so_muc_luc.html) — `con` = các dòng đang dùng đã đánh stt. "Cập nhật" = ngày sửa
+    gần nhất của danh mục (như dòng "Cập nhật: 21/9/2026" trên giấy)."""
+    cap = max((x.get("modified") or "")[:10] for x in kq["ds"]) if kq["ds"] else ""
+    return frappe.render_template("sx/qc/ho_so_muc_luc.html", dict(
+        k, goi=goi, nhom=_theo_nhom(con), dem=kq["dem"], ngung=[x for x in kq["ds"] if x.get("ngung")],
+        cap_nhat=HS.ngay_vn(cap or nowdate()), APP=HS.APP, GIAY=HS.GIAY, TEP=HS.TEP))
+
+
+@frappe.whitelist()
+def in_bm0104():
+    """In BM.01.04 Danh mục hồ sơ hiện hành theo cột giấy (không cờ, không đường dẫn gói)."""
+    Q._guard_manager()
+    kq = _danh_muc(getdate(nowdate()))
+    con = [dict(x, stt=i) for i, x in enumerate((x for x in kq["ds"] if not x.get("ngung")), 1)]
+    return _muc_luc(kq, con)
+
+
 @frappe.whitelist()
 def tai_goi(tu=None, den=None):
     """Tải gói zip cho đoàn (GET, trình duyệt tải thẳng): 00-MUC-LUC.html + mỗi hồ sơ một thư mục."""
@@ -316,6 +339,9 @@ def tai_goi(tu=None, den=None):
         for i, x in enumerate(con, 1):
             thu_muc = f"{i:02d}-{HS.slug(x['ma'])}"
             x["stt"], x["trong_goi"], x["loi"] = i, [], ""
+            if x["nguon"] == HS.APP and x.get("bieu_mau") == HS.MUC_LUC:
+                x["trong_goi"] = ["00-MUC-LUC.html"]          # BM.01.04 chính là tệp mục lục này
+                continue
             try:
                 if x["nguon"] == HS.APP:
                     tep = _in(x.get("bieu_mau"), tu, den)
@@ -329,11 +355,9 @@ def tai_goi(tu=None, den=None):
                     x["trong_goi"].append(f"{thu_muc}/{ten}")
             except Exception as e:  # noqa: BLE001 — một tờ hỏng không chặn cả gói
                 x["loi"] = str(e) or type(e).__name__
-        z.writestr("00-MUC-LUC.html", _trang("Danh mục hồ sơ ATTP", frappe.render_template(
-            "sx/qc/ho_so_muc_luc.html", {
-                "tu": HS.ngay_vn(tu), "den": HS.ngay_vn(den), "lap_luc": now_datetime().strftime("%d/%m/%Y %H:%M"),
-                "nguoi": frappe.session.user, "dem": kq["dem"], "nhom": _theo_nhom(con),
-                "ngung": [x for x in kq["ds"] if x.get("ngung")], "APP": HS.APP, "GIAY": HS.GIAY})))
+        z.writestr("00-MUC-LUC.html", _trang("Danh mục hồ sơ ATTP", _muc_luc(
+            kq, con, goi=True, tu=HS.ngay_vn(tu), den=HS.ngay_vn(den),
+            lap_luc=now_datetime().strftime("%d/%m/%Y %H:%M"), nguoi=frappe.session.user)))
     frappe.local.response.filename = f"ho-so-attp_{tu}_{den}.zip"
     frappe.local.response.filecontent = buf.getvalue()
     frappe.local.response.type = "download"

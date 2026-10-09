@@ -95,6 +95,17 @@
 }
 .sx-qc-hang[data-tt="Không đạt"] { background: var(--sx-danger-soft); }
 
+/* T4 theo vật (W44): danh mục kính BM.PRP.05 — hàng vật thụt vào dưới nhãn T4, tổng T4 ở bên phải nhãn. */
+.sx-qc-vat { background: var(--sx-surface); border-bottom: 1px solid var(--sx-line); }
+.sx-qc-vat-tt { font: 600 var(--sx-f-xs)/1 var(--sx-font); color: var(--sx-text-3); white-space: nowrap; }
+.sx-qc-vat-tt.sx-qc-vat-d { color: var(--sx-success); }
+.sx-qc-vat-tt.sx-qc-vat-k { color: var(--sx-danger); }
+.sx-qc-vat-hd { padding: 0 var(--sx-s3) var(--sx-s2) calc(var(--sx-s3) + 36px); background: var(--sx-surface);
+  margin-top: 0; }
+.sx-qc-vat-hang { padding-left: calc(var(--sx-s3) + 36px); }
+.sx-qc-vat-gc { display: block; box-sizing: border-box; width: calc(100% - 2 * var(--sx-s3) - 36px);
+  margin: var(--sx-s2) var(--sx-s3) var(--sx-s2) calc(var(--sx-s3) + 36px); }
+
 /* ── ô số ──────────────────────────────────────────────────────────────── */
 .sx-qc-oso {
   background: var(--sx-surface); padding: var(--sx-s3);
@@ -593,3 +604,17 @@ button.sx-qc-tag-chon {
 .sx-so-phieu .sx-qc-oso-khung input { font-size: var(--sx-f-md); }
 /* Ô tích của sổ là việc ĐÃ LÀM (đã vệ sinh, khách khai không ốm…) — bật là xanh, không đỏ như mục "có dấu hiệu". */
 .sx-so-phieu .sx-qc-nut2 > button.sx-qc-khong-on { background: var(--sx-success); border-color: var(--sx-success); }
+
+/* ── W44 (D173): phiếu đánh giá nhà cung cấp BM.07.01 — #/so/BM.07.01 ─────────────────── */
+.sx-dg-a { box-sizing: border-box; }
+.sx-dg-a .sx-textarea { box-sizing: border-box; width: 100%; }
+.sx-dg-a-k { background: var(--sx-danger-soft); }
+.sx-dg-khoi .sx-qc-oso .sx-textarea { box-sizing: border-box; width: 100%; }
+.sx-dg-ky {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--sx-s2) var(--sx-s3); background: var(--sx-surface);
+  border-bottom: 1px solid var(--sx-line); font-size: var(--sx-f-sm);
+}
+.sx-dg-ky span { color: var(--sx-text-3); font-size: var(--sx-f-xs); }
+.sx-dg-nut { padding: var(--sx-s3); flex-wrap: wrap; }
+.sx-dg-ds .sx-qc-sc { display: block; }

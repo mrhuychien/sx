@@ -123,6 +123,11 @@ for ma, ten, oprp, ghi in muc.BUOC:
                         **({"description": mo_ta} if mo_ta else {}), **extra))
 
 fields += [
+    # W44 (D173): T4 theo từng vật của danh mục kính, nhựa giòn BM.PRP.05 — ghi qua save_round ("vat_kinh:<dòng>").
+    f("section_vat_kinh", "Section Break", "T4 — từng vật kính, nhựa giòn (BM.PRP.05)", collapsible=1),
+    f("vat_kinh", "Table", "Vật kính, nhựa giòn", options="SX QC Round Vat", read_only=1,
+      description="Lượt Tuần, danh mục BM.PRP.05 có vật: QC tích Đạt / Không đạt từng vật; có vật Không đạt thì T4 "
+                  "Không đạt và mỗi vật thành một phiếu sự cố."),
     f("section_ghi_chu", "Section Break", "Ghi chú"),
     f("ghi_chu", "Small Text", "Ghi chú",
       description="Lý do mục để trống, rework, chuyển đổi. Bắt buộc khi có mục "

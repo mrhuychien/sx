@@ -26,7 +26,7 @@ TRUONG_DONG = ["name", "so", "ngay", "trang_thai", "tom_tat", "han_gan_nhat", "d
 DUOI_TEP = ("pdf", "png", "jpg", "jpeg")
 TEN_VIEC = {"xem": "xem", "ghi": "ghi", "xac_nhan": "xác nhận", "xem_thang": "xem xét cuối tháng"}
 TRUONG_MAN = ("ma", "ten", "kieu", "quy_trinh", "mang", "nhan_xac_nhan", "xem_cuoi_thang", "nhan_xem_thang",
-              "tinh_toan", "dau_trang_ghi_chu", "ghi_chu", "cot")
+              "tinh_toan", "nhom_theo", "dau_trang_ghi_chu", "ghi_chu", "cot")
 
 
 # ── Quyền ────────────────────────────────────────────────────────────────────────────────────
@@ -110,6 +110,7 @@ def _khong_dau(s):
 def _dn_man(dn):
     d = {f: dn.get(f) for f in TRUONG_MAN}
     d["cot"] = [dict(c, lua_chon=SO.lua_chon(c)) for c in dn["cot"]]
+    d["cot_tinh"] = list(SO.TINH_COT.get(dn.get("tinh_toan"), ()))      # app tính — phiếu không cho nhập
     return d
 
 
@@ -226,7 +227,24 @@ def ds_so():
                    if q["co_xac_nhan"] else 0,
                    "han": len(x.get("han") or []), "chua_xem": x.get("chua_xem") or [],
                    "kiem_lai": len(x.get("kiem_lai") or []), "bao_duong": len(x.get("bao_duong") or [])})
+    if SO.vao_bm0701(roles, _sieu(roles)):
+        ra.append(_the_bm0701(roles, nay))
+        ra.sort(key=lambda s: s["ma"])
     return {"ds": ra, "la_iso": _la_iso(roles), "hom_nay": str(nay), "user": frappe.session.user}
+
+
+def _the_bm0701(roles, nay):
+    """Thẻ BM.07.01 (W44, D173) trong danh sách sổ — mở màn riêng #/so/BM.07.01 (views/danhgiancc.js)."""
+    from sx.api.qc_danhgiancc import _quyen
+    from sx.qc import danh_gia_ncc as DG
+    nh = DG.nhac(nay) or {}
+    q = _quyen(roles)
+    cho = len(nh.get("cho_qc") or []) * q["qc"] + len(nh.get("cho_duyet") or []) * q["duyet"]
+    con = sum(1 for v in DG.phieu_duyet().values() if DG.co_chap_nhan(v, nay))
+    return {"ma": DG.MA, "ten": "Phiếu đánh giá nhà cung cấp", "kieu": "Phiếu", "quy_trinh": "QT.07", "mang": "ncc",
+            "nhan_xac_nhan": "QC ký / Giám đốc duyệt", "quyen": q, "so_dong": con, "cho": cho,
+            "han": sum(len(nh.get(k) or []) for k in ("qua_han", "sap_han", "chua_co")), "chua_xem": [],
+            "kiem_lai": 0, "bao_duong": 0}
 
 
 @frappe.whitelist()
@@ -257,8 +275,9 @@ def xem(so, tu=None, den=None, q=None, ngung=0):
 
 @frappe.whitelist()
 def goi_y(so, key):
-    """Lựa chọn cho ô Link / User khi ghi: [{v, nhan, loai}] — Link lọc theo `lua_chon` (ô loai), bỏ bản ghi đã bỏ
-    (thiết bị thanh lý); User: tài khoản đang dùng có vai của app."""
+    """Lựa chọn cho ô Link / User khi ghi: [{v, nhan, loai, an_ma}] — Link lọc theo `lua_chon` (ô loai), bỏ bản ghi
+    đã bỏ (thiết bị thanh lý, nhân viên đã nghỉ); `an_ma` (nhân viên): xếp, hiện theo họ tên. User: tài khoản đang
+    dùng có vai của app."""
     roles = _guard_so()
     dn, _q = _so(so, roles, "ghi")
     c = next((c for c in dn["cot"] if c.get("key") == key), None)
@@ -274,13 +293,15 @@ def goi_y(so, key):
     o = ["name", cfg["nhan"]] + ([cfg["loai"]] if cfg.get("loai") else [])
     lc = SO.lua_chon(c)
     ra = []
-    for x in frappe.get_all(c["link_doctype"], fields=o, order_by="name asc"):
-        if any(cint(x.get(k)) == cint(v) for k, v in (cfg.get("bo") or {}).items()):
+    an = 1 if cfg.get("an_ma") else 0
+    for x in frappe.get_all(c["link_doctype"], fields=o + list(cfg.get("bo") or {}),
+                            order_by=f"{cfg['nhan']} asc, name asc" if an else "name asc"):
+        if any(str(x.get(k)) == str(v) for k, v in (cfg.get("bo") or {}).items()):
             continue
         loai = x.get(cfg["loai"]) if cfg.get("loai") else None
         if lc and loai not in lc:
             continue
-        ra.append({"v": x.name, "nhan": x.get(cfg["nhan"]) or "", "loai": loai})
+        ra.append({"v": x.name, "nhan": x.get(cfg["nhan"]) or "", "loai": loai, "an_ma": an})
     return ra
 
 
@@ -464,6 +485,27 @@ def tep(name, key):
 
 # ── In ───────────────────────────────────────────────────────────────────────────────────────
 
+def theo_nhom(dn, dong):
+    """Dòng cho bản in, đánh số TT. Sổ có `nhom_theo` (cột Select): gom theo thứ tự lựa chọn, chèn dòng tiêu đề
+    nhóm {_nhom}, đánh số lại trong nhóm; dòng chưa chọn nhóm ở cuối."""
+    k = dn.get("nhom_theo")
+    c = next((c for c in dn["cot"] if c.get("key") == k), None) if k else None
+    if not c:
+        return [dict(x, stt=i) for i, x in enumerate(dong, 1)]
+    ra = []
+    nhom = SO.lua_chon(c)
+    for ten in nhom + [None]:
+        if ten is None:
+            cua = [x for x in dong if x["du_lieu"].get(k) not in nhom]
+        else:
+            cua = [x for x in dong if x["du_lieu"].get(k) == ten]
+        if not cua:
+            continue
+        ra.append({"_nhom": ten or "(chưa chọn nhóm)"})
+        ra += [dict(x, stt=i) for i, x in enumerate(cua, 1)]
+    return ra
+
+
 def html_so(dn, tu=None, den=None, nam=None):
     """Bản in một sổ (không kiểm quyền — gọi sau khi đã kiểm). Ghi theo dòng: các dòng trong khoảng (mặc định tháng
     này), dòng ngừng in gạch; Danh mục: các dòng đang dùng tại lúc in."""
@@ -479,7 +521,8 @@ def html_so(dn, tu=None, den=None, nam=None):
         xem = _xem_thang(dn["name"], t, [d for d in dong if str(d["ngay"])[:7] == t])
     mot_thang = gtd and tu.strftime("%Y-%m") == den.strftime("%Y-%m") and tu.day == 1
     return frappe.render_template("sx/qc/so.html", {
-        "dn": dn, "ds": dong, "tu": str(tu or ""), "den": str(den or ""), "luoi": luoi, "xem": xem,
+        "dn": dn, "ds": theo_nhom(dn, dong), "so_dong": len(dong), "tu": str(tu or ""), "den": str(den or ""),
+        "luoi": luoi, "xem": xem,
         "gtd": gtd, "thang": tu.strftime("%m/%Y") if mot_thang else "", "nam": cint(nam) or nay.year,
         "ngay_in": str(nay), "so_ngung": 0 if gtd else frappe.db.count(SO.PT_DONG, {"so": dn["name"],
                                                                                   "trang_thai": SO.NGUNG})})

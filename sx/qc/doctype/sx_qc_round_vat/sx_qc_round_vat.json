@@ -1,0 +1,58 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "vat",
+  "ma",
+  "ten",
+  "ket_qua",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "vat",
+   "fieldtype": "Link",
+   "label": "Dòng danh mục BM.PRP.05",
+   "options": "SX So Dong",
+   "description": "Vật kính, nhựa giòn trong danh mục BM.PRP.05 (W44)."
+  },
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã vật",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Vật · vị trí",
+   "in_list_view": 1,
+   "description": "Chép lúc tích — danh mục đổi sau này không đổi lượt đã ghi."
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Select",
+   "label": "Kết quả",
+   "options": "\nĐạt\nKhông đạt",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Data",
+   "label": "Ghi chú",
+   "in_list_view": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-10 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX QC Round Vat",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "istable": 1
+}

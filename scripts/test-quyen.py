@@ -205,7 +205,8 @@ print("\n-- không có cửa hậu: mọi method whitelist đều chốt quyền
 CHOT = {"guard_card", "_kiem_quyen", "_any_sx_guard",
         "_guard_qc", "_guard_ghi", "_guard_manager",
         "_guard_tai_lieu",          # W42: thư viện tài liệu — mọi vai có tài khoản app (sx/api/qc_tailieu.py)
-        "_guard_so"}                # W43: sổ ghi theo dòng — mọi vai có tài khoản app; quyền từng sổ (sx/api/qc_so.py)
+        "_guard_so",                # W43: sổ ghi theo dòng — mọi vai có tài khoản app; quyền từng sổ (sx/api/qc_so.py)
+        "_guard_dg"}                # W44: đánh giá NCC BM.07.01 — Mua hàng, QC, Giám đốc, ISO (sx/api/qc_danhgiancc.py)
 ho = []
 tong = 0
 

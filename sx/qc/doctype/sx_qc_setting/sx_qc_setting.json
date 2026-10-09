@@ -53,6 +53,9 @@
   "nguoi_kiem_dong_ho",
   "section_kn",
   "kn_han_dau",
+  "section_ncc",
+  "ncc_ngay_ap_dung_bm0701",
+  "ncc_han_danh_gia_dau",
   "section_quyen",
   "nguoi_dong_su_co",
   "nguoi_duyet_xuat_xuong",
@@ -359,6 +362,24 @@
    "description": "W18: sản phẩm chưa gửi mẫu lần nào phải gửi trước ngày này (tài liệu 08/10: trước 31/10/2026). Sau đó mỗi sản phẩm ít nhất 1 lần / năm."
   },
   {
+   "fieldname": "section_ncc",
+   "fieldtype": "Section Break",
+   "label": "Đánh giá nhà cung cấp (BM.07.01)"
+  },
+  {
+   "fieldname": "ncc_ngay_ap_dung_bm0701",
+   "fieldtype": "Date",
+   "label": "Ngày áp dụng BM.07.01 (C26)",
+   "description": "W44: từ ngày này, tích \"Đã duyệt\" nhà cung cấp phải có phiếu BM.07.01 Chấp nhận còn hạn. NCC duyệt trước ngày này chỉ bị nhắc đánh giá lại. Patch D173 điền ngày triển khai; trống = chưa chặn."
+  },
+  {
+   "fieldname": "ncc_han_danh_gia_dau",
+   "fieldtype": "Date",
+   "label": "Hạn đánh giá lại lần đầu",
+   "default": "2026-12-31",
+   "description": "W44: NCC đã duyệt mà chưa có phiếu BM.07.01 trên app phải đánh giá lại trước ngày này (Lịch biểu mẫu 21/9/2026: đánh giá lại toàn bộ NCC tháng 12/2026). Nhắc trước 30 ngày."
+  },
+  {
    "fieldname": "section_quyen",
    "fieldtype": "Section Break",
    "label": "Người được giao duyệt"
@@ -390,7 +411,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-09 22:30:00.000000",
+ "modified": "2026-10-10 01:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

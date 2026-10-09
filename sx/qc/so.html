@@ -1,7 +1,8 @@
 {#- Bản in chung của một sổ ghi theo dòng (W43, D172) — sx/api/qc_so.html_so. A4 ngang.
     Đầu trang chung (W42), dòng hướng dẫn như giấy, bảng cột theo định nghĩa sổ (ô nhiều lựa chọn ≤ 12 mục vẽ thành
     lưới, vd 12 tháng kế hoạch kiểm định), ô xác nhận "Ký trên phần mềm: Họ tên, giờ" (C23), khối xem xét cuối tháng.
-    Dòng ngừng in gạch kèm lý do (Ghi theo dòng); Danh mục chỉ in dòng đang dùng. -#}
+    Dòng ngừng in gạch kèm lý do (Ghi theo dòng); Danh mục chỉ in dòng đang dùng. Sổ có `nhom_theo` (W44 — vd BM.05.01
+    bốn nhóm bên quan tâm): dòng gom theo từng lựa chọn, có dòng tiêu đề nhóm, đánh số lại trong nhóm. -#}
 {% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
@@ -20,8 +21,11 @@
   .so .cuoi { margin-top: 12px; width: 100%; }
   .so .cuoi td { border: 0; text-align: left; vertical-align: top; padding: 2px 0; }
   .so .nho { font-size: 9px; }
+  .so .bang tr.nhom td { text-align: left; background: #f5f5f5; }
 </style>
 {%- set co_xn = dn.vai_xac_nhan | length > 0 -%}
+{#- Sổ gom nhóm: cột nhóm đã thành dòng tiêu đề — không in lặp ở từng dòng. -#}
+{%- set cac_cot = dn.cot | rejectattr("key", "equalto", dn.nhom_theo) | list if dn.nhom_theo else dn.cot -%}
 {%- if gtd -%}
   {%- set phu = ("tháng " ~ thang) if thang else ("từ " ~ frappe.utils.formatdate(tu, "dd/MM/yyyy") ~ " đến " ~ frappe.utils.formatdate(den, "dd/MM/yyyy")) -%}
 {%- else -%}
@@ -34,19 +38,22 @@
     <tr>
       <th rowspan="{{ 2 if luoi else 1 }}" style="width:3%">TT</th>
       {% if gtd %}<th rowspan="{{ 2 if luoi else 1 }}" style="width:6%">Ngày</th>{% endif %}
-      {% for c in dn.cot %}
+      {% for c in cac_cot %}
         {% if c.key in luoi %}<th colspan="{{ luoi[c.key] | length }}">{{ c.nhan }}</th>
         {% else %}<th rowspan="{{ 2 if luoi else 1 }}">{{ c.nhan }}</th>{% endif %}
       {% endfor %}
       {% if co_xn %}<th rowspan="{{ 2 if luoi else 1 }}" style="width:11%">{{ dn.nhan_xac_nhan or "Xác nhận" }}</th>{% endif %}
       <th rowspan="{{ 2 if luoi else 1 }}" style="width:10%">Ghi trên phần mềm</th>
     </tr>
-    {% if luoi %}<tr>{% for c in dn.cot if c.key in luoi %}{% for o in luoi[c.key] %}<th class="l">{{ o }}</th>{% endfor %}{% endfor %}</tr>{% endif %}
+    {% if luoi %}<tr>{% for c in cac_cot if c.key in luoi %}{% for o in luoi[c.key] %}<th class="l">{{ o }}</th>{% endfor %}{% endfor %}</tr>{% endif %}
     {% for x in ds %}
+    {% if x._nhom is defined %}
+    <tr class="nhom"><td colspan="99"><b>{{ x._nhom }}</b></td></tr>
+    {% else %}
     <tr{% if x.trang_thai == "Ngừng" %} class="ngung"{% endif %}>
-      <td>{{ loop.index }}</td>
+      <td>{{ x.stt }}</td>
       {% if gtd %}<td>{{ frappe.utils.formatdate(x.ngay, "dd/MM/yyyy") }}</td>{% endif %}
-      {% for c in dn.cot %}
+      {% for c in cac_cot %}
         {% if c.key in luoi %}{% for o in luoi[c.key] %}<td class="l">{{ "✓" if o in (x.du_lieu[c.key] or []) else "" }}</td>{% endfor %}
         {% else %}<td class="{{ 't' if c.kieu in ('Data', 'Text', 'Link', 'User', 'Select') else '' }}">{{ x.hien[c.key] }}</td>{% endif %}
       {% endfor %}
@@ -56,6 +63,7 @@
         {%- if x.trang_thai == "Ngừng" %}<br><b>Ngừng</b>: {{ x.ly_do_ngung or "" }}{% endif %}
         {%- if x.ban_ky_tay %}<br>có bản ký tay (scan){% endif %}</td>
     </tr>
+    {% endif %}
     {% else %}
     <tr><td colspan="99">{{ "Không có dòng nào trong khoảng này." if gtd else "Danh mục chưa có dòng nào." }}</td></tr>
     {% endfor %}
@@ -67,7 +75,7 @@
       {% else %}…………………………………… &nbsp; Ngày ……/……/20……{% endif %}</td></tr>
     {% endif %}
     {% if not gtd %}
-    <tr><td class="nho">{{ ds | length }} dòng đang dùng{% if so_ngung %} · {{ so_ngung }} dòng đã ngừng (không in, xem trên app){% endif %}.</td></tr>
+    <tr><td class="nho">{{ so_dong }} dòng đang dùng{% if so_ngung %} · {{ so_ngung }} dòng đã ngừng (không in, xem trên app){% endif %}.</td></tr>
     <tr><td style="padding-top:8px"><b>Người lập</b> (ký, ghi rõ họ tên): ……………………………… &nbsp; Ngày ……/……/20……</td></tr>
     {% endif %}
   </table>

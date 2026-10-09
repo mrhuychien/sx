@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 01:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 01:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Danh Gia NCC Ho So",
+ "istable": 1,
+ "field_order": [
+  "tt",
+  "ap_dung",
+  "ket_qua",
+  "so_ngay",
+  "hieu_luc"
+ ],
+ "fields": [
+  {
+   "fieldname": "tt",
+   "fieldtype": "Int",
+   "label": "TT",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ap_dung",
+   "fieldtype": "Data",
+   "label": "Áp dụng",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Select",
+   "label": "Kết quả",
+   "options": "\nCó\nKhông\nKAD",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "so_ngay",
+   "fieldtype": "Data",
+   "label": "Số, ngày",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "hieu_luc",
+   "fieldtype": "Date",
+   "label": "Hiệu lực",
+   "in_list_view": 1
+  }
+ ],
+ "permissions": []
+}

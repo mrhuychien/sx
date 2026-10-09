@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "links": [],
- "modified": "2026-10-09 23:00:00.000000",
+ "modified": "2026-10-10 01:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "owner": "Administrator",
@@ -55,6 +55,7 @@
   "nhan_xem_thang",
   "nhac_khong_ghi_ngay",
   "tinh_toan",
+  "nhom_theo",
   "section_cot",
   "cot",
   "section_quyen",
@@ -63,6 +64,7 @@
   "column_break_2",
   "vai_xem",
   "vai_xem_thang",
+  "rieng_tu",
   "section_in",
   "dau_trang_ghi_chu",
   "ghi_chu"
@@ -147,6 +149,12 @@
    "description": "Khóa hàm có tên trong sx/qc/so.py (TINH_TOAN), vd bao_duong. Không chạy biểu thức người dùng gõ."
   },
   {
+   "fieldname": "nhom_theo",
+   "fieldtype": "Data",
+   "label": "Gom dòng bản in theo cột (khóa)",
+   "description": "Khóa một cột Select (vd nhom): bản in gom dòng theo từng lựa chọn, có dòng tiêu đề nhóm."
+  },
+  {
    "fieldname": "section_cot",
    "fieldtype": "Section Break",
    "label": "Cột"
@@ -192,6 +200,12 @@
    "label": "Vai xem xét cuối tháng (ngoài Trưởng Ban ISO)",
    "options": "SX So Vai",
    "depends_on": "xem_cuoi_thang"
+  },
+  {
+   "fieldname": "rieng_tu",
+   "fieldtype": "Check",
+   "label": "Dữ liệu cá nhân",
+   "description": "Hộp nhắc chung (ai có màn QC cũng thấy) chỉ ghi số mục và ngày hạn, không ghi nội dung dòng (họ tên…)."
   },
   {
    "fieldname": "section_in",
