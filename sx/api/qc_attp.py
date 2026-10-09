@@ -19,6 +19,7 @@ from sx.api.qc_ncc import _ds as _ds_ncc
 from sx.qc import attp as A
 from sx.qc import khac_phuc as KP
 from sx.qc import kiem_nghiem as KN
+from sx.qc import kiem_xe as KX
 from sx.qc import muc as M
 from sx.qc import nhac as NH
 from sx.qc import rework as RW
@@ -140,6 +141,18 @@ def _dong_vat(tu, den, dl):
             "khu_hai_tuan": len((dl.get("dong_vat") or {}).get("khu_hai_tuan") or [])}
 
 
+def _kiem_xe(d, tu, den, dl):
+    """Chuyến trong kỳ, xe không đạt; tuần (thứ Hai – Chủ nhật) ĐÃ HẾT có chuyến / có chuyến QC kiểm (W34) —
+    tuần đang chạy chưa tính: QC còn tới Chủ nhật."""
+    if not dl.get("kiem_xe"):         # {} = chưa migrate
+        return None
+    ds = KX.chuyen(KX.thu_hai(tu), den, ["name", "posting_date", "custom_xe_ket_luan", "custom_xe_qc_kiem"])
+    trong = [x for x in ds if getdate(tu) <= getdate(x.posting_date) <= getdate(den)]
+    tuan = KX.theo_tuan([x for x in ds if getdate(x.posting_date) < KX.thu_hai(d)])
+    return {"so_chuyen": len(trong), "khong_dat": sum(1 for x in trong if x.custom_xe_ket_luan == KX.KHONG_DAT),
+            "tuan": len(tuan), "tuan_qc": sum(1 for v in tuan.values() if v["so_qc"])}
+
+
 def _ncc(d):
     ds = _ds_ncc(d)
     return {"tong": len(ds), "duyet": sum(1 for x in ds if x["duyet"]), "thieu": sum(1 for x in ds if x["thieu"])}
@@ -186,6 +199,7 @@ def tong_quan(ngay=None):
         "vai_u": _thu(lambda: _vai_u(tu, den, dl)),
         "dong_vat": _thu(lambda: _dong_vat(tu, den, dl)),
         "ncc": _thu(lambda: _ncc(d)),
+        "kiem_xe": _thu(lambda: _kiem_xe(d, tu, den, dl)),
         "luu_mau": _thu(lambda: _luu_mau(dl)),
         "rework": _thu(lambda: _rework(tu, den)),
         "viec_dinh_ky": _thu(lambda: _viec_dinh_ky(d, dl)),

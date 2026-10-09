@@ -137,8 +137,10 @@ export async function render({ container, call, st }) {
   //  · W21 (D146) việc định kỳ cho hồ sơ giấy — việc năm / quý lên hộp nhắc.
   //  · W33 (D160) tiếp nhận nguyên liệu BM.07.03 + kiểm xe — phiếu nhập mua nháp, QC không cần Desk.
   //  · W29 (D163) sổ giặt vải ủ BM.08.05 — giặt, đun sôi ≥ 10 phút 1 lần/tuần, QC ký.
+  //  · W34 (D165) kiểm xe BM.09.01 — QC kiểm ngẫu nhiên ít nhất 1 chuyến/tuần, Trưởng Ban ISO xem tháng.
   const so = el('div', 'sx-qc-luoi-so');
   [['#/qc/tiepnhan', '📦 Tiếp nhận NL', 'BM.07.03 · phiếu nhập mua'],
+    ['#/qc/kiemxe', '🚚 Kiểm xe', 'BM.09.01 · QC ≥ 1 chuyến/tuần'],
     ['#/qc/dvgh', '🐀 Động vật gây hại', 'theo trạm · BM.PRP'],
     ['#/qc/cat', '♨ Nhật ký cát rang', 'BM.08.03 · đếm ngày cát'],
     ['#/qc/vaiu', '🧺 Sổ giặt vải ủ', 'BM.08.05 · đun sôi ≥ 10 phút'],

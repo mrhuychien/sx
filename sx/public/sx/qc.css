@@ -545,3 +545,15 @@ button.sx-qc-tag-chon {
 .sx-vu-phut { font-weight: 700; margin: 2px 0 var(--sx-s2); color: var(--sx-success-text); }
 .sx-vu-phut.sx-vu-thieu { color: var(--sx-danger-text); }
 .sx-qc-vi-o small { font-weight: 500; color: var(--sx-text-3); }
+
+/* W34 (D165): kiểm xe BM.09.01 — tuần QC kiểm, năm mục Đ / K */
+.sx-kx-tuan { display: flex; justify-content: space-between; align-items: center; gap: var(--sx-s2);
+  padding: 4px 0; border-top: 1px solid var(--sx-line); font-size: var(--sx-f-sm); flex-wrap: wrap; }
+.sx-kx-muc { margin: var(--sx-s2) 0; }
+.sx-kx-dong { display: flex; justify-content: space-between; align-items: center; gap: var(--sx-s3);
+  padding: 4px 0; border-bottom: 1px solid var(--sx-line); }
+.sx-kx-dong > div { min-width: 0; }
+.sx-kx-dk { flex: none; min-width: 32px; text-align: center; font-weight: 700; color: var(--sx-success-text); }
+.sx-kx-dk.sx-kx-k { color: #fff; background: var(--sx-danger); border-radius: var(--sx-radius-sm); }
+.sx-kx-qc { margin: var(--sx-s2) 0; padding: var(--sx-s2) var(--sx-s3); border-radius: var(--sx-radius-sm);
+  background: var(--sx-success-soft); color: var(--sx-success-text); }

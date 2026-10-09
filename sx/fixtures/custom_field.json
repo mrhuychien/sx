@@ -809,18 +809,34 @@
   "module": "QC",
   "name": "Sales Invoice-custom_xe_bien_so",
   "translatable": 0,
-  "label": "Biển số xe"
+  "label": "Biển số xe",
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_don_vi",
+  "fieldtype": "Data",
+  "insert_after": "custom_xe_bien_so",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_don_vi",
+  "translatable": 0,
+  "label": "Đơn vị vận chuyển",
+  "no_copy": 1,
+  "description": "Đơn vị VC: nhà xe thuê / khách hàng tự đến nhận / xe Công ty (QT.09 mục 5.2)"
  },
  {
   "doctype": "Custom Field",
   "dt": "Sales Invoice",
   "fieldname": "custom_xe_tai_xe",
   "fieldtype": "Data",
-  "insert_after": "custom_xe_bien_so",
+  "insert_after": "custom_xe_don_vi",
   "module": "QC",
   "name": "Sales Invoice-custom_xe_tai_xe",
   "translatable": 0,
-  "label": "Tài xế / người giao"
+  "label": "Lái xe (ký xác nhận)",
+  "no_copy": 1,
+  "description": "Tên lái xe — lái xe ký xác nhận kết quả kiểm (cột \"Lái xe ký\" BM.09.01)"
  },
  {
   "doctype": "Custom Field",
@@ -832,7 +848,9 @@
   "name": "Sales Invoice-custom_xe_sach",
   "translatable": 0,
   "label": "Thùng xe sạch, khô, không mùi lạ",
-  "options": "\nĐạt\nKhông đạt"
+  "options": "\nĐạt\nKhông đạt",
+  "no_copy": 1,
+  "depends_on": "eval:doc.custom_xe_phien_ban==1"
  },
  {
   "doctype": "Custom Field",
@@ -844,14 +862,61 @@
   "name": "Sales Invoice-custom_xe_khong_chung",
   "translatable": 0,
   "label": "Không chở chung hoá chất / hàng gây nhiễm",
-  "options": "\nĐạt\nKhông đạt"
+  "options": "\nĐạt\nKhông đạt",
+  "no_copy": 1,
+  "depends_on": "eval:doc.custom_xe_phien_ban==1"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_sach_kho",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_khong_chung",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_sach_kho",
+  "translatable": 0,
+  "label": "Sạch khô",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Thùng xe sạch, khô; không côn trùng, không nước đọng",
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_mui",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_sach_kho",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_mui",
+  "translatable": 0,
+  "label": "Mùi",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Không mùi lạ (hoá chất, xăng dầu, cá, thuốc lá)",
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_kin_che",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_mui",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_kin_che",
+  "translatable": 0,
+  "label": "Kín/che",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Kín hoặc có mui, bạt che kín mưa nắng; thùng không thủng, không dột",
+  "no_copy": 1
  },
  {
   "doctype": "Custom Field",
   "dt": "Sales Invoice",
   "fieldname": "custom_cb_kiem_xe",
   "fieldtype": "Column Break",
-  "insert_after": "custom_xe_khong_chung",
+  "insert_after": "custom_xe_kin_che",
   "module": "QC",
   "name": "Sales Invoice-custom_cb_kiem_xe",
   "translatable": 0
@@ -866,7 +931,9 @@
   "name": "Sales Invoice-custom_xe_con_trung",
   "translatable": 0,
   "label": "Không có dấu hiệu côn trùng, động vật gây hại",
-  "options": "\nĐạt\nKhông đạt"
+  "options": "\nĐạt\nKhông đạt",
+  "no_copy": 1,
+  "depends_on": "eval:doc.custom_xe_phien_ban==1"
  },
  {
   "doctype": "Custom Field",
@@ -878,20 +945,53 @@
   "name": "Sales Invoice-custom_xe_che_chan",
   "translatable": 0,
   "label": "Thùng kín / có bạt che mưa nắng",
-  "options": "\nĐạt\nKhông đạt"
+  "options": "\nĐạt\nKhông đạt",
+  "no_copy": 1,
+  "depends_on": "eval:doc.custom_xe_phien_ban==1"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_hang_chung",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_che_chan",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_hang_chung",
+  "translatable": 0,
+  "label": "Hàng chung",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Không chở chung hoá chất, phân bón, hàng có mùi, động vật, hàng bẩn; hàng khác phải khô sạch, ngăn cách",
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_san",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_hang_chung",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_san",
+  "translatable": 0,
+  "label": "Sàn",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Sàn không đinh, không vật sắc, không hàng cũ rơi vãi",
+  "no_copy": 1
  },
  {
   "doctype": "Custom Field",
   "dt": "Sales Invoice",
   "fieldname": "custom_xe_ket_luan",
   "fieldtype": "Select",
-  "insert_after": "custom_xe_che_chan",
+  "insert_after": "custom_xe_san",
   "module": "QC",
   "name": "Sales Invoice-custom_xe_ket_luan",
   "translatable": 0,
   "label": "Kết luận kiểm xe",
   "options": "\nĐạt\nKhông đạt",
-  "description": "Có mục Không đạt → tự Không đạt. Bán: chưa kiểm / Không đạt thì không duyệt được hoá đơn."
+  "description": "Có mục Không đạt → tự Không đạt. Bán: chưa kiểm / Không đạt thì không duyệt được hoá đơn.",
+  "no_copy": 1
  },
  {
   "doctype": "Custom Field",
@@ -904,7 +1004,8 @@
   "translatable": 0,
   "label": "Người kiểm xe",
   "options": "User",
-  "read_only": 1
+  "read_only": 1,
+  "no_copy": 1
  },
  {
   "doctype": "Custom Field",
@@ -915,7 +1016,96 @@
   "module": "QC",
   "name": "Sales Invoice-custom_xe_ghi_chu",
   "translatable": 0,
-  "label": "Ghi chú kiểm xe"
+  "label": "Xử lý / ghi chú kiểm xe",
+  "no_copy": 1,
+  "description": "Mục nào K: ghi xử lý — vệ sinh lại rồi kiểm lại, hoặc từ chối xe, báo QLSX, lý do"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_qc_kiem",
+  "fieldtype": "Link",
+  "insert_after": "custom_xe_ghi_chu",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_qc_kiem",
+  "translatable": 0,
+  "label": "QC kiểm (ngẫu nhiên ≥ 1 chuyến/tuần)",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1,
+  "options": "User"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_qc_luc",
+  "fieldtype": "Datetime",
+  "insert_after": "custom_xe_qc_kiem",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_qc_luc",
+  "translatable": 0,
+  "label": "QC kiểm lúc",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_qc_nhan_xet",
+  "fieldtype": "Small Text",
+  "insert_after": "custom_xe_qc_luc",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_qc_nhan_xet",
+  "translatable": 0,
+  "label": "Nhận xét QC",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_xem_boi",
+  "fieldtype": "Link",
+  "insert_after": "custom_xe_qc_nhan_xet",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_xem_boi",
+  "translatable": 0,
+  "label": "Trưởng Ban ISO xem tháng",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1,
+  "options": "User"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_xem_luc",
+  "fieldtype": "Datetime",
+  "insert_after": "custom_xe_xem_boi",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_xem_luc",
+  "translatable": 0,
+  "label": "Xem lúc",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Sales Invoice",
+  "fieldname": "custom_xe_phien_ban",
+  "fieldtype": "Int",
+  "insert_after": "custom_xe_xem_luc",
+  "module": "QC",
+  "name": "Sales Invoice-custom_xe_phien_ban",
+  "translatable": 0,
+  "label": "Phiên bản mục kiểm xe",
+  "hidden": 1,
+  "read_only": 1,
+  "no_copy": 1,
+  "description": "1 = bốn mục cũ (trước D165), 2 = năm mục QT.09 lần BH 01"
  },
  {
   "doctype": "Custom Field",
@@ -938,18 +1128,34 @@
   "module": "QC",
   "name": "Purchase Receipt-custom_xe_bien_so",
   "translatable": 0,
-  "label": "Biển số xe"
+  "label": "Biển số xe",
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_don_vi",
+  "fieldtype": "Data",
+  "insert_after": "custom_xe_bien_so",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_don_vi",
+  "translatable": 0,
+  "label": "Đơn vị vận chuyển",
+  "no_copy": 1,
+  "description": "Đơn vị VC: nhà xe thuê / khách hàng tự đến nhận / xe Công ty (QT.09 mục 5.2)"
  },
  {
   "doctype": "Custom Field",
   "dt": "Purchase Receipt",
   "fieldname": "custom_xe_tai_xe",
   "fieldtype": "Data",
-  "insert_after": "custom_xe_bien_so",
+  "insert_after": "custom_xe_don_vi",
   "module": "QC",
   "name": "Purchase Receipt-custom_xe_tai_xe",
   "translatable": 0,
-  "label": "Tài xế / người giao"
+  "label": "Lái xe (ký xác nhận)",
+  "no_copy": 1,
+  "description": "Tên lái xe — lái xe ký xác nhận kết quả kiểm (cột \"Lái xe ký\" BM.09.01)"
  },
  {
   "doctype": "Custom Field",
@@ -961,7 +1167,9 @@
   "name": "Purchase Receipt-custom_xe_sach",
   "translatable": 0,
   "label": "Thùng xe sạch, khô, không mùi lạ",
-  "options": "\nĐạt\nKhông đạt"
+  "options": "\nĐạt\nKhông đạt",
+  "no_copy": 1,
+  "depends_on": "eval:doc.custom_xe_phien_ban==1"
  },
  {
   "doctype": "Custom Field",
@@ -973,14 +1181,61 @@
   "name": "Purchase Receipt-custom_xe_khong_chung",
   "translatable": 0,
   "label": "Không chở chung hoá chất / hàng gây nhiễm",
-  "options": "\nĐạt\nKhông đạt"
+  "options": "\nĐạt\nKhông đạt",
+  "no_copy": 1,
+  "depends_on": "eval:doc.custom_xe_phien_ban==1"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_sach_kho",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_khong_chung",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_sach_kho",
+  "translatable": 0,
+  "label": "Sạch khô",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Thùng xe sạch, khô; không côn trùng, không nước đọng",
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_mui",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_sach_kho",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_mui",
+  "translatable": 0,
+  "label": "Mùi",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Không mùi lạ (hoá chất, xăng dầu, cá, thuốc lá)",
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_kin_che",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_mui",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_kin_che",
+  "translatable": 0,
+  "label": "Kín/che",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Kín hoặc có mui, bạt che kín mưa nắng; thùng không thủng, không dột",
+  "no_copy": 1
  },
  {
   "doctype": "Custom Field",
   "dt": "Purchase Receipt",
   "fieldname": "custom_cb_kiem_xe",
   "fieldtype": "Column Break",
-  "insert_after": "custom_xe_khong_chung",
+  "insert_after": "custom_xe_kin_che",
   "module": "QC",
   "name": "Purchase Receipt-custom_cb_kiem_xe",
   "translatable": 0
@@ -995,7 +1250,9 @@
   "name": "Purchase Receipt-custom_xe_con_trung",
   "translatable": 0,
   "label": "Không có dấu hiệu côn trùng, động vật gây hại",
-  "options": "\nĐạt\nKhông đạt"
+  "options": "\nĐạt\nKhông đạt",
+  "no_copy": 1,
+  "depends_on": "eval:doc.custom_xe_phien_ban==1"
  },
  {
   "doctype": "Custom Field",
@@ -1007,20 +1264,53 @@
   "name": "Purchase Receipt-custom_xe_che_chan",
   "translatable": 0,
   "label": "Thùng kín / có bạt che mưa nắng",
-  "options": "\nĐạt\nKhông đạt"
+  "options": "\nĐạt\nKhông đạt",
+  "no_copy": 1,
+  "depends_on": "eval:doc.custom_xe_phien_ban==1"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_hang_chung",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_che_chan",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_hang_chung",
+  "translatable": 0,
+  "label": "Hàng chung",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Không chở chung hoá chất, phân bón, hàng có mùi, động vật, hàng bẩn; hàng khác phải khô sạch, ngăn cách",
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_san",
+  "fieldtype": "Select",
+  "insert_after": "custom_xe_hang_chung",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_san",
+  "translatable": 0,
+  "label": "Sàn",
+  "options": "\nĐạt\nKhông đạt",
+  "depends_on": "eval:doc.custom_xe_phien_ban!=1",
+  "description": "Sàn không đinh, không vật sắc, không hàng cũ rơi vãi",
+  "no_copy": 1
  },
  {
   "doctype": "Custom Field",
   "dt": "Purchase Receipt",
   "fieldname": "custom_xe_ket_luan",
   "fieldtype": "Select",
-  "insert_after": "custom_xe_che_chan",
+  "insert_after": "custom_xe_san",
   "module": "QC",
   "name": "Purchase Receipt-custom_xe_ket_luan",
   "translatable": 0,
   "label": "Kết luận kiểm xe",
   "options": "\nĐạt\nKhông đạt",
-  "description": "Có mục Không đạt → tự Không đạt và mọi dòng hàng chuyển Cách ly (vào kho cách ly)."
+  "description": "Có mục Không đạt → tự Không đạt và mọi dòng hàng chuyển Cách ly (vào kho cách ly).",
+  "no_copy": 1
  },
  {
   "doctype": "Custom Field",
@@ -1033,7 +1323,8 @@
   "translatable": 0,
   "label": "Người kiểm xe",
   "options": "User",
-  "read_only": 1
+  "read_only": 1,
+  "no_copy": 1
  },
  {
   "doctype": "Custom Field",
@@ -1044,7 +1335,96 @@
   "module": "QC",
   "name": "Purchase Receipt-custom_xe_ghi_chu",
   "translatable": 0,
-  "label": "Ghi chú kiểm xe"
+  "label": "Xử lý / ghi chú kiểm xe",
+  "no_copy": 1,
+  "description": "Mục nào K: ghi xử lý — vệ sinh lại rồi kiểm lại, hoặc từ chối xe, báo QLSX, lý do"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_qc_kiem",
+  "fieldtype": "Link",
+  "insert_after": "custom_xe_ghi_chu",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_qc_kiem",
+  "translatable": 0,
+  "label": "QC kiểm (ngẫu nhiên ≥ 1 chuyến/tuần)",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1,
+  "options": "User"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_qc_luc",
+  "fieldtype": "Datetime",
+  "insert_after": "custom_xe_qc_kiem",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_qc_luc",
+  "translatable": 0,
+  "label": "QC kiểm lúc",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_qc_nhan_xet",
+  "fieldtype": "Small Text",
+  "insert_after": "custom_xe_qc_luc",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_qc_nhan_xet",
+  "translatable": 0,
+  "label": "Nhận xét QC",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_xem_boi",
+  "fieldtype": "Link",
+  "insert_after": "custom_xe_qc_nhan_xet",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_xem_boi",
+  "translatable": 0,
+  "label": "Trưởng Ban ISO xem tháng",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1,
+  "options": "User"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_xem_luc",
+  "fieldtype": "Datetime",
+  "insert_after": "custom_xe_xem_boi",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_xem_luc",
+  "translatable": 0,
+  "label": "Xem lúc",
+  "read_only": 1,
+  "allow_on_submit": 1,
+  "no_copy": 1
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Purchase Receipt",
+  "fieldname": "custom_xe_phien_ban",
+  "fieldtype": "Int",
+  "insert_after": "custom_xe_xem_luc",
+  "module": "QC",
+  "name": "Purchase Receipt-custom_xe_phien_ban",
+  "translatable": 0,
+  "label": "Phiên bản mục kiểm xe",
+  "hidden": 1,
+  "read_only": 1,
+  "no_copy": 1,
+  "description": "1 = bốn mục cũ (trước D165), 2 = năm mục QT.09 lần BH 01"
  },
  {
   "doctype": "Custom Field",

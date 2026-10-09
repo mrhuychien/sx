@@ -45,7 +45,7 @@ kiem("mục nhắc vào đúng thẻ theo `nhom`; mảng không số liệu vẫ
 kiem("thẻ đỏ lên đầu, rồi vàng, rồi xanh; cùng màu giữ thứ tự danh mục; việc mức cao đứng trước",
      [x["ma"] for x in r["linh_vuc"]][:2] == ["thiet_bi", "cat"]
      and [x["ma"] for x in r["linh_vuc"]][2:] == [m for m in MA if m not in ("thiet_bi", "cat")]
-     and th["thiet_bi"]["nhac"][0]["muc_do"] == "cao" and r["dem"] == {"do": 1, "vang": 1, "xanh": 13})
+     and th["thiet_bi"]["nhac"][0]["muc_do"] == "cao" and r["dem"] == {"do": 1, "vang": 1, "xanh": len(MA) - 2})
 kiem("số kiểu tờ giấy: 99.25 → 99,25; 15.0 → 15", A._so(99.25) == "99,25" and A._so(15.0) == "15")
 
 
@@ -229,8 +229,11 @@ kiem("việc định kỳ: 1 quá hạn → Đỏ; 'tiếp theo' là việc chư
 kiem("vải ủ (W29): chưa khai vải, chưa ghi sổ giặt → '–', không nhắc gì (C31) → Xanh",
      th["vai_u"]["so"] == "–" and th["vai_u"]["den"] == A.XANH and th["vai_u"]["bieu_mau"] == "BM.08.05",
      th["vai_u"])
-kiem("đếm đèn 5 đỏ · 4 vàng · 6 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
-     r["dem"] == {"do": 5, "vang": 4, "xanh": 6}
+kiem("kiểm xe (W34): chưa có chuyến nào ghi kiểm xe → '–', không nhắc gì → Xanh",
+     th["kiem_xe"]["so"] == "–" and th["kiem_xe"]["den"] == A.XANH and th["kiem_xe"]["bieu_mau"] == "BM.09.01"
+     and th["kiem_xe"]["route"] == "#/qc/kiemxe", th["kiem_xe"])
+kiem("đếm đèn 5 đỏ · 4 vàng · 7 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
+     r["dem"] == {"do": 5, "vang": 4, "xanh": 7}
      and [x["ma"] for x in r["linh_vuc"][:5]] == ["su_co", "xuat_xuong", "truy_xuat", "kiem_nghiem", "viec_dinh_ky"],
      r["dem"])
 F.vai("SX QC")
@@ -260,6 +263,29 @@ c = {x["ma"]: x for x in API.tong_quan()["linh_vuc"]}["cat"]
 kiem("cát đã loại, chưa ghi cát mới → thẻ cát '–', nói không có cát đang dùng",
      c["so"] == "–" and "không có cát đang dùng" in c["nhan_so"], c)
 F.bang("SX Nhat Ky Cat").pop("CAT-2")
+
+# W34 (D165): kiểm xe — tuần ĐÃ HẾT có chuyến / có chuyến QC kiểm; tuần đang chạy chưa tính vào tỉ số.
+def _xe(dt, ten, ngay, **k):
+    F.bang(dt)[ten] = {"name": ten, "posting_date": ngay, "docstatus": 1, "is_return": 0, "update_stock": 1,
+                       "custom_xe_ket_luan": "Đạt", **k}
+
+
+_xe("Sales Invoice", "SI-1", "2026-09-16")                                   # tuần 14/09: không QC
+_xe("Sales Invoice", "SI-2", "2026-09-30", custom_xe_qc_kiem="qc@x")         # tuần 28/09: có QC
+_xe("Purchase Receipt", "PR-1", "2026-10-01", custom_xe_ket_luan="Không đạt")
+_xe("Sales Invoice", "SI-3", "2026-10-06")                                   # tuần này: chưa tính
+_xe("Sales Invoice", "SI-4", "2026-09-02")                                   # tuần 31/08: ngoài kỳ
+_xe("Sales Invoice", "SI-7", "2026-09-08")              # tuần 07/09 (tuần đầu kỳ): tính tuần, không tính chuyến
+_xe("Sales Invoice", "SI-5", "2026-10-02", is_return=1)                      # trả hàng: không phải chuyến
+_xe("Sales Invoice", "SI-6", "2026-10-02", update_stock=0)                   # không trừ kho
+k = {x["ma"]: x for x in API.tong_quan()["linh_vuc"]}["kiem_xe"]
+kiem("kiểm xe: 1/3 tuần đã hết có QC kiểm; 4 chuyến trong kỳ, 1 xe không đạt; tuần này chưa QC, tháng 9 "
+     "chưa xem (đã qua ngày 5) → Vàng, hai nhắc",
+     k["so"] == "1/3" and k["dong"] == ["4 chuyến · 1 xe không đạt"] and k["den"] == A.VANG
+     and [x["tieu_de"] for x in k["nhac"]] == ["Tuần này 1 chuyến hàng, chưa chuyến nào QC kiểm xe",
+                                               "Kiểm xe BM.09.01 tháng 09/2026 chưa được Trưởng Ban ISO xem"], k)
+for b in ("Sales Invoice", "Purchase Receipt"):
+    F.bang(b).clear()
 
 # ═══ 3. Một mảng hỏng không làm trống cả màn; quyền ══════════════════════
 print("\n-- mảng lỗi, quyền --")

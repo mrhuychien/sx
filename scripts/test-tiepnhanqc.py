@@ -158,8 +158,10 @@ kiem("NCC: loại, nguồn, đã duyệt, phiếu kiểm nghiệm năm còn hạ
 kiem("dòng hàng: số lượng, kho; sữa (nhóm con của 'Phụ liệu bột') bắt buộc COA; đỗ phải có aflatoxin",
      (p["dong"][0]["qty"], p["dong"][0]["kho"], p["dong"][0]["can_coa"], p["dong"][0]["can_aflatoxin"],
       p["dong"][1]["can_coa"], p["dong"][1]["can_aflatoxin"]) == (50, "Kho NVL - HG", True, False, False, True))
-kiem("kiểm xe: áp dụng, đúng các mục của sx/qc/kiem_xe.py", p["xe"]["ap_dung"] is True
-     and [m["f"] for m in p["xe"]["muc"]] == [f for f, _n in KX.MUC])
+kiem("kiểm xe: áp dụng, năm mục hiện hành của sx/qc/kiem_xe.py (phiên bản 2), tên cột + yêu cầu",
+     p["xe"]["ap_dung"] is True and p["xe"]["pb"] == 2
+     and [(m["f"], m["nhan"], m["yc"]) for m in p["xe"]["muc"]] == list(KX.MUC)
+     and "custom_xe_don_vi" in p["xe"] and p["xe"]["qc_kiem"] == "")
 kiem("QC sửa được phiếu nháp, thêm ảnh được", p["sua"] and p["them_anh"])
 F.bang("Stock Entry")["SE-1"] = {"name": "SE-1", "docstatus": 0, "items": []}
 kiem("chứng từ khác phiếu mua (có thật) → chặn", "phiếu nhập mua" in (thu(lambda: A.xem_phieu("Stock Entry", "SE-1")) or ""))
@@ -184,8 +186,8 @@ def luu(ten, dong=None, xe=None, dt="Purchase Receipt", **k):
     return A.luu_phieu(dt, ten, json.dumps(p))
 
 
-XE_DAT = {"custom_xe_bien_so": "29C-123.45", "custom_xe_tai_xe": "Anh Ba",
-          **{f: "Đạt" for f, _n in KX.MUC}}
+XE_DAT = {"custom_xe_bien_so": "29C-123.45", "custom_xe_don_vi": "Nhà xe Minh Phát", "custom_xe_tai_xe": "Anh Ba",
+          **{f: "Đạt" for f, _c, _y in KX.MUC}}
 r = luu("PR-1", [{"name": "PR-1-1", "custom_ncc_lo": " L2610 ", "custom_co_cq": "Có", "custom_coa_vi_sinh": "Có",
                   "custom_cam_quan_dat": "Đạt", "custom_ket_luan": "Đạt", "qty": 1, "rate": 1, "warehouse": "Kho X"}],
         xe=XE_DAT, ghi_chu_qc="Hàng khô, bao nguyên")
@@ -195,7 +197,11 @@ kiem("ghi đúng ô QC của dòng (lô NCC cắt khoảng trắng), KHÔNG đ�
       pr["items"][0]["warehouse"]) == ("L2610", "Đạt", 50, 120000, "Kho NVL - HG"), pr["items"][0])
 kiem("ghi người kiểm, ghi chú QC; kiểm xe đủ mục Đạt → kết luận xe Đạt, người kiểm xe = QC",
      (pr["custom_nguoi_kiem"], pr["custom_ghi_chu_qc"], pr["custom_xe_ket_luan"], pr["custom_xe_nguoi_kiem"],
-      pr["custom_xe_bien_so"]) == ("qc@x", "Hàng khô, bao nguyên", "Đạt", "qc@x", "29C-123.45"))
+      pr["custom_xe_bien_so"], pr["custom_xe_don_vi"]) == ("qc@x", "Hàng khô, bao nguyên", "Đạt", "qc@x", "29C-123.45",
+                                                          "Nhà xe Minh Phát"))
+kiem("W34: QC kiểm xe nguyên liệu cùng lúc BM.07.03 → tính là chuyến QC kiểm (dấu người + giờ), phiên bản 2",
+     (pr["custom_xe_qc_kiem"], str(pr["custom_xe_qc_luc"])[:16], pr["custom_xe_phien_ban"])
+     == ("qc@x", "2026-10-09 10:00", 2) and r["xe"]["qc_kiem"] == "qc@x" and r["xe"]["qc_luc"] == "2026-10-09 10:00")
 kiem("luật giấy tờ chạy khi lưu: dòng sữa ghi 'Giấy tờ lô' theo phiếu kiểm nghiệm năm của NCC",
      "PKN-26/01" in (pr["items"][0].get("custom_giay_to") or "") and "PKN-26/01" in r["dong"][0]["giay_to"])
 kiem("… dòng đỗ (nhóm phải có aflatoxin, chưa ghi) vẫn Cách ly ở kho cách ly, NÓI lý do trong kết quả",
@@ -208,17 +214,20 @@ kiem("đủ kết luận + đã kiểm xe → chuyển xuống 'đã kiểm đ�
      and [y["name"] for y in dl["ds"]] == ["PI-1", "PR-1"])
 phieu("PR-3", ngay="2026-10-09")
 luu("PR-3", [{"name": "PR-3-1", "custom_ket_luan": "Đạt", "custom_coa_vi_sinh": "Có", "custom_cam_quan_dat": "Đạt"},
-             {"name": "PR-3-2", "custom_ket_luan": "Đạt", "custom_aflatoxin": "Có", "custom_cam_quan_dat": "Đạt"}])
+             {"name": "PR-3-2", "custom_ket_luan": "Đạt", "custom_aflatoxin": "Có", "custom_cam_quan_dat": "Đạt"}],
+    xe={f: "" for f in XE_DAT})          # màn luôn gửi khối xe — ở đây QC chưa chấm gì
 x = next(x for x in A.ds_tiep_nhan()["ds"] if x["name"] == "PR-3")
 kiem("đủ kết luận, có người kiểm nhưng CHƯA kiểm xe (NCC thực phẩm) → vẫn 'chờ kiểm'",
      (x["da_kl"], x["nguoi_kiem"], x["xe_kl"], x["xong"]) == (2, "qc@x", "", False), x)
+kiem("… lưu mà khối xe còn trống → chưa có dấu QC kiểm xe", not F.bang("Purchase Receipt")["PR-3"].get("custom_xe_qc_kiem"))
 luu("PR-3", xe=XE_DAT)
 kiem("… kiểm xe xong → 'đã kiểm đủ'", next(x for x in A.ds_tiep_nhan()["ds"] if x["name"] == "PR-3")["xong"] is True)
 F.vai("SX QC", u="qc2@x")
-luu("PR-3", xe={"custom_xe_sach": "Không đạt", "custom_xe_ghi_chu": "Kiểm lại: sàn xe ướt"})
-kiem("QC khác kiểm lại xe → người kiểm xe là người vừa kiểm (không giữ tên người trước)",
+luu("PR-3", xe={"custom_xe_san": "Không đạt", "custom_xe_ghi_chu": "Kiểm lại: sàn xe ướt"})
+kiem("QC khác kiểm lại xe → người kiểm xe là người vừa kiểm (không giữ tên người trước); dấu QC kiểm giữ lần đầu",
      (F.bang("Purchase Receipt")["PR-3"]["custom_xe_nguoi_kiem"],
-      F.bang("Purchase Receipt")["PR-3"]["custom_xe_ket_luan"]) == ("qc2@x", "Không đạt"))
+      F.bang("Purchase Receipt")["PR-3"]["custom_xe_ket_luan"],
+      F.bang("Purchase Receipt")["PR-3"]["custom_xe_qc_kiem"]) == ("qc2@x", "Không đạt", "qc@x"))
 F.vai("SX QC")
 F.bang("Purchase Receipt").pop("PR-3")
 frappe.local.message_log[:] = [{"message": "cũ"}, {"message": "<b>Dòng 1</b> (SUA):<br>chuyển <i>Cách ly</i>"},
@@ -244,12 +253,25 @@ r = luu("PR-1", [{"name": "PR-1-1", "custom_coa_vi_sinh": "Không"}])
 kiem("sữa (nhóm bắt buộc COA) mà COA = Không → ép Cách ly, nói lý do",
      r["dong"][0]["custom_ket_luan"] == "Cách ly" and any("COA" in b for b in r["bao"]), r["bao"])
 r = luu("PR-1", [{"name": "PR-1-1", "custom_coa_vi_sinh": "Có", "custom_ket_luan": "Đạt"},
-                 {"name": "PR-1-2", "custom_ket_luan": "Đạt"}], xe={"custom_xe_che_chan": "Không đạt"})
+                 {"name": "PR-1-2", "custom_ket_luan": "Đạt"}],
+        xe={"custom_xe_kin_che": "Không đạt", "custom_xe_ghi_chu": "Bạt rách, hàng ướt — cách ly, báo QLSX"})
 kiem("xe giao hàng Không đạt (một mục) → kết luận xe Không đạt, MỌI dòng Cách ly vào kho cách ly",
      r["xe"]["custom_xe_ket_luan"] == "Không đạt" and all(d["custom_ket_luan"] == "Cách ly" for d in r["dong"])
      and all(d["kho"] == "Kho cách ly - HG" for d in r["dong"])
      and any("KHÔNG ĐẠT" in b for b in r["bao"]), r["bao"])
-kiem("kiểm xe giá trị lạ → chặn", thu(lambda: luu("PR-1", xe={"custom_xe_sach": "Tốt"})) is not None)
+kiem("kiểm xe giá trị lạ → chặn", thu(lambda: luu("PR-1", xe={"custom_xe_sach_kho": "Tốt"})) is not None)
+phieu("PR-4", ngay="2026-10-09")
+r = luu("PR-4", xe=dict(XE_DAT, custom_xe_sach="Không đạt"))
+kiem("phiếu năm mục: ô bộ mục cũ gửi kèm bị bỏ qua (không ghi, không làm đổi kết luận)",
+     r["xe"]["custom_xe_ket_luan"] == "Đạt" and not F.bang("Purchase Receipt")["PR-4"].get("custom_xe_sach"))
+phieu("PR-5", ngay="2026-10-09", custom_xe_phien_ban=1, custom_xe_bien_so="15C-1", custom_xe_sach="Đạt")
+p5 = A.xem_phieu("Purchase Receipt", "PR-5")
+r = luu("PR-5", xe={"custom_xe_con_trung": "Không đạt", "custom_xe_san": "Đạt"})
+kiem("phiếu ghi trước D165 (phiên bản 1): màn hiện bốn mục cũ, ghi đúng ô cũ → kết luận theo mục cũ",
+     p5["xe"]["pb"] == 1 and [m["f"] for m in p5["xe"]["muc"]] == [f for f, _c, _y in KX.MUC_THEO_PB[1]]
+     and r["xe"]["custom_xe_ket_luan"] == "Không đạt" and not F.bang("Purchase Receipt")["PR-5"].get("custom_xe_san"))
+for n in ("PR-4", "PR-5"):
+    F.bang("Purchase Receipt").pop(n)
 kiem("hoá đơn mua trừ kho: ghi được phần QC (không có kiểm xe)",
      luu("PI-1", [{"name": "PI-1-1", "custom_ket_luan": "Đạt", "custom_cam_quan_dat": "Đạt", "custom_coa_vi_sinh": "Có"}],
          dt="Purchase Invoice", xe=XE_DAT)["dong"][0]["custom_ket_luan"] == "Đạt"

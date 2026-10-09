@@ -353,10 +353,14 @@ python3 scripts/test-ncc.py > /tmp/sx-ncc.log 2>&1 \
   || { cat /tmp/sx-ncc.log; loi=1; }
 
 # D139 (W14): kiểm xe BM.09.01. Bán bằng xe không đạt, mục hỏng mà kết luận Đạt, xe nhận
-# hàng bẩn mà lô vẫn vào kho dùng — đều im lặng.
+# hàng bẩn mà lô vẫn vào kho dùng — đều im lặng. D165 (W34): năm mục có phiên bản (chuyến cũ giữ bốn mục),
+# tuần không chuyến nào QC kiểm, ký bù chuyến cũ, tháng Trưởng Ban ISO chưa xem.
 python3 scripts/test-kiemxe.py > /tmp/sx-kiemxe.log 2>&1 \
   && tail -1 /tmp/sx-kiemxe.log \
   || { cat /tmp/sx-kiemxe.log; loi=1; }
+node scripts/test-kiemxe.mjs > /tmp/sx-kiemxe-js.log 2>&1 \
+  && tail -1 /tmp/sx-kiemxe-js.log \
+  || { cat /tmp/sx-kiemxe-js.log; loi=1; }
 
 # D140 (W15): động vật gây hại theo trạm. Khu dấu hiệu hai tuần liền không ai nhắc, chuỗi
 # giữa tháng rơi khỏi BM.PRP.01, mã quét ở máy lệch mã ở server — đều im lặng.

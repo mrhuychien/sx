@@ -35,6 +35,7 @@ LINH_VUC = (
     ("vai_u", "Vải ủ", "BM.08.05", "#/qc/vaiu"),
     ("dong_vat", "Động vật gây hại", "BM.PRP.01 / 03", "#/qc/dvgh"),
     ("ncc", "Nhà cung cấp", "BM.07.02", "#/qc/review"),
+    ("kiem_xe", "Kiểm tra xe", "BM.09.01", "#/qc/kiemxe"),
     ("luu_mau", "Lưu mẫu", "", "#/qc/luumau"),
     ("rework", "Rework", "BM.15.01", "#/qc/rework"),
     ("viec_dinh_ky", "Việc định kỳ", "", "#/qc/lichviec"),
@@ -176,6 +177,14 @@ def _vai_u(s):
     return {"so": str(s.get("so_lan", 0)), "nhan_so": "lần giặt trong kỳ", "dong": dong}
 
 
+def _kiem_xe(s):
+    n = int(s.get("so_chuyen") or 0)
+    if not n and not s.get("tuan"):
+        return {"so": "–", "nhan_so": "chưa có chuyến nào ghi kiểm xe", "dong": []}
+    return {"so": f"{s.get('tuan_qc', 0)}/{s.get('tuan', 0)}", "nhan_so": "tuần có chuyến được QC kiểm xe",
+            "dong": [f"{n} chuyến · {s.get('khong_dat', 0)} xe không đạt"]}
+
+
 def _dong_vat(s):
     k = int(s.get("khu_hai_tuan") or 0)
     return {"so": str(s.get("dau_hieu", 0)), "nhan_so": "lần thấy dấu hiệu trong kỳ",
@@ -215,7 +224,8 @@ def _viec_dinh_ky(s):
 
 THE = {"vong_kiem": _vong_kiem, "su_co": _su_co, "khac_phuc": _khac_phuc, "xuat_xuong": _xuat_xuong,
        "thiet_bi": _thiet_bi,
-       "kiem_nghiem": _kiem_nghiem, "cat": _cat, "vai_u": _vai_u, "dong_vat": _dong_vat, "luu_mau": _luu_mau,
+       "kiem_nghiem": _kiem_nghiem, "cat": _cat, "vai_u": _vai_u, "dong_vat": _dong_vat, "kiem_xe": _kiem_xe,
+       "luu_mau": _luu_mau,
        "rework": _rework, "viec_dinh_ky": _viec_dinh_ky}
 THE_ROUTE = {"khieu_nai": _khieu_nai, "truy_xuat": _truy_xuat, "ncc": _ncc}
 

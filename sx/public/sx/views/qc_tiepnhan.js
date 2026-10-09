@@ -96,8 +96,10 @@ function khoiXe(xe, khoa) {
   box.appendChild(el('div', 'sx-field-label', `Kiểm xe BM.09.01${xe.ap_dung ? '' : ' (không bắt buộc với NCC này)'}`));
   const hang = el('div', 'sx-xx-ngay');
   hang.appendChild(oChu('Biển số xe', xe.custom_xe_bien_so, (v) => { xe.custom_xe_bien_so = v; }, khoa, 'vd 29C-123.45'));
-  hang.appendChild(oChu('Tài xế / người giao', xe.custom_xe_tai_xe, (v) => { xe.custom_xe_tai_xe = v; }, khoa));
+  hang.appendChild(oChu('Đơn vị vận chuyển', xe.custom_xe_don_vi, (v) => { xe.custom_xe_don_vi = v; }, khoa, 'nhà xe / NCC tự chở'));
   box.appendChild(hang);
+  // W34 (D165): "lái xe ký" = tên lái xe — lái xe ký xác nhận kết quả kiểm (QT.09 mục 5.2).
+  box.appendChild(oChu('Lái xe (ký xác nhận)', xe.custom_xe_tai_xe, (v) => { xe.custom_xe_tai_xe = v; }, khoa));
   const kl = el('div');
   const veKl = () => {
     kl.innerHTML = '';
@@ -106,7 +108,7 @@ function khoiXe(xe, khoa) {
       xe.custom_xe_ket_luan === KHONG_DAT ? 'xe không đạt → mọi dòng Cách ly' : ''));
   };
   xe.muc.forEach((m) => {
-    box.appendChild(oChon(m.nhan, [DAT, KHONG_DAT], xe[m.f], (v) => {
+    box.appendChild(oChon(m.yc && m.yc !== m.nhan ? `${m.nhan} — ${m.yc}` : m.nhan, [DAT, KHONG_DAT], xe[m.f], (v) => {
       xe[m.f] = v;
       const moi = ketLuanXe(xe.muc.map((x) => xe[x.f] || ''), xe.custom_xe_ket_luan);
       if (moi !== xe.custom_xe_ket_luan) { xe.custom_xe_ket_luan = moi; veKl(); }
@@ -114,7 +116,12 @@ function khoiXe(xe, khoa) {
   });
   veKl();
   box.appendChild(kl);
-  box.appendChild(oChu('Ghi chú kiểm xe', xe.custom_xe_ghi_chu, (v) => { xe.custom_xe_ghi_chu = v; }, khoa));
+  box.appendChild(oChu('Xử lý / ghi chú kiểm xe (mục nào K: ghi xử lý)', xe.custom_xe_ghi_chu,
+    (v) => { xe.custom_xe_ghi_chu = v; }, khoa));
+  if (xe.qc_kiem) {
+    box.appendChild(el('div', 'sx-qc-goiy', `QC kiểm: ${esc(xe.qc_kiem.split('@')[0])} · ${esc(xe.qc_luc.slice(8, 10))}/`
+      + `${esc(xe.qc_luc.slice(5, 7))} ${esc(xe.qc_luc.slice(11, 16))} — tính là chuyến QC kiểm trong tuần (QT.09).`));
+  }
   return box;
 }
 
@@ -249,7 +256,8 @@ export function moPhieu(d, api) {
       };
       if (f.xe) {
         goi.xe = {};
-        ['custom_xe_bien_so', 'custom_xe_tai_xe', 'custom_xe_ghi_chu', 'custom_xe_ket_luan', ...f.xe.muc.map((x) => x.f)]
+        ['custom_xe_bien_so', 'custom_xe_don_vi', 'custom_xe_tai_xe', 'custom_xe_ghi_chu', 'custom_xe_ket_luan',
+          ...f.xe.muc.map((x) => x.f)]
           .forEach((k) => { goi.xe[k] = f.xe[k] || ''; });
       }
       try {

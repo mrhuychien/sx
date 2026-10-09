@@ -45,10 +45,12 @@ const MAN = {
   tiepnhan: '/assets/sx/sx/views/qc_tiepnhan.js',
   // W29 (D163): sổ giặt vải ủ BM.08.05 — nút cuối Hôm nay, cạnh nhật ký cát.
   vaiu: '/assets/sx/sx/views/qc_vaiu.js',
+  // W34 (D165): kiểm xe BM.09.01 — QC kiểm ngẫu nhiên 1 chuyến/tuần, Trưởng Ban ISO xem tháng.
+  kiemxe: '/assets/sx/sx/views/qc_kiemxe.js',
 };
 
 // Sổ mở từ lưới nút cuối màn Hôm nay — tab "Hôm nay" sáng khi đang ở các màn này.
-const SO_HOM_NAY = ['tiepnhan', 'dvgh', 'cat', 'vaiu', 'thietbi', 'kiemnghiem', 'rework', 'lichviec'];
+const SO_HOM_NAY = ['tiepnhan', 'kiemxe', 'dvgh', 'cat', 'vaiu', 'thietbi', 'kiemnghiem', 'rework', 'lichviec'];
 // Màn con của tab "Xem xét": tổng quan ATTP (W22), xem xét tháng, báo cáo (W25), hồ sơ đánh giá (W27).
 const XEM_XET = ['attp', 'review', 'baocao', 'hoso'];
 

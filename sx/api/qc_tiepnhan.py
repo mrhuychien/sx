@@ -21,7 +21,7 @@ import re
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, cint, flt, getdate, nowdate
+from frappe.utils import add_days, cint, flt, getdate, now_datetime, nowdate
 
 from sx.api.qc import ANH_BYTE_TOI_DA, ANH_MOT_LAN, GHI_DUOC, _guard_ghi, _guard_qc, _kieu_anh, _roles, _sieu
 from sx.qc import kiem_xe as KX
@@ -43,8 +43,9 @@ O_DONG = {
     "custom_cam_quan_dat": ("", TN.DAT, TN.KHONG_DAT),
     "custom_ket_luan": ("", TN.DAT, TN.KHONG_DAT, TN.CACH_LY),
 }
-XE_CHU = ("custom_xe_bien_so", "custom_xe_tai_xe", "custom_xe_ghi_chu")
-XE_CHON = tuple(f for f, _n in KX.MUC) + ("custom_xe_ket_luan",)
+XE_CHU = ("custom_xe_bien_so", "custom_xe_don_vi", "custom_xe_tai_xe", "custom_xe_ghi_chu")
+# Ô lựa chọn Đạt / Không đạt của mọi phiên bản bộ mục (W34, D165) — mỗi phiếu chỉ ghi các mục của phiên bản nó.
+XE_CHON = tuple(f for pb in sorted(KX.MUC_THEO_PB) for f, _c, _y in KX.MUC_THEO_PB[pb]) + ("custom_xe_ket_luan",)
 
 
 def _duoc_ghi():
@@ -140,9 +141,12 @@ def _dict(doc, bao=None):
         dong.append(d)
     xe = None
     if doc.doctype == "Purchase Receipt":
-        xe = {"ap_dung": KX.ap_dung(doc), "muc": [{"f": f, "nhan": n} for f, n in KX.MUC],
-              "nguoi_kiem": doc.get("custom_xe_nguoi_kiem") or ""}
-        for f in XE_CHU + XE_CHON:
+        muc = KX.muc(doc)
+        xe = {"ap_dung": KX.ap_dung(doc), "pb": KX.phien_ban(doc),
+              "muc": [{"f": f, "nhan": c, "yc": y} for f, c, y in muc],
+              "nguoi_kiem": doc.get("custom_xe_nguoi_kiem") or "", "qc_kiem": doc.get("custom_xe_qc_kiem") or "",
+              "qc_luc": str(doc.get("custom_xe_qc_luc") or "")[:16]}
+        for f in XE_CHU + tuple(f for f, _c, _y in muc) + ("custom_xe_ket_luan",):
             xe[f] = doc.get(f) or ""
     return {
         "doctype": doc.doctype, "name": doc.name, "docstatus": doc.docstatus,
@@ -224,12 +228,17 @@ def luu_phieu(doctype, name, payload):
         for f in XE_CHU:
             if f in xe:
                 doc.set(f, str(xe.get(f) or "").strip()[:140] or None)
-        for f in XE_CHON:
+        chon = tuple(f for f, _c, _y in KX.muc(doc)) + ("custom_xe_ket_luan",)
+        for f in chon:          # chỉ các mục của phiên bản phiếu (D165) — ô của bộ khác bỏ qua
             if f in xe:
                 if (xe.get(f) or "") not in ("", KX.DAT, KX.KHONG_DAT):
                     frappe.throw(_("Kiểm xe: giá trị không hợp lệ — {0}.").format(xe.get(f)))
                 doc.set(f, xe.get(f) or None)
         doc.custom_xe_nguoi_kiem = frappe.session.user
+        # QC kiểm xe nguyên liệu cùng lúc BM.07.03 (QT.09 mục 4) — tính là chuyến QC kiểm trong tuần (W34).
+        if any(doc.get(f) for f in chon) and not doc.get("custom_xe_qc_kiem"):
+            doc.custom_xe_qc_kiem = frappe.session.user
+            doc.custom_xe_qc_luc = now_datetime()
     doc.custom_nguoi_kiem = frappe.session.user
     log = _nhat_ky()
     tu = len(log) if log is not None else 0

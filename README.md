@@ -315,6 +315,34 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm xe BM.09.01: năm mục QT.09, QC kiểm ngẫu nhiên, Trưởng Ban ISO xem tháng (D165 — W34)
+
+- **Năm mục** theo QT.09 lần BH 01 mục 5.2, đúng cột giấy: *Sạch khô · Mùi · Kín/che · Hàng chung · Sàn* (mỗi mục có
+  dòng yêu cầu 5.1 bên dưới), thêm ô **Đơn vị vận chuyển**, ô tài xế đổi thành **Lái xe (ký xác nhận)**, ô ghi chú thành
+  **Xử lý / ghi chú kiểm xe**. Ghi trên hoá đơn bán trừ kho / phiếu nhập mua như D139. Duyệt chứng từ còn đòi **tên lái
+  xe**; xe nhận nguyên liệu **Không đạt** phải ghi **xử lý** mới duyệt được (giấy: "K ở bất kỳ mục nào: ghi xử lý").
+- **Phiên bản bộ mục** như `muc.py` (ô ẩn `custom_xe_phien_ban`): chuyến ghi trước D165 giữ **bốn mục cũ** (patch
+  `d165_kiem_xe_phien_ban` đánh dấu phiên bản 1) — Desk hiện bốn ô cũ, tờ in in bảng riêng "bộ mục cũ". Chứng từ mới →
+  năm mục.
+- **Chép chứng từ (Duplicate) không mang kết quả kiểm xe theo**: mọi ô kiểm xe `no_copy` — chuyến mới phải kiểm lại xe
+  (trước đây chép hoá đơn tuần trước là có sẵn "Đạt" + người kiểm). *Amend* vẫn giữ (cùng chuyến).
+- **QC kiểm ngẫu nhiên ≥ 1 chuyến/tuần** (QT.09 mục 4): màn QC → Hôm nay → **🚚 Kiểm xe** (`#/qc/kiemxe`): mỗi tuần thứ
+  Hai – Chủ nhật một dòng (vàng: tuần này chưa chuyến nào QC kiểm; đỏ: tuần đã hết mà không chuyến nào); các chuyến
+  trong tháng; mở chuyến → xem năm mục người kiểm ghi, hàng + HSD → **QC ĐÃ KIỂM XE NÀY** (ô *QC kiểm* = người + giờ,
+  kèm nhận xét). Chỉ chuyến trong **2 ngày** kể từ ngày chuyến (kiểm lúc xếp / nhận hàng — không ký bù chuyến tuần
+  trước để xoá nhắc). Đóng dấu nhầm: người đóng dấu bỏ được trong ngày, Ban ISO bỏ được khi tháng chưa xem. Xe nguyên
+  liệu: QC ghi kiểm xe trên màn **Tiếp nhận NL** là tính luôn *QC kiểm*.
+- **Hộp nhắc**: "Tuần này N chuyến hàng, chưa chuyến nào QC kiểm xe"; tuần trước đã lỡ thì nhắc tới hết tuần này;
+  "Kiểm xe BM.09.01 tháng MM chưa được Trưởng Ban ISO xem" (sau ngày 5 tháng sau). Tổng quan ATTP thêm mảng **Kiểm tra
+  xe** (số tuần đã hết có QC kiểm / số tuần có chuyến, chuyến, xe không đạt); danh mục hồ sơ BM.09.01 lấy cờ từ mảng này.
+- **Trưởng Ban ISO**: nút **ĐÃ XEM THÁNG** cuối màn Kiểm xe — ký mọi chuyến **đã duyệt** của tháng; chuyến duyệt sau đó
+  làm tháng hiện lại "chưa xem". Dấu QC kiểm và dấu xem tháng là ô chỉ đọc, ghi được sau duyệt; ghi bằng
+  `db.set_value` (không chạy lại luật hoá đơn; `modified` đổi để Desk đang mở bản cũ không lưu đè).
+- **Bản in BM.09.01** (nút trên màn Kiểm xe và ở Xem xét tháng, gói hồ sơ zip): đúng cột giấy *Ngày · Biển số · Đơn vị VC
+  · Hàng, số lượng, HSD · 5 mục (Đ/K) · Đạt · Xử lý · Người kiểm · Lái xe ký*; dòng *QC kiểm* ghi dưới người kiểm; chỉ
+  chuyến đã duyệt; chân tờ: Trưởng Ban ISO xem từng tháng.
+- Cần `bench --site site1.local migrate` (ô mới, patch) rồi `bench restart`.
+
 ## Nhật ký cát mỗi việc một dòng; rework thêm ô QLSX, giờ (D164 — W32)
 
 - **Nhật ký cát BM.08.03** theo HD.08.03 (viết lại 07/10): bỏ "mỗi ngày có rang một dòng", giờ là **mỗi việc một

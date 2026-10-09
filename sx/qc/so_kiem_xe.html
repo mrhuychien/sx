@@ -1,41 +1,64 @@
-{#- Sổ kiểm tra phương tiện vận chuyển BM.09.01 (W14, D139). A4 ngang. -#}
+{#- BM.09.01 — phiếu kiểm tra phương tiện vận chuyển (W14 D139, W34 D165). A4 ngang, đúng cột giấy QT.09
+    lần BH 01: mỗi chuyến đã duyệt một dòng. Chuyến ghi theo bộ mục cũ (trước D165, bốn mục) in bảng riêng. -#}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .kx { font: 10.5px/1.3 "Times New Roman", serif; color: #000; }
   .kx h1 { font-size: 15px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
-  .kx .ma { text-align: center; font-size: 10px; margin-bottom: 8px; }
+  .kx .ma { text-align: center; font-size: 10px; margin-bottom: 4px; }
+  .kx .hd { font-size: 10px; margin-bottom: 6px; }
+  .kx h2 { font-size: 11px; margin: 10px 0 3px; }
   .kx table { width: 100%; border-collapse: collapse; }
-  .kx td, .kx th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
+  .kx td, .kx th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; text-align: center; }
   .kx th { background: #eee; font-size: 10px; }
+  .kx td.t { text-align: left; }
   .kx tr { break-inside: avoid; }
   .kx .kd { font-weight: bold; }
-  .kx .ky { margin-top: 14px; width: 100%; }
-  .kx .ky td { border: 0; text-align: center; height: 56px; }
+  .kx small { font-size: 9px; }
+  .kx .xem { margin-top: 12px; }
+  .kx .xem td { border: 0; text-align: left; padding: 3px 0; }
 </style>
+{%- macro dk(v) -%}{{ "Đ" if v == "Đạt" else ("K" if v == "Không đạt" else "") }}{%- endmacro -%}
 <div class="kx">
-  <h1>Sổ kiểm tra phương tiện vận chuyển</h1>
-  <div class="ma">BM.09.01 &nbsp;·&nbsp; Từ {{ frappe.utils.formatdate(tu, "dd/MM/yyyy") }} đến
-    {{ frappe.utils.formatdate(den, "dd/MM/yyyy") }} &nbsp;·&nbsp; {{ ds|length }} chuyến</div>
+  <h1>Phiếu kiểm tra phương tiện vận chuyển{% if thang %} — tháng {{ thang }}{% endif %}</h1>
+  <div class="ma">BM.09.01 &nbsp;·&nbsp; Lần BH 01 &nbsp;·&nbsp; QT.09
+    {% if not thang %}&nbsp;·&nbsp; Từ {{ frappe.utils.formatdate(tu, "dd/MM/yyyy") }} đến {{ frappe.utils.formatdate(den, "dd/MM/yyyy") }}{% endif %}
+    &nbsp;·&nbsp; {{ ds|length }} chuyến</div>
+  <div class="hd">Đ = đạt, K = không đạt. Mỗi chuyến một dòng. K ở bất kỳ mục nào: ghi xử lý ở cột Xử lý. QC kiểm ngẫu
+    nhiên ít nhất 1 chuyến/tuần — ghi dưới tên người kiểm.</div>
+  {% for b in bang %}
+  {% if b.pb != pb %}<h2>Chuyến ghi theo bộ mục cũ (trước QT.09 lần BH 01 — bốn mục)</h2>{% endif %}
   <table>
-    <tr><th style="width:3%">#</th><th style="width:7%">Ngày</th><th style="width:8%">Chiều</th>
-      <th style="width:13%">Khách / NCC · chứng từ</th><th style="width:8%">Biển số</th><th style="width:9%">Tài xế</th>
-      {% for f, n in muc %}<th>{{ n }}</th>{% endfor %}
-      <th style="width:7%">Kết luận</th><th style="width:9%">Người kiểm</th></tr>
-    {% for r in ds %}
+    <tr><th style="width:5%">Ngày</th><th style="width:7%">Biển số</th><th style="width:8%">Đơn vị VC</th>
+      <th class="t" style="width:22%">Hàng, số lượng, HSD</th>
+      {% for f, n in b.muc %}<th>{{ n }}</th>{% endfor %}
+      <th style="width:4%">Đạt</th><th class="t" style="width:12%">Xử lý</th>
+      <th class="t" style="width:11%">Người kiểm</th><th style="width:8%">Lái xe ký</th></tr>
+    {% for r in b.ds %}
     <tr>
-      <td>{{ loop.index }}</td>
-      <td>{{ frappe.utils.formatdate(r.ngay, "dd/MM/yyyy") }}</td>
-      <td>{{ r.chieu }}</td>
-      <td>{{ r.doi_tac }}<br><small>{{ r.name }}</small></td>
-      <td>{{ r.custom_xe_bien_so or "" }}</td>
-      <td>{{ r.custom_xe_tai_xe or "" }}</td>
-      {% for f, n in muc %}<td{% if r[f] == "Không đạt" %} class="kd"{% endif %}>{{ r[f] or "—" }}</td>{% endfor %}
-      <td{% if r.custom_xe_ket_luan == "Không đạt" %} class="kd"{% endif %}>{{ r.custom_xe_ket_luan }}</td>
-      <td>{{ (r.custom_xe_nguoi_kiem or "").split("@")[0] }}</td>
+      <td>{{ frappe.utils.formatdate(r.ngay, "dd/MM") }}</td>
+      <td>{{ r.bien_so }}</td>
+      <td>{{ r.don_vi }}</td>
+      <td class="t"><b>{{ r.doi_tac }}</b> <small>· {{ r.chieu }} · {{ r.name }}</small>
+        {% for h in r.hang %}<br>{{ h }}{% endfor %}</td>
+      {% for m in r.muc %}<td{% if m.gt == "Không đạt" %} class="kd"{% endif %}>{{ dk(m.gt) }}</td>{% endfor %}
+      <td{% if r.ket_luan == "Không đạt" %} class="kd"{% endif %}>{{ dk(r.ket_luan) }}</td>
+      <td class="t">{{ r.xu_ly }}</td>
+      <td class="t">{{ r.ten_nguoi_kiem }}{% if r.qc_kiem %}<br><small><b>QC kiểm:</b> {{ r.ten_qc }} {{ r.qc_luc[11:16] }} {{ frappe.utils.formatdate(r.qc_luc[:10], "dd/MM") }}{% if r.qc_nhan_xet %} — {{ r.qc_nhan_xet }}{% endif %}</small>{% endif %}</td>
+      <td>{{ r.tai_xe }}</td>
     </tr>
+    {% else %}
+    <tr><td colspan="{{ 8 + b.muc|length }}">Không có chuyến nào đã duyệt có ghi kiểm xe trong khoảng này.</td></tr>
     {% endfor %}
-    {% if not ds %}<tr><td colspan="{{ 8 + muc|length }}" style="text-align:center">Không có chuyến nào đã kiểm xe trong khoảng này.</td></tr>{% endif %}
   </table>
-  <table class="ky"><tr><td><b>Người lập</b><br>(ký, ghi rõ họ tên)</td>
-    <td><b>Trưởng Ban ISO</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+  {% endfor %}
+  <table class="xem">
+    <tr><td><b>Trưởng Ban ISO xem xét hằng tháng:</b></td></tr>
+    {% for t in xem %}
+    <tr><td>Tháng {{ t.thang }}:
+      {% if t.xem %}{{ t.xem.ten or t.xem.boi }} &nbsp;·&nbsp; ngày {{ frappe.utils.formatdate(t.xem.luc[:10], "dd/MM/yyyy") }}{% if t.chua %} &nbsp;·&nbsp; còn {{ t.chua }} chuyến duyệt sau lần xem{% endif %}
+      {% else %}…………………………………… &nbsp; Ngày ……/……/20……{% endif %}</td></tr>
+    {% else %}
+    <tr><td>…………………………………… &nbsp; Ngày ……/……/20……</td></tr>
+    {% endfor %}
+  </table>
 </div>

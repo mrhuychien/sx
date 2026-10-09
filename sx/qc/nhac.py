@@ -53,7 +53,8 @@ def _nhom(ma, ds):
 
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
-         cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None, vai_u=None):
+         cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None, vai_u=None,
+         kiem_xe=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -65,7 +66,8 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `kiem_nghiem` = sx/qc/kiem_nghiem.nhac(): sản phẩm quá / đến hạn gửi mẫu, chờ kết quả lâu — W18 (D144).
     `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn — W21 (D146).
     `khac_phuc` = sx/qc/khac_phuc.nhac(): phiếu BM.01.07 quá hạn, chờ kiểm tra hiệu lực lâu — W24 (D150).
-    `vai_u` = sx/qc/vai_u.nhac(): quá chu kỳ chưa giặt vải ủ, dòng chờ QC ký, tháng chưa xem — W29 (D163)."""
+    `vai_u` = sx/qc/vai_u.nhac(): quá chu kỳ chưa giặt vải ủ, dòng chờ QC ký, tháng chưa xem — W29 (D163).
+    `kiem_xe` = sx/qc/kiem_xe.nhac(): tuần có chuyến mà chưa chuyến nào QC kiểm, tháng BM.09.01 chưa xem — W34."""
     nay = _d(hom_nay)
     ra = []
     # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (oPRP-3), nên thuộc mảng vòng kiểm.
@@ -79,6 +81,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhom("dong_vat", _nhac_dong_vat(dong_vat or {}))
     ra += _nhom("cat", _nhac_cat(cat or {}))
     ra += _nhom("vai_u", _nhac_vai_u(nay, vai_u or {}))
+    ra += _nhom("kiem_xe", _nhac_kiem_xe(kiem_xe or {}))
     ra += _nhom("thiet_bi", _nhac_thiet_bi(nay, thiet_bi or {}))
     ra += _nhom("kiem_nghiem", _nhac_kiem_nghiem(kiem_nghiem or {}))
     ra += _nhom("viec_dinh_ky", _nhac_viec_dinh_ky(viec_dinh_ky or {}))
@@ -342,6 +345,28 @@ def _nhac_vai_u(nay, v):
         ra.append(_m(THUONG, f"Sổ giặt vải ủ tháng {t[5:7]}/{t[:4]} chưa được Trưởng Ban ISO xem",
                      "Trưởng Ban ISO xem BM.08.05 cuối tháng (HD.08.02 mục 9) — bấm \"Đã xem tháng\" trên màn Sổ "
                      "giặt vải ủ.", "#/qc/vaiu"))
+    return ra
+
+
+def _nhac_kiem_xe(kx):
+    """Kiểm xe BM.09.01 (W34). QT.09 mục 4: QC kiểm ngẫu nhiên ít nhất 1 chuyến/tuần — tuần thứ Hai – Chủ
+    nhật có chuyến (đã ghi kiểm xe) mà chưa chuyến nào QC kiểm: nhắc tuần này, và tuần trước nếu đã lỡ (QC
+    chỉ đóng dấu được chuyến mới — SO_NGAY_QC ở sx/qc/kiem_xe.py — nên tuần trước thường không gỡ được nữa:
+    nhắc để rút kinh nghiệm, hết tuần này thì thôi). Tháng đã qua hạn xem mà Trưởng Ban ISO chưa xem."""
+    ra = []
+    for k, ten in (("tuan_nay", "Tuần này"), ("tuan_truoc", "Tuần trước")):
+        t = kx.get(k) or {}
+        if not t.get("so_chuyen") or t.get("so_qc"):
+            continue
+        tu, den = _d(t["tu"]), _d(t["den"])
+        ra.append(_m(THUONG, f"{ten} {t['so_chuyen']} chuyến hàng, chưa chuyến nào QC kiểm xe",
+                     f"Thứ Hai {tu.strftime('%d/%m')} – Chủ nhật {den.strftime('%d/%m')}. QT.09: QC kiểm ngẫu nhiên "
+                     f"ít nhất 1 chuyến/tuần (xe nguyên liệu: kiểm cùng lúc trên màn Tiếp nhận NL) — bấm QC KIỂM "
+                     f"trên màn Kiểm xe.", "#/qc/kiemxe"))
+    for t in kx.get("chua_xem") or []:
+        ra.append(_m(THUONG, f"Kiểm xe BM.09.01 tháng {t[5:7]}/{t[:4]} chưa được Trưởng Ban ISO xem",
+                     "QT.09 mục 4: Trưởng Ban ISO xem BM.09.01 hằng tháng — bấm \"Đã xem tháng\" trên màn Kiểm xe.",
+                     "#/qc/kiemxe"))
     return ra
 
 

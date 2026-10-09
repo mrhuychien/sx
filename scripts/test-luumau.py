@@ -283,6 +283,8 @@ nap("sx.qc.kiem_nghiem", "sx/qc/kiem_nghiem.py")
 nap("sx.qc.viec_dinh_ky", "sx/qc/viec_dinh_ky.py")
 nap("sx.qc.khac_phuc", "sx/qc/khac_phuc.py")
 nap("sx.qc.vai_u", "sx/qc/vai_u.py")
+nap("sx.qc.ncc", "sx/qc/ncc.py")
+nap("sx.qc.kiem_xe", "sx/qc/kiem_xe.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 P = nap("sx.patches.d133_luu_mau_mot_nam", "sx/patches/d133_luu_mau_mot_nam.py")
 

@@ -44,7 +44,7 @@ BIEU_MAU = {
     "BM.06.04": ("Kiểm tra lưới sàng, rây", "thiet_bi"),
     "KH.KN.01": ("Kế hoạch kiểm nghiệm", "kiem_nghiem"),
     "BM.07.02": ("Danh sách nhà cung cấp được duyệt", "ncc"),
-    "BM.09.01": ("Kiểm tra xe", None),
+    "BM.09.01": ("Kiểm tra xe", "kiem_xe"),
     "BM.PRP.03": ("Động vật gây hại — tuần", "dong_vat"),
     "BM.PRP.01": ("Động vật gây hại — tháng", "dong_vat"),
     "BM.02.04": ("Diễn tập truy xuất (phụ lục)", "truy_xuat"),
