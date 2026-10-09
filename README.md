@@ -315,6 +315,23 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Tổng quan ATTP (D148 — W22)
+
+- Màn QC → tab **Xem xét** (Trưởng Ban ISO, quản lý / Giám đốc) giờ mở vào **Tổng quan ATTP**
+  (`#/qc/attp`); *Xem xét tháng* là nút thứ hai ngay trên đầu. Card QC ở màn Quản lý có nút
+  **TỔNG QUAN ATTP**.
+- 13 thẻ, mỗi mảng hồ sơ một thẻ: vòng kiểm BM.08.01, sự cố BM.08.02, khiếu nại BM.11.01, xuất xưởng
+  BM.08.04, truy xuất / thu hồi, thiết bị đo BM.06, kiểm nghiệm KH.KN.01, cát rang BM.08.03, động vật
+  gây hại, nhà cung cấp BM.07.02, lưu mẫu, rework BM.15.01, việc định kỳ. Mỗi thẻ: **đèn Đỏ / Vàng /
+  Xanh**, con số chính, vài dòng số liệu **30 ngày tới hôm qua**, các việc đang treo; bấm thẻ sang đúng
+  màn. Thẻ đỏ lên đầu.
+- Đèn lấy từ **chính hộp nhắc** (mỗi mục nhắc gắn mảng): có việc mức cao → Đỏ, có việc treo → Vàng,
+  không có → Xanh — tổng quan và hộp nhắc không thể nói hai điều. Thêm ba luật hộp nhắc chưa có:
+  khiếu nại quá hạn xử lý (cùng số ngày với phiếu sự cố) → Đỏ, đang mở → Vàng; **lô đang thu hồi →
+  Đỏ**; chưa diễn tập truy xuất / quá 12 tháng / lần gần nhất chưa đạt 98% → Vàng; NCC chưa duyệt hoặc
+  thiếu hồ sơ → Vàng (không bao giờ Đỏ — W09 chỉ cảnh báo).
+- Mảng nào site chưa có dữ liệu / chưa migrate thì thẻ hiện "chưa có số liệu", các thẻ khác vẫn đủ.
+
 ## Nhập lại bản giấy, lượt Bổ sung (D147 — W23)
 
 - **Nhập lại từ bản giấy** (mở một ngày cũ, như trước): cuối màn lượt có khối *Nhập lại từ bản giấy* —

@@ -44,6 +44,14 @@ def _m(muc_do, tieu_de, chi_tiet, route):
             "route": route}
 
 
+def _nhom(ma, ds):
+    """Gắn mảng hồ sơ cho từng mục nhắc — Tổng quan ATTP (W22, sx/qc/attp.py) lấy đèn theo mảng
+    từ chính danh sách này. Hộp nhắc không đọc `nhom`."""
+    for x in ds:
+        x["nhom"] = ma
+    return ds
+
+
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
          cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
@@ -58,23 +66,23 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn — W21 (D146)."""
     nay = _d(hom_nay)
     ra = []
-    ra += _nhac_bot_nen(nay, bot_nen or [])
-    ra += _nhac_luu_mau(nay, luu_mau or {})
-    ra += _nhac_xuat_xuong(nay, xuat_xuong or {})
-    ra += _nhac_su_co(nay, su_co, ng)
-    ra += _nhac_luot_tuan(nay, luot)
-    ra += _nhac_luot_thieu(nay, luot)
-    ra += _nhac_xem_xet(nay, luot)
-    ra += _nhac_dong_vat(dong_vat or {})
-    ra += _nhac_cat(cat or {})
-    ra += _nhac_thiet_bi(nay, thiet_bi or {})
-    ra += _nhac_kiem_nghiem(kiem_nghiem or {})
-    ra += _nhac_viec_dinh_ky(viec_dinh_ky or {})
+    # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (oPRP-3), nên thuộc mảng vòng kiểm.
+    ra += _nhom("vong_kiem", _nhac_bot_nen(nay, bot_nen or []))
+    ra += _nhom("luu_mau", _nhac_luu_mau(nay, luu_mau or {}))
+    ra += _nhom("xuat_xuong", _nhac_xuat_xuong(nay, xuat_xuong or {}))
+    ra += _nhom("su_co", _nhac_su_co(nay, su_co, ng))
+    ra += _nhom("vong_kiem", _nhac_luot_tuan(nay, luot) + _nhac_luot_thieu(nay, luot)
+                + _nhac_xem_xet(nay, luot))
+    ra += _nhom("dong_vat", _nhac_dong_vat(dong_vat or {}))
+    ra += _nhom("cat", _nhac_cat(cat or {}))
+    ra += _nhom("thiet_bi", _nhac_thiet_bi(nay, thiet_bi or {}))
+    ra += _nhom("kiem_nghiem", _nhac_kiem_nghiem(kiem_nghiem or {}))
+    ra += _nhom("viec_dinh_ky", _nhac_viec_dinh_ky(viec_dinh_ky or {}))
     # Nhắc cũ theo số trạm có dấu hiệu ở lượt tuần (T2, không biết khu) — chỉ còn dùng khi
     # nhà máy CHƯA ghi dấu hiệu theo trạm (W15); có dữ liệu trạm thì nhắc theo khu thay.
     if not (dong_vat or {}).get("co_du_lieu"):
-        ra += _nhac_bay(luot)
-    ra += _nhac_nguong(luot, ng)
+        ra += _nhom("dong_vat", _nhac_bay(luot))
+    ra += _nhom("vong_kiem", _nhac_nguong(luot, ng))
     return sorted(ra, key=lambda x: 0 if x["muc_do"] == CAO else 1)
 
 

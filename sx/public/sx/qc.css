@@ -458,3 +458,33 @@ button.sx-qc-tag-chon {
 /* ── D147 (W23): nhập lại từ bản giấy, lượt bổ sung ───────────────────────── */
 .sx-qc-giay { padding: 0 var(--sx-s3) var(--sx-s3); display: flex; flex-direction: column; gap: var(--sx-s2); }
 .sx-qc-giay .sx-textarea { box-sizing: border-box; max-width: 220px; }
+
+/* ── D148 (W22): tổng quan ATTP — đèn từng mảng hồ sơ ──────────────────────── */
+.sx-attp-dem { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
+.sx-attp-dem-o {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
+  padding: 0 var(--sx-s3); border-radius: var(--sx-radius-pill);
+  background: var(--sx-surface); border: 1px solid var(--sx-line); font-size: var(--sx-f-sm);
+}
+.sx-attp-dem-o b { font-size: var(--sx-f-md); }
+.sx-attp-cham { width: 12px; height: 12px; border-radius: 50%; flex: none; background: var(--sx-success); }
+.sx-attp-do .sx-attp-cham { background: var(--sx-danger); }
+.sx-attp-vang .sx-attp-cham { background: var(--sx-warning); }
+.sx-attp-luoi { display: grid; gap: var(--sx-s3); grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.sx-attp-the {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  background: var(--sx-surface); border: 1px solid var(--sx-line); border-left: 5px solid var(--sx-success);
+  border-radius: var(--sx-radius); padding: var(--sx-s3) var(--sx-s4);
+  color: var(--sx-text); text-decoration: none;
+}
+.sx-attp-the.sx-attp-do { border-left-color: var(--sx-danger); background: var(--sx-danger-soft); }
+.sx-attp-the.sx-attp-vang { border-left-color: var(--sx-warning); }
+.sx-attp-the:focus-visible { outline: none; box-shadow: var(--sx-focus); }
+.sx-attp-the-dau { display: flex; align-items: center; gap: var(--sx-s2); }
+.sx-attp-ten { font-weight: 700; flex: 1; min-width: 0; }
+.sx-attp-bm { font-size: var(--sx-f-xs); color: var(--sx-text-3); white-space: nowrap; }
+.sx-attp-so b { font-size: var(--sx-f-xl); font-weight: 800; }
+.sx-attp-so span { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-attp-dong { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-attp-viec { font-size: var(--sx-f-sm); font-weight: 600; padding-left: var(--sx-s2); border-left: 3px solid var(--sx-warning); }
+.sx-attp-viec-cao { color: var(--sx-danger-text); border-left-color: var(--sx-danger); }

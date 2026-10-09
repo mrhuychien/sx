@@ -538,6 +538,12 @@ def nhac(ngay=None):
     """
     _guard_qc()
     d = getdate(ngay) if ngay else getdate(nowdate())
+    return {"ngay": str(d), "ds": _nhac.tinh(d, **_du_lieu_nhac(d))}
+
+
+def _du_lieu_nhac(d):
+    """Số liệu đầu vào của hộp nhắc (khoá = tham số của sx.qc.nhac.tinh). Tổng quan ATTP
+    (W22, sx/api/qc_attp.py) dùng lại đúng bộ này — đèn ở đó và hộp nhắc ở đây cùng một nguồn."""
     tu = add_days(d, -max(_nhac.SO_NGAY_SOI, _nhac.NGAY_CHUA_XEM_XET) - 7)
     luot = frappe.get_all(
         "SX QC Round",
@@ -551,11 +557,11 @@ def nhac(ngay=None):
                                    "muc_do"])
     # Ngày có lượt ghi nhiệt độ rang = ngày có rang → phải có dòng nhật ký cát (W20).
     rang = {str(r.get("ngay")) for r in luot if cint(r.get("rang_nhiet_do")) > 0}
-    return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton(),
-                                             _luu_mau_nhac(d), _xuat_xuong_nhac(),
-                                             _dong_vat.nhac(d), _cat.nhac(d, rang),
-                                             _thiet_bi.nhac(d), _kiem_nghiem.nhac(d),
-                                             _viec_dinh_ky.nhac(d))}
+    return {"luot": luot, "su_co": su_co, "ng": nguong(), "bot_nen": _bot_nen_ton(),
+            "luu_mau": _luu_mau_nhac(d), "xuat_xuong": _xuat_xuong_nhac(),
+            "dong_vat": _dong_vat.nhac(d), "cat": _cat.nhac(d, rang),
+            "thiet_bi": _thiet_bi.nhac(d), "kiem_nghiem": _kiem_nghiem.nhac(d),
+            "viec_dinh_ky": _viec_dinh_ky.nhac(d)}
 
 
 def _xuat_xuong_nhac():

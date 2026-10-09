@@ -402,4 +402,10 @@ python3 scripts/test-bosung.py > /tmp/sx-bosung.log 2>&1 \
   && tail -1 /tmp/sx-bosung.log \
   || { cat /tmp/sx-bosung.log; loi=1; }
 
+# D148 (W22): tổng quan ATTP. Đèn lệch hộp nhắc, mục nhắc mới quên gắn mảng, lô thu hồi / khiếu nại
+# quá hạn không đỏ, một mảng lỗi làm trống cả màn — đều im lặng.
+python3 scripts/test-attp.py > /tmp/sx-attp.log 2>&1 \
+  && tail -1 /tmp/sx-attp.log \
+  || { cat /tmp/sx-attp.log; loi=1; }
+
 exit $loi

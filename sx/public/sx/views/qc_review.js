@@ -8,7 +8,9 @@
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step } from '/assets/sx/sx/components/modal.js';
-import { LUOT_NGAY, chip, khungTrong, timLuot, veNhac } from '/assets/sx/sx/components/qcui.js';
+import {
+  LUOT_NGAY, chip, khungTrong, tabXemXet, timLuot, veNhac,
+} from '/assets/sx/sx/components/qcui.js';
 
 const st = { thang: null };
 
@@ -37,10 +39,12 @@ export async function render(api) {
     ]);
   } catch (e) {
     container.innerHTML = '';
+    container.appendChild(tabXemXet('review'));
     container.appendChild(khungTrong(e.message));
     return;
   }
   container.innerHTML = '';
+  container.appendChild(tabXemXet('review'));
 
   const dieu = el('div', 'sx-qc-top');
   const inp = el('input');

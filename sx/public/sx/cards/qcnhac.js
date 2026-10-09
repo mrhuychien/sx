@@ -26,8 +26,14 @@ export async function render({ container, call }) {
   if (!hop) return;
   container.style.display = '';
   container.appendChild(hop);
-  const a = el('a', 'sx-btn sx-btn-ghost', 'MỞ MÀN QC');
-  a.href = '#/qc';
-  a.style.cssText = 'display:block;text-align:center;text-decoration:none;margin-top:var(--sx-s3)';
-  container.appendChild(a);
+  // W22 (D148): Giám đốc xem đèn từng mảng hồ sơ ở Tổng quan ATTP (tab Xem xét của màn QC).
+  const nut = el('div');
+  [['#/qc/attp', 'TỔNG QUAN ATTP'], ['#/qc', 'MỞ MÀN QC']].forEach(([href, ten]) => {
+    const a = el('a', 'sx-btn sx-btn-ghost', ten);
+    a.href = href;
+    a.style.cssText = 'flex:1;text-align:center;text-decoration:none';
+    nut.appendChild(a);
+  });
+  nut.style.cssText = 'display:flex;gap:var(--sx-s2);margin-top:var(--sx-s3)';
+  container.appendChild(nut);
 }
