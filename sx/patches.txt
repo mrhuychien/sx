@@ -22,3 +22,4 @@ sx.patches.d150_khac_phuc
 sx.patches.d151_bao_cao
 sx.patches.d152_bu_ngay_xuat_xuong
 sx.patches.d152_chung_chi_dong_ho
+sx.patches.d159_xuat_xuong_lan_bh01

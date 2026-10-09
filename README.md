@@ -315,6 +315,39 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## BM.08.04 theo phiếu giấy lần BH 01 (D159 — W31)
+
+- Phiếu kiểm tra xuất xưởng mới theo đúng bản giấy **BM.08.04 lần BH 01 (21/9/2026)**: đầu phiếu thêm **quy cách**
+  (điền sẵn dòng đầu "Quy cách đóng gói" của sản phẩm tự công bố), **ngày nghiền bột đậu**, **ngày rang đỗ**.
+- **A. Hồ sơ của lô** A1–A5 (Đ / K, riêng A4 có KAD). App tra hồ sơ và ghi **gợi ý + căn cứ** dưới từng mục —
+  **QC vẫn tự bấm** (chỉ A5 mẫu lưu chấm sẵn như trước):
+  - A1: số lượt BM.08.01 đã hoàn tất ở ngày SX, **mọi** ngày nghiền, ngày rang (đủ 3 lượt chính — lượt Tuần tính là
+    đầu sáng, lượt Bổ sung không bù). Ngày nghiền / rang tra từ chứng từ kho của **phiếu ngày NSX đã chốt Ghi sổ**:
+    lô bột nền (= lô R) đã dùng → ngày rang (phiếu xuất đỗ), ngày phiếu kho sinh ra lô R. Chưa chốt ngày đó thì QC
+    tự ghi ngày rồi bấm **↻ TRA LẠI HỒ SƠ LÔ**.
+  - A2: phiếu sự cố liên quan lô — gắn lô, của các phiếu BM.08.04 của lô, sự cố vòng kiểm các ngày SX / nghiền /
+    rang (không tính diễn tập). Còn phiếu **chưa quyết định xử lý sản phẩm** → gợi ý Không đạt, ghi số phiếu.
+  - A3: nguyên liệu mua về đi vào các phiếu kho ngày SX (truy xuất ngược) — có lô Không đạt / Cách ly → gợi ý
+    Không đạt; lô chưa có kết luận tiếp nhận → không gợi ý. Bao bì QC tự đối chiếu.
+  - A4: bánh, Chè đậu đen cốt dừa, vị có lạc → KAD; bột vị không lạc theo B7 ngày SX (âm tính / dương tính /
+    không chuyển đổi sau Chè → KAD).
+- **B. Kiểm thành phẩm** B1–B6 × **5 mẫu ở 5 thùng**: chạm ô đổi — → Đ → K; B2 chạm ô mở bàn số ghi **số cân (g)**.
+  Có mẫu K thì dòng tự thành Không đạt (gửi "Đạt" với mẫu K bị chặn); đủ 5 Đ thì gợi Đạt.
+- **C. Kết luận** ba lựa chọn: **Cho xuất xưởng** (= "Đạt" cũ ở mọi chỗ chặn; phải đạt toàn bộ A và B) / **Giữ lại
+  chờ xử lý** / **Không cho xuất**. Hai lựa chọn sau **luôn có phiếu sự cố BM.08.02**: QC chọn phiếu có sẵn, không
+  thì app lập lúc **gửi duyệt** (Giữ lại mức Thường, Không cho xuất mức Cao) — số phiếu in ngay ở dòng kết luận.
+  Không có mục Không đạt mà vẫn chọn hai kết luận này thì phải ghi lý do.
+- Lô **Giữ lại** vẫn bị chặn nhập kho / bán như chưa duyệt; xử lý xong hiện lại ở *Lô chờ kiểm*, kiểm lại trên
+  **phiếu mới**. Lô **Không cho xuất**: lô huỷ, không rework (QT.15) — không lập được phiếu mới (duyệt nhầm thì
+  Trưởng Ban ISO thu hồi duyệt).
+- **Ô ký thứ ba — Quản lý sản xuất** (tài khoản + giờ): nút *KÝ — QUẢN LÝ SẢN XUẤT* khi phiếu đã gửi / đã duyệt;
+  không bắt buộc để duyệt. Phiếu bị trả lại / rút về sửa thì chữ ký QLSX xoá.
+- Mẫu in A4 theo bố cục giấy (đầu phiếu, bảng A, bảng B 5 mẫu, C ba ô đánh dấu, ba ô ký).
+- **Phiếu cũ** (8 mục tạm) giữ nguyên mục đã ghi, mở bằng form cũ, in bố cục cũ. Patch `d159_xuat_xuong_lan_bh01`
+  đổi kết luận cũ: **Đạt → Cho xuất xưởng**, **Không đạt → Không cho xuất**.
+- Cần `bench --site site1.local migrate` (ô mới ở SX Kiem Tra Xuat Xuong + bảng con, đổi lựa chọn kết luận, chạy
+  patch) rồi `bench restart`.
+
 ## BM.08.01 bản 3: thùng ủ gỗ, ba nam châm (D158 — W30)
 
 - Lượt mở từ bản này mang bộ mục **bản 3**; lượt đã mở trước giữ bộ cũ (tờ in các ngày trước không đổi).
@@ -693,8 +726,7 @@ không thành `…-2`.
   bằng ngày cập nhật) — phiếu nhập trước ngày đó, lô tạo trước ngày đó không cần phiếu. Tắt khẩn
   cấp: *Chặn nhập kho / bán lô chưa duyệt xuất xưởng*.
 - Hộp nhắc QC: phiếu chờ duyệt (chờ từ hôm qua thì mức CAO). Mẫu in A4 BM.08.04 có chỗ ký.
-- **8 mục kiểm là tạm** (chưa có bản giấy BM.08.04): sửa chữ / thêm mục ở `sx/qc/xuat_xuong.py`
-  (`MUC`), phiếu cũ giữ nguyên mục đã ghi.
+- ~~8 mục kiểm là tạm~~ — từ D159 (W31) theo bản giấy lần BH 01, xem mục *BM.08.04 theo phiếu giấy lần BH 01*.
 
 ## Hàng trả về vào kho riêng, khoá xuất lô thu hồi (D136 — W26)
 

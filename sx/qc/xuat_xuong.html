@@ -1,43 +1,131 @@
-{#- Phiếu kiểm tra xuất xưởng BM.08.04 — một lô (W08, D137). A4 đứng.
-    Chữ ký = tài khoản + giờ server ghi lúc gửi duyệt / duyệt; ô ký tay để ký lại. -#}
+{#- Phiếu kiểm tra xuất xưởng lô thành phẩm BM.08.04 — một lô. A4 đứng.
+    Lần BH 01 (W31, D159): bố cục đúng phiếu giấy — đầu phiếu, A. Hồ sơ của lô, B. Kiểm thành phẩm
+    5 mẫu, C. Kết luận, ba ô ký. Phiếu trước D159 (8 mục tạm "1".."8") in theo bố cục cũ.
+    Chữ ký = tài khoản + giờ server ghi lúc gửi duyệt / ký / duyệt; ô ký tay để ký lại.
+    Tự đủ dữ liệu từ `d` (màn QC và gói hồ sơ đánh giá cùng gọi). -#}
+{%- set moi = ((d.ds_muc[0].ma if d.ds_muc else "") or "")[:1] in ["A", "B"] -%}
+{%- set kl = {"Đạt": "Cho xuất xưởng", "Không đạt": "Không cho xuất"}.get(d.ket_luan, d.ket_luan) or "" -%}
+{%- macro ngay(v) -%}{{ frappe.utils.formatdate(v, "dd/MM/yyyy") if v else "" }}{%- endmacro -%}
+{%- macro gio(v) -%}{{ frappe.utils.format_datetime(v, "dd/MM/yyyy HH:mm") if v else "" }}{%- endmacro -%}
+{%- macro o(chon, ten) -%}<span class="o">{{ "☑" if chon else "☐" }}</span>&nbsp;{{ ten }}{%- endmacro -%}
 <style>
-  @page { size: A4 portrait; margin: 12mm 10mm; }
-  .xx { font: 12px/1.35 "Times New Roman", serif; color: #000; }
-  .xx h1 { font-size: 16px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
-  .xx .ma { text-align: center; font-size: 11px; margin-bottom: 8px; }
-  .xx table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-  .xx td, .xx th { border: 1px solid #000; padding: 3px 6px; vertical-align: top; }
-  .xx th { background: #eee; text-align: left; }
-  .xx .kl { font-size: 14px; font-weight: bold; }
-  .xx .ky { width: 100%; margin-top: 16px; }
-  .xx .ky td { border: 0; text-align: center; height: 64px; }
+  @page { size: A4 portrait; margin: 10mm 9mm; }
+  .xx { font: 11px/1.3 "Times New Roman", serif; color: #000; }
+  .xx table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  .xx td, .xx th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
+  .xx th { background: #eee; text-align: left; font-weight: bold; }
+  .xx .dau td { vertical-align: middle; }
+  .xx .dau .cty { width: 24%; text-align: center; font-weight: bold; }
+  .xx .dau .ten { text-align: center; font-size: 15px; font-weight: bold; text-transform: uppercase; }
+  .xx .dau .ma { width: 24%; font-size: 10px; }
+  .xx .so { text-align: right; font-size: 10px; margin: -3px 0 3px; }
+  .xx .loi { font-size: 10px; font-style: italic; margin-bottom: 4px; }
+  .xx h2 { font-size: 12px; margin: 6px 0 2px; }
+  .xx .c { text-align: center; }
+  .xx .o { font-size: 12px; }
+  .xx .nho { font-size: 10px; }
+  .xx .chon { font-weight: bold; }
+  .xx .ky { margin-top: 8px; }
+  .xx .ky td { text-align: center; height: 70px; vertical-align: top; }
+  .xx .kl { font-size: 13px; font-weight: bold; }
 </style>
 <div class="xx">
-  <h1>Phiếu kiểm tra xuất xưởng</h1>
-  <div class="ma">BM.08.04 &nbsp;·&nbsp; Số: <b>{{ d.name }}</b> &nbsp;·&nbsp; {{ d.trang_thai }}</div>
+  <table class="dau"><tr>
+    <td class="cty">CÔNG TY CỔ PHẦN<br>HOÀNG GIANG</td>
+    <td class="ten">Phiếu kiểm tra xuất xưởng lô thành phẩm</td>
+    <td class="ma"><b>BM.08.04</b><br>{% if moi %}Lần BH: 01 — 21/9/2026<br>Kèm QT.08 lần BH 02{% else %}Mẫu tạm trước lần BH 01{% endif %}</td>
+  </tr></table>
+  <div class="so">Số: <b>{{ d.name }}</b> · {{ d.trang_thai }}</div>
+{%- if moi %}
+  <div class="loi">Lập cho mỗi lô = một sản phẩm (vị), một quy cách, một ngày sản xuất. QC kiểm sau khi đóng thùng
+    xong, trước khi nhập kho thành phẩm. Người duyệt: Trưởng Ban ISO hoặc người được Trưởng Ban ISO giao (danh
+    sách trên phần mềm), không phải QC đã kiểm lô. Thủ kho chỉ xuất lô có kết luận "Cho xuất xưởng".</div>
+  <table>
+    <tr><th>Sản phẩm / vị</th><th>Quy cách</th><th>Ngày SX (NSX)</th><th>Số lô = HSD</th>
+        <th>Số lượng lô (thùng / hộp)</th><th>Ngày giờ kiểm</th><th>QC kiểm</th></tr>
+    <tr><td>{{ d.ten_san_pham or d.san_pham }}</td><td>{{ d.quy_cach or "" }}</td><td>{{ ngay(d.nsx) }}</td>
+        <td>{{ ngay(d.hsd) }}</td>
+        <td>{{ (d.so_luong|round(2)) if d.so_luong else "" }} {{ d.dvt or "" }}</td>
+        <td>{{ gio(d.kiem_luc) }}</td><td>{{ d.qc_kiem or "" }}</td></tr>
+  </table>
+
+  <h2>A. Hồ sơ của lô (đối chiếu trên phần mềm hoặc bản giấy)</h2>
+  <table>
+    <tr><th style="width:4%">#</th><th style="width:36%">Nội dung</th><th style="width:25%">Yêu cầu</th>
+        <th style="width:13%">Kết quả</th><th>Ghi chú / số phiếu</th></tr>
+    {%- for r in d.ds_muc if (r.ma or "")[:1] == "A" %}
+    <tr><td>{{ r.ma }}</td><td>{{ r.noi_dung }}</td><td class="nho">{{ r.yeu_cau or "" }}</td>
+      <td class="nho">{{ o(r.ket_qua == "Đạt", "Đ") }} {{ o(r.ket_qua == "Không đạt", "K") }}
+        {%- if r.ma == "A4" %} {{ o(r.ket_qua == "Không áp dụng", "KAD") }}{% endif %}</td>
+      <td class="nho">
+        {%- if r.ma == "A1" %}Ngày nghiền bột đậu {{ ngay(d.ngay_nghien) or "……" }}; ngày rang {{ ngay(d.ngay_rang) or "……" }}{% if r.ghi_chu %}<br>{% endif %}{% endif %}
+        {%- if r.ma == "A2" %}Số phiếu: {{ r.su_co or "……" }}{% if r.ghi_chu %}<br>{% endif %}{% endif %}
+        {{- r.ghi_chu or "" }}</td></tr>
+    {%- endfor %}
+  </table>
+
+  <h2>B. Kiểm thành phẩm — lấy ngẫu nhiên 5 đơn vị bao gói (hộp / túi) ở 5 thùng khác nhau</h2>
+  <table>
+    <tr><th style="width:4%">#</th><th style="width:13%">Chỉ tiêu</th><th>Yêu cầu</th>
+      {%- for i in range(1, 6) %}<th class="c" style="width:7%">Mẫu {{ i }}</th>{% endfor %}
+      <th style="width:12%">Kết luận</th></tr>
+    {%- for r in d.ds_muc if (r.ma or "")[:1] == "B" %}
+    <tr><td>{{ r.ma }}</td><td>{{ r.noi_dung }}</td><td class="nho">{{ r.yeu_cau or "" }}{% if r.ghi_chu %}<br><i>{{ r.ghi_chu }}</i>{% endif %}</td>
+      {%- for i in range(1, 6) %}<td class="c">{{ r.get("mau_" ~ i) or "" }}</td>{% endfor %}
+      <td class="nho">{{ o(r.ket_qua == "Đạt", "Đ") }} {{ o(r.ket_qua == "Không đạt", "K") }}</td></tr>
+    {%- endfor %}
+  </table>
+
+  <h2>C. Kết luận</h2>
+  <table>
+    <tr><th style="width:26%">Kết luận</th><th>Xử lý</th></tr>
+    <tr><td class="{{ 'chon' if kl == 'Cho xuất xưởng' }}">{{ o(kl == "Cho xuất xưởng", "Cho xuất xưởng") }}</td>
+        <td>Lô đạt toàn bộ mục A và B. Nhập kho thành phẩm, được phép xuất hàng.</td></tr>
+    <tr><td class="{{ 'chon' if kl == 'Giữ lại chờ xử lý' }}">{{ o(kl == "Giữ lại chờ xử lý", "Giữ lại chờ xử lý") }}</td>
+        <td>Có mục không đạt sửa được (đóng gói lại, dán lại nhãn, loại đơn vị lỗi) hoặc rework theo danh mục
+          QT.15 (BM.15.01). Lập BM.08.02 số <b>{{ d.su_co if kl == "Giữ lại chờ xử lý" and d.su_co else "……" }}</b>;
+          kiểm lại sau xử lý trên phiếu mới.</td></tr>
+    <tr><td class="{{ 'chon' if kl == 'Không cho xuất' }}">{{ o(kl == "Không cho xuất", "Không cho xuất") }}</td>
+        <td>Có mục ảnh hưởng an toàn thực phẩm. Cách ly, BM.08.02 số
+          <b>{{ d.su_co if kl == "Không cho xuất" and d.su_co else "……" }}</b>; Trưởng Ban ISO quyết định loại bỏ,
+          hủy; không rework (QT.15).</td></tr>
+    {%- if d.ghi_chu %}<tr><th>Ghi chú QC</th><td>{{ d.ghi_chu }}</td></tr>{% endif %}
+    {%- if d.y_kien_duyet %}<tr><th>Ý kiến người duyệt</th><td>{{ d.y_kien_duyet }}</td></tr>{% endif %}
+  </table>
+
+  <table class="ky"><tr>
+    <th class="c">QC kiểm</th><th class="c">Quản lý sản xuất</th>
+    <th class="c">Người duyệt cho xuất (TB ISO hoặc người được giao)</th></tr>
+    <tr><td>{{ d.qc_kiem or "" }}<br>{{ gio(d.kiem_luc) }}</td>
+        <td>{{ d.qlsx or "" }}<br>{{ gio(d.qlsx_luc) }}</td>
+        <td>{% if d.trang_thai == "Đã duyệt" %}{{ d.nguoi_duyet or "" }}<br>{{ gio(d.duyet_luc) }}{% else %}chưa duyệt{% endif %}</td></tr>
+  </table>
+  <div class="loi">Lưu: phần mềm / Ban ISO, 2 năm. Tham chiếu khi truy xuất (QT.02) và khi xử lý khiếu nại (QT.11).</div>
+{%- else %}
   <table>
     <tr><th style="width:22%">Sản phẩm</th><td>{{ d.ten_san_pham or d.san_pham }}</td>
-        <th style="width:14%">HSD</th><td>{{ frappe.utils.formatdate(d.hsd, "dd/MM/yyyy") if d.hsd else "" }}</td></tr>
+        <th style="width:14%">HSD</th><td>{{ ngay(d.hsd) }}</td></tr>
     <tr><th>Số lượng lô</th><td>{{ (d.so_luong|round(2)) if d.so_luong else "—" }} {{ d.dvt or "" }}</td>
-        <th>NSX</th><td>{{ frappe.utils.formatdate(d.nsx, "dd/MM/yyyy") if d.nsx else "—" }}</td></tr>
-    <tr><th>Số mẫu đã kiểm</th><td>{{ d.so_mau or "—" }}</td><th>Lô</th><td>{{ "HSD " ~ frappe.utils.formatdate(d.hsd, "dd/MM/yyyy") if d.hsd else "—" }}</td></tr>
+        <th>NSX</th><td>{{ ngay(d.nsx) or "—" }}</td></tr>
+    <tr><th>Số mẫu đã kiểm</th><td>{{ d.so_mau or "—" }}</td><th>Lô</th><td>{{ ("HSD " ~ ngay(d.hsd)) if d.hsd else "—" }}</td></tr>
     <tr><th>Hồ sơ lô</th><td colspan="3" style="white-space:pre-line">{{ d.ho_so or "—" }}</td></tr>
   </table>
   <table>
     <tr><th style="width:6%">#</th><th>Nội dung kiểm</th><th style="width:14%">Kết quả</th><th style="width:28%">Ghi chú / số đo</th></tr>
-    {% for r in d.ds_muc %}
+    {%- for r in d.ds_muc %}
     <tr><td>{{ r.ma }}</td><td>{{ r.noi_dung }}</td><td>{{ r.ket_qua or "" }}</td><td>{{ r.ghi_chu or "" }}</td></tr>
-    {% endfor %}
+    {%- endfor %}
   </table>
   <table>
-    <tr><th style="width:22%">Kết luận</th><td class="kl">{{ d.ket_luan or "—" }}
-      {%- if d.ket_luan == "Đạt" and d.trang_thai == "Đã duyệt" %} — CHO XUẤT XƯỞNG{% endif %}</td></tr>
+    <tr><th style="width:22%">Kết luận</th><td class="kl">{{ kl or "—" }}
+      {%- if kl == "Cho xuất xưởng" and d.trang_thai == "Đã duyệt" %} — ĐÃ DUYỆT{% endif %}</td></tr>
     <tr><th>Ghi chú QC</th><td>{{ d.ghi_chu or "" }}</td></tr>
-    <tr><th>QC kiểm</th><td>{{ d.qc_kiem or "" }}{% if d.kiem_luc %} ({{ frappe.utils.format_datetime(d.kiem_luc, "dd/MM/yyyy HH:mm") }}){% endif %}</td></tr>
-    <tr><th>Người duyệt</th><td>{{ d.nguoi_duyet or "chưa duyệt" }}{% if d.duyet_luc %} ({{ frappe.utils.format_datetime(d.duyet_luc, "dd/MM/yyyy HH:mm") }}){% endif %}
+    <tr><th>QC kiểm</th><td>{{ d.qc_kiem or "" }}{% if d.kiem_luc %} ({{ gio(d.kiem_luc) }}){% endif %}</td></tr>
+    <tr><th>Người duyệt</th><td>{{ d.nguoi_duyet or "chưa duyệt" }}{% if d.duyet_luc %} ({{ gio(d.duyet_luc) }}){% endif %}
       {%- if d.y_kien_duyet %}<br>{{ d.y_kien_duyet }}{% endif %}</td></tr>
-    {% if d.su_co %}<tr><th>Phiếu sự cố</th><td>{{ d.su_co }}</td></tr>{% endif %}
+    {%- if d.su_co %}<tr><th>Phiếu sự cố</th><td>{{ d.su_co }}</td></tr>{% endif %}
   </table>
   <table class="ky"><tr><td><b>QC kiểm tra</b><br>(ký, ghi rõ họ tên)</td>
     <td><b>Trưởng Ban ISO / người được giao</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+{%- endif %}
 </div>

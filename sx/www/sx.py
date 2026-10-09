@@ -14,7 +14,7 @@ from sx.config.roles import (
 )
 
 # Build marker chống "shell cũ" (LUẬT VÀNG #2 — frappe-portal-spa)
-SHELL_BUILD = "sx-124"
+SHELL_BUILD = "sx-125"
 
 # Lấy từ ROLE_VIEWS: thêm role mới ở một chỗ, trang /sx cho vào ngay. Chép tay
 # danh sách này là cách tạo ra người dùng có role, có tab, mà mở /sx thì bị đá ra.

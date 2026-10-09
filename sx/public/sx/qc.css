@@ -411,6 +411,28 @@ button.sx-qc-tag-chon {
 .sx-xx-muc { border-top: 1px solid var(--sx-line); padding: var(--sx-s2) 0; }
 .sx-xx-muc-ten { font-size: var(--sx-f-sm); margin-bottom: 4px; }
 .sx-xx-gc { margin-top: 4px; min-height: 36px; }
+/* D159 (W31): BM.08.04 lần BH 01 — gợi ý mục A, ngày nghiền / rang, 5 ô mẫu mục B, 3 kết luận */
+.sx-xx-goiy {
+  font-size: var(--sx-f-xs); background: var(--sx-surface-2); border-radius: var(--sx-radius-sm);
+  padding: 4px var(--sx-s2); margin: 4px 0;
+}
+.sx-xx-ngay { display: flex; gap: var(--sx-s2); margin-top: 4px; }
+.sx-xx-ngay-o { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sx-xx-ngay-o .sx-textarea { width: 100%; box-sizing: border-box; }
+.sx-xx-mau { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 4px 0; }
+.sx-xx-mau-o {
+  min-height: var(--sx-tap); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-sm);
+  background: var(--sx-surface); color: var(--sx-text); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px;
+}
+.sx-xx-mau-so { font-size: 10px; color: var(--sx-text-3); font-family: var(--sx-mono); }
+.sx-xx-mau-v { font: 700 var(--sx-f-md)/1.1 var(--sx-font); }
+.sx-xx-mau-d { border-color: var(--sx-success); }
+.sx-xx-mau-k { border-color: var(--sx-danger); background: var(--sx-danger-soft); color: var(--sx-danger-text); }
+.sx-xx-kq { margin-top: 4px; }
+.sx-xx-kl { flex-direction: column; }
+.sx-xx-sc { margin-top: 4px; }
+.sx-xx-ky { font-size: var(--sx-f-sm); margin: var(--sx-s2) 0; display: flex; flex-direction: column; gap: 2px; }
 
 /* ── D140 (W15): động vật gây hại theo trạm ─────────────────────────────── */
 .sx-dv-tuan { align-items: center; gap: var(--sx-s2); }

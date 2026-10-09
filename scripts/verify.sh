@@ -444,4 +444,10 @@ python3 scripts/test-namcham.py > /tmp/sx-namcham.log 2>&1 \
   && tail -1 /tmp/sx-namcham.log \
   || { cat /tmp/sx-namcham.log; loi=1; }
 
+# D159 (W31): màn BM.08.04 lần BH 01 — 5 ô mẫu × 6 chỉ tiêu trên điện thoại. Chạm ô không đổi, mẫu K mà dòng
+# vẫn Đạt, số cân không lên payload, số phiếu sự cố gửi kèm Cho xuất xưởng, phiếu cũ mở bằng form mới — im lặng.
+node scripts/test-xuatxuong.mjs > /tmp/sx-xuatxuong-js.log 2>&1 \
+  && tail -1 /tmp/sx-xuatxuong-js.log \
+  || { cat /tmp/sx-xuatxuong-js.log; loi=1; }
+
 exit $loi
