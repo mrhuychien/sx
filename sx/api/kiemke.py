@@ -12,6 +12,7 @@ sinh chứng từ: controller SX Kiem Ke.
 """
 
 import json
+import re
 
 import frappe
 from frappe import _
@@ -26,6 +27,7 @@ CARD = "kiemke"
 PT = "SX Kiem Ke"
 GAN_DAY = 5
 LO_KHAC = 30
+MA_LO_HOP_LE = re.compile(r"^[A-Z0-9][A-Z0-9._/-]{0,39}$")   # mã lô chép tay ra thẻ: chữ, số, - . / _
 # Nhóm bán thành phẩm (Item.custom_sx_nhom) theo thứ tự trên chuyền — thẻ xếp mã theo thứ tự này.
 NHOM_BTP = {"BTP-Dau": "Đỗ ủ / đỗ vỡ", "BTP-Bot": "Bột nền", "BTP-Phu": "Đường hoán", "BTP-Banh": "Bột bánh",
             "BTP-Bot-SP": "Bột đậu"}
@@ -347,30 +349,26 @@ def _thu_hoi(b):
         return 0
 
 
-@frappe.whitelist()
-def ghi_lo(name, item, batch=None, so_dem=0):
-    """BÁN THÀNH PHẨM: ghi số cân (kg) của một lô. 0 = lô đã hết. Cân lại = ghi đè, giờ cân mới."""
-    guard_card(CARD)
-    d = _phieu(name)
+def _ma_btp(d, item):
+    """Item (kèm `ten`) của một mã bán thành phẩm, ghi vào phiếu kiểm kê BÁN THÀNH PHẨM — không thì báo."""
     if not d.la_btp():
-        frappe.throw(_("Phiếu {0} là kiểm kê thành phẩm — đếm theo HSD in trên hộp.").format(name))
+        frappe.throw(_("Phiếu {0} là kiểm kê thành phẩm — đếm theo HSD in trên hộp.").format(d.name))
     it = frappe.db.get_value("Item", item, ["name", "item_name", "has_batch_no", "custom_sx_nhom"], as_dict=True)
     if not it or not str(it.custom_sx_nhom or "").startswith("BTP"):
         frappe.throw(_("{0} không phải bán thành phẩm.").format(item))
-    ten = it.item_name or item
+    it.ten = it.item_name or item
+    return it
+
+
+def _so_can(so_dem):
     so = flt(so_dem, 3)
     if so < 0:
         frappe.throw(_("Số cân không được âm."))
-    b = batch or None
-    if cint(it.has_batch_no):
-        if not b:
-            frappe.throw(_("{0} quản lý theo lô — chọn lô rồi cân.").format(ten))
-        if frappe.db.get_value("Batch", b, "item") != item:
-            frappe.throw(_("Lô {0} không phải lô của {1}.").format(b, ten))
-        if _thu_hoi(b):
-            frappe.throw(_("Lô {0} đang THU HỒI — để riêng, không cân ở đây.").format(b))
-    elif b:
-        frappe.throw(_("{0} không quản lý theo lô — cân cả mã, không chọn lô.").format(ten))
+    return so
+
+
+def _ghi_can(d, item, ten, b, so):
+    """Số cân của (mã, lô) — có dòng rồi thì ghi đè, giờ cân mới."""
     r = next((x for x in d.dong or [] if x.item == item and (x.batch or None) == b), None)
     moi = {"so_dem": so, "nguoi_dem": frappe.session.user, "dem_luc": now_datetime()}
     if r:
@@ -378,7 +376,82 @@ def ghi_lo(name, item, batch=None, so_dem=0):
             setattr(r, k, v)
     else:
         d.append("dong", {"item": item, "ten": ten, "batch": b, **moi})
+
+
+@frappe.whitelist()
+def ghi_lo(name, item, batch=None, so_dem=0):
+    """BÁN THÀNH PHẨM: ghi số cân (kg) của một lô. 0 = lô đã hết. Cân lại = ghi đè, giờ cân mới."""
+    guard_card(CARD)
+    d = _phieu(name)
+    it = _ma_btp(d, item)
+    so = _so_can(so_dem)
+    b = batch or None
+    if cint(it.has_batch_no):
+        if not b:
+            frappe.throw(_("{0} quản lý theo lô — chọn lô rồi cân.").format(it.ten))
+        if frappe.db.get_value("Batch", b, "item") != item:
+            frappe.throw(_("Lô {0} không phải lô của {1}.").format(b, it.ten))
+        if _thu_hoi(b):
+            frappe.throw(_("Lô {0} đang THU HỒI — để riêng, không cân ở đây.").format(b))
+    elif b:
+        frappe.throw(_("{0} không quản lý theo lô — cân cả mã, không chọn lô.").format(it.ten))
+    _ghi_can(d, item, it.ten, b, so)
     return _luu(d)
+
+
+@frappe.whitelist()
+def ghi_lo_moi(name, item, ma_lo=None, ngay=None, so_dem=0):
+    """BÁN THÀNH PHẨM: cân thấy hàng của lô CHƯA CÓ trong hệ thống (D156) — tạo lô (Batch, NSX = ngày làm) và ghi
+    số cân trong CÙNG một lần: bỏ ngang trước khi LƯU thì không đẻ lô rác.
+
+    `ma_lo` = mã ghi trên thẻ hàng. Bỏ trống thì app đặt `{prefix}-KK{ddmmyy ngày làm}` (KK = sinh ở kiểm kê):
+    không bao giờ trùng mã lô sản xuất (R-…, BBS-…) nên không nhập nhằng với lô thật làm cùng ngày; lô -KK của
+    chính mã này mà chưa dùng (phiếu trước bỏ ngang) thì dùng lại — mã đã chép ra thẻ vẫn đúng. Mã gõ vào trùng
+    lô đã có của chính mã này thì ghi vào lô đó; trùng lô của mã khác thì báo."""
+    from sx.api.mfg import tao_batch
+    from sx.utils import lo_chua_dung, prefix_lo
+
+    guard_card(CARD)
+    d = _phieu(name)
+    it = _ma_btp(d, item)
+    if not cint(it.has_batch_no):
+        frappe.throw(_("{0} không quản lý theo lô — cân cả mã, không tạo lô.").format(it.ten))
+    so = _so_can(so_dem)
+    if so <= 0:
+        frappe.throw(_("Lô mới phải có số cân."))
+    nl = getdate(ngay) if ngay else getdate(nowdate())
+    if nl > getdate(nowdate()):
+        frappe.throw(_("Ngày làm {0} sau hôm nay.").format(nl.strftime("%d/%m/%y")))
+    ma = re.sub(r"\s+", "", str(ma_lo or "")).upper()
+    tu_dat = not ma
+    if ma:
+        if not MA_LO_HOP_LE.match(ma):
+            frappe.throw(_("Mã lô {0}: chỉ gồm chữ, số và - . / _ (tối đa 40 ký tự).").format(ma))
+        co = frappe.db.get_value("Batch", ma, ["name", "item", "disabled"], as_dict=True)
+        if co and co.item != item:
+            frappe.throw(_("Mã lô {0} đã là lô của {1} — đặt mã khác.").format(
+                co.name, frappe.db.get_value("Item", co.item, "item_name") or co.item))
+        if co and _thu_hoi(co.name):
+            frappe.throw(_("Lô {0} đang THU HỒI — để riêng, không cân ở đây.").format(co.name))
+        if co and cint(co.disabled):
+            frappe.throw(_("Lô {0} đang bị khoá (Disabled) trên Desk — mở khoá lô hoặc đặt mã khác.").format(co.name))
+        ma = co.name if co else ma
+    else:
+        dung = {r.batch for r in d.dong or [] if r.batch}
+        goc = f"{prefix_lo(item)}-KK{nl.strftime('%d%m%y')}"
+        ma, n = goc, 1
+        while frappe.db.exists("Batch", ma) and (ma in dung or not lo_chua_dung(ma, item)):
+            n += 1
+            ma = f"{goc}-{n}"
+    tao = not frappe.db.exists("Batch", ma)
+    if tao:
+        tao_batch(item, ma, nsx=nl)
+        frappe.db.set_value("Batch", ma, "description", _(
+            "Tạo lúc kiểm kê {0}: cân thấy hàng mà hệ thống chưa có lô.").format(d.name), update_modified=False)
+    _ghi_can(d, item, it.ten, ma, so)
+    ra = _luu(d)
+    ra["lo_moi"] = {"batch": ma, "tao": tao, "tu_dat": tu_dat}
+    return ra
 
 
 @frappe.whitelist()

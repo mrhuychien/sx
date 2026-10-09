@@ -752,6 +752,70 @@ A.ghi_lo(PX, "DO-U", "R-011026-U", 7.2)
 A.chot(PX)
 kiem("kho xưởng: đỗ ủ cân 7,2 → tồn lô 7,2 (xuất thiếu 0,8 ở chính kho xưởng)",
      SOX[("DO-U", "R-011026-U")] == 7.2 and F.bang("SX Kiem Ke")[PX]["kho"] == "Kho Xuong", SOX)
+print("\n-- bán thành phẩm: tạo lô mới ngay lúc cân (D156) --")
+F.vai("SX Thu Kho", u="kho@x")
+F.bang("Item")["BOT-BANH-SEN"]["custom_batch_prefix"] = "BBS"
+PB4 = A.bat_dau("Kho BTP", BTP_)["phieu"]["name"]
+n_lo = len(F.bang("Batch"))
+# Như ERPNext thật: lô vừa tạo, chưa có chứng từ kho nào là lô "chưa dùng" (utils.lo_chua_dung) — Frappe giả không có
+# db.sql nên lo_chua_dung luôn trả "đã dùng"; giả lập lại cho đúng (sổ cái giả không ghi SLE theo lô).
+_lcd = U.lo_chua_dung
+U.lo_chua_dung = lambda ma, item: (F.bang("Batch").get(ma) or {}).get("item") == item and not any(
+    x.get("batch_no") == ma for x in F.bang("Stock Ledger Entry").values())
+tq = A.ghi_lo_moi(PB4, "BOT-BANH-SEN", " bbs-071026 ", "2026-10-07", 4.25)
+b_ = F.bang("Batch").get("BBS-071026") or {}
+kiem("mã lô gõ theo thẻ (chữ thường, thừa khoảng trắng) → tạo lô BBS-071026 của đúng mã, NSX = ngày làm, ghi chú phiếu",
+     b_.get("item") == "BOT-BANH-SEN" and str(b_.get("manufacturing_date")) == "2026-10-07"
+     and PB4 in (b_.get("description") or "") and tq["lo_moi"] == {"batch": "BBS-071026", "tao": True, "tu_dat": False},
+     (b_, tq.get("lo_moi")))
+l_ = next((l for l in hang(tq, "BOT-BANH-SEN")["lo"] if l["batch"] == "BBS-071026"), {})
+kiem("… lô mới hiện ngay trong danh sách của mã: sổ 0, cân 4,25, ngày lô 07/10",
+     (l_.get("so"), l_.get("can"), l_.get("ngay")) == (0, 4.25, "2026-10-07"), l_)
+A.ghi_lo_moi(PB4, "BOT-BANH-SEN", "", "2026-10-08", 3)
+tq = A.ghi_lo_moi(PB4, "BOT-BANH-SEN", None, "2026-10-08", 2)
+kiem("bỏ trống mã → app đặt BBS-KK081026; lô thứ hai cùng ngày trong phiếu → BBS-KK081026-2 (không đè số lô trước)",
+     tq["lo_moi"] == {"batch": "BBS-KK081026-2", "tao": True, "tu_dat": True}
+     and {l["batch"]: l["can"] for l in hang(tq, "BOT-BANH-SEN")["lo"]}.get("BBS-KK081026") == 3, tq["lo_moi"])
+F.bang("Batch")["BBS-KK051026"] = {"name": "BBS-KK051026", "item": "BOT-BANH-SEN", "manufacturing_date": "2026-10-05",
+                                   "creation": "2026-10-05 08:00:00"}
+tq = A.ghi_lo_moi(PB4, "BOT-BANH-SEN", "", "2026-10-05", 1.5)
+kiem("lô -KK của mã này còn chưa dùng (phiếu trước bỏ ngang) → dùng lại đúng mã đã chép ra thẻ, không đẻ -2",
+     tq["lo_moi"] == {"batch": "BBS-KK051026", "tao": False, "tu_dat": True}, tq["lo_moi"])
+tq = A.ghi_lo_moi(PB4, "BOT-NEN", "R-280926", "2026-09-28", 2)
+kiem("mã gõ trùng lô đã có của chính mã → ghi số cân vào lô đó, không tạo lô",
+     tq["lo_moi"] == {"batch": "R-280926", "tao": False, "tu_dat": False}
+     and any(l["batch"] == "R-280926" and l["can"] == 2 for l in hang(tq, "BOT-NEN")["lo"]), tq["lo_moi"])
+kiem("… tạo lô mới chỉ đẻ đúng 3 lô (BBS-071026, BBS-KK081026, BBS-KK081026-2)", len(F.bang("Batch")) == n_lo + 4,
+     len(F.bang("Batch")) - n_lo)
+F.bang("Batch")["R-KHOA"] = {"name": "R-KHOA", "item": "BOT-NEN", "disabled": 1, "creation": "2026-09-01 08:00:00"}
+PT3 = A.bat_dau()["phieu"]["name"]
+for mo_ta_, can_co, f in (
+        ("trùng lô của mã khác", "đã là lô của Bột nền", lambda: A.ghi_lo_moi(PB4, "BOT-BANH-SEN", "R-011026", "2026-10-01", 1)),
+        ("lô đang thu hồi", "THU HỒI", lambda: A.ghi_lo_moi(PB4, "BOT-NEN", "R-070926", "2026-09-07", 1)),
+        ("lô bị khoá trên Desk", "khoá", lambda: A.ghi_lo_moi(PB4, "BOT-NEN", "r-khoa", "2026-09-01", 1)),
+        ("mã lô có ký tự lạ", "chỉ gồm chữ, số", lambda: A.ghi_lo_moi(PB4, "BOT-NEN", "R-07?10", "2026-10-07", 1)),
+        ("số cân 0", "phải có số cân", lambda: A.ghi_lo_moi(PB4, "BOT-NEN", "R-MOI", "2026-10-07", 0)),
+        ("ngày làm sau hôm nay", "sau hôm nay", lambda: A.ghi_lo_moi(PB4, "BOT-NEN", "R-MOI", "2026-10-10", 1)),
+        ("mã không quản lý lô", "không tạo lô", lambda: A.ghi_lo_moi(PB4, "DUONG-HOAN", "", "2026-10-07", 1)),
+        ("thành phẩm", "không phải bán thành phẩm", lambda: A.ghi_lo_moi(PB4, "TP-SEN", "", "2026-10-07", 1)),
+        ("phiếu kiểm kê thành phẩm", "đếm theo HSD", lambda: A.ghi_lo_moi(PT3, "BOT-NEN", "", "2026-10-07", 1))):
+    kiem(f"tạo lô mới — chặn: {mo_ta_}", can_co in (thu(f) or ""), thu(f))
+kiem("… các lần bị chặn không đẻ lô nào", len(F.bang("Batch")) == n_lo + 5
+     and not ({"R-MOI", "R-07?10"} & set(F.bang("Batch"))) and not any("-KK" in k and not k.startswith("BBS-")
+                                                                          for k in F.bang("Batch")),
+     (len(F.bang("Batch")) - n_lo, sorted(F.bang("Batch"))))
+A.huy(PT3)
+U.lo_chua_dung = _lcd
+xt = A.xem_truoc(PB4)
+ma = {x["item"]: x for x in xt["ma"]}
+kiem("xem trước: lô mới là phần THỪA (sổ 0) của mã — 4,25 + 3 + 2 + 1,5 = 10,75",
+     not xt["loi"] and ma["BOT-BANH-SEN"]["thua"] == 10.75 and ma["BOT-BANH-SEN"]["lo_can"] == 4, (xt["loi"], ma))
+A.chot(PB4)
+kiem("chốt: lô mới nhập đúng lô (Material Receipt) — tồn từng lô mới = số cân",
+     SOB[("BOT-BANH-SEN", "BBS-071026")] == 4.25 and SOB[("BOT-BANH-SEN", "BBS-KK081026")] == 3
+     and SOB[("BOT-BANH-SEN", "BBS-KK081026-2")] == 2 and SOB[("BOT-BANH-SEN", "BBS-KK051026")] == 1.5
+     and SOB[("BOT-NEN", "R-280926")] == 2, {k: v for k, v in SOB.items() if k[0] in ("BOT-BANH-SEN", "BOT-NEN")})
+
 F.CAI_DAT_SX.update({"kho_btp": "Kho TP", "kho_xuong": None})
 kiem("chưa có Kho xưởng riêng → không có ô Kho xưởng; Kho BTP trùng Kho TP vẫn tách hai loại",
      [(k["kho"], k["loai"]) for k in A.cac_kho()] == [("Kho TP", "Thành phẩm"), ("Kho TP", BTP_)], A.cac_kho())

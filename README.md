@@ -315,6 +315,21 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê bán thành phẩm: tạo lô mới ngay lúc cân (D156)
+
+- Màn kiểm kê **Bán thành phẩm / Kho xưởng** → ô **+ LÔ KHÁC / MỚI** của mã → **+ TẠO LÔ MỚI**: dùng khi cân thấy
+  hàng mà hệ thống chưa có lô (thẻ ghi mã lạ, hoặc bao / thùng không có thẻ).
+- Form: **Mã lô ghi trên thẻ** (đang tìm mã nào mà không thấy thì điền sẵn mã đó; chữ thường / khoảng trắng tự sửa)
+  và **Ngày làm** (tự đọc từ mã nếu mã có ddmmyy, vd R-280926 → 28/09/26; không cho ngày sau hôm nay) → **TIẾP — CÂN
+  LÔ NÀY** → bàn số kg → **LƯU**. Lô (Batch, NSX = ngày làm, ghi chú "tạo lúc kiểm kê KK-…") chỉ được tạo lúc LƯU số
+  cân — bỏ ngang giữa chừng không đẻ lô rác.
+- Bỏ trống mã thì app đặt **`{prefix}-KK{ngày làm}`** (vd `BBS-KK071026`; KK = sinh ở kiểm kê — không bao giờ trùng
+  mã lô sản xuất làm cùng ngày) rồi hiện cửa sổ **Ghi mã này ra thẻ hàng** để chép ra thẻ. Lô thứ hai cùng ngày →
+  `-2`; lô -KK chưa dùng (phiếu trước bỏ ngang) thì dùng lại đúng mã đã chép.
+- Mã gõ trùng lô đang có của chính mã → cân vào lô đó; trùng lô của mã khác, lô thu hồi, lô bị khoá, ký tự lạ → báo.
+- Chốt: lô mới là phần THỪA (sổ 0) → Material Receipt vào đúng lô đó, như mọi lô cân thấy mà sổ không có.
+- Không cần migrate: `git pull` rồi `bench restart` (số build sx-124).
+
 ## Kiểm kê bán thành phẩm theo lô, thủ kho chốt luôn (D155)
 
 - **Thủ kho chốt được kiểm kê** (cả thành phẩm lẫn bán thành phẩm) — không phải chờ quản lý. Bỏ phiếu đang đếm

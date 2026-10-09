@@ -700,7 +700,12 @@ console.log('\n-- Kiểm kê bán thành phẩm (D155): chọn kho, cân từng 
     if (m === 'sx.api.kiemke.ghi_lo') st.can[`${a.item}|${a.batch || null}`] = Number(a.so_dem);
     if (m === 'sx.api.kiemke.bo_lo') delete st.can[`${a.item}|${a.batch || null}`];
     if (m === 'sx.api.kiemke.dem_lai') Object.keys(st.can).filter((k) => k.startsWith(`${a.item}|`)).forEach((k) => delete st.can[k]);
-    if (m === 'sx.api.kiemke.lo_khac') return [{ batch: 'R-280926', ngay: '2026-09-28' }];
+    if (m === 'sx.api.kiemke.lo_khac') return [{ batch: 'R-280926', ngay: '2026-09-28' }].filter((l) => !a.tim || l.batch.includes(a.tim));
+    if (m === 'sx.api.kiemke.ghi_lo_moi') {
+      const b = a.ma_lo || `R-KK${a.ngay.slice(8, 10)}${a.ngay.slice(5, 7)}${a.ngay.slice(2, 4)}`;
+      st.can[`${a.item}|${b}`] = Number(a.so_dem);
+      return { ...tq(), lo_moi: { batch: b, tao: true, tu_dat: !a.ma_lo } };
+    }
     if (m === 'sx.api.kiemke.xem_truoc') {
       return { name: 'KK-B1', loai: BTP, loi: [], canh_bao: [], duoc_chot: true,
         ma: [{ item: 'BOT-NEN', ten: 'Bột nền', so_sach: 65.5, dem: 65.9, chuyen: 0, lo_cu: 0, thieu: 1.6, thua: 2,
@@ -807,6 +812,93 @@ console.log('\n-- Kiểm kê bán thành phẩm (D155): chọn kho, cân từng 
   b.nut('LƯU').bam();
   await choRe();
   kiem('… LƯU → ghi_lo lô khác', bang(loiGoi('sx.api.kiemke.ghi_lo')[1], { name: 'KK-B1', item: 'BOT-NEN', batch: 'R-280926', so_dem: 2 }));
+  // ── D156: tạo lô mới ngay trên màn kiểm kê ──
+  kiem('ngayTuMa: nhóm ddmmyy cuối của mã lô; ngày không có thật thì rỗng',
+    KK.ngayTuMa('R-280926') === '2026-09-28' && KK.ngayTuMa('R-280926-U') === '2026-09-28'
+    && KK.ngayTuMa('BBS-KK071026-2') === '2026-10-07' && KK.ngayTuMa('R-310226') === '' && KK.ngayTuMa('ABC') === ''
+    && KK.ngayTuMa('1234567') === '', [KK.ngayTuMa('R-280926-U'), KK.ngayTuMa('BBS-KK071026-2'), KK.ngayTuMa('R-310226')]);
+  kiem('ô lô của mã có lô ghi "+ LÔ KHÁC / MỚI"', c.querySelector('[data-lokhac="0"]').textContent === '+ LÔ KHÁC / MỚI');
+  c.querySelector('[data-lokhac="0"]').bam();
+  await choRe();
+  m = MO[MO.length - 1];
+  const oTim = m.body.querySelector('#kk-tim-lo');
+  oTim.value = 'r-071026';
+  (oTim.nghe.input || []).forEach((h) => h({ target: oTim }));
+  await new Promise((r) => { setTimeout(r, 320); });
+  await choRe();
+  const nutMoi = m.body.querySelector('#kk-lo-moi');
+  kiem('tìm mã lô hệ thống không có → báo không có, nút TẠO LÔ MỚI mang đúng mã đang tìm (in hoa)',
+    nutMoi.textContent === '+ TẠO LÔ MỚI «R-071026»'
+    && /không có lô «R-071026»/.test(m.body.querySelector('#kk-ds-lo').innerHTML), nutMoi.textContent);
+  nutMoi.bam();
+  let f = MO[MO.length - 1];
+  kiem('TẠO LÔ MỚI → form: mã điền sẵn, ngày làm đọc từ mã (07/10/26), không cho chọn ngày sau hôm nay',
+    m.dong && f.title === 'Lô mới (hệ thống chưa có)' && f.body.querySelector('#kk-ma-moi').value === 'R-071026'
+    && f.body.querySelector('#kk-ngay-moi').value === '2026-10-07' && f.body.innerHTML.includes(`max="${NGAY}"`),
+  [f.title, f.body.querySelector('#kk-ma-moi').value, f.body.querySelector('#kk-ngay-moi').value]);
+  b = moiSo(f.body.querySelector('#kk-tiep-moi'));
+  kiem('TIẾP → bàn số kg cho lô mới (mã, ngày làm)', b && b.m.title === 'Lô mới R-071026' && b.goiY() === 'làm 07/10/26'
+    && f.dong, b && [b.m.title, b.goiY()]);
+  b.nut('LƯU').bam();
+  kiem('lô mới: LƯU khi chưa có số → chặn, mở lại bàn số (không phải đi lại từ đầu)',
+    TOAST.some(([t, k]) => k === 'err' && /Lô mới phải có số cân/.test(t)) && !loiGoi('sx.api.kiemke.ghi_lo_moi')
+    && banSo().la() && banSo().m.title === 'Lô mới R-071026');
+  b = banSo();
+  b.go('4,5');
+  b.nut('LƯU').bam();
+  await choRe();
+  kiem('LƯU → ghi_lo_moi(mã lô, ngày làm, kg) một lần; lô hiện trên thẻ; báo đã tạo',
+    bang(loiGoi('sx.api.kiemke.ghi_lo_moi')[1], { name: 'KK-B1', item: 'BOT-NEN', ma_lo: 'R-071026', ngay: '2026-10-07', so_dem: 4.5 })
+    && /R-071026 · <b>4,5<\/b> kg/.test(c.innerHTML) && TOAST.some(([t]) => /Đã tạo lô R-071026/.test(t)),
+  loiGoi('sx.api.kiemke.ghi_lo_moi'));
+  c.querySelector('[data-lokhac="0"]').bam();
+  await choRe();
+  MO[MO.length - 1].body.querySelector('#kk-lo-moi').bam();
+  f = MO[MO.length - 1];
+  const ma2 = f.body.querySelector('#kk-ma-moi');
+  const ng2 = f.body.querySelector('#kk-ngay-moi');
+  kiem('không tìm gì → mã trống (app tự đặt), ngày làm = hôm nay', ma2.value === '' && ng2.value === NGAY, [ma2.value, ng2.value]);
+  ng2.doi('2026-10-12');
+  f.body.querySelector('#kk-tiep-moi').bam();
+  kiem('ngày làm sau hôm nay → chặn, form vẫn mở', !f.dong && TOAST.some(([t, k]) => k === 'err' && /Ngày làm sau hôm nay/.test(t)));
+  ma2.value = 'R 07?10';
+  ng2.doi('2026-10-08');
+  f.body.querySelector('#kk-tiep-moi').bam();
+  kiem('mã lô có ký tự lạ → chặn', !f.dong && TOAST.some(([t, k]) => k === 'err' && /chỉ gồm chữ, số/.test(t)));
+  ma2.value = '';
+  b = moiSo(f.body.querySelector('#kk-tiep-moi'));
+  kiem('bỏ trống mã → bàn số "Lô mới (app đặt mã)"', b && b.m.title === 'Lô mới (app đặt mã)' && b.goiY() === 'làm 08/10/26',
+    b && [b.m.title, b.goiY()]);
+  b.go('3');
+  b.nut('LƯU').bam();
+  await choRe();
+  const ghiThe = MO[MO.length - 1];
+  kiem('app đặt mã → gửi mã trống; hiện cửa sổ "Ghi mã này ra thẻ hàng" với mã lô chữ to',
+    bang(loiGoi('sx.api.kiemke.ghi_lo_moi')[1], { name: 'KK-B1', item: 'BOT-NEN', ma_lo: '', ngay: '2026-10-08', so_dem: 3 })
+    && ghiThe.title === 'Ghi mã này ra thẻ hàng' && /sx-lot-display">R-KK081026</.test(ghiThe.body.innerHTML), ghiThe.title);
+  ghiThe.body.querySelector('#kk-da-ghi').bam();
+  kiem('✓ ĐÃ GHI THẺ → đóng cửa sổ', ghiThe.dong);
+  c.querySelector('[data-lokhac="0"]').bam();
+  await choRe();
+  MO[MO.length - 1].body.querySelector('#kk-lo-moi').bam();
+  f = MO[MO.length - 1];
+  const ma3 = f.body.querySelector('#kk-ma-moi');
+  const ng3 = f.body.querySelector('#kk-ngay-moi');
+  ma3.value = 'R-300926-U';
+  (ma3.nghe.input || []).forEach((h) => h({ target: ma3 }));
+  kiem('gõ mã có ngày (R-300926-U) → ngày làm tự theo mã', ng3.value === '2026-09-30', ng3.value);
+  ng3.doi('2026-09-29');
+  ma3.value = 'R-010926';
+  (ma3.nghe.input || []).forEach((h) => h({ target: ma3 }));
+  kiem('… đã tự chọn ngày thì gõ mã không đè ngày', ng3.value === '2026-09-29', ng3.value);
+  ma3.value = 'R-070926';
+  f.body.querySelector('#kk-tiep-moi').bam();
+  kiem('gõ mã lô đang thu hồi → chặn', !f.dong && TOAST.some(([t, k]) => k === 'err' && /R-070926 đang thu hồi/.test(t)));
+  ma3.value = 'r-011026';
+  b = moiSo(f.body.querySelector('#kk-tiep-moi'));
+  kiem('gõ mã trùng lô đang có trong danh sách của mã → cân lô đó, không tạo lô', b && b.m.title === 'Lô R-011026'
+    && /^sổ 40/.test(b.goiY()), b && [b.m.title, b.goiY()]);
+  b.m.close();
   b = moiSo(c.querySelector('[data-lo="1:0"]'));
   kiem('mã không lô: bàn số mang tên mã', b && b.m.title === 'Đường hoán (không lô)', b && b.m.title);
   b.go('31,25');

@@ -33,6 +33,21 @@ const LOC = [
 ];
 
 function lechCua(x) { return x.lech != null ? x.lech : x.tong_dem - x.so_sach; }
+
+// Mã lô chép tay: bỏ khoảng trắng, in hoa — như server (sx.api.kiemke.ghi_lo_moi).
+const chuanMa = (s) => String(s || '').replace(/\s+/g, '').toUpperCase();
+const MA_HOP_LE = /^[A-Z0-9][A-Z0-9._/-]{0,39}$/;
+
+/** Ngày làm đọc từ mã lô: nhóm 6 số ddmmyy CUỐI cùng (R-280926, R-280926-U, BBS-KK071026-2) → 'YYYY-MM-DD'.
+ *  Không ra ngày thật thì ''. Hàm thuần. */
+export function ngayTuMa(ma) {
+  const ds = [...String(ma || '').matchAll(/(?:^|\D)(\d{2})(\d{2})(\d{2})(?=\D|$)/g)];
+  if (!ds.length) return '';
+  const [, d, m, y] = ds[ds.length - 1];
+  const iso = `20${y}-${m}-${d}`;
+  const t = new Date(`${iso}T00:00:00Z`);
+  return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === iso ? iso : '';
+}
 const kg = (n) => formatNumber(n, 3);
 const coDau = (n, le = 0) => `${n > 0 ? '+' : ''}${formatNumber(n, le)}`;
 
@@ -329,7 +344,7 @@ export async function render({ container, call, boot }) {
       <div class="sx-kk-dau"><div class="sx-vh-name">${esc(x.ten)}</div><div class="sx-kk-so">${tom}</div></div>
       ${x.le ? `<div class="sx-kk-nhac">Có ${kg(x.le)} kg tồn KHÔNG gắn lô — sửa trên Desk, không cân ở đây.</div>` : ''}
       <div class="sx-kk-dong">${o}
-        ${x.khong_lo ? '' : `<button type="button" class="sx-np-chip sx-kk-them" data-lokhac="${i}">+ LÔ KHÁC</button>`}
+        ${x.khong_lo ? '' : `<button type="button" class="sx-np-chip sx-kk-them" data-lokhac="${i}">+ LÔ KHÁC / MỚI</button>`}
         ${x.da_dem ? `<button type="button" class="sx-np-chip" data-lai="${i}">Cân lại cả mã</button>`
     : (lo.length ? `<button type="button" class="sx-np-chip" data-het="${i}">Không còn</button>` : '')}
       </div></div>`;
@@ -383,7 +398,11 @@ export async function render({ container, call, boot }) {
       initial: co ? l.can : '',
       hint: (v) => `sổ ${kg(l.so)}${co || v ? ` · ${coDau(v - l.so, 3)}` : ''}`,
       onOk: (v) => {
-        if (!co && !(v > 0)) { toastErr('Chưa nhập số cân. Lô không còn gì thì bấm LÔ HẾT.'); return; }
+        if (!co && !(v > 0)) {
+          toastErr('Chưa nhập số cân. Lô không còn gì thì bấm LÔ HẾT.');
+          moCan(x, l);
+          return;
+        }
         ghi(v);
       },
       okPhu: co
@@ -393,13 +412,18 @@ export async function render({ container, call, boot }) {
     });
   }
 
-  // "+ LÔ KHÁC": cân thấy hàng của lô mà sổ kho này không có — chọn trong các lô của mã (mới nhất trước).
+  // "+ LÔ KHÁC / MỚI": cân thấy hàng của lô mà sổ kho này không có — chọn trong các lô của mã (mới nhất trước);
+  // hệ thống chưa có lô đó (thẻ ghi mã lạ, hay bao không thẻ) thì TẠO LÔ MỚI ngay tại đây (D156).
   function moLoKhac(x) {
     const m = openModal({ kicker: `Kiểm kê · ${x.ten}`, title: 'Lô khác (sổ kho này không có)' });
     m.body.innerHTML = `<input class="sx-textarea" type="search" id="kk-tim-lo" autocomplete="off"
-        placeholder="Tìm mã lô…"><div id="kk-ds-lo"><div class="sx-muted">Đang tải…</div></div>`;
+        placeholder="Tìm mã lô…">
+      <button type="button" class="sx-btn sx-kk-lo-moi" id="kk-lo-moi">+ TẠO LÔ MỚI</button>
+      <div id="kk-ds-lo"><div class="sx-muted">Đang tải…</div></div>`;
     const o = m.body.querySelector('#kk-tim-lo');
     const box = m.body.querySelector('#kk-ds-lo');
+    const nutMoi = m.body.querySelector('#kk-lo-moi');
+    nutMoi.addEventListener('click', () => { m.close(); moLoMoi(x, chuanMa(o.value)); });
     let lan = 0;
     let hen = null;
     async function napDs() {
@@ -413,11 +437,14 @@ export async function render({ container, call, boot }) {
         return;
       }
       if (n !== lan) return;            // đã gõ tiếp — bỏ kết quả cũ
+      const q = chuanMa(o.value);
+      nutMoi.textContent = q ? `+ TẠO LÔ MỚI «${q}»` : '+ TẠO LÔ MỚI';
       box.innerHTML = ds.length ? `<div class="sx-vh-list">${ds.map((l) => `
         <button type="button" class="sx-nv-row" data-b="${esc(l.batch)}"
           style="flex-direction:row;align-items:center;justify-content:space-between;min-height:var(--sx-tap-lg)">
           <span class="sx-nv-ten">${esc(l.batch)}</span><span class="sx-nv-qty">${esc(veNgayDu(l.ngay))}</span></button>`)
-    .join('')}</div>` : '<div class="sx-muted">Không có lô nào khác của mã này.</div>';
+    .join('')}</div>` : `<div class="sx-muted">${q ? `Hệ thống không có lô «${esc(q)}» của mã này — bấm TẠO LÔ MỚI.`
+    : 'Mã này không có lô nào khác — hàng không có lô trong hệ thống thì bấm TẠO LÔ MỚI.'}</div>`;
       box.querySelectorAll('[data-b]').forEach((b) => b.addEventListener('click', () => {
         const l = ds.find((y) => y.batch === b.dataset.b);
         m.close();
@@ -426,6 +453,76 @@ export async function render({ container, call, boot }) {
     }
     o.addEventListener('input', () => { clearTimeout(hen); hen = setTimeout(napDs, 250); });
     napDs();
+  }
+
+  // Lô mới: mã ghi trên thẻ (bỏ trống = app đặt …-KK + ngày làm) + ngày làm, rồi cân. Lô chỉ được tạo khi LƯU số
+  // cân (một lần gọi) — bỏ ngang giữa chừng không đẻ lô rác.
+  function moLoMoi(x, maGo) {
+    const m = openModal({ kicker: `Kiểm kê · ${x.ten}`, title: 'Lô mới (hệ thống chưa có)' });
+    m.body.innerHTML = `
+      <div class="sx-muted">Cân thấy hàng mà hệ thống chưa có lô: tạo lô mới cho mã này rồi cân. Thẻ có ghi mã lô thì gõ
+        đúng mã đó; bao / thùng không có thẻ thì bỏ trống — app tự đặt mã, chép ra thẻ.</div>
+      <label class="sx-field-label" for="kk-ma-moi">Mã lô ghi trên thẻ</label>
+      <input class="sx-textarea" id="kk-ma-moi" autocomplete="off" autocapitalize="characters" spellcheck="false"
+        placeholder="Bỏ trống = app tự đặt" value="${esc(maGo || '')}">
+      <label class="sx-field-label" for="kk-ngay-moi">Ngày làm</label>
+      <input class="sx-textarea" type="date" id="kk-ngay-moi" max="${esc(dl.hom_nay)}"
+        value="${esc(ngayTuMa(maGo) || dl.hom_nay)}">
+      <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-tiep-moi">TIẾP — CÂN LÔ NÀY</button>`;
+    const ma = m.body.querySelector('#kk-ma-moi');
+    const ngay = m.body.querySelector('#kk-ngay-moi');
+    let ngayTay = false;                // đã tự chọn ngày thì thôi đoán ngày theo mã
+    ngay.addEventListener('change', () => { ngayTay = true; });
+    ma.addEventListener('input', () => {
+      const n = ngayTuMa(ma.value);
+      if (!ngayTay && n) ngay.value = n;
+    });
+    m.body.querySelector('#kk-tiep-moi').addEventListener('click', () => {
+      const code = chuanMa(ma.value);
+      const n = ngay.value;
+      if (code && !MA_HOP_LE.test(code)) { toastErr('Mã lô chỉ gồm chữ, số và - . / _ (tối đa 40 ký tự).'); return; }
+      if (!n) { toastErr('Chọn ngày làm.'); return; }
+      if (n > dl.hom_nay) { toastErr('Ngày làm sau hôm nay.'); return; }
+      const co = code && x.lo.find((l) => String(l.batch || '').toUpperCase() === code);
+      if (co && co.thu_hoi) { toastErr(`Lô ${co.batch} đang thu hồi — để riêng, không cân ở đây.`); return; }
+      m.close();
+      if (co) moCan(x, co);             // lô đã có trong danh sách của mã: cân lô đó
+      else moCanMoi(x, code, n);
+    });
+  }
+
+  function moCanMoi(x, ma, ngay) {
+    openNumpad({
+      kicker: `Kiểm kê · ${dl.phieu.name} · ${x.ten}`,
+      title: ma ? `Lô mới ${ma}` : 'Lô mới (app đặt mã)',
+      allowDecimal: true,
+      unitLabel: 'Cân thật · kg',
+      hint: () => `làm ${veNgayDu(ngay)}`,
+      onOk: (v) => {
+        if (!(v > 0)) { toastErr('Lô mới phải có số cân.'); moCanMoi(x, ma, ngay); return; }
+        let kq;
+        lam(async () => {
+          kq = await call('sx.api.kiemke.ghi_lo_moi', {
+            name: dl.phieu.name, item: x.item, ma_lo: ma, ngay, so_dem: v,
+          });
+          return kq;
+        }).then((xong) => { if (xong) baoLoMoi(kq.lo_moi); });
+      },
+    });
+  }
+
+  // App vừa đặt mã cho lô → phải chép ra thẻ treo vào bao / thùng (như "Ghi mã này ra thẻ lô" lúc xuất đỗ).
+  function baoLoMoi(lm) {
+    if (!lm) return;
+    if (!lm.tao) { toast(`Lô ${lm.batch} đã có — đã ghi số cân vào lô đó.`); return; }
+    if (!lm.tu_dat) { toast(`Đã tạo lô ${lm.batch}.`); return; }
+    const m = openModal({ kicker: 'Kiểm kê · lô mới', title: 'Ghi mã này ra thẻ hàng' });
+    m.body.innerHTML = `
+      <div class="sx-lot-display">${esc(lm.batch)}</div>
+      <div class="sx-modal-msg" style="text-align:center">${'App vừa đặt mã cho lô mới. Chép mã trên ra thẻ, treo vào '
+        + 'đúng bao / thùng vừa cân.'}</div>
+      <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-da-ghi">✓ ĐÃ GHI THẺ</button>`;
+    m.body.querySelector('#kk-da-ghi').addEventListener('click', () => m.close());
   }
 
   function moChonMa() {
