@@ -334,6 +334,70 @@ kiem("patch: trống → vẫn trống; có trong patches.txt", "do_am_toi_da" n
 st = {f["fieldname"]: f for f in json.load(open("sx/qc/doctype/sx_qc_setting/sx_qc_setting.json", encoding="utf-8"))["fields"]}
 kiem("SX QC Setting: ô Độ ẩm tối đa không còn mặc định 13", not st["do_am_toi_da"].get("default"))
 
+# ═══ 5b. W36 (D167): sổ BM.07.03 theo tháng ═══════════════════════════════
+print("\n-- W36: in sổ BM.07.03 theo tháng --")
+
+
+def _dong(dt, ten, ngay, ds, docstatus=1, **k):
+    F.bang(dt)[ten] = dict({"name": ten, "docstatus": docstatus, "is_return": 0, "posting_date": ngay,
+                            "supplier": "NCC-SUA", "supplier_name": "Công ty Sữa ABC", "custom_nguoi_kiem": "qc@x",
+                            "custom_ghi_chu_qc": ""}, **k)
+    for i, r in enumerate(ds, 1):
+        F.bang(f"{dt} Item")[f"{ten}-{i}"] = dict({"name": f"{ten}-{i}", "parent": ten, "parenttype": dt, "idx": i,
+                                                   "item_code": "SUA", "item_name": "Sữa bột nguyên kem", "uom": "Kg",
+                                                   "qty": 50, "warehouse": "Kho NVL - HG"}, **r)
+
+
+_dong("Purchase Receipt", "PR-IN", "2026-10-03", [
+    {"batch_no": "LO-SUA-1", "custom_ncc_lo": "L2610", "custom_giay_to": "Nhập khẩu — COA lô: CÓ",
+     "custom_cam_quan_dat": "Đạt", "custom_coa_vi_sinh": "Có", "custom_ket_luan": "Đạt"},
+    {"item_code": "THUNG", "item_name": "Thùng carton ngoài"}],            # bao bì ngoài, không kiểm → không có dòng
+    custom_ghi_chu_qc="Hàng khô, bao nguyên")
+_dong("Purchase Receipt", "PR-K", "2026-10-04", [
+    {"item_code": "DX", "item_name": "Đỗ xanh", "qty": 500, "custom_cam_quan_dat": "Không đạt", "custom_aflatoxin": "Có",
+     "custom_ket_luan": "Cách ly", "warehouse": "Kho cách ly - HG"}], custom_xe_ket_luan="Không đạt")
+F.bang("SX Su Co")["SC-TN"] = {"name": "SC-TN", "khoa_cu": "PR-K#1", "nguon": "Tiếp nhận NL"}
+_dong("Purchase Invoice", "PI-IN", "2026-10-02", [{"custom_cam_quan_dat": "Đạt", "custom_ket_luan": "Đạt"}],
+      update_stock=1)
+_dong("Purchase Invoice", "PI-KHONG", "2026-10-05", [{"custom_ket_luan": "Đạt"}], update_stock=0)
+_dong("Purchase Receipt", "PR-NHAP", "2026-10-06", [{"custom_ket_luan": "Đạt"}], docstatus=0)
+_dong("Purchase Receipt", "PR-TRA2", "2026-10-06", [{"custom_ket_luan": "Đạt"}], is_return=1)
+_dong("Purchase Receipt", "PR-T9", "2026-09-30", [{"custom_ket_luan": "Đạt"}])
+F.bang("Batch")["LO-SUA-1"] = {"name": "LO-SUA-1", "manufacturing_date": date(2026, 9, 1), "expiry_date": date(2027, 9, 1)}
+F.bang("User")["qc@x"] = {"name": "qc@x", "full_name": "QC Lan"}
+if F.jinja2:
+    html = A.in_bm0703("2026-10")
+    hang = [[re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", c)).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", h, re.S)]
+            for h in re.findall(r"<tr>(.*?)</tr>", html, re.S)]
+    hang = [h for h in hang if len(h) == 12]
+    cot = [re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", c)).strip() for c in re.findall(r"<th[^>]*>(.*?)</th>", html, re.S)]
+    kiem("BM.07.03 đúng 12 cột giấy (lần sửa đổi 01)", cot == [
+        "Ngày", "Loại vật tư / nguyên liệu", "Nhà cung cấp", "Số lô NCC", "ĐVT", "Số lượng", "NSX / HSD",
+        "COA lô (NK) / KN năm (TN)", "Nội dung kiểm tra (theo HD.07.01)", "Kết luận", "Người kiểm tra", "Ghi chú / xử lý"], cot)
+    ten_phieu = [h[2].split()[-1] for h in hang]
+    kiem("chỉ phiếu ĐÃ DUYỆT của tháng (phiếu nhập mua + hoá đơn mua trừ kho); bỏ nháp, trả hàng, không trừ kho, tháng 9; "
+         "chỉ dòng có kết luận tiếp nhận; theo ngày (hoá đơn mua 02/10 trước phiếu nhập 03/10)",
+         [x for x in ten_phieu if x in ("PR-IN", "PR-K", "PI-IN")] == ["PI-IN", "PR-IN", "PR-K"]
+         and not {"PI-KHONG", "PR-NHAP", "PR-TRA2", "PR-T9"} & set(ten_phieu) and "Thùng carton" not in html, ten_phieu)
+    a = next(h for h in hang if h[2].endswith("PR-IN"))
+    kiem("dòng Đạt: số lô NCC, ĐVT, số lượng, NSX / HSD theo lô, hồ sơ (COA lô), cảm quan, người kiểm (họ tên), ghi chú QC",
+         a[0] == "03/10/2026" and a[3:8] == ["L2610", "Kg", "50", "NSX 01/09/2026 · HSD 01/09/2027", "Nhập khẩu — COA lô: CÓ"]
+         and a[8].startswith("Cảm quan: Đạt") and a[9:] == ["Đạt", "QC Lan", "Hàng khô, bao nguyên"], a)
+    b = next(h for h in hang if h[2].endswith("PR-K"))
+    kiem("dòng Cách ly: nội dung kiểm (cảm quan, aflatoxin), xử lý = kho cách ly + phiếu sự cố + xe không đạt",
+         b[8] == "Cảm quan: Không đạt; aflatoxin: Có" and b[9] == "Cách ly" and "vào Kho cách ly - HG" in b[11]
+         and "phiếu sự cố SC-TN" in b[11] and "xe giao hàng Không đạt" in b[11], b)
+    kiem("tháng không có lô nào → nói rõ", "chưa có lô nào" in A.in_bm0703("2026-08"))
+F.vai("SX Vao Hop")
+kiem("người ngoài QC không in được BM.07.03", thu(lambda: A.in_bm0703("2026-10")) is not None)
+F.vai("SX QC")
+kiem("màn Tiếp nhận NL: nút IN SỔ BM.07.03 theo tháng; danh sách trả tháng hiện tại",
+     "IN SỔ BM.07.03" in open("sx/public/sx/views/qc_tiepnhan.js", encoding="utf-8").read()
+     and A.ds_tiep_nhan()["thang"] == "2026-10")
+rv = open("sx/public/sx/views/qc_review.js", encoding="utf-8").read()
+kiem("màn Xem xét tháng: nút in SLM + BM.07.03 của tháng đang xem",
+     "sx.api.qc.in_so_luu_mau" in rv and "sx.api.qc_tiepnhan.in_bm0703" in rv and "{ thang: st.thang }" in rv)
+
 # ═══ 6. Màn hình ═════════════════════════════════════════════════════════
 print("\n-- màn hình --")
 js = open("sx/public/sx/views/qc_tiepnhan.js", encoding="utf-8").read()

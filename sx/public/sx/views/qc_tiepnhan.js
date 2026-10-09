@@ -43,6 +43,31 @@ export async function render(api) {
   khoi('Chờ kiểm', dl.ds.filter((x) => !x.xong), 'Không có phiếu nhập mua nào chờ kiểm.');
   const xong = dl.ds.filter((x) => x.xong);
   if (xong.length) khoi('Đã kiểm đủ — chờ thủ kho duyệt', xong);
+
+  // W36 (D167): sổ BM.07.03 theo tháng — một dòng mỗi lô của phiếu đã duyệt.
+  const inHang = el('div', 'sx-xx-ngay');
+  const th = el('input', 'sx-textarea');
+  th.type = 'month';
+  th.value = dl.thang || '';
+  th.max = dl.thang || '';
+  const inB = el('button', 'sx-btn sx-btn-ghost', '🖨 IN SỔ BM.07.03');
+  inB.type = 'button';
+  inB.addEventListener('click', async () => {
+    const thang = th.value || dl.thang;
+    try {
+      const html = await call('sx.api.qc_tiepnhan.in_bm0703', { thang });
+      const w = window.open('', '_blank');
+      if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+      w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+        + `<title>BM.07.03 — ${esc(thang)}</title></head><body>${html}</body></html>`);
+      w.document.close();
+      w.focus();
+      setTimeout(() => w.print(), 250);
+    } catch (e) { toastErr(e.message); }
+  });
+  inHang.appendChild(th);
+  inHang.appendChild(inB);
+  container.appendChild(inHang);
 }
 
 function thePhieu(x, dl, api) {

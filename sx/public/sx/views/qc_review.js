@@ -289,6 +289,27 @@ export async function render(api) {
   });
   ho_so.appendChild(nutXe);
 
+  // W36 (D167): sổ lưu mẫu SLM + sổ tiếp nhận nguyên liệu BM.07.03 của tháng đang xem.
+  [['🖨 SỔ LƯU MẪU (SLM)', 'sx.api.qc.in_so_luu_mau', 'SLM'],
+    ['🖨 TIẾP NHẬN NL (BM.07.03)', 'sx.api.qc_tiepnhan.in_bm0703', 'BM.07.03']].forEach(([chu, ham, ma]) => {
+    const b = el('button', 'sx-btn sx-btn-ghost', chu);
+    b.type = 'button';
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      try {
+        const html = await call(ham, { thang: st.thang });
+        const w = window.open('', '_blank');
+        if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+        w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+          + `<title>${ma} — ${st.thang}</title></head><body>${html}</body></html>`);
+        w.document.close();
+        w.focus();
+        setTimeout(() => w.print(), 400);
+      } catch (e) { toastErr(e.message); } finally { b.disabled = false; }
+    });
+    ho_so.appendChild(b);
+  });
+
   [['luot', 'vòng kiểm'], ['su_co', 'sự cố']].forEach(([loai, ten]) => {
     const b = el('button', 'sx-btn sx-btn-ghost', `⬇ CSV ${ten}`);
     b.type = 'button';

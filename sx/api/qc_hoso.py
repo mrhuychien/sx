@@ -238,6 +238,11 @@ def _in(bm, tu, den):
         return [("dien-tap.html", _trang("Diễn tập truy xuất", _bang(
             "Các lần diễn tập truy xuất", f"{HS.ngay_vn(tu)} – {HS.ngay_vn(den)} · bản in từng lần ở thẻ Truy xuất",
             ["Phiếu", "Ngày", "Sản phẩm", "Lô", "HSD", "Phút", "Cân bằng", "Kết quả"], hang)))]
+    if bm == "SLM":
+        return [(f"{t}.html", _trang(f"SLM — sổ lưu mẫu {t}", Q.in_so_luu_mau(t))) for t, _a, _b in thang]
+    if bm == "BM.07.03":
+        from sx.api import qc_tiepnhan
+        return [(f"{t}.html", _trang(f"BM.07.03 — {t}", qc_tiepnhan.in_bm0703(t))) for t, _a, _b in thang]
     if bm == "HUY_MAU":
         ds = frappe.get_all(Q.DHM, filters={"trang_thai": "Đã huỷ", "xac_nhan_luc": ("between", [tu, den])},
                             pluck="name", order_by="xac_nhan_luc asc")

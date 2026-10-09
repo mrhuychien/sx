@@ -30,16 +30,17 @@ import fakefrappe as F  # noqa: E402
 
 F.cai()
 Q = F.nap_qc()
-for t in ("khieu_nai", "ncc", "kiem_xe", "rework", "attp", "ho_so"):
+for t in ("khieu_nai", "ncc", "kiem_xe", "tiep_nhan", "rework", "attp", "ho_so"):
     F.nap(f"sx.qc.{t}", f"sx/qc/{t}.py")
 for t in ("qc_ncc", "qc_attp", "qc_cat", "qc_dvgh", "qc_khieunai", "qc_kiemnghiem", "qc_kiemxe", "qc_rework",
-          "qc_thietbi", "qc_hoso"):
+          "qc_thietbi", "qc_tiepnhan", "qc_hoso"):
     F.nap(f"sx.api.{t}", f"sx/api/{t}.py")
 HS = sys.modules["sx.qc.ho_so"]
 API = sys.modules["sx.api.qc_hoso"]
 CT = F.nap("hs_ctl", "sx/qc/doctype/sx_ho_so_danh_muc/sx_ho_so_danh_muc.py")
 F.dang_ky(HS.PT, CT.SXHoSoDanhMuc)
 P = F.nap("sx.patches.d149_ho_so", "sx/patches/d149_ho_so.py")
+P167 = F.nap("sx.patches.d167_ho_so_slm_bm0703", "sx/patches/d167_ho_so_slm_bm0703.py")
 FR = sys.modules["frappe"]
 FR.local = types.SimpleNamespace(response=F.Doc())
 
@@ -237,6 +238,20 @@ F.bang("SX Nhat Ky Cat")["CAT-1"] = {"name": "CAT-1", "ngay": "2026-09-15", "so_
 F.bang("SX Dien Tap Truy Xuat")["DT-1"] = {"name": "DT-1", "ngay": "2026-09-30", "ket_thuc": "2026-09-30 10:00:00",
                                            "ten_san_pham": "Bánh 1", "lo": "LO-1", "so_phut": 25,
                                            "can_bang_pt": 99.5, "dat": 1}
+# W36 (D167): Sổ lưu mẫu SLM, sổ tiếp nhận BM.07.03 vào danh mục (patch) → gói có bản in từng tháng.
+F.bang(HS.PT)["HS-SLM-GIAY"] = {"name": "HS-SLM-GIAY", "ma": "bm.07.03", "ten": "Sổ tiếp nhận (giấy cũ)", "nhom": "Khác",
+                                "nguon": HS.GIAY, "noi_luu": "Kho"}
+P167.execute()
+P167.execute()
+slm = [x for x in F.bang(HS.PT).values() if x["ma"] == "SLM"]
+kiem("patch d167: thêm SLM (app lập, nhóm truy xuất…, bắt buộc); BM.07.03 đã có dòng (khác hoa thường) → giữ; "
+     "chạy lại không nhân đôi", len(slm) == 1 and (slm[0]["nguon"], slm[0]["bieu_mau"], slm[0]["bat_buoc"])
+     == (HS.APP, "SLM", 1) and not [x for x in F.bang(HS.PT).values() if x["ma"] == "BM.07.03"], slm)
+F.bang(HS.PT).pop("HS-SLM-GIAY")
+P167.execute()
+kiem("… không có dòng BM.07.03 thì thêm (app lập, nhóm nhà cung cấp, nguyên liệu)",
+     [(x["nguon"], x["bieu_mau"], x["nhom"]) for x in F.bang(HS.PT).values() if x["ma"] == "BM.07.03"]
+     == [(HS.APP, "BM.07.03", "Nhà cung cấp, nguyên liệu")])
 FR.local.response = F.Doc()
 API.tai_goi("2026-09-01", "2026-10-09")
 rs = FR.local.response
@@ -269,6 +284,12 @@ kiem("diễn tập truy xuất trong kỳ: bảng các lần (lô, cân bằng, 
 kiem("tự công bố: danh mục sản phẩm (số bản, TCCS)", any(x.endswith("danh-muc-san-pham.html") for x in ten)
      and "02/2023" in z.read(next(x for x in ten if x.endswith("danh-muc-san-pham.html"))).decode("utf-8"))
 kiem("BM.PRP.03: một tờ mỗi tuần chạm kỳ (6 tuần)", len([x for x in ten if "BM.PRP.03" in x]) == 6)
+kiem("W36: SLM và BM.07.03 mỗi tháng một tờ (tháng 9, tháng 10) — đúng mẫu giấy",
+     sorted(x.rsplit("/", 1)[1] for x in ten if "-SLM/" in x) == ["2026-09.html", "2026-10.html"]
+     and sorted(x.rsplit("/", 1)[1] for x in ten if "BM.07.03/" in x) == ["2026-09.html", "2026-10.html"]
+     and "Lần BH 02" in z.read(next(x for x in ten if "-SLM/" in x)).decode("utf-8")
+     and "BM.07.03 (QT.07)" in z.read(next(x for x in ten if "BM.07.03/" in x)).decode("utf-8"),
+     [x for x in ten if "SLM" in x or "07.03" in x])
 kiem("hồ sơ app kỳ này không có bản ghi (BM.08.04) → mục lục nói rõ, không có thư mục rỗng",
      "kỳ này không có bản ghi" in mlt and not any("BM.08.04" in x for x in ten))
 goc = Q.month_sheets
@@ -285,7 +306,8 @@ kiem("kỳ ngược / quá 24 tháng → chặn", "trước" in (thu(lambda: API
 
 # ═══ 5. Màn hình ══════════════════════════════════════════════════════════
 print("\n-- màn hình --")
-kiem("patch có trong patches.txt", "sx.patches.d149_ho_so" in open("sx/patches.txt", encoding="utf-8").read())
+kiem("patch có trong patches.txt", all(f"sx.patches.{p}" in open("sx/patches.txt", encoding="utf-8").read()
+                                      for p in ("d149_ho_so", "d167_ho_so_slm_bm0703")))
 qj = open("sx/public/sx/views/qc.js", encoding="utf-8").read()
 ui = open("sx/public/sx/components/qcui.js", encoding="utf-8").read()
 kiem("route #/qc/hoso; nút thứ ba 'Hồ sơ đánh giá' trong tab Xem xét",

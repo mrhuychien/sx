@@ -44,6 +44,7 @@ BATCH = [
     {"name": "BOT-HSD250228", "item": "TP-BOT", "manufacturing_date": date(2024, 2, 29),
      "expiry_date": date(2025, 2, 28), "batch_qty": 1, "disabled": 0},
 ]
+SP_CB = []         # SX San Pham Cong Bo (W28) — quy cách cho Sổ lưu mẫu (W36)
 ITEM = [{"name": "TP-SEN", "item_name": "Bánh đậu xanh sen"},
         {"name": "TP-DUA", "item_name": "Bánh đậu xanh dừa"},
         {"name": "TP-BOT", "item_name": "Bột đậu xanh dinh dưỡng"}]
@@ -73,7 +74,7 @@ class Doc(dict):
 def _bang(dt):
     return {"SX QC Luu Mau": LM, "SX QC Dot Huy Mau": DOT, "SX QC Dot Huy Mau Item": DOT_ITEM,
             "SX Su Co": SU_CO, "SX Su Co Lo": SU_CO_LO, "Batch": BATCH,
-            "Item": ITEM}.get(dt, [])
+            "Item": ITEM, "SX San Pham Cong Bo": SP_CB}.get(dt, [])
 
 
 def _so(x):
@@ -86,6 +87,10 @@ def _khop(h, f):
         if isinstance(v, tuple):
             op, m = v
             if op == "<=" and not (x is not None and _so(x) <= _so(m)):
+                return False
+            if op == "<" and not (x is not None and _so(x) < _so(m)):
+                return False
+            if op == "between" and not (x is not None and _so(m[0]) <= _so(x)[:10] <= _so(m[1])):
                 return False
             if op == "in" and x not in m:
                 return False
@@ -636,6 +641,72 @@ kiem("form lấy mẫu: chọn lô qua lo_cua_sp, hiện HSD (không hiện mã 
      "lo_cua_sp" in js and "`HSD ${esc(ngayVN(b.hsd))}" in js and "b.batch)}" not in js)
 css = open("sx/public/sx/qc.css", encoding="utf-8").read()
 kiem("CSS có kiểu cho thẻ Chờ huỷ + chip giữ", ".sx-qc-sc-cho" in css and ".sx-qc-tag-giu" in css)
+
+# ═══ W36 (D167): Sổ lưu mẫu SLM theo tháng (lần BH 02) ═════════════════════
+print("\n-- W36: in Sổ lưu mẫu SLM theo tháng --")
+LM.clear()
+DOT.clear()
+SP_CB.append({"name": "SPCB-001", "quy_cach": "Hộp giấy 250 g\nHộp giấy 500 g"})
+ITEM[0]["custom_sp_cong_bo"] = "SPCB-001"
+CHUNG = {"san_pham": "TP-SEN", "ten_san_pham": "Bánh đậu xanh sen", "so_luong": 2, "dvt": "hộp", "lay_boi": "qc@x",
+         "vi_tri": "Tủ 1 · ngăn T10", "giu_lai": 0}
+LM.extend(Doc(dict(CHUNG, **x)) for x in (
+    {"name": "LM-A", "ngay_lay": date(2026, 10, 2), "nsx": date(2026, 10, 2), "hsd": date(2027, 7, 2),
+     "han_luu": date(2027, 10, 2), "trang_thai": "Đang lưu", "creation": "2026-10-02 17:00:00"},
+    {"name": "LM-B", "ngay_lay": date(2026, 10, 5), "hsd": date(2027, 7, 5), "han_luu": date(2027, 10, 5),
+     "trang_thai": "Đã lấy ra", "ly_do": "Khiếu nại ISS-2026-00012", "xu_ly_luc": "2026-10-06 09:00:00",
+     "xu_ly_boi": "qc@x", "creation": "2026-10-05 17:00:00"},
+    {"name": "LM-C", "ngay_lay": date(2026, 10, 6), "han_luu": date(2027, 10, 6), "trang_thai": "Đang lưu",
+     "giu_lai": 1, "ly_do_giu": "Khách gọi, chưa lập phiếu", "lo": "HSD 06/07/2027", "creation": "2026-10-06 17:00:00"},
+    {"name": "LM-D", "ngay_lay": date(2025, 10, 3), "nsx": date(2025, 10, 3), "hsd": date(2026, 7, 3),
+     "han_luu": date(2026, 10, 3), "trang_thai": "Đã huỷ", "dot_huy": "HM-2026-009", "xu_ly_boi": "iso@x",
+     "xu_ly_luc": "2026-10-07 15:00:00"},
+    {"name": "LM-E", "ngay_lay": date(2025, 9, 20), "han_luu": date(2026, 9, 20), "trang_thai": "Đã huỷ",
+     "xu_ly_boi": "iso@x", "xu_ly_luc": "2026-10-03 08:00:00"},
+    {"name": "LM-F", "ngay_lay": date(2026, 9, 15), "han_luu": date(2027, 9, 15), "trang_thai": "Đang lưu"},
+    {"name": "LM-G", "ngay_lay": date(2025, 8, 1), "han_luu": date(2026, 8, 1), "trang_thai": "Đã huỷ",
+     "xu_ly_boi": "iso@x", "xu_ly_luc": "2026-09-30 08:00:00"}))
+DOT.append(Doc({"name": "HM-2026-009", "thang": "10/2026", "trang_thai": "Đã huỷ", "lap_boi": "qc2@x",
+                "xac_nhan_boi": "iso@x", "xac_nhan_luc": "2026-10-07 15:00:00", "ds": []}))
+vai("SX QC")
+if jinja2:
+    html = Q.in_so_luu_mau("2026-10")
+    bang_in = re.findall(r"<table>(.*?)</table>", html, re.S)
+    o = [[re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", c)).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", h, re.S)]
+         for h in re.findall(r"<tr>(.*?)</tr>", bang_in[0], re.S)[1:]]
+    cot = [re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", c)).strip()
+           for c in re.findall(r"<th[^>]*>(.*?)</th>", bang_in[0], re.S)]
+    kiem("SLM lần BH 02: đúng 14 cột giấy", cot == [
+        "STT", "Sản phẩm / vị", "Quy cách", "NSX", "Số lô (= HSD)", "Ngày lưu", "Số lượng mẫu", "Vị trí", "Người lưu",
+        "Ngày hủy dự kiến (NSX + 1 năm)", "Tình trạng sử dụng mẫu (khiếu nại, KN…)", "Ngày hủy", "Người hủy",
+        "Trưởng Ban ISO xác nhận"], cot)
+    kiem("bảng 1 = mẫu LẤY trong tháng 10 theo ngày lấy — đủ trạng thái (đang lưu, đã lấy ra, đang giữ)",
+         [r[1] for r in o] == ["Bánh đậu xanh sen"] * 3 and [r[5] for r in o] == ["02/10/2026", "05/10/2026", "06/10/2026"], o)
+    kiem("dòng đang lưu: quy cách (dòng đầu bộ tự công bố), NSX, số lô = HSD, số lượng, vị trí, người lưu, hủy dự kiến",
+         o[0][2:11] == ["Hộp giấy 250 g", "02/10/2026", "02/07/2027", "02/10/2026", "2 hộp", "Tủ 1 · ngăn T10", "qc@x",
+                        "02/10/2027", ""], o[0])
+    kiem("đã lấy ra → tình trạng 'Lấy ra ngày: lý do'; đang giữ → 'GIỮ — chưa hủy (lý do)'; lô không có HSD → chữ ô lô",
+         o[1][10] == "Lấy ra 06/10/2026: Khiếu nại ISS-2026-00012" and o[1][11:] == ["", "", ""]
+         and o[2][10] == "GIỮ — chưa hủy (Giữ lại: Khách gọi, chưa lập phiếu)" and o[2][4] == "HSD 06/07/2027", o[1:])
+    o2 = [[re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", c)).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", h, re.S)]
+          for h in re.findall(r"<tr>(.*?)</tr>", bang_in[1], re.S)[1:]] if len(bang_in) > 1 else []
+    kiem("bảng 2 = mẫu tháng trước HUỶ trong tháng 10 (theo ngày huỷ); không lẫn mẫu tháng 9, mẫu huỷ tháng 9",
+         len(bang_in) == 2 and [r[5] for r in o2] == ["20/09/2025", "03/10/2025"]
+         and "15/09/2026" not in html and "01/08/2025" not in html, o2)
+    kiem("huỷ qua đợt: người hủy = QC đề xuất đợt, Trưởng Ban ISO xác nhận = người xác nhận + ngày",
+         o2[1][11:] == ["07/10/2026", "qc2@x", "iso@x 07/10/2026"], o2[1])
+    kiem("huỷ thẳng (chỉ Ban ISO làm được): người hủy = người xác nhận", o2[0][11:] == ["03/10/2026", "iso@x",
+                                                                                       "iso@x 03/10/2026"], o2[0])
+    chu = re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", html.split("</style>")[1]).replace("&nbsp;", " "))
+    kiem("đầu tờ: SLM · Lần BH 02 · QĐ.01, tháng 10/2026; chân tờ Trưởng Ban ISO xem xét tháng",
+         "SLM · Lần BH 02 · QĐ.01" in chu and "tháng 10/2026" in chu and "Trưởng Ban ISO xem xét Sổ lưu mẫu tháng 10/2026" in chu)
+    kiem("tháng không lấy mẫu nào → nói rõ, không có bảng 2", "Tháng này chưa lấy mẫu nào" in Q.in_so_luu_mau("2026-08")
+         and Q.in_so_luu_mau("2026-08").count("<table>") == 1)
+vai("Stock User")
+kiem("người ngoài QC không in được sổ lưu mẫu", thu(lambda: Q.in_so_luu_mau("2026-10")) is not None)
+vai("SX QC")
+kiem("màn Lưu mẫu: nút IN SỔ LƯU MẪU (SLM) theo tháng; danh sách trả tháng hiện tại",
+     "IN SỔ LƯU MẪU (SLM)" in js and "sx.api.qc.in_so_luu_mau" in js and Q.list_luu_mau()["thang"] == "2026-10")
 
 print(f"\n{'LUUMAU-OK' if not hong else f'LUUMAU-FAIL ({hong})'}")
 sys.exit(1 if hong else 0)

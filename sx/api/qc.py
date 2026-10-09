@@ -43,7 +43,7 @@ from sx.qc import viec_dinh_ky as _viec_dinh_ky
 from sx.qc import xuat
 from sx.qc.nguong import nguong
 from sx.qc.quyen import duoc_dong_su_co
-from sx.qc.san_pham import co_di_ung
+from sx.qc.san_pham import co_di_ung, quy_cach
 from sx.qc.su_co import canh_bao, phat_hien
 
 QC = "SX QC"
@@ -1332,6 +1332,7 @@ def list_luu_mau(q=None, trang_thai="Đang lưu", limit=200):
         "goi_y_sp": list(sp.values())[:8],
         "goi_y_vi_tri": vt[:8],
         "so_thang_luu": cint(nguong()["luu_mau_so_thang"]) or 12,
+        "thang": hom_nay.strftime("%Y-%m"),
         "han_mac_dinh": str(_han_luu(hom_nay)),
         "duoc_ghi": bool(_sieu() or _roles() & GHI_DUOC),
         "duoc_huy": _duoc_huy(),
@@ -1518,6 +1519,63 @@ def xac_nhan_huy(dot, dong_y=1, ly_do=None):
               "ghi_chu": "\n".join(t for t in ((d.ghi_chu or "").strip(), ly_do) if t)})
     return {"name": dot, "da_huy": dem["Đã huỷ"], "giu_lai": dem["Giữ lại"],
             "tra_lai": dem["Trả lại"], "giu": giu}
+
+
+def _ngay_vn(x):
+    return getdate(x).strftime("%d/%m/%Y") if x else ""
+
+
+@frappe.whitelist()
+def in_so_luu_mau(thang=None):
+    """SLM — Sổ lưu mẫu sản phẩm của một tháng (lần BH 02, W36 D167). A4 ngang, đúng cột giấy. Hai bảng: mẫu
+    LẤY trong tháng — mọi trạng thái (đang lưu, chờ huỷ, đã lấy ra, đã huỷ); mẫu HUỶ / LẤY RA trong tháng mà lấy
+    từ tháng trước. Người huỷ = QC đề xuất đợt huỷ (QĐ.01 mục 5.5: QC huỷ), Trưởng Ban ISO xác nhận = người xác
+    nhận đợt; huỷ thẳng không qua đợt (chỉ Ban ISO làm được) thì cả hai là người huỷ."""
+    _guard_qc()
+    dau = getdate(f"{thang}-01") if thang else getdate(nowdate()).replace(day=1)
+    cuoi = add_days(dau.replace(day=28), 4)
+    cuoi = add_days(cuoi, -cuoi.day)
+    lay = frappe.get_all(LM, filters={"ngay_lay": ("between", [str(dau), str(cuoi)])},
+                         fields=TRUONG_LM, order_by="ngay_lay asc, creation asc")
+    xu = frappe.get_all(LM, filters={"ngay_lay": ("<", str(dau)), "trang_thai": ("in", ["Đã huỷ", "Đã lấy ra"]),
+                                     "xu_ly_luc": ("between", [str(dau), str(cuoi)])},
+                        fields=TRUONG_LM, order_by="xu_ly_luc asc")
+    ds = lay + xu
+    giu = _giu([x for x in ds if x.trang_thai in ("Đang lưu", "Chờ huỷ")])
+    ten_dot = list({x.dot_huy for x in ds if x.dot_huy})
+    dot = {d.name: d for d in frappe.get_all(DHM, filters={"name": ("in", ten_dot)},
+                                              fields=["name", "lap_boi", "xac_nhan_boi", "xac_nhan_luc", "trang_thai"])
+           } if ten_dot else {}
+    qc = quy_cach([x.san_pham for x in ds])
+    nho = {}
+
+    def ten(u):
+        if u and u not in nho:
+            nho[u] = frappe.db.get_value("User", u, "full_name") or u
+        return nho.get(u) or ""
+
+    def dong(x):
+        d, huy = dot.get(x.dot_huy), x.trang_thai == "Đã huỷ"
+        if x.trang_thai == "Đã lấy ra":
+            tt = _("Lấy ra {0}: {1}").format(_ngay_vn(x.xu_ly_luc), x.ly_do or "")
+        elif x.name in giu:
+            tt = _("GIỮ — chưa hủy ({0})").format(giu[x.name])
+        elif x.trang_thai == "Chờ huỷ":
+            tt = _("Chờ huỷ — đợt {0}, chờ Trưởng Ban ISO").format(x.dot_huy or "")
+        else:
+            tt = ""
+        qua_dot = bool(huy and d and d.trang_thai == "Đã huỷ")
+        return {"ten": x.ten_san_pham or x.san_pham, "quy_cach": qc.get(x.san_pham, ""), "nsx": _ngay_vn(x.nsx),
+                "lo": _ngay_vn(x.hsd) if x.hsd else (x.lo or ""), "ngay_lay": _ngay_vn(x.ngay_lay),
+                "so_luong": f"{flt(x.so_luong):g} {x.dvt or ''}".strip(), "vi_tri": x.vi_tri or "",
+                "nguoi_luu": ten(x.lay_boi), "han_luu": _ngay_vn(x.han_luu), "tinh_trang": tt,
+                "ngay_huy": _ngay_vn(x.xu_ly_luc) if huy else "",
+                "nguoi_huy": (ten(d.lap_boi) if qua_dot else ten(x.xu_ly_boi)) if huy else "",
+                "iso": (f"{ten(d.xac_nhan_boi)} {_ngay_vn(d.xac_nhan_luc)}" if qua_dot
+                        else f"{ten(x.xu_ly_boi)} {_ngay_vn(x.xu_ly_luc)}") if huy else ""}
+
+    return frappe.render_template("sx/qc/so_luu_mau.html", {
+        "thang": dau.strftime("%m/%Y"), "lay": [dong(x) for x in lay], "xu": [dong(x) for x in xu]})
 
 
 @frappe.whitelist()

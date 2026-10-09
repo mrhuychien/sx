@@ -315,6 +315,23 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## In Sổ lưu mẫu SLM và sổ tiếp nhận BM.07.03 theo tháng; vào gói hồ sơ (D167 — W36)
+
+- **Sổ lưu mẫu SLM** (lần BH 02, 21/9/2026) — `sx.api.qc.in_so_luu_mau(thang)`, A4 ngang, đúng 14 cột giấy: sản phẩm /
+  vị, quy cách (dòng đầu ô Quy cách của bộ tự công bố), NSX, số lô (= HSD), ngày lưu, số lượng, vị trí, người lưu, ngày
+  hủy dự kiến, tình trạng sử dụng mẫu, ngày hủy, người hủy, Trưởng Ban ISO xác nhận. Bảng 1: mẫu **lấy trong tháng** —
+  mọi trạng thái (đang lưu, chờ huỷ, đã lấy ra "Lấy ra ngày: lý do", đang giữ "GIỮ — chưa hủy (lý do)"). Bảng 2: mẫu
+  tháng trước **huỷ / lấy ra trong tháng**. Huỷ qua đợt: người hủy = QC đề xuất đợt (QĐ.01 mục 5.5: QC huỷ), xác nhận =
+  Trưởng Ban ISO xác nhận đợt. Nút in: màn Lưu mẫu (ô chọn tháng), màn Xem xét tháng.
+- **Sổ BM.07.03** (lần sửa đổi 01) — `sx.api.qc_tiepnhan.in_bm0703(thang)`, A4 ngang, đúng 12 cột giấy, **một dòng mỗi
+  lô** từ phần QC của phiếu nhập mua / hoá đơn mua có trừ kho **đã duyệt** (dòng có kết luận tiếp nhận): ngày, vật tư,
+  NCC, số lô NCC, ĐVT, số lượng, NSX / HSD (theo lô), COA lô / KN năm (ô Giấy tờ lô), nội dung kiểm (cảm quan,
+  aflatoxin…), kết luận, người kiểm, ghi chú / xử lý (kho cách ly, phiếu sự cố, xe không đạt). Nút in: màn Tiếp nhận NL
+  (ô chọn tháng), màn Xem xét tháng.
+- Danh mục hồ sơ: thêm `SLM`, `BM.07.03` vào `BIEU_MAU` + Select của `SX Ho So Danh Muc`; patch
+  `d167_ho_so_slm_bm0703` thêm hai dòng (app lập) nếu chưa có → gói zip có bản in từng tháng của kỳ.
+- Cần `bench --site site1.local migrate` (Select mới, patch) rồi `bench restart`.
+
 ## Kiểm nghiệm nước, nguyên liệu, bao bì, thẩm tra vải ủ theo KH.KN.01; việc định kỳ 2 năm (D166 — W35)
 
 - **Việc kiểm nghiệm định kỳ** = việc định kỳ (`SX Viec Dinh Ky`) có ô mới **"Kiểm nghiệm KH.KN.01 — mẫu của"** (Nước /

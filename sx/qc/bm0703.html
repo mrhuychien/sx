@@ -1,0 +1,41 @@
+{#- BM.07.03 — Sổ kiểm tra chất lượng vật tư / nguyên liệu nhập vào, một tháng (W36 D167). A4 ngang, đúng cột giấy
+    (lần sửa đổi 01 — 21/9/2026): một dòng mỗi lô, từ phần QC của phiếu nhập mua / hoá đơn mua có trừ kho đã duyệt. -#}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .tn { font: 10.5px/1.3 "Times New Roman", serif; color: #000; }
+  .tn h1 { font-size: 15px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .tn .ma { text-align: center; font-size: 10px; margin-bottom: 4px; }
+  .tn .hd { font-size: 10px; margin-bottom: 6px; }
+  .tn table { width: 100%; border-collapse: collapse; }
+  .tn td, .tn th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; text-align: center; }
+  .tn th { background: #eee; font-size: 10px; }
+  .tn td.t { text-align: left; }
+  .tn tr { break-inside: avoid; }
+  .tn .kd { font-weight: bold; }
+  .tn small { font-size: 9px; }
+  .tn .xem { margin-top: 12px; }
+  .tn .xem td { border: 0; text-align: left; }
+</style>
+<div class="tn">
+  <h1>Sổ kiểm tra chất lượng vật tư / nguyên liệu nhập vào — tháng {{ thang }}</h1>
+  <div class="ma">BM.07.03 (QT.07) &nbsp;·&nbsp; Lần sửa đổi 01 — 21/9/2026 &nbsp;·&nbsp; {{ ds|length }} lô</div>
+  <div class="hd">Theo HD.07.01: hồ sơ = COA lô (hàng nhập khẩu) hoặc phiếu kiểm nghiệm hằng năm còn hạn (hàng trong nước); đỗ,
+    lạc không đo độ ẩm khi nhận (cảm quan khô, không mốc). Lô không đạt: cách ly, ghi lý do, lập phiếu sự cố BM.08.02.</div>
+  <table>
+    <tr><th style="width:6%">Ngày</th><th class="t" style="width:13%">Loại vật tư / nguyên liệu</th>
+      <th class="t" style="width:11%">Nhà cung cấp</th><th style="width:7%">Số lô NCC</th><th style="width:4%">ĐVT</th>
+      <th style="width:5%">Số lượng</th><th style="width:8%">NSX / HSD</th>
+      <th class="t" style="width:13%">COA lô (NK) / KN năm (TN)</th><th class="t" style="width:11%">Nội dung kiểm tra<br>(theo HD.07.01)</th>
+      <th style="width:6%">Kết luận</th><th style="width:7%">Người kiểm tra</th><th class="t">Ghi chú / xử lý</th></tr>
+    {% for x in ds %}
+    <tr><td>{{ x.ngay }}</td><td class="t">{{ x.vat_tu }}<br><small>{{ x.ma }}</small></td>
+      <td class="t">{{ x.ncc }}<br><small>{{ x.phieu }}</small></td><td>{{ x.so_lo }}</td><td>{{ x.dvt }}</td>
+      <td>{{ x.so_luong }}</td><td>{{ x.nsx_hsd }}</td><td class="t">{{ x.ho_so }}</td><td class="t">{{ x.kiem }}</td>
+      <td{% if x.ket_luan != "Đạt" %} class="kd"{% endif %}>{{ x.ket_luan }}</td><td>{{ x.nguoi_kiem }}</td>
+      <td class="t">{{ x.xu_ly }}</td></tr>
+    {% else %}
+    <tr><td colspan="12">Tháng này chưa có lô nào được kiểm tiếp nhận trên phiếu đã duyệt.</td></tr>
+    {% endfor %}
+  </table>
+  <table class="xem"><tr><td><b>Trưởng Ban ISO xem hằng tháng:</b> …………………………………… &nbsp; Ngày ……/……/20……</td></tr></table>
+</div>

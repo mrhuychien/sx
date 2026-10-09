@@ -113,7 +113,7 @@ def ds_tiep_nhan():
                        "xong": bool(n and kl == n and p.get("custom_nguoi_kiem")
                                     and (not xe or p.get("custom_xe_ket_luan")))})
     ds.sort(key=lambda x: (x["xong"], -getdate(x["ngay"]).toordinal() if x["ngay"] else 0))
-    return {"ds": ds, "duoc_ghi": _duoc_ghi(), "so_ngay": SO_NGAY}
+    return {"ds": ds, "duoc_ghi": _duoc_ghi(), "so_ngay": SO_NGAY, "thang": getdate(nowdate()).strftime("%Y-%m")}
 
 
 def _anh(doc):
@@ -244,6 +244,76 @@ def luu_phieu(doctype, name, payload):
     tu = len(log) if log is not None else 0
     doc.save(ignore_permissions=True)
     return _dict(doc, _bao_tu(tu))
+
+
+def _ngay_vn(x):
+    return getdate(x).strftime("%d/%m/%Y") if x else ""
+
+
+@frappe.whitelist()
+def in_bm0703(thang=None):
+    """BM.07.03 — sổ kiểm tra chất lượng vật tư / nguyên liệu nhập vào của một tháng (W36, D167): một dòng mỗi lô
+    từ phần QC của phiếu nhập mua / hoá đơn mua có trừ kho ĐÃ DUYỆT (dòng có kết luận tiếp nhận — bao bì ngoài,
+    dịch vụ không kiểm thì không có dòng). A4 ngang, đúng cột giấy (lần sửa đổi 01, 21/9/2026)."""
+    _guard_qc()
+    dau = getdate(f"{thang}-01") if thang else getdate(nowdate()).replace(day=1)
+    cuoi = add_days(dau.replace(day=28), 4)
+    cuoi = add_days(cuoi, -cuoi.day)
+    lo, ra = set(), []
+    for dt in LOAI:
+        loc = {"docstatus": 1, "is_return": 0, "posting_date": ("between", [str(dau), str(cuoi)])}
+        truong = ["name", "posting_date", "supplier", "supplier_name", "custom_nguoi_kiem", "custom_ghi_chu_qc"]
+        if dt == "Purchase Invoice":
+            loc["update_stock"] = 1
+        else:
+            truong.append("custom_xe_ket_luan")
+        try:
+            phieu = {p.name: p for p in frappe.get_all(dt, filters=loc, fields=truong)}
+            dong = frappe.get_all(f"{dt} Item", filters={"parenttype": dt, "parent": ("in", list(phieu))},
+                                  fields=["parent", "idx", "item_code", "item_name", "uom", "qty", "batch_no", "warehouse",
+                                          "custom_giay_to"] + list(O_DONG), order_by="idx asc") if phieu else []
+        except Exception:          # site chưa có field QC (chưa migrate W10)
+            continue
+        for r in dong:
+            if r.custom_ket_luan:
+                ra.append((phieu[r.parent], r))
+                lo.add(r.batch_no)
+    ra.sort(key=lambda x: (str(x[0].posting_date), x[0].name, x[1].idx))
+    han = {b.name: b for b in frappe.get_all("Batch", filters={"name": ("in", [b for b in lo if b])},
+                                              fields=["name", "manufacturing_date", "expiry_date"])} if any(lo) else {}
+    khoa = [f"{p.name}#{r.idx}" for p, r in ra if r.custom_ket_luan in (TN.KHONG_DAT, TN.CACH_LY)]
+    sc = {x.khoa_cu: x.name for x in frappe.get_all("SX Su Co", filters={"khoa_cu": ("in", khoa)},
+                                                     fields=["name", "khoa_cu"])} if khoa else {}
+    nho = {}
+
+    def ten(u):
+        if u and u not in nho:
+            nho[u] = frappe.db.get_value("User", u, "full_name") or u
+        return nho.get(u) or ""
+
+    hang = []
+    for p, r in ra:
+        b = han.get(r.batch_no) or {}
+        kiem = [f"Cảm quan: {r.custom_cam_quan_dat}" if r.custom_cam_quan_dat else ""]
+        kiem += [f"aflatoxin: {r.custom_aflatoxin}" if r.custom_aflatoxin else "",
+                 f"độ ẩm {flt(r.custom_do_am):g}%" if flt(r.custom_do_am) else "",
+                 f"CQ/CO: {r.custom_co_cq}" if r.custom_co_cq else ""]
+        ho_so = r.custom_giay_to or (f"COA vi sinh: {r.custom_coa_vi_sinh}" if r.custom_coa_vi_sinh else "")
+        xu = [p.custom_ghi_chu_qc or ""]
+        if r.custom_ket_luan in (TN.KHONG_DAT, TN.CACH_LY):
+            xu += [_("vào {0}").format(r.warehouse) if r.warehouse else "",
+                   _("phiếu sự cố {0}").format(sc[f"{p.name}#{r.idx}"]) if sc.get(f"{p.name}#{r.idx}") else ""]
+        if p.get("custom_xe_ket_luan") == KX.KHONG_DAT:
+            xu.append(_("xe giao hàng Không đạt (BM.09.01)"))
+        hang.append({"ngay": _ngay_vn(p.posting_date), "vat_tu": r.item_name or r.item_code, "ma": r.item_code,
+                     "ncc": p.supplier_name or p.supplier, "phieu": p.name, "so_lo": r.custom_ncc_lo or "",
+                     "dvt": r.uom or "", "so_luong": f"{flt(r.qty):g}",
+                     "nsx_hsd": " · ".join(t for t in (
+                         _("NSX {0}").format(_ngay_vn(b.get("manufacturing_date"))) if b.get("manufacturing_date") else "",
+                         _("HSD {0}").format(_ngay_vn(b.get("expiry_date"))) if b.get("expiry_date") else "") if t),
+                     "ho_so": ho_so, "kiem": "; ".join(t for t in kiem if t), "ket_luan": r.custom_ket_luan,
+                     "nguoi_kiem": ten(p.custom_nguoi_kiem), "xu_ly": "; ".join(t for t in xu if t)})
+    return frappe.render_template("sx/qc/bm0703.html", {"thang": dau.strftime("%m/%Y"), "ds": hang})
 
 
 @frappe.whitelist()

@@ -180,6 +180,19 @@ export async function render(api) {
         || 'Chưa có mẫu nào.')));
   }
   dl.danh_sach.forEach((x) => ds.appendChild(veThe(x, dl, api)));
+
+  // W36 (D167): Sổ lưu mẫu SLM theo tháng — mẫu lấy trong tháng + mẫu huỷ / lấy ra trong tháng.
+  const inHang = el('div', 'sx-xx-ngay sx-lm-in');
+  const th = el('input', 'sx-textarea');
+  th.type = 'month';
+  th.value = dl.thang || '';
+  th.max = dl.thang || '';
+  const inB = el('button', 'sx-btn sx-btn-ghost', '🖨 IN SỔ LƯU MẪU (SLM)');
+  inB.type = 'button';
+  inB.addEventListener('click', () => inSo(th.value || dl.thang, api));
+  inHang.appendChild(th);
+  inHang.appendChild(inB);
+  container.appendChild(inHang);
   if (st.q) setTimeout(() => { tim.focus(); tim.setSelectionRange(tim.value.length, tim.value.length); }, 0);
 }
 
@@ -246,6 +259,20 @@ function moTraLai(d, api) {
     } catch (e) { ok.disabled = false; toastErr(e.message); }
   });
   m.body.appendChild(ok);
+}
+
+// W36 (D167): in Sổ lưu mẫu SLM (lần BH 02) theo tháng — tháng chọn ở ô tháng cạnh nút.
+async function inSo(thang, api) {
+  try {
+    const html = await api.call('sx.api.qc.in_so_luu_mau', { thang });
+    const w = window.open('', '_blank');
+    if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+    w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8">`
+      + `<title>SLM — ${esc(thang)}</title></head><body>${html}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 250);
+  } catch (e) { toastErr(e.message); }
 }
 
 // Cửa sổ mới, tự khai charset (about:blank không thừa kế) — cùng cách in tờ BM.08.01.
