@@ -190,7 +190,7 @@ def _nhac_luot_thieu(nay, luot):
     theo_ngay = {}
     for x in luot:
         d = _d(x["ngay"])
-        if not (tu <= d < nay):
+        if not (tu <= d < nay) or x.get("luot") == "Bổ sung":   # W23: lượt bổ sung không thay lượt nào
             continue
         ten = "Đầu sáng" if x.get("luot") == "Tuần" else x.get("luot")
         theo_ngay.setdefault(str(d), set()).add(ten)

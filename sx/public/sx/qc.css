@@ -454,3 +454,7 @@ button.sx-qc-tag-chon {
 /* ── D143 (W17): thiết bị đo ────────────────────────────────────────────── */
 .sx-tb-nut .sx-btn { min-height: 38px; padding: 4px 14px; font-size: var(--sx-f-sm); }
 .sx-tb-kq { font-weight: 600; color: var(--sx-text-2); }
+
+/* ── D147 (W23): nhập lại từ bản giấy, lượt bổ sung ───────────────────────── */
+.sx-qc-giay { padding: 0 var(--sx-s3) var(--sx-s3); display: flex; flex-direction: column; gap: var(--sx-s2); }
+.sx-qc-giay .sx-textarea { box-sizing: border-box; max-width: 220px; }

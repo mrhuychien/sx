@@ -41,7 +41,7 @@
     <tr>
       <th class="so">#</th><th>Nội dung kiểm</th>
       {# Ca chỉ còn trên phiếu trước D95 (một ngày có thể 6 lượt); phiếu mới không có ca. #}
-      {% for r in rounds %}<th class="o">{{ r.luot }}{% if r.ca %}<br>{{ r.ca }}{% endif %}</th>{% endfor %}
+      {% for r in rounds %}<th class="o">{{ r.luot }}{% if r.ca %}<br>{{ r.ca }}{% endif %}{% if r.luot == "Bổ sung" %}<br><span style="font-weight:normal;font-size:9px">{{ r.started_at.strftime("%H:%M") if r.started_at else "" }} · {{ r.ly_do_bo_sung or "" }}</span>{% endif %}</th>{% endfor %}
     </tr>
     {% for h in hang %}
       {% if h.buoc %}
@@ -62,6 +62,14 @@
         <td class="o">{{ r.finished_at.strftime("%H:%M") if r.finished_at else "—" }}</td>
       {% endfor %}
     </tr>
+    {% if rounds|selectattr("nhap_lai_tu_giay")|list %}
+    <tr>
+      <td colspan="2"><b>Giờ kiểm thực tế</b> <span style="font-weight:normal">(nhập lại từ bản giấy)</span></td>
+      {% for r in rounds %}
+        <td class="o">{% if r.nhap_lai_tu_giay %}{{ (r.gio_thuc_te|string)[:5] if r.gio_thuc_te else "?" }}{% if r.anh_giay %} 📷{% endif %}{% else %}—{% endif %}</td>
+      {% endfor %}
+    </tr>
+    {% endif %}
     <tr>
       <td colspan="2"><b>Ghi muộn</b> <span style="font-weight:normal">(quá khung giờ hoặc quá lâu)</span></td>
       {% for r in rounds %}

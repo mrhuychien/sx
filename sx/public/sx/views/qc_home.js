@@ -7,7 +7,8 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
-import { batTatBot, chip, veNhac } from '/assets/sx/sx/components/qcui.js';
+import { batTatBot, chip, segment, veNhac } from '/assets/sx/sx/components/qcui.js';
+import { openModal } from '/assets/sx/sx/components/modal.js';
 import { formatTime } from '/assets/sx/sx/lib/format.js';
 
 const THU = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
@@ -18,7 +19,11 @@ function tenNgay(iso) {
   return `${THU[dt.getUTCDay()]} ${d}/${m}/${y}`;
 }
 
+// call của lần vẽ gần nhất — cho hộp thoại lượt bổ sung (mở ngoài render).
+const callRef = { call: null };
+
 export async function render({ container, call, st }) {
+  callRef.call = call;
   container.innerHTML = '<div class="sx-boot-loading">Đang tải…</div>';
   const [dl, nh] = await Promise.all([
     call('sx.api.qc.get_today', st.ngay ? { ngay: st.ngay } : {}),
@@ -63,6 +68,30 @@ export async function render({ container, call, st }) {
   const ke_tiep = ds.find((x) => !x.round || x.round.docstatus === 0);
   ds.forEach((x) => container.appendChild(
     veThe(x, x === ke_tiep, dl, st, call, container)));
+
+  // ── lượt bổ sung (W23, D147): sau mất điện / sự cố máy — ngoài ba lượt, không khung giờ ──
+  (dl.bo_sung || []).forEach((r) => {
+    const the = el('div', `sx-qc-luot${r.docstatus === 1 ? ' sx-qc-luot-xong' : ''}`);
+    const dau = el('div', 'sx-qc-luot-dau');
+    dau.appendChild(el('div', 'sx-qc-luot-ten', 'Bổ sung'));
+    dau.appendChild(el('div', 'sx-qc-luot-gio', esc(r.docstatus === 1 ? `xong ${formatTime(r.finished_at)}`
+      : `mở ${formatTime(r.started_at)}`)));
+    the.appendChild(dau);
+    the.appendChild(el('div', 'sx-qc-luot-phu', esc(r.ly_do_bo_sung || '')));
+    const b = el('button', `sx-btn ${r.docstatus === 1 ? 'sx-btn-ghost' : 'sx-btn-primary'} sx-btn-big`,
+      r.docstatus === 1 ? 'XEM LẠI' : 'LÀM TIẾP');
+    b.type = 'button';
+    b.addEventListener('click', () => { window.location.hash = `#/qc/round/${r.name}`; });
+    the.appendChild(b);
+    container.appendChild(the);
+  });
+  if (dl.duoc_ghi) {
+    const bs = el('button', 'sx-btn sx-btn-ghost', '+ LƯỢT BỔ SUNG (sau mất điện, sự cố máy)');
+    bs.type = 'button';
+    bs.style.cssText = 'width:100%';
+    bs.addEventListener('click', () => moBoSung(dl));
+    container.appendChild(bs);
+  }
 
   // ── có sản xuất bột ─────────────────────────────────────────────────
   const bot = el('div', 'sx-qc-luot');
@@ -129,6 +158,33 @@ export async function render({ container, call, st }) {
     if (inpNgay.showPicker) inpNgay.showPicker(); else inpNgay.focus();
   });
   container.appendChild(giay);
+}
+
+function moBoSung(dl) {
+  // Bổ sung phải có lý do: một lượt ngoài lịch mà không ai biết vì sao thì auditor hỏi ngay.
+  const m = openModal({ kicker: 'LƯỢT BỔ SUNG', title: 'Vì sao đi thêm lượt?' });
+  let lyDo = '';
+  m.body.appendChild(segment(dl.ly_do_bo_sung || ['Mất điện', 'Sự cố máy', 'Khác'], '', (v) => { lyDo = v; }, false));
+  m.body.appendChild(el('div', 'sx-qc-goiy', 'Chi tiết (giờ mất điện, máy nào…)'));
+  const ct = el('input', 'sx-textarea');
+  m.body.appendChild(ct);
+  m.body.appendChild(el('div', 'sx-qc-goiy', 'Bộ mục như lượt Trưa. Không tính vào ba lượt trong ngày, '
+    + 'không có khung giờ.'));
+  const ok = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'BẮT ĐẦU LƯỢT BỔ SUNG');
+  ok.type = 'button';
+  ok.addEventListener('click', async () => {
+    if (!lyDo) { toastErr('Chọn lý do.'); return; }
+    ok.disabled = true;
+    try {
+      const kq = await callRef.call('sx.api.qc.start_round', {
+        ngay: dl.ngay, luot: 'Bổ sung', ly_do_bo_sung: `${lyDo}${ct.value.trim() ? ` — ${ct.value.trim()}` : ''}`,
+        nhap_lai_tu_giay: dl.ngay === dl.hom_nay ? 0 : 1,
+      });
+      m.close();
+      window.location.hash = `#/qc/round/${kq.name}`;
+    } catch (e) { ok.disabled = false; toastErr(e.message); }
+  });
+  m.body.appendChild(ok);
 }
 
 function veThe(x, la_ke_tiep, dl, st, call, container) {

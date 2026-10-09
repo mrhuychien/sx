@@ -26,6 +26,9 @@
   "column_break_tg",
   "ghi_muon",
   "nhap_lai_tu_giay",
+  "gio_thuc_te",
+  "anh_giay",
+  "ly_do_bo_sung",
   "so_muc_ap_dung",
   "so_muc_da_cham",
   "section_may",
@@ -139,10 +142,10 @@
    "fieldname": "luot",
    "fieldtype": "Select",
    "label": "Lượt",
-   "options": "Đầu sáng\nTrưa\nCuối chiều\nTuần",
+   "options": "Đầu sáng\nTrưa\nCuối chiều\nTuần\nBổ sung",
    "reqd": 1,
    "in_list_view": 1,
-   "description": "Một ngày ba lượt: Đầu sáng · Trưa · Cuối chiều. Tuần = lượt đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư."
+   "description": "Một ngày ba lượt: Đầu sáng · Trưa · Cuối chiều. Tuần = lượt đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư. Bổ sung = lượt riêng sau mất điện / sự cố máy, không tính vào ba lượt."
   },
   {
    "fieldname": "ca",
@@ -260,6 +263,24 @@
    "fieldtype": "Check",
    "label": "Nhập lại từ bản giấy",
    "default": "0"
+  },
+  {
+   "fieldname": "gio_thuc_te",
+   "fieldtype": "Time",
+   "label": "Giờ kiểm thực tế (theo bản giấy)",
+   "description": "Nhập lại từ bản giấy: giờ ghi trên tờ giấy. Bắt buộc trước khi hoàn tất."
+  },
+  {
+   "fieldname": "anh_giay",
+   "fieldtype": "Attach Image",
+   "label": "Ảnh bản giấy",
+   "description": "Tuỳ chọn — chụp tờ giấy đã ghi."
+  },
+  {
+   "fieldname": "ly_do_bo_sung",
+   "fieldtype": "Small Text",
+   "label": "Lý do lượt bổ sung",
+   "description": "Lượt Bổ sung (sau mất điện / sự cố máy): bắt buộc."
   },
   {
    "fieldname": "so_muc_ap_dung",

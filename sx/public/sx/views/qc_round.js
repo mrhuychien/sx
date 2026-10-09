@@ -11,6 +11,7 @@
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
+import { kb, nenAnh } from '/assets/sx/sx/lib/anh.js';
 import { confirm2Step, openModal } from '/assets/sx/sx/components/modal.js';
 import {
   batTatBot, chip, hangChon, oCheck, oChon3, oChonBot, oChu, oGio, oSo, tieuDeBuoc,
@@ -97,6 +98,10 @@ export async function render({ container, call, tham_so }) {
     if (dl.ghi_muon) b.appendChild(chip('ghi muộn', 'oprp'));
     if (dl.reviewed_on) b.appendChild(chip(`Ban ISO đã xem xét`, 'dong'));
     container.appendChild(b);
+  }
+  if (dl.ly_do_bo_sung) {
+    container.appendChild(el('div', 'sx-qc-luot-phu', `Lượt bổ sung — <b>${esc(dl.ly_do_bo_sung)}</b> · `
+      + 'không tính vào ba lượt trong ngày.'));
   }
   if (dl.truoc_do) {
     // W16 (D142): theo từng máy rang của lượt trước (M1 / M2 / M3).
@@ -320,6 +325,46 @@ export async function render({ container, call, tham_so }) {
     b.title = `Có ${dang + 1} máy đang chạy — thêm ô ghi cho máy ${dang + 1}`;
     b.addEventListener('click', () => { b.disabled = true; doiVaVeLai(nm.truong, dang + 1); });
     return b;
+  }
+
+  // ── nhập lại từ bản giấy (W23, D147): giờ kiểm thật + ảnh tờ giấy ─────────
+  if (dl.nhap_lai_tu_giay) {
+    than.appendChild(el('div', 'sx-qc-buoc',
+      '<span class="sx-qc-buoc-ten">Nhập lại từ bản giấy</span>'));
+    const g = el('div', 'sx-qc-giay');
+    g.appendChild(el('div', 'sx-qc-goiy', 'Giờ kiểm thực tế ghi trên tờ giấy (bắt buộc trước khi hoàn tất)'));
+    const gio = el('input', 'sx-textarea');
+    gio.type = 'time';
+    gio.value = dl.gio_thuc_te || '';
+    gio.disabled = khoa;
+    gio.addEventListener('change', () => onSet('gio_thuc_te', gio.value ? `${gio.value}:00` : ''));
+    g.appendChild(gio);
+    const anh = el('div', 'sx-qc-goiy', dl.anh_giay ? '📷 Đã có ảnh bản giấy.' : 'Ảnh tờ giấy (tuỳ chọn).');
+    g.appendChild(anh);
+    if (!khoa || dl.docstatus === 1) {
+      const chon = el('input');
+      chon.type = 'file';
+      chon.accept = 'image/*';
+      chon.setAttribute('capture', 'environment');
+      chon.style.display = 'none';
+      const nut = el('button', 'sx-btn sx-btn-ghost', dl.anh_giay ? '📷 CHỤP LẠI ẢNH BẢN GIẤY' : '📷 CHỤP ẢNH BẢN GIẤY');
+      nut.type = 'button';
+      nut.addEventListener('click', () => chon.click());
+      chon.addEventListener('change', async () => {
+        const f = chon.files && chon.files[0];
+        if (!f) return;
+        nut.disabled = true;
+        try {
+          const n = await nenAnh(f);
+          await call('sx.api.qc.them_anh_giay', { name: dl.name, anh: n.base64 });
+          anh.textContent = `📷 Đã lưu ảnh bản giấy (${kb(n.sau)}).`;
+          toast('Đã lưu ảnh bản giấy');
+        } catch (e) { toastErr(e.message); } finally { nut.disabled = false; chon.value = ''; }
+      });
+      g.appendChild(chon);
+      g.appendChild(nut);
+    }
+    than.appendChild(g);
   }
 
   // ── ghi chú ─────────────────────────────────────────────────────────

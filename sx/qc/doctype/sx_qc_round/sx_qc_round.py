@@ -56,6 +56,8 @@ class SXQCRound(Document):
 
     def validate(self):
         self.kiem_trung()
+        if self.luot == M.BO_SUNG and not (self.get("ly_do_bo_sung") or "").strip():
+            frappe.throw(_("Lượt bổ sung phải ghi lý do (mất điện, sự cố máy…)."))
         self.tinh_boi_canh()
         ap = M.muc_cham(self.luot, self)
         self.so_muc_ap_dung = len(ap)
@@ -126,6 +128,8 @@ class SXQCRound(Document):
         cùng tên trong một ngày (ca Sáng + ca Chiều); đó là hồ sơ đã chốt, không
         ai sửa nó, nên chuyện này chỉ chặn việc mở THÊM lượt vào ngày cũ đó.
         """
+        if self.luot == M.BO_SUNG:
+            return      # W23: lượt bổ sung — một ngày có thể nhiều lần mất điện
         cung = [self.luot]
         if self.luot in M.DAU_NGAY_HOAC_TUAN:
             cung = list(M.DAU_NGAY_HOAC_TUAN)
@@ -183,6 +187,10 @@ class SXQCRound(Document):
         if cint(self.nhap_lai_tu_giay) and not (self.ghi_chu or "").strip():
             frappe.throw(_("Nhập lại từ bản giấy thì phải ghi rõ ngày ghi thật "
                            "vào ô Ghi chú."))
+        # W23 (D147): giờ kiểm THẬT trên tờ giấy — giờ hoàn tất trên app là giờ nhập lại, không
+        # phải giờ kiểm; auditor hỏi giờ kiểm.
+        if cint(self.nhap_lai_tu_giay) and not self.get("gio_thuc_te"):
+            frappe.throw(_("Nhập lại từ bản giấy: ghi giờ kiểm thực tế theo tờ giấy (ô ngay đầu lượt)."))
 
     def tinh_ghi_muon(self):
         """Ghi muộn = làm quá lâu, hoặc hoàn tất ngoài khung giờ của lượt."""

@@ -50,7 +50,8 @@ fields = [
     f("ngay", "Date", "Ngày", reqd=1, in_list_view=1, search_index=1),   # D120
     f("luot", "Select", "Lượt", options="\n".join(muc.LUOT), reqd=1, in_list_view=1,
       description="Một ngày ba lượt: Đầu sáng · Trưa · Cuối chiều. Tuần = lượt "
-                  "đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư."),
+                  "đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư. "
+                  "Bổ sung = lượt riêng sau mất điện / sự cố máy, không tính vào ba lượt."),
     # Bỏ từ D95 (không còn chia ca). Giữ field để phiếu cũ còn nguyên giá trị —
     # xoá cột là mất dấu vết phiếu đó được ghi ở ca nào.
     f("ca", "Select", "Ca (phiếu cũ)", options="\n" + "\n".join(("Sáng", "Chiều")),
@@ -83,6 +84,13 @@ fields = [
     f("ghi_muon", "Check", "Ghi muộn", read_only=1, in_list_view=1,
       description="Chỉ hiển thị, không chặn. Ghi muộn vẫn là hồ sơ thật."),
     f("nhap_lai_tu_giay", "Check", "Nhập lại từ bản giấy", default="0"),
+    # W23 (D147): nhập lại từ giấy — giờ kiểm THẬT trên bản giấy (bắt buộc khi hoàn tất) và
+    # ảnh bản giấy (tuỳ chọn). Lượt Bổ sung — lý do.
+    f("gio_thuc_te", "Time", "Giờ kiểm thực tế (theo bản giấy)",
+      description="Nhập lại từ bản giấy: giờ ghi trên tờ giấy. Bắt buộc trước khi hoàn tất."),
+    f("anh_giay", "Attach Image", "Ảnh bản giấy", description="Tuỳ chọn — chụp tờ giấy đã ghi."),
+    f("ly_do_bo_sung", "Small Text", "Lý do lượt bổ sung",
+      description="Lượt Bổ sung (sau mất điện / sự cố máy): bắt buộc."),
     f("so_muc_ap_dung", "Int", "Số mục phải chấm", read_only=1),
     f("so_muc_da_cham", "Int", "Đã chấm", read_only=1),
 

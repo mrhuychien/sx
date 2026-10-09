@@ -315,6 +315,19 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhập lại bản giấy, lượt Bổ sung (D147 — W23)
+
+- **Nhập lại từ bản giấy** (mở một ngày cũ, như trước): cuối màn lượt có khối *Nhập lại từ bản giấy* —
+  **giờ kiểm thực tế** theo tờ giấy (**bắt buộc** trước khi hoàn tất: giờ hoàn tất trên app là giờ nhập,
+  không phải giờ kiểm) và **📷 chụp ảnh bản giấy** (tuỳ chọn, một ảnh, tệp riêng tư gắn lượt; gửi lại là
+  thay, gửi được cả sau khi hoàn tất). Tờ ngày BM.08.01 có dòng *Giờ kiểm thực tế* (📷 = có ảnh).
+- **Lượt Bổ sung** (màn Hôm nay → **+ LƯỢT BỔ SUNG**): sau mất điện / sự cố máy, đi thêm một lượt —
+  **phải chọn lý do** (Mất điện / Sự cố máy / Khác + chi tiết). Bộ mục như lượt Trưa, không khung giờ,
+  một ngày mở được nhiều lượt bổ sung (lượt còn dở thì bấm lại là mở lại nó).
+- Lượt bổ sung **không thay** lượt nào: ba ô lượt, "đã làm x/3", ngày thiếu lượt (Xem xét tháng, hộp
+  nhắc) chỉ đếm Đầu sáng / Trưa / Cuối chiều; Xem xét có thêm số lượt bổ sung. Tờ ngày in thêm cột
+  *Bổ sung giờ mở · lý do*.
+
 ## Lịch việc định kỳ cho hồ sơ giấy (D146 — W21)
 
 - Màn QC → Hôm nay → **📅 Việc định kỳ** (`#/qc/lichviec`, doctype `SX Viec Dinh Ky`): việc năm / quý /

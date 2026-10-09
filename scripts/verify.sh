@@ -396,4 +396,10 @@ python3 scripts/test-lichviec.py > /tmp/sx-lichviec.log 2>&1 \
   && tail -1 /tmp/sx-lichviec.log \
   || { cat /tmp/sx-lichviec.log; loi=1; }
 
+# D147 (W23): nhập lại bản giấy, lượt Bổ sung. Lượt nhập lại không giờ kiểm thật, mất điện lần hai
+# không mở được lượt, lượt bổ sung đếm thay lượt chính / không lý do — đều im lặng.
+python3 scripts/test-bosung.py > /tmp/sx-bosung.log 2>&1 \
+  && tail -1 /tmp/sx-bosung.log \
+  || { cat /tmp/sx-bosung.log; loi=1; }
+
 exit $loi

@@ -188,7 +188,8 @@ kiem("ô ĐO không đặt default 0", not do, ", ".join(do))
 thua = [f["fieldname"] for f in jd["fields"]
         if f["fieldname"] not in M.THEO_F and f["fieldtype"] not in
         ("Section Break", "Column Break", "Table", "Link", "Datetime", "Date",
-         "Select", "Check", "Int", "Small Text", "Data")]
+         "Select", "Check", "Int", "Small Text", "Data",
+         "Time", "Attach Image")]     # W23 (D147): giờ kiểm thực tế, ảnh bản giấy
 kiem("JSON không có field lạ ngoài khung", not thua, ", ".join(thua))
 
 # ═══ 2. Ma trận áp dụng (spec 1.1.5) ═════════════════════════════════════
@@ -372,6 +373,11 @@ kiem("…và khung Cuối chiều tự lùi theo: 14:30 giờ là SỚM cho Cu�
 CAI_DAT.pop("han_trua")
 
 d = luot(nhap_lai_tu_giay=1, duration_min=600, ghi_chu="ghi thật ngày 12/9",
+         started_at=GIO_SERVER[0] - timedelta(minutes=600),
+         finished_at=GIO_SERVER[0], **day_du)
+loi = thu(d, R.SXQCRound.before_submit)
+kiem("W23: nhập lại từ giấy mà chưa ghi giờ kiểm thực tế → CHẶN hoàn tất", loi and "giờ kiểm thực tế" in loi, loi)
+d = luot(nhap_lai_tu_giay=1, duration_min=600, ghi_chu="ghi thật ngày 12/9", gio_thuc_te="07:15:00",
          started_at=GIO_SERVER[0] - timedelta(minutes=600),
          finished_at=GIO_SERVER[0], **day_du)
 R.SXQCRound.before_submit(d)

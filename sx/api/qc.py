@@ -60,7 +60,7 @@ SO_NGAY_MAC_DINH = 30      # cửa sổ mặc định cho list / dashboard
 NHOM_BOT = "BTP-Bot-SP"
 
 # Mục ghi được qua save_round dù không phải mục kiểm (không nằm trong ma trận).
-TRUONG_PHU = ("ghi_chu", "co_san_xuat_bot", "buoc_nghi") \
+TRUONG_PHU = ("ghi_chu", "co_san_xuat_bot", "buoc_nghi", "gio_thuc_te", "ly_do_bo_sung") \
     + tuple(t[2] for t in M.NHOM_MAY.values())
 
 
@@ -142,7 +142,7 @@ def get_today(ngay=None):
         filters={"ngay": d, "docstatus": ("<", 2)},
         fields=["name", "luot", "docstatus", "started_at", "finished_at",
                 "ghi_muon", "nhap_lai_tu_giay", "co_san_xuat_bot",
-                "so_muc_ap_dung", "so_muc_da_cham", "qc_user", "reviewed_on"],
+                "so_muc_ap_dung", "so_muc_da_cham", "qc_user", "reviewed_on", "ly_do_bo_sung"],
         order_by="creation",
     )
 
@@ -178,6 +178,10 @@ def get_today(ngay=None):
         "la_thu_hai": la_thu_hai,
         "co_san_xuat_bot": co_bot,
         "o_luot": o_luot,
+        # W23 (D147): lượt bổ sung trong ngày (sau mất điện / sự cố máy) — ngoài ba ô lượt.
+        "bo_sung": [dict(r, started_at=str(r.get("started_at") or ""), finished_at=str(r.get("finished_at") or ""))
+                    for r in rounds if r.get("luot") == M.BO_SUNG],
+        "ly_do_bo_sung": list(M.LY_DO_BO_SUNG),
         "su_co_mo": len(mo),
         "su_co_qua_han": sum(
             1 for s in mo if getdate(nowdate()) > add_days(getdate(s["ngay"]), han)),
@@ -202,7 +206,7 @@ def get_today(ngay=None):
 
 
 @frappe.whitelist()
-def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ca=None):
+def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ca=None, ly_do_bo_sung=None):
     """Mở lượt. Đã có bản nháp thì trả lại chính nó, không đẻ bản thứ hai.
 
     `ca` BỎ QUA (D95 — không còn chia ca). Vẫn nhận tham số này vì điện thoại
@@ -214,11 +218,18 @@ def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ca=None):
     luot = M.DOI_TEN_CU.get(luot, luot)   # bản JS cũ gửi "Đầu ca"/"Giữa ca"/…
     if luot not in M.LUOT:
         frappe.throw(_("Lượt không hợp lệ: {0}").format(luot))
-    cung = list(M.DAU_NGAY_HOAC_TUAN) if luot in M.DAU_NGAY_HOAC_TUAN else [luot]
-    co = frappe.get_all("SX QC Round",
-                        filters={"ngay": d, "luot": ("in", cung),
-                                 "docstatus": ("<", 2)},
-                        fields=["name", "docstatus"], limit=1)
+    ly_do_bo_sung = (ly_do_bo_sung or "").strip()
+    if luot == M.BO_SUNG:
+        # W23 (D147): mỗi lần mất điện một lượt mới; còn lượt bổ sung đang dở thì mở lại nó
+        # (bấm hai lần không đẻ hai phiếu). Thiếu lý do: controller chặn.
+        co = frappe.get_all("SX QC Round", filters={"ngay": d, "luot": luot, "docstatus": 0},
+                            fields=["name", "docstatus"], limit=1)
+    else:
+        cung = list(M.DAU_NGAY_HOAC_TUAN) if luot in M.DAU_NGAY_HOAC_TUAN else [luot]
+        co = frappe.get_all("SX QC Round",
+                            filters={"ngay": d, "luot": ("in", cung),
+                                     "docstatus": ("<", 2)},
+                            fields=["name", "docstatus"], limit=1)
     if co:
         if co[0]["docstatus"] == 1:
             frappe.throw(_("Lượt {0} ngày {1} đã hoàn tất rồi.").format(luot, d))
@@ -235,6 +246,7 @@ def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ca=None):
         "co_san_xuat_bot": cint(co_san_xuat_bot),
         "nhap_lai_tu_giay": cint(nhap_lai_tu_giay),
         "qc_user": frappe.session.user,
+        "ly_do_bo_sung": ly_do_bo_sung if luot == M.BO_SUNG else None,
     }
     truoc = _luot_truoc_cung_ngay(d, luot)
     if truoc:
@@ -399,6 +411,8 @@ def chi_tiet_round(name):
         "can_thu_lac": cint(doc.get("can_thu_lac")),
         "name": doc.name,
         "ngay": str(doc.ngay), "luot": doc.luot, "ca": doc.ca or "",
+        "gio_thuc_te": str(doc.get("gio_thuc_te") or "")[:5], "anh_giay": doc.get("anh_giay") or "",
+        "ly_do_bo_sung": doc.get("ly_do_bo_sung") or "",
         "co_san_xuat_bot": co_bot,
         "nhap_lai_tu_giay": cint(doc.nhap_lai_tu_giay),
         "docstatus": doc.docstatus,
@@ -953,8 +967,10 @@ def dashboard(tu=None, den=None):
     ngay_sx = _ngay_san_xuat(tu, den, rounds + do_dang)
     can_co = len(ngay_sx) * len(M.LUOT_TRONG_NGAY)   # 3 lượt mỗi ngày (D95)
     ghi_muon = sum(1 for r in rounds if cint(r["ghi_muon"]))
+    # W23 (D147): lượt bổ sung không thay một trong ba lượt — không tính vào "đủ 3 lượt".
+    chinh = [r for r in rounds if r["luot"] != M.BO_SUNG]
     theo_ngay = {d: {"luot": 0, "su_co": 0} for d in ngay_sx}
-    for r in rounds:
+    for r in chinh:
         g = theo_ngay.setdefault(str(r["ngay"]), {"luot": 0, "su_co": 0})
         g["luot"] += 1
     for x in su_co:
@@ -966,7 +982,8 @@ def dashboard(tu=None, den=None):
     hom_nay = getdate(nowdate())
     return {
         "tu": str(tu), "den": str(den),
-        "so_luot": len(rounds),
+        "so_luot": len(chinh),
+        "so_bo_sung": len(rounds) - len(chinh),
         "can_co": can_co,
         "so_ngay_sx": len(ngay_sx),
         "ngay_sx": ngay_sx,
@@ -978,7 +995,7 @@ def dashboard(tu=None, den=None):
         "so_do_may": _so_do.tong_hop(frappe.get_all(
             "SX QC Round", filters={"ngay": ("between", [tu, den]), "docstatus": 1},
             fields=_so_do.can_lay()), nguong()),
-        "ty_le_hoan_tat": round(min(len(rounds), can_co) * 100.0 / can_co, 1) if can_co else 0,
+        "ty_le_hoan_tat": round(min(len(chinh), can_co) * 100.0 / can_co, 1) if can_co else 0,
         "ty_le_dung_gio": (round((len(rounds) - ghi_muon) * 100.0 / len(rounds), 1)
                            if rounds else 0),
         "ghi_muon": ghi_muon,
@@ -1508,6 +1525,33 @@ def _kieu_anh(b):
 def _anh_cua(name):
     return frappe.get_all("File", filters={"attached_to_doctype": LM, "attached_to_name": name},
                           fields=["name", "file_url", "file_size"], order_by="creation asc")
+
+
+@frappe.whitelist()
+def them_anh_giay(name, anh):
+    """W23 (D147): ảnh tờ giấy của một lượt nhập lại từ bản giấy — tuỳ chọn, một ảnh (gửi lại
+    là thay). Ghi được cả sau khi lượt đã hoàn tất: ảnh là bằng chứng, không phải số liệu."""
+    import base64
+    import binascii
+
+    _guard_ghi()
+    if not frappe.db.exists("SX QC Round", name):
+        frappe.throw(_("Không có lượt {0}.").format(name))
+    try:
+        b = base64.b64decode(str(anh or "").split(",")[-1], validate=True)
+    except (binascii.Error, ValueError):
+        frappe.throw(_("Ảnh hỏng — chụp lại."))
+    kieu = _kieu_anh(b)
+    if not kieu:
+        frappe.throw(_("Tệp gửi lên không phải ảnh."))
+    if len(b) > ANH_BYTE_TOI_DA:
+        frappe.throw(_("Ảnh quá lớn ({0} KB) — máy chưa nén được ảnh này.").format(len(b) // 1024))
+    f = frappe.get_doc({"doctype": "File", "file_name": f"{name}-giay.{kieu}",
+                        "attached_to_doctype": "SX QC Round", "attached_to_name": name,
+                        "is_private": 1, "content": b})
+    f.insert(ignore_permissions=True)
+    frappe.db.set_value("SX QC Round", name, "anh_giay", f.file_url, update_modified=False)
+    return {"name": name, "anh_giay": f.file_url}
 
 
 @frappe.whitelist()

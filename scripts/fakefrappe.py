@@ -16,7 +16,7 @@ import copy
 import importlib.util
 import sys
 import types
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 DB = {}
 CAI_DAT = {}           # doc SX QC Setting (get_cached_doc / get_single)
@@ -259,6 +259,8 @@ class Document:
             raise Loi(f"Duplicate entry {dt} {self._d['name']}")
         self._d.setdefault("creation", f"{hom_nay().isoformat()} 09:00:{SO['n'] % 60:02d}")
         self._d.setdefault("owner", NGUOI["u"])
+        if self._d.get("docstatus") is None:      # frappe: bản mới là nháp (0), không phải NULL
+            self._d["docstatus"] = 0
         return self._luu()
 
     def save(self, ignore_permissions=False, **k):
@@ -365,6 +367,9 @@ def cai():
     fu.get_datetime = lambda x=None: x if isinstance(x, datetime) else (
         datetime.fromisoformat(str(x)[:19]) if x else fu.now_datetime())
     fu.date_diff = lambda a, b: (getdate(a) - getdate(b)).days
+    fu.get_time = lambda x: x.time() if isinstance(x, datetime) else (
+        x if isinstance(x, time) else datetime.strptime(str(x)[:8], "%H:%M:%S").time())
+    fu.time_diff_in_seconds = lambda a, b: (fu.get_datetime(a) - fu.get_datetime(b)).total_seconds()
     fu.format_date = lambda d, f=None: getdate(d).strftime("%d/%m/%Y")
     fu.formatdate = fu.format_date
     frappe.utils = fu

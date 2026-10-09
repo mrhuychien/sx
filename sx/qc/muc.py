@@ -33,7 +33,12 @@ DAU_SANG = "Đầu sáng"
 TRUA = "Trưa"
 CUOI_CHIEU = "Cuối chiều"
 TUAN = "Tuần"
-LUOT = (DAU_SANG, TRUA, CUOI_CHIEU, TUAN)
+# W23 (D147): lượt RIÊNG ngoài ba lượt trong ngày — đi lại sau mất điện / sự cố máy. Không có
+# khung giờ, không tính vào "đủ 3 lượt", một ngày có thể nhiều lượt; bộ mục như lượt Trưa
+# (các phép đo đang sản xuất). Phải ghi lý do.
+BO_SUNG = "Bổ sung"
+LY_DO_BO_SUNG = ("Mất điện", "Sự cố máy", "Khác")
+LUOT = (DAU_SANG, TRUA, CUOI_CHIEU, TUAN, BO_SUNG)
 
 # Ba ô trên màn Hôm nay, theo thứ tự trong ngày. Tuần KHÔNG nằm đây: nó chiếm
 # chỗ của Đầu sáng vào thứ Hai chứ không phải ô thứ tư.
@@ -484,7 +489,7 @@ def ap_dung(muc, luot, bc):
         return False
     if muc["ap"] is None:
         return True
-    return luot in muc["ap"]
+    return (TRUA if luot == BO_SUNG else luot) in muc["ap"]
 
 
 def muc_ap_dung(luot, bc):
