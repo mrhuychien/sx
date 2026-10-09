@@ -431,4 +431,11 @@ python3 scripts/test-baocao.py > /tmp/sx-baocao.log 2>&1 \
   && tail -1 /tmp/sx-baocao.log \
   || { cat /tmp/sx-baocao.log; loi=1; }
 
+# D154: kiểm kê kho thành phẩm theo HSD. Chốt sinh chứng từ kho THẬT: lô cũ không về 0, số sau chốt khác
+# số đếm, Repack trộn giá vốn nhiều mã, lô thu hồi bị chuyển (lách khoá xuất), chốt khi đã có chứng từ sau
+# lúc đếm, hàng mới chưa duyệt BM.08.04 thành "tồn cũ", huỷ không trả tồn — đều im lặng.
+python3 scripts/test-kiemke.py > /tmp/sx-kiemke.log 2>&1 \
+  && tail -1 /tmp/sx-kiemke.log \
+  || { cat /tmp/sx-kiemke.log; loi=1; }
+
 exit $loi

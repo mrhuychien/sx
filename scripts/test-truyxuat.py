@@ -571,6 +571,41 @@ kiem("màn QC: tab Truy xuất + Xem xét cho Ban ISO (la_iso)",
 pt = open("sx/api/portal.py", encoding="utf-8").read()
 kiem("boot có cờ la_iso", '"la_iso": super_ or "ISO Manager" in roles' in pt)
 
+print("\n-- kiểm kê chuyển lô cũ sang lô theo HSD (D154) --")
+BANG["Batch"].append(D(name="SEN-HSD040427", item="TP-SEN", item_name="Bánh sen", manufacturing_date="2026-10-06",
+                       expiry_date="2027-04-04", batch_qty=13, stock_uom="Hộp", creation=10, custom_kiem_ke="KK-1"))
+BANG["Stock Entry Detail"] += [
+    D(parent="SE-KK", item_code="TP-SEN", batch_no="SEN-061026", qty=20, is_finished_item=0, docstatus=1, s_warehouse="TP"),
+    D(parent="SE-KK", item_code="TP-SEN", batch_no="SEN-HSD040427", qty=20, is_finished_item=1, docstatus=1,
+      t_warehouse="TP")]
+SLE += [("Stock Entry", "SE-KK", "2026-10-10", "TP", -20, "SEN-061026", None),
+        ("Stock Entry", "SE-KK", "2026-10-10", "TP", 20, "SEN-HSD040427", None),
+        ("Delivery Note", "DN-9", "2026-10-11", "TP", -7, "SEN-HSD040427", None)]
+DOC[("Stock Entry", "SE-KK")] = D(purpose="Repack", custom_kiem_ke="KK-1")
+DOC[("Delivery Note", "DN-9")] = D(customer="KH-C", customer_name="Cửa hàng C")
+d = T.lo("SEN-061026")
+kk = tim(d["ban"]["khac"], chung_tu="SE-KK")
+kiem("lô cũ: phần chuyển sang lô HSD ghi là KIỂM KÊ (không phải \"đóng gói lại\" / huỷ)",
+     kk and kk["kiem_ke"] == "KK-1" and kk["muc_dich"] == "Repack" and kk["so"] == 20, d["ban"]["khac"])
+kiem("lô cũ: xuôi tới lô HSD đã nhận hàng của nó (kèm bán)",
+     d["xuoi"] and d["xuoi"][0]["batch"] == "SEN-HSD040427" and d["xuoi"][0]["ban"]["da_ban"] == 7, d["xuoi"])
+kh = {k["ten_khach"]: k["so"] for k in d["khach"]}
+kiem("thu hồi lô cũ: gọi cả khách mua thẳng lô cũ LẪN khách mua lô HSD nhận hàng của nó",
+     kh.get("Cửa hàng C") == 7 and kh.get("Đại lý Hà") == 90 and kh.get("Siêu thị B") == 50, kh)
+d = T.lo("SEN-HSD040427")
+kiem("lô HSD nhận hàng tồn cũ: ghi chú nói rõ phiếu kiểm kê", any("KK-1" in g for g in d["ghi_chu"]), d["ghi_chu"])
+kiem("… ngược về lô cũ rồi về nguyên liệu (bột bánh) — mắt xích truy xuất còn nguyên",
+     tim(d["nguon"], batch="SEN-061026") is not None
+     and tim(tim(d["nguon"], batch="SEN-061026").get("con") or [], batch="BB-031026") is not None, d["nguon"])
+kiem("… không báo nhầm \"không tìm thấy phiếu sản xuất\"",
+     not any("Không tìm thấy phiếu sản xuất" in g for g in d["ghi_chu"]), d["ghi_chu"])
+d = T.lo("DX-NCC1")
+kh = {k["ten_khach"]: k["so"] for k in d["khach"]}
+kiem("thu hồi từ nguyên liệu: tới cả khách của lô HSD sinh ra lúc kiểm kê", kh.get("Cửa hàng C") == 7, kh)
+tx = open("sx/public/sx/cards/truyxuat.js", encoding="utf-8").read()
+kiem("thẻ: dòng xuất khác do kiểm kê ghi \"Kiểm kê …\"; lô TP có xuôi ghi \"chuyển sang lô theo HSD\"",
+     "x.kiem_ke ? `Kiểm kê ${x.kiem_ke}" in tx and "lô theo HSD (kiểm kê)" in tx)
+
 print()
 if hong:
     print(f"TRUYXUAT-HỎNG ({hong})")

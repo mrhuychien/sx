@@ -284,6 +284,22 @@ class Document:
     def delete(self, **k):
         delete_doc(self._d["doctype"], self._d["name"])
 
+    def submit(self, **k):
+        """Như frappe: docstatus 1 → validate → before_submit → lưu → on_submit."""
+        self._d["docstatus"] = 1
+        self._goi("validate")
+        self._goi("before_submit")
+        bang(self._d["doctype"])[self._d["name"]] = copy.deepcopy(self._d)
+        self._goi("on_submit")
+        return self
+
+    def cancel(self, **k):
+        self._d["docstatus"] = 2
+        self._goi("before_cancel")
+        bang(self._d["doctype"])[self._d["name"]] = copy.deepcopy(self._d)
+        self._goi("on_cancel")
+        return self
+
 
 class DocThuong(Doc):
     """Doc không có controller (SX Su Co, Item…): insert chỉ lưu."""
@@ -347,6 +363,8 @@ def cai():
     frappe.flags = types.SimpleNamespace(in_scheduler=False)
     frappe.get_roles = lambda u=None: list(NGUOI["roles"])
     frappe.get_all = get_all
+    frappe.get_cached_value = lambda dt, ten, f: get_value(dt, ten, f)
+    frappe._dict = Doc
     frappe.get_list = get_all
     frappe.get_doc = get_doc
     frappe.new_doc = lambda dt: get_doc({"doctype": dt})

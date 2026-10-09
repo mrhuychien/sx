@@ -315,6 +315,38 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê kho thành phẩm theo HSD (D154)
+
+- **Màn Nhập kho → thẻ "Kiểm kê kho thành phẩm"** (có cả ở màn Quản lý). Bấm **BẮT ĐẦU KIỂM KÊ** → app mở một phiếu
+  kiểm kê (`SX Kiem Ke`, số KK-năm-###) và bày mọi thành phẩm đang có trong Kho TP: sổ sách, phần chưa có HSD, phần
+  theo từng HSD, lô đang thu hồi (để riêng, không đếm).
+- **Đếm**: đi từng mã, bấm **+ HSD** → cùng bàn số với Nhập kho (tab thùng / hộp + ô HSD in trên hộp; nút HSD nhanh
+  là các HSD đang có trên sổ, không điền sẵn — phải đọc trên hộp). Mỗi HSD một dòng; bấm dòng để sửa, sửa về 0 là bỏ
+  dòng; trùng HSD thì chặn. Mã không còn hộp nào → **Không còn**; đếm thấy mã không có trên sổ → **+ MÃ KHÁC**; hàng
+  hết hạn vẫn đếm được. Mỗi lần LƯU ghi thẳng vào phiếu trên server — tải lại trang, đổi máy, hai người cùng đếm đều được.
+- **Chốt — chỉ quản lý** (thủ kho đếm xong báo quản lý): **XEM TRƯỚC & CHỐT** cho thấy từng mã sổ → đếm, chuyển bao
+  nhiêu từ lô cũ sang lô theo HSD, thiếu / thừa, số chứng từ kho sẽ sinh. Chốt thì số đếm **thay toàn bộ tồn của mã
+  trong Kho TP** (mã chưa đếm giữ nguyên):
+  - lô cũ chưa có HSD (và phần dư của lô có HSD mà đếm ít hơn) chuyển sang lô theo HSD (`…-HSDddmmyy`) bằng Stock
+    Entry **Repack** — mỗi mã một phiếu, giá vốn đi theo hàng; truy xuất ngược từ lô HSD về lô cũ rồi về ngày sản
+    xuất vẫn còn. Ghép HSD với lô cũ theo ngày: hộp làm ngày D chỉ nằm được trong lô nhập từ ngày D;
+  - phần **thiếu** → Material Issue, phần **thừa** → Material Receipt (giá vốn đang chạy của mã) — chênh lệch vào tài
+    khoản điều chỉnh kho;
+  - lô đang thu hồi không đụng; hàng hết hạn mà phải chuyển lô thì đi xuất + nhập (ERPNext không cho Repack đụng lô
+    hết hạn).
+- **Không cho chốt khi**: mã đã đếm có chứng từ kho **sau lúc đếm** (bán, nhập, huỷ phiếu…) — bấm **Đếm lại** mã đó;
+  HSD của hàng làm **từ ngày áp dụng BM.08.04** mà chưa duyệt xuất xưởng (đó không phải hàng tồn cũ — hàng chưa nhập
+  kho thì nhập qua màn Nhập kho); mã không quản lý theo lô / có tồn không gắn lô. Còn phiếu nhập kho nháp thì nhắc
+  (hàng đó chưa vào sổ — đếm vào là thành thừa).
+- **Lô theo HSD nhận hàng tồn cũ** được đánh dấu `Batch.custom_kiem_ke` → bán **không cần phiếu xuất xưởng** BM.08.04
+  (như tồn cũ trước ngày áp dụng). Truy xuất: lô cũ ghi "Kiểm kê KK-… — chuyển sang lô theo HSD"; thu hồi lô cũ hay
+  lô nguyên liệu tới được cả khách mua lô HSD mới.
+- **Biên bản kiểm kê**: bấm phiếu đã chốt (hoặc **In bản nháp** khi đang đếm) → A4: số đếm theo HSD, sổ sách, chênh
+  lệch, điều chỉnh từng lô, số chứng từ kho, chỗ ký người kiểm kê / kế toán / quản lý.
+- Huỷ phiếu đã chốt: trên Desk (SX Kiem Ke → Cancel) — các chứng từ kho huỷ theo thứ tự ngược, tồn về như trước (hàng
+  của lô mới đã bán thì ERPNext không cho huỷ).
+- Cần `bench --site site1.local migrate` (doctype SX Kiem Ke + custom field) rồi `bench restart`.
+
 ## Nhập kho: chọn sản phẩm là vào bàn số một màn (D153)
 
 - Màn **Nhập kho thành phẩm** giờ như *Vào hộp Tết*: chọn sản phẩm (TÌM SẢN PHẨM, QUÉT HỘP, hay bấm mã ở
@@ -698,6 +730,8 @@ không thành `…-2`.
 - **Lô cũ chưa có HSD**: thẻ *Lô cũ chưa có HSD* (màn Nhập kho + Quản lý, tự ẩn khi hết) —
   liệt kê lô thành phẩm không HSD (còn tồn trước), HSD điền sẵn = NSX + hạn dùng; thủ kho
   soát theo bao bì rồi **GHI HSD**. Không ghi đè HSD đã có, không nhận HSD trước NSX.
+  Hàng còn trong kho thì nên **kiểm kê** (D154): đếm theo HSD in trên hộp — một lô cũ có thể
+  chứa hộp nhiều HSD, ghi một HSD cho cả lô là sai.
 
 ## Danh mục sản phẩm tự công bố (D127 — W28)
 

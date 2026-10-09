@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "ten",
+  "dvt",
+  "hsd",
+  "so_dem",
+  "chi_tiet",
+  "nguoi_dem",
+  "dem_luc"
+ ],
+ "fields": [
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "label": "Sản phẩm",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên",
+   "fetch_from": "item.item_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dvt",
+   "fieldtype": "Data",
+   "label": "ĐVT",
+   "fetch_from": "item.stock_uom",
+   "read_only": 1
+  },
+  {
+   "fieldname": "hsd",
+   "fieldtype": "Date",
+   "label": "HSD in trên hộp",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "so_dem",
+   "fieldtype": "Float",
+   "label": "Số đếm",
+   "non_negative": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "chi_tiet",
+   "fieldtype": "Small Text",
+   "label": "Cách chia thùng / hộp (JSON)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nguoi_dem",
+   "fieldtype": "Link",
+   "options": "User",
+   "label": "Người đếm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dem_luc",
+   "fieldtype": "Datetime",
+   "label": "Đếm lúc",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-09 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Kiem Ke Dong",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "istable": 1,
+ "permissions": []
+}

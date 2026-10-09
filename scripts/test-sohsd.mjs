@@ -51,7 +51,10 @@ class E {
   get className() { return [...this._lop].join(' '); }
   set className(v) { this._lop = new Set(String(v || '').split(/\s+/).filter(Boolean)); }
   get innerHTML() { return this._html; }
-  set innerHTML(h) { this._html = String(h); this._the = new Map(); this.kids = []; }
+  set innerHTML(h) {
+    this._html = String(h); this._the = new Map(); this.kids = [];
+    this.textContent = this._html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  }
   appendChild(x) { this.kids.push(x); return x; }
   addEventListener(ev, f) { (this.nghe[ev] = this.nghe[ev] || []).push(f); }
   focus() {}
@@ -108,7 +111,7 @@ const tep = (rel) => join(tam, `${rel.replace(/\//g, '__').replace(/\.js$/, '')}
 const doiDuong = (src) => src.replace(/from '\/assets\/sx\/sx\/([^']+)'/g,
   (_, rel) => `from '${pathToFileURL(tep(rel)).href}'`);
 for (const rel of ['lib/dom.js', 'lib/format.js', 'components/soluong.js', 'components/numpad.js',
-  'cards/nhapkhotp.js', 'cards/vaohoptet.js']) {
+  'cards/nhapkhotp.js', 'cards/vaohoptet.js', 'cards/kiemke.js']) {
   writeFileSync(tep(rel), doiDuong(readFileSync(GOC + rel, 'utf8')));
 }
 writeFileSync(tep('components/modal.js'), 'export const openModal = (o) => globalThis.__gia.openModal(o);\n'
@@ -116,10 +119,11 @@ writeFileSync(tep('components/modal.js'), 'export const openModal = (o) => globa
 writeFileSync(tep('components/toast.js'), 'export const toast = (s, k) => globalThis.__gia.toast(s, k);\n'
   + "export const toastErr = (s) => globalThis.__gia.toast(s, 'err');\n");
 writeFileSync(tep('components/quet.js'), 'export const moQuet = (o) => globalThis.__gia.moQuet(o);\n');
-let NK; let TET;
+let NK; let TET; let KK;
 try {
   NK = await import(pathToFileURL(tep('cards/nhapkhotp.js')).href);
   TET = await import(pathToFileURL(tep('cards/vaohoptet.js')).href);
+  KK = await import(pathToFileURL(tep('cards/kiemke.js')).href);
 } finally { rmSync(tam, { recursive: true, force: true }); }
 
 // ── công cụ ───────────────────────────────────────────────────────────
@@ -505,6 +509,129 @@ console.log('\n-- Vào hộp Tết: cùng bàn số --');
     { item: 'TP-TET', so: 60, chi_tiet: [{ uom: 'Thùng', sl: 5, he_so: 12 }], hsd: '2027-01-09' },
     { item: 'TP-TET', so: 36, chi_tiet: [{ uom: 'Thùng', sl: 3, he_so: 12 }], hsd: '2027-04-09' },
   ]), rows);
+}
+
+// ═════════════════════════════════════════════════════════════════════
+console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
+{
+  const goi = [];
+  const KH = { chot: false, loi: [] };
+  const st = { phieu: null, dem: {} };
+  const HANG = [
+    { item: 'TP-SEN', ten: 'Bánh sen', dvt: 'Hộp', uoms: UOMS, so_sach: 180, chua_hsd: 150, thu_hoi: 0,
+      theo_hsd: [{ hsd: '2027-06-08', so: 30 }], khong_lo: false },
+    { item: 'TP-DO', ten: 'Bột đậu', dvt: 'Gói', uoms: [], so_sach: 40, chua_hsd: 40, thu_hoi: 0, theo_hsd: [],
+      khong_lo: false },
+  ];
+  const tq = () => ({
+    kho: 'Kho TP', duoc_chot: KH.chot, hom_nay: NGAY, phieu: st.phieu, danh_muc: [], gan_day: [], canh_bao: [],
+    hang: HANG.map((h) => ({ ...h, da_dem: !!st.dem[h.item], dem: st.dem[h.item] || [],
+      tong_dem: (st.dem[h.item] || []).reduce((a, x) => a + x.so, 0) })),
+  });
+  const call = async (m, a = {}) => {
+    goi.push([m, a]);
+    if (m === 'sx.api.kiemke.bat_dau') st.phieu = { name: 'KK-1', bat_dau_luc: '2026-10-09 08:15', duoc_huy: true };
+    if (m === 'sx.api.kiemke.ghi') {
+      const ds = (st.dem[a.item] || []).filter((x) => x.hsd);
+      const i = a.hsd_cu ? ds.findIndex((x) => x.hsd === a.hsd_cu) : -1;
+      if (Number(a.so_dem) <= 0) ds.splice(i, 1);
+      else if (i >= 0) ds[i] = { hsd: a.hsd, so: Number(a.so_dem), chi_tiet: a.chi_tiet ? JSON.parse(a.chi_tiet) : null };
+      else ds.push({ hsd: a.hsd, so: Number(a.so_dem), chi_tiet: a.chi_tiet ? JSON.parse(a.chi_tiet) : null });
+      ds.sort((x, y) => (x.hsd < y.hsd ? -1 : 1));          // server xếp dòng theo HSD
+      if (ds.length) st.dem[a.item] = ds; else delete st.dem[a.item];
+    }
+    if (m === 'sx.api.kiemke.het_hang') st.dem[a.item] = [{ hsd: null, so: 0 }];
+    if (m === 'sx.api.kiemke.dem_lai') delete st.dem[a.item];
+    if (m === 'sx.api.kiemke.xem_truoc') {
+      return { name: 'KK-1', loi: KH.loi, canh_bao: [], duoc_chot: KH.chot,
+        ma: [{ item: 'TP-SEN', ten: 'Bánh sen', so_sach: 180, dem: 120, chuyen: 120, lo_cu: 2, thieu: 60, thua: 0,
+          bu_am: 0, thu_hoi: 0 }], tong: { so_ma: 1, so_sach: 180, dem: 120, phieu_kho: 2 } };
+    }
+    if (m === 'sx.api.kiemke.chot') { st.phieu = null; return { name: 'KK-1', so_ma: 1, tong_lech: -60, so_phieu_kho: 2 }; }
+    return tq();
+  };
+  const loiGoi = (m) => goi.filter((g) => g[0] === m).pop();
+  const c = new E('div');
+  await KK.render({ container: c, call, boot: {} });
+  kiem('chưa có phiếu: nhắc số mã còn hàng chưa ghi HSD + nút BẮT ĐẦU',
+    /2 mã còn hàng chưa ghi HSD · 190/.test(c.innerHTML) && !!c.querySelector('#kk-bat'));
+  c.querySelector('#kk-bat').bam();
+  await choRe();
+  kiem('BẮT ĐẦU → phiếu đang đếm, mã chưa đếm có nút + HSD / Không còn',
+    !!c.querySelector('[data-them="0"]') && !!c.querySelector('[data-het="1"]'), c.innerHTML.slice(0, 200));
+  let p = moi(c.querySelector('[data-them="0"]'));
+  kiem('+ HSD → bàn số một màn: tab thùng / hộp, HSD KHÔNG điền sẵn (phải đọc trên hộp)',
+    p && /^Kiểm kê · KK-1/.test(p.m.kicker) && p.tabs().length === 2 && p.hsd() === '', p && p.hsd());
+  const chip = p.m.body.querySelectorAll('[data-hsdnhanh]');
+  kiem('nút HSD nhanh = các HSD đang có trên sổ của mã; không có +3T…, không có "mặc định"',
+    chip.length === 1 && chip[0].textContent === '08/06/27' && !p.m.body.querySelector('[data-thang]') && !p.coMd(),
+    chip.map((b) => b.textContent));
+  kiem('ô HSD không chặn ngày cũ (hàng hết hạn vẫn phải đếm)', p.minHsd() === undefined, p.minHsd());
+  p.go('10');
+  chip[0].bam();
+  kiem('… bấm nút HSD nhanh điền đúng ngày', p.hsd() === '2027-06-08' && /phiếu|sổ 180/.test(p.goiY()), p.goiY());
+  p.luu();
+  await choRe();
+  let g = loiGoi('sx.api.kiemke.ghi');
+  kiem('LƯU → ghi(mã, HSD, 10 thùng = 120, chi tiết thùng / hộp), dòng mới không có hsd_cu',
+    g && g[1].item === 'TP-SEN' && g[1].hsd === '2027-06-08' && g[1].so_dem === 120
+    && g[1].chi_tiet === JSON.stringify([{ uom: 'Thùng', sl: 10, he_so: 12 }]) && !('hsd_cu' in g[1]), g && g[1]);
+  p = moi(c.querySelector('[data-them="0"]'));
+  kiem('mở + HSD lần nữa: dòng đã đếm hiện thành ô bấm, nút nhanh bỏ HSD đã đếm',
+    p && p.daCo().length === 1 && !p.m.body.querySelectorAll('[data-hsdnhanh]').length, p && p.daCo().map((b) => b.textContent));
+  p.go('1');
+  p.datHsd('2027-06-08');
+  p.luu();
+  kiem('trùng HSD dòng đã đếm → chặn ngay trên bàn số', !p.dong() && /đã có dòng HSD 08\/06\/27/.test(p.loi()), p.loi());
+  p.tab(1);
+  p.go('5');
+  p.datHsd('2026-01-01');
+  p.luu();
+  await choRe();
+  g = loiGoi('sx.api.kiemke.ghi');
+  kiem('HSD đã qua (hàng hết hạn trong kho) vẫn ghi được', g[1].hsd === '2026-01-01' && p.dong(), g[1]);
+  kiem('dòng hết hạn hiện cờ "hết hạn"', /sx-kk-hethan/.test(c.innerHTML) && /hết hạn/.test(c.innerHTML));
+  p = moi(c.querySelector('[data-sua="0:1"]'));       // dòng xếp theo HSD: 01/01/26 rồi 08/06/27
+  kiem('bấm dòng đã đếm → bàn số của dòng đó (10 thùng, HSD 08/06/27)', p && /Thùng · 10/.test(p.tabs()[0])
+    && p.hsd() === '2027-06-08', p && p.tabs());
+  p.go('0');
+  p.luu();
+  await choRe();
+  g = loiGoi('sx.api.kiemke.ghi');
+  kiem('sửa về 0 → ghi số 0 kèm hsd_cu (server bỏ dòng)', g[1].so_dem === 0 && g[1].hsd_cu === '2027-06-08', g[1]);
+  c.querySelector('[data-het="1"]').bam();
+  await choRe();
+  kiem('KHÔNG CÒN → het_hang(mã)', loiGoi('sx.api.kiemke.het_hang')[1].item === 'TP-DO'
+    && /không còn hàng/.test(c.innerHTML));
+  c.querySelector('[data-lai="1"]').bam();
+  await choRe();
+  kiem('ĐẾM LẠI → dem_lai(mã)', loiGoi('sx.api.kiemke.dem_lai')[1].item === 'TP-DO');
+  const nhanTruoc = MO.length;
+  c.querySelector('#kk-xem').bam();
+  await choRe();
+  let xm = MO[MO.length - 1];
+  kiem('thủ kho XEM TRƯỚC: thấy kế hoạch, KHÔNG có nút chốt, nhắc báo quản lý',
+    MO.length > nhanTruoc && /180 → 120/.test(xm.body.innerHTML) && !xm.body.kids.some((k) => k.textContent === 'CHỐT KIỂM KÊ')
+    && xm.body.kids.some((k) => /báo quản lý/.test(k.textContent)), xm.body.kids.map((k) => k.textContent));
+  KH.chot = true;
+  KH.loi = ['Bánh sen: có chứng từ kho sau lúc đếm'];
+  c.querySelector('#kk-xem').bam();
+  await choRe();
+  xm = MO[MO.length - 1];
+  kiem('quản lý xem trước mà còn lỗi chặn → hiện lỗi, KHÔNG có nút chốt',
+    /sau lúc đếm/.test(xm.body.innerHTML) && !xm.body.kids.some((k) => k.textContent === 'CHỐT KIỂM KÊ'));
+  KH.loi = [];
+  c.querySelector('#kk-xem').bam();
+  await choRe();
+  xm = MO[MO.length - 1];
+  const nut = xm.body.kids.find((k) => k.textContent === 'CHỐT KIỂM KÊ');
+  kiem('quản lý, không lỗi → có nút CHỐT KIỂM KÊ', !!nut);
+  nut.bam();
+  await HOI[HOI.length - 1].onConfirm();
+  await choRe();
+  kiem('CHỐT → xác nhận 2 bước rồi gọi chot(phiếu), thẻ về trạng thái chưa có phiếu',
+    loiGoi('sx.api.kiemke.chot')[1].name === 'KK-1' && !!c.querySelector('#kk-bat')
+    && TOAST.some(([t]) => /Đã chốt KK-1/.test(t)));
 }
 
 console.log(hong ? `SOHSD-FAIL (${hong} ca)` : 'SOHSD-OK');

@@ -37,7 +37,9 @@ export async function render({ container, call }) {
       <div class="sx-field-label">Lô cũ chưa có HSD — ${dl.con_ton} lô còn tồn${
         dl.het_hang ? ` · ${dl.het_hang} lô đã hết hàng` : ''}</div>
       <div class="sx-muted">Lô nhập trước khi lô mang HSD: truy xuất theo HSD in trên hộp
-        không ra. Soát HSD theo bao bì (đã điền sẵn = NSX + hạn dùng) rồi bấm GHI.</div>
+        không ra. Soát HSD theo bao bì (đã điền sẵn = NSX + hạn dùng) rồi bấm GHI. Hàng còn
+        trong kho thì nên dùng thẻ <b>Kiểm kê kho thành phẩm</b>: đếm theo HSD in trên hộp —
+        một lô cũ có thể chứa hộp nhiều HSD.</div>
       <div class="sx-vh-list" id="lh-ds">${dl.rows.map((r) => `
         <div class="sx-vh-row">
           <div class="sx-vh-who">

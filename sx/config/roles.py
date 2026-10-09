@@ -116,7 +116,8 @@ VIEW_CARDS = {
     # nobom: sổ nợ BOM (D97) — thành phẩm nhập lúc chưa có định mức. Đặt ngay
     # dưới phiếu nhập để thủ kho thấy phần mình vừa nhập tạm đang nằm đâu.
     # lohsd (D131): lô thành phẩm cũ chưa có HSD — tự ẩn khi không còn lô nào.
-    "nhapkho": ["nhapkhotp", "nobom", "lohsd", "lichnhapkho"],
+    # kiemke (D154): kiểm kê kho TP theo HSD — đếm theo HSD in trên hộp, quản lý chốt.
+    "nhapkho": ["nhapkhotp", "kiemke", "nobom", "lohsd", "lichnhapkho"],
     # D122: vào hộp Tết — một thẻ làm trọn: số + HSD -> phiếu nhập nháp + công nhật.
     "tet": ["vaohoptet"],
     # Màn QC là view standalone: nó tự dựng cả 5 màn con (#/qc, /round/:name,
@@ -128,7 +129,7 @@ VIEW_CARDS = {
     # truyxuat (D115): truy xuất nguồn gốc 2 chiều — thay ô "nhập mã batch" cũ.
     # lichchot (D117): chốt ngày bằng lịch tháng — bấm ngày, xem nhanh, chốt luôn.
     # Thay thẻ chotngay (vẫn giữ file: lịch dùng lại phần nút chốt của nó).
-    "quanly": ["qcnhac", "nobom", "nogia", "novaohop", "lohsd", "lichchot", "truyxuat",
+    "quanly": ["qcnhac", "nobom", "nogia", "novaohop", "lohsd", "kiemke", "lichchot", "truyxuat",
                "phieuluong", "luutrinhbtp", "nguoidung"],
 }
 
@@ -160,6 +161,9 @@ CARD_ROLES = {
     "nobom": [THU_KHO, QUAN_LY],
     # Lô cũ chưa có HSD (D131): thủ kho soát theo bao bì, quản lý cũng ghi được.
     "lohsd": [THU_KHO, QUAN_LY],
+    # Kiểm kê kho TP (D154): thủ kho + quản lý ĐẾM; CHỐT (sinh chứng từ kho, ghi thừa / thiếu) chỉ quản lý
+    # — chốt riêng trong sx/api/kiemke._duoc_chot, như chốt ngày (D33: người nhập khác người chốt).
+    "kiemke": [THU_KHO, QUAN_LY],
     # Sổ nợ đơn giá (D99): áp giá là SỬA LƯƠNG của người khác — chỉ quản lý.
     "nogia": [QUAN_LY],
     # Sổ nợ vào hộp (D101): QC vào hộp XEM (để chấm bù), quản lý thêm quyền BỎ QUA

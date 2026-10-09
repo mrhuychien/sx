@@ -453,6 +453,10 @@ kiem("bán lô TP chưa duyệt (tạo từ ngày áp dụng) → chặn", loi a
 kiem("Delivery Note / POS cũng chặn", thu(lambda: A.kiem_ban(hd("DUA-HSD270405", dt="Delivery Note"))) is not None
      and thu(lambda: A.kiem_ban(hd("DUA-HSD270405", dt="POS Invoice"))) is not None)
 kiem("lô tồn cũ (tạo trước ngày áp dụng) → qua", thu(lambda: A.kiem_ban(hd("SEN-CU-270101"))) is None)
+BATCH.append({"name": "DUA-HSD270301", "item": "TP-DUA", "item_name": "Bánh đậu xanh dừa",
+              "expiry_date": date(2027, 3, 1), "creation": "2026-10-09 09:00", "custom_kiem_ke": "KK-2026-001"})
+kiem("lô theo HSD nhận hàng tồn cũ lúc chốt kiểm kê (D154, tạo sau ngày áp dụng) → qua",
+     thu(lambda: A.kiem_ban(hd("DUA-HSD270301"))) is None)
 kiem("hàng không phải thành phẩm → qua", thu(lambda: A.kiem_ban(hd("BOT-NEN-01"))) is None)
 kiem("trả hàng / hoá đơn không trừ kho → qua", thu(lambda: A.kiem_ban(hd("DUA-HSD270405", tra=1))) is None
      and thu(lambda: A.kiem_ban(hd("DUA-HSD270405", us=0))) is None)

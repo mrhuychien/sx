@@ -76,9 +76,13 @@ def kiem_ban(doc, method=None):
     if not cap:
         return
     tp = {i.name for i in items_tp(["name"])}
-    lo = {b.name: b for b in frappe.get_all(
-        "Batch", filters={"name": ("in", list({b for _r, b in cap}))},
-        fields=["name", "item", "item_name", "expiry_date", "creation"])}
+    loc = {"name": ("in", list({b for _r, b in cap}))}
+    truong = ["name", "item", "item_name", "expiry_date", "creation"]
+    try:
+        ds = frappe.get_all("Batch", filters=loc, fields=truong + ["custom_kiem_ke"])
+    except Exception:                 # chưa migrate D154
+        ds = frappe.get_all("Batch", filters=loc, fields=truong)
+    lo = {b.name: b for b in ds}
     tn = tu_ngay(s)
     can = []
     for r, b in cap:
@@ -87,6 +91,8 @@ def kiem_ban(doc, method=None):
             continue
         if tn and getdate(x.creation) < tn:
             continue                  # tồn cũ trước ngày áp dụng BM.08.04
+        if x.get("custom_kiem_ke"):
+            continue                  # D154: tồn cũ chuyển sang lô theo HSD lúc chốt kiểm kê
         can.append((r, x))
     if not can:
         return

@@ -1041,5 +1041,47 @@
   "name": "Purchase Receipt-custom_xe_ghi_chu",
   "translatable": 0,
   "label": "Ghi chú kiểm xe"
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Batch",
+  "fieldname": "custom_section_kiem_ke",
+  "fieldtype": "Section Break",
+  "insert_after": "custom_thu_hoi_luc",
+  "label": "Kiểm kê (D154)",
+  "module": "SX",
+  "name": "Batch-custom_section_kiem_ke",
+  "translatable": 0,
+  "collapsible": 0
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Batch",
+  "fieldname": "custom_kiem_ke",
+  "fieldtype": "Link",
+  "options": "SX Kiem Ke",
+  "insert_after": "custom_section_kiem_ke",
+  "label": "Nhận hàng tồn qua kiểm kê",
+  "module": "SX",
+  "name": "Batch-custom_kiem_ke",
+  "read_only": 1,
+  "no_copy": 1,
+  "translatable": 0,
+  "description": "Lô theo HSD nhận hàng TỒN CŨ khi chốt kiểm kê (chuyển từ lô cũ chưa có HSD). Hàng tồn trước ngày áp dụng BM.08.04 nên bán không cần phiếu xuất xưởng."
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Stock Entry",
+  "fieldname": "custom_kiem_ke",
+  "fieldtype": "Link",
+  "options": "SX Kiem Ke",
+  "insert_after": "custom_cong_doan",
+  "label": "Phiếu kiểm kê",
+  "module": "SX",
+  "name": "Stock Entry-custom_kiem_ke",
+  "read_only": 1,
+  "no_copy": 1,
+  "translatable": 0,
+  "search_index": 1
  }
 ]

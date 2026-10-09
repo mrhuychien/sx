@@ -2091,6 +2091,34 @@ b.sx-tx-kl-loi { background: none; }
 .sx-sohsd-daco { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sx-s1) var(--sx-s2); }
 .sx-sohsd-daco .sx-np-chip { flex: 0 1 auto; min-height: 36px; padding: 0 var(--sx-s2); }
 
+/* D154 — kiểm kê kho thành phẩm theo HSD: mỗi mã một khối, dòng đếm là ô bấm (bấm = mở bàn số) */
+.sx-kk-bao { padding: var(--sx-s2) var(--sx-s3); border-radius: var(--sx-radius-sm); background: var(--sx-warning-soft);
+  color: var(--sx-warning-text); font-weight: 700; }
+.sx-kk-tien { font-size: var(--sx-f-md); font-weight: 800; }
+.sx-kk-loc { display: flex; gap: var(--sx-s1); flex-wrap: wrap; }
+.sx-kk-nhac { font-size: var(--sx-f-xs); font-weight: 600; line-height: 1.4; color: var(--sx-warning-text); }
+.sx-kk-loc .sx-np-chip { flex: 1 1 auto; min-height: 34px; padding: 0 var(--sx-s2); font-size: var(--sx-f-xs); }
+.sx-kk-ds { display: flex; flex-direction: column; gap: var(--sx-s2); }
+.sx-kk-ma { display: flex; flex-direction: column; gap: 4px; padding: var(--sx-s2) var(--sx-s3);
+  border: 1px solid var(--sx-line); border-radius: var(--sx-radius); background: var(--sx-surface); }
+.sx-kk-ma-xong { border-color: var(--sx-success); box-shadow: inset 3px 0 0 var(--sx-success); }
+.sx-kk-ma-tat { opacity: .6; }
+.sx-kk-dau { display: flex; justify-content: space-between; align-items: baseline; gap: 4px var(--sx-s2); flex-wrap: wrap; }
+.sx-kk-so { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-kk-so b { color: var(--sx-text); }
+.sx-kk-lech { color: var(--sx-danger-text); font-weight: 800; }
+.sx-kk-khop { color: var(--sx-success-text); font-weight: 700; }
+.sx-kk-chua { color: var(--sx-warning-text); font-weight: 700; }
+.sx-kk-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sx-s1); }
+.sx-kk-dong .sx-np-chip { flex: 0 1 auto; min-height: 40px; padding: 0 var(--sx-s2); }
+.sx-kk-dong .sx-np-chip i { font-style: normal; font-weight: 500; opacity: .75; }
+.sx-kk-them { border-style: dashed; color: var(--sx-text); }
+.sx-kk-hethan { border-color: var(--sx-danger); color: var(--sx-danger-text); }
+.sx-kk-het { font-size: var(--sx-f-sm); font-weight: 700; color: var(--sx-text-2); padding: 0 var(--sx-s1); }
+.sx-kk-phu { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
+.sx-kk-phu .sx-btn { flex: 1 1 0; min-width: 0; font-size: var(--sx-f-sm); padding-left: var(--sx-s2);
+  padding-right: var(--sx-s2); }
+
 /* D131 — thẻ "Lô cũ chưa có HSD": ô ngày gọn bên phải mỗi dòng */
 .sx-lh-o { width: 160px; flex: none; margin: 0; min-height: 44px; }
 @media (max-width: 420px) { .sx-lh-o { width: 138px; } }

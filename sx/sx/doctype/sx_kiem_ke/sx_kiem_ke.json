@@ -1,0 +1,221 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "ngay",
+  "trang_thai",
+  "column_break_head",
+  "kho",
+  "nguoi_lap",
+  "bat_dau_luc",
+  "section_dong",
+  "dong",
+  "section_lo",
+  "lo",
+  "section_tong",
+  "so_ma",
+  "tong_so_sach",
+  "column_break_tong",
+  "tong_dem",
+  "tong_lech",
+  "section_chot",
+  "nguoi_chot",
+  "chot_luc",
+  "column_break_chot",
+  "ghi_chu",
+  "ds_se",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số phiếu",
+   "options": "KK-.YYYY.-.###",
+   "default": "KK-.YYYY.-.###",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày kiểm kê",
+   "reqd": 1,
+   "in_list_view": 1,
+   "default": "Today",
+   "search_index": 1
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Đang đếm\nĐã chốt\nĐã huỷ",
+   "default": "Đang đếm",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "kho",
+   "fieldtype": "Link",
+   "options": "Warehouse",
+   "label": "Kho",
+   "reqd": 1,
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nguoi_lap",
+   "fieldtype": "Link",
+   "options": "User",
+   "label": "Người lập",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bat_dau_luc",
+   "fieldtype": "Datetime",
+   "label": "Bắt đầu đếm lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_dong",
+   "fieldtype": "Section Break",
+   "label": "Số đếm theo HSD",
+   "description": "Mỗi (mã, HSD) một dòng. Mã đã đếm thì số đếm THAY toàn bộ tồn của mã đó trong kho lúc chốt (trừ lô đang thu hồi). Dòng không HSD, số 0 = đã đếm, không còn hộp nào."
+  },
+  {
+   "fieldname": "dong",
+   "fieldtype": "Table",
+   "options": "SX Kiem Ke Dong",
+   "label": "Dòng đếm"
+  },
+  {
+   "fieldname": "section_lo",
+   "fieldtype": "Section Break",
+   "label": "Kết quả theo lô (ghi lúc chốt)"
+  },
+  {
+   "fieldname": "lo",
+   "fieldtype": "Table",
+   "options": "SX Kiem Ke Lo",
+   "label": "Lô",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_tong",
+   "fieldtype": "Section Break",
+   "label": "Tổng hợp"
+  },
+  {
+   "fieldname": "so_ma",
+   "fieldtype": "Int",
+   "label": "Số mã đã đếm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tong_so_sach",
+   "fieldtype": "Float",
+   "label": "Tổng sổ sách",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tong",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tong_dem",
+   "fieldtype": "Float",
+   "label": "Tổng đếm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tong_lech",
+   "fieldtype": "Float",
+   "label": "Chênh lệch (đếm − sổ)",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_chot",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "nguoi_chot",
+   "fieldtype": "Link",
+   "options": "User",
+   "label": "Người chốt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chot_luc",
+   "fieldtype": "Datetime",
+   "label": "Chốt lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_chot",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  },
+  {
+   "fieldname": "ds_se",
+   "fieldtype": "Small Text",
+   "label": "Chứng từ kho đã sinh (JSON)",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "options": "SX Kiem Ke",
+   "label": "Amended From",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-09 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Kiem Ke",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "autoname": "naming_series:",
+ "is_submittable": 1,
+ "title_field": "naming_series",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ]
+}

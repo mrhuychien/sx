@@ -1,0 +1,84 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 14:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "ten",
+  "batch",
+  "hsd",
+  "so_truoc",
+  "so_sau",
+  "chenh",
+  "viec"
+ ],
+ "fields": [
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "options": "Item",
+   "label": "Sản phẩm",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên",
+   "read_only": 1
+  },
+  {
+   "fieldname": "batch",
+   "fieldtype": "Link",
+   "options": "Batch",
+   "label": "Lô",
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "hsd",
+   "fieldtype": "Date",
+   "label": "HSD",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "so_truoc",
+   "fieldtype": "Float",
+   "label": "Sổ trước",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "so_sau",
+   "fieldtype": "Float",
+   "label": "Sau kiểm kê",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "chenh",
+   "fieldtype": "Float",
+   "label": "Thay đổi"
+  },
+  {
+   "fieldname": "viec",
+   "fieldtype": "Small Text",
+   "label": "Việc",
+   "in_list_view": 1,
+   "columns": 3
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-09 14:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX Kiem Ke Lo",
+ "owner": "Administrator",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1,
+ "istable": 1,
+ "permissions": []
+}

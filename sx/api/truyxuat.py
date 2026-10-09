@@ -178,7 +178,16 @@ def lo(batch):
 
     so_cai = _so_cai(batch)
     can_bang = _can_bang(batch, so_cai)
-    xuoi = None if goc["la_tp"] else ctx.xuoi(batch, set(), 0)
+    # Lô thành phẩm thường chỉ có bán; xuôi chỉ có khi hàng của lô đã chuyển sang lô khác (D154: kiểm kê
+    # chuyển lô cũ chưa có HSD sang lô theo HSD) — thu hồi lô cũ phải gọi cả khách của lô mới.
+    xuoi = ctx.xuoi(batch, set(), 0)
+    if goc["la_tp"] and not xuoi:
+        xuoi = None
+    kk = _kiem_ke_cua(batch) if goc["la_tp"] else None
+    if kk:
+        ghi_chu.append(_(
+            "Lô nhận hàng TỒN CŨ khi chốt kiểm kê {0}: chuyển từ lô cũ chưa có HSD (xem Nguồn gốc). Hàng "
+            "tồn từ trước ngày áp dụng BM.08.04 — bán không cần phiếu xuất xưởng.").format(kk))
     qua_trinh, cua_so = _qua_trinh(goc, nhap, nguoc)
     if goc["la_tp"] and cua_so and cua_so[0] == cua_so[1] and la_lo_hsd(batch):
         ghi_chu.append(_(
@@ -190,10 +199,11 @@ def lo(batch):
             "lô. Thành phẩm không gắn bảng vào hộp nào nên không khớp được theo lô.")
             .format(_vn(cua_so[0]), _vn(cua_so[1])))
     if not nguoc and not goc["la_ncc"]:
-        ghi_chu.append(_("Không tìm thấy phiếu sản xuất nào sinh ra lô này — lô nhập "
-                         "tay trên Desk, hoặc chứng từ đã huỷ."))
+        ghi_chu.append(_("Lô chỉ có hàng THỪA lúc kiểm kê — không có phiếu sản xuất nào sinh ra.") if kk
+                       else _("Không tìm thấy phiếu sản xuất nào sinh ra lô này — lô nhập "
+                              "tay trên Desk, hoặc chứng từ đã huỷ."))
 
-    khach = _khach_tong(so_cai, xuoi)
+    khach = _khach_tong(so_cai, xuoi, ban_thang=goc["la_tp"])
     for k in khach:
         # W05: khách nhận lô thành phẩm nào — nói bằng HSD, không bằng mã lô.
         k["lo"] = [_nhan_lo(ctx, b) for b in k["lo"]]
@@ -377,6 +387,10 @@ class _Ctx:
                 if tt["la_tp"]:
                     sc = _so_cai(r.batch_no)
                     n["ban"] = _ban(sc)
+                    # D154: hàng của lô TP này có thể đã chuyển sang lô theo HSD lúc kiểm kê.
+                    con = self.xuoi(r.batch_no, visited, sau + 1)
+                    if con:
+                        n["con"] = con
                 else:
                     n["con"] = self.xuoi(r.batch_no, visited, sau + 1)
                 ra[r.batch_no] = n
@@ -451,9 +465,9 @@ def _ban(so_cai):
                         "ten_khach": v.get("customer_name") or v.get("customer"),
                         "tra_lai": m["so"] > 0})
         elif m["so"] < 0:
-            khac.append({**m, "so": -m["so"],
-                         "muc_dich": frappe.db.get_value(m["loai"], m["chung_tu"], "purpose")
-                         if m["loai"] == "Stock Entry" else None})
+            se = _se_cua(m["chung_tu"]) if m["loai"] == "Stock Entry" else {}
+            khac.append({**m, "so": -m["so"], "muc_dich": se.get("purpose"),
+                         "kiem_ke": se.get("custom_kiem_ke")})
     return {
         "ban": ban, "khac": khac,
         "ton": [{"kho": k, "so": v} for k, v in ton.items() if abs(v) > 1e-9],
@@ -463,9 +477,26 @@ def _ban(so_cai):
     }
 
 
-def _khach_tong(so_cai, xuoi):
+def _se_cua(name):
+    """purpose + phiếu kiểm kê (D154) của một Stock Entry. Chưa migrate D154 → chỉ purpose."""
+    try:
+        return frappe.db.get_value("Stock Entry", name, ["purpose", "custom_kiem_ke"], as_dict=True) or {}
+    except Exception:
+        return {"purpose": frappe.db.get_value("Stock Entry", name, "purpose")}
+
+
+def _kiem_ke_cua(batch):
+    """Phiếu kiểm kê đã chuyển hàng tồn cũ vào lô này (Batch.custom_kiem_ke, D154) hoặc None."""
+    try:
+        return frappe.db.get_value("Batch", batch, "custom_kiem_ke")
+    except Exception:
+        return None
+
+
+def _khach_tong(so_cai, xuoi, ban_thang=False):
     """Danh sách khách gộp — lô gốc bán thẳng hoặc qua mọi lô TP làm ra từ nó.
-    Đây là danh sách phải gọi khi thu hồi."""
+    Đây là danh sách phải gọi khi thu hồi. `ban_thang`: lô thành phẩm — tính cả khách mua thẳng lô này
+    lẫn khách mua lô đã nhận hàng của nó (kiểm kê chuyển lô, D154)."""
     gop = {}
 
     def them(ds, lo_tp):
@@ -484,7 +515,7 @@ def _khach_tong(so_cai, xuoi):
                 them(n["ban"]["ban"], n["batch"])
             di(n.get("con"))
 
-    if so_cai is not None and xuoi is None:
+    if so_cai is not None and (xuoi is None or ban_thang):
         them(_ban(so_cai)["ban"], None)
     di(xuoi)
     return sorted(({**g, "so": flt(g["so"], 3), "lo": sorted(x for x in g["lo"] if x)}

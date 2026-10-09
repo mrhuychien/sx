@@ -337,7 +337,8 @@ export function veLo(box, d, { quayLai, mo, ketThuc, thuHoi }) {
     ${(d.nguon || []).length ? khoi('⬅ Nguồn gốc nguyên liệu', cay(d.nguon), true) : ''}
     ${(d.qua_trinh || []).length ? khoi('🏭 Quá trình sản xuất', d.qua_trinh.map(ngay).join(''), true) : ''}
     ${l.la_tp ? khoi('➡ Đi đâu', diDau(b, l.dvt), true) : ''}
-    ${d.xuoi ? khoi(`➡ Đã đi vào ${demTp(d.xuoi)} lô thành phẩm`, d.xuoi.length
+    ${d.xuoi ? khoi(l.la_tp ? `➡ Hàng đã chuyển sang ${demTp(d.xuoi)} lô theo HSD (kiểm kê)`
+    : `➡ Đã đi vào ${demTp(d.xuoi)} lô thành phẩm`, d.xuoi.length
       ? cayXuoi(d.xuoi) : '<div class="sx-muted">Chưa dùng vào phiếu sản xuất nào.</div>', true) : ''}
     ${khoi(`👥 Khách đã nhận (${(d.khach || []).length})`, khach(d.khach || []), !l.la_tp)}
     ${(d.luu_mau || []).length ? khoi('🧪 Mẫu lưu', d.luu_mau.map(luuMau).join(''), false) : ''}
@@ -463,7 +464,8 @@ function diDau(b, dvt) {
         <span class="sx-nv-qty">${x.tra_lai ? '↩ ' : ''}${esc(so(Math.abs(x.so), dvt))}</span></div>`).join('')
     : '<div class="sx-muted">Chưa bán (chưa có phiếu giao / hoá đơn bán nào ghi lô này).</div>';
   const khac = b.khac.map((x) => `<div class="sx-vh-row"><div class="sx-vh-who">
-      <div class="sx-vh-name">${esc(MUC_DICH[x.muc_dich] || x.muc_dich || x.loai)}</div>
+      <div class="sx-vh-name">${esc(x.kiem_ke ? `Kiểm kê ${x.kiem_ke} — ${x.muc_dich === 'Repack'
+    ? 'chuyển sang lô theo HSD' : 'xuất thiếu'}` : (MUC_DICH[x.muc_dich] || x.muc_dich || x.loai))}</div>
       <div class="sx-vh-meta">${esc(x.chung_tu)} · ${esc(ngayNgan(x.ngay))} · từ ${esc(x.kho)}</div></div>
       <span class="sx-nv-qty">${esc(so(x.so, dvt))}</span></div>`).join('');
   const ton = b.ton.map((t) => `${esc(t.kho)}: <b>${esc(so(t.so, dvt))}</b>`).join(' · ');
