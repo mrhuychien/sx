@@ -570,3 +570,26 @@ button.sx-qc-tag-chon {
 .sx-tl-nn-o { cursor: pointer; border: 1px solid var(--sx-line); min-height: 34px; }
 .sx-tl-nn-on { background: var(--sx-season-btn); color: #fff; border-color: transparent; }
 .sx-tl-nk { font-family: var(--sx-mono); white-space: normal; }
+
+/* ── Sổ ghi theo dòng #/so (W43, D172) — tiền tố sx-so- ─────────────────── */
+.sx-so a.sx-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.sx-so a.sx-qc-sc { text-decoration: none; color: inherit; }
+.sx-so .sx-qc-sc { cursor: pointer; }
+.sx-so-loc { align-items: center; }
+.sx-so-thang { font-weight: 700; min-width: 110px; text-align: center; }
+.sx-so-ct { display: flex; flex-direction: column; gap: 2px; margin-bottom: var(--sx-s2); }
+.sx-so-o { display: flex; gap: var(--sx-s2); justify-content: space-between; padding: 3px 0;
+  border-bottom: 1px dashed var(--sx-line); font-size: var(--sx-f-sm); }
+.sx-so-o b { font-weight: 600; color: var(--sx-text-2); flex: 1 1 45%; }
+.sx-so-o span { flex: 1 1 55%; text-align: right; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sx-so-nut { margin-top: var(--sx-s2); }
+.sx-so-sua { white-space: normal; }
+.sx-so-xem { border-left: 4px solid var(--sx-primary); cursor: default; }
+/* Phiếu ghi sổ nằm trong modal (gắn vào <body>, ngoài .sx-app): ô nhập của qcui không tràn khung, nhãn không chừa
+   chỗ cho số mục (sổ không đánh số mục như vòng kiểm). */
+.sx-so-phieu .sx-qc-oso-khung, .sx-so-phieu .sx-qc-hang, .sx-so-phieu .sx-qc-oso { box-sizing: border-box; }
+.sx-so-phieu .sx-qc-so:empty { display: none; }
+.sx-so-phieu .sx-qc-oso, .sx-so-phieu .sx-qc-hang { padding-left: 0; padding-right: 0; background: transparent; }
+.sx-so-phieu .sx-qc-oso-khung input { font-size: var(--sx-f-md); }
+/* Ô tích của sổ là việc ĐÃ LÀM (đã vệ sinh, khách khai không ốm…) — bật là xanh, không đỏ như mục "có dấu hiệu". */
+.sx-so-phieu .sx-qc-nut2 > button.sx-qc-khong-on { background: var(--sx-success); border-color: var(--sx-success); }

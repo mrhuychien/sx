@@ -11,6 +11,7 @@ from frappe import _
 from frappe.utils import cint, getdate, nowdate
 
 from sx.api.qc import GHI_DUOC, ISO, _guard_qc, _roles, _sieu
+from sx.qc import so as SO
 from sx.qc import thiet_bi as TBM
 from sx.qc.quyen import la_iso
 
@@ -35,16 +36,26 @@ def _guard_tb():
 
 
 def _ds_thiet_bi(hom_nay):
+    """Danh mục kèm trạng thái. Thiết bị sản xuất (W43): không hạn kiểm — lần bảo dưỡng gần nhất / hạn bảo dưỡng
+    lấy từ sổ BM.06.05 (sx/qc/so.py)."""
     hd = TBM.han_dau()
     cuoi, giay = TBM.cac_lan_cuoi()
+    bd = None
     ra = []
     for t in frappe.get_all(TBM.TB, fields=["name", "ten", "loai", "vi_tri", "may", "chu_ky_thang", "thanh_ly",
                                             "ghi_chu", "qua_han_su_co"], order_by="name asc"):
         c = cuoi.get(t.name)
         tt, han = TBM.trang_thai(t, c, hom_nay, hd, giay.get(t.name))
-        ra.append(dict(t, trang_thai=tt, han=str(han), con=(han - hom_nay).days, chu_ky=TBM.chu_ky(t),
-                       lan_cuoi=str(c.ngay) if c else "", ket_qua_cuoi=c.ket_qua if c else "",
-                       chua_kiem=not c, bieu_mau=TBM.BIEU_MAU.get(t.loai, "")))
+        x = dict(t, trang_thai=tt, han=str(han or ""), con=(han - hom_nay).days if han else None,
+                 chu_ky=TBM.chu_ky(t), lan_cuoi=str(c.ngay) if c else "", ket_qua_cuoi=c.ket_qua if c else "",
+                 chua_kiem=not c, bieu_mau=TBM.BIEU_MAU.get(t.loai, ""), san_xuat=t.loai == TBM.SAN_XUAT)
+        if x["san_xuat"]:
+            if bd is None:
+                bd = SO.bao_duong_may(hom_nay)
+            b = bd.get(t.name) or {}
+            x.update(lan_cuoi=b.get("lan_cuoi") or "", han=b.get("han") or "", chua_kiem=not b.get("lan_cuoi"),
+                     con=(getdate(b["han"]) - hom_nay).days if b.get("han") else None)
+        ra.append(x)
     return ra
 
 

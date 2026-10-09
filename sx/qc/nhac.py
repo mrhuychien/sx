@@ -15,6 +15,7 @@ Nguyên tắc viết một mục nhắc:
     chuột có dấu hiệu hai tuần liền.
 """
 
+import re
 from datetime import date, timedelta
 
 CAO = "cao"
@@ -54,7 +55,7 @@ def _nhom(ma, ds):
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
          cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None, vai_u=None,
-         kiem_xe=None, tai_lieu=None):
+         kiem_xe=None, tai_lieu=None, so=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -70,7 +71,9 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `vai_u` = sx/qc/vai_u.nhac(): quá chu kỳ chưa giặt vải ủ, dòng chờ QC ký, tháng chưa xem — W29 (D163).
     `kiem_xe` = sx/qc/kiem_xe.nhac(): tuần có chuyến mà chưa chuyến nào QC kiểm, tháng BM.09.01 chưa xem — W34.
     `tai_lieu` = sx/qc/tai_lieu.nhac(): đợt ban hành quá 7 ngày còn người chưa xác nhận đọc, đề nghị BM.01.01 chờ
-                 lâu, tài liệu bên ngoài quá 12 tháng chưa soát xét, đợt nháp thiếu PDF — W42 (D171)."""
+                 lâu, tài liệu bên ngoài quá 12 tháng chưa soát xét, đợt nháp thiếu PDF — W42 (D171).
+    `so` = sx/qc/so.nhac(): sổ ghi theo dòng — hạn, không ghi, chờ xác nhận, chưa xem tháng; BM.06.05 kiểm lại sau sửa
+           chữa, máy quá hạn bảo dưỡng. Mỗi sổ vào mảng của nó (`mang`) — W43 (D172)."""
     nay = _d(hom_nay)
     ra = []
     # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (PRP từ W38), nên thuộc mảng vòng kiểm.
@@ -86,6 +89,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhom("vai_u", _nhac_vai_u(nay, vai_u or {}))
     ra += _nhom("kiem_xe", _nhac_kiem_xe(kiem_xe or {}))
     ra += _nhom("tai_lieu", _nhac_tai_lieu(tai_lieu or {}))
+    ra += _nhac_so(so or {})
     ra += _nhom("thiet_bi", _nhac_thiet_bi(nay, thiet_bi or {}))
     ra += _nhom("kiem_nghiem", _nhac_kiem_nghiem(kiem_nghiem or {}))
     ra += _nhom("viec_dinh_ky", _nhac_viec_dinh_ky(viec_dinh_ky or {}))
@@ -399,6 +403,61 @@ def _nhac_tai_lieu(tl):
     for x in tl.get("dot_thieu") or []:
         ra.append(_m(THUONG, f"Đợt ban hành {x['dot']} (nháp) còn {x['thieu']} tài liệu chưa có PDF đã ký",
                      "Tải PDF bản đã ký cho từng dòng rồi bấm Ban hành.", f"#/tailieu/dot/{x['dot']}"))
+    return ra
+
+
+def _nhac_so(so):
+    """Sổ ghi theo dòng (W43). Mỗi mục vào mảng của sổ (`mang` — thẻ Tổng quan ATTP; sổ chung là "Sổ khác"):
+      · cột hạn đã quá / còn ≤ số ngày báo trước (BM.03.01 kiểm, nạp bình PCCC; BM.03.03 kiểm định);
+      · quá N ngày không ghi dòng nào (sổ có đặt N);
+      · dòng chờ xác nhận quá 2 ngày (BM.06.05: QC chưa kiểm máy sau sửa chữa);
+      · tháng đã qua ngày 5 mà chưa xem xét cuối tháng;
+      · BM.06.05: thiết bị đo đã sửa / được chọn kiểm lại mà chưa có phiếu kiểm từ ngày đó — mức CAO (QT.06: chưa kiểm
+        lại thì chưa được dùng, như thiết bị quá hạn); máy sản xuất quá hạn bảo dưỡng định kỳ."""
+    ra = []
+    for s in so.get("ds") or []:
+        r = f"#/so/{s['ma']}"
+        ten = f"{s['ma']} {s.get('ten') or ''}".strip()
+        m = []
+        han = s.get("han") or []
+        qua = [h for h in han if h["con"] < 0]
+        sap = [h for h in han if h["con"] >= 0]
+        if qua:
+            h = qua[0]
+            m.append(_m(THUONG, f"{ten}: {len(qua)} mục quá hạn",
+                        f"Quá hạn lâu nhất: {h.get('tom_tat') or h.get('dong')} — {h['nhan'].lower()} "
+                        f"{_d(h['han']).strftime('%d/%m/%Y')}. Kiểm / nạp / kiểm định xong thì cập nhật sổ.", r))
+        if sap:
+            h = sap[0]
+            m.append(_m(THUONG, f"{ten}: {len(sap)} mục sắp đến hạn",
+                        f"Sớm nhất: {h.get('tom_tat') or h.get('dong')} — {h['nhan'].lower()} "
+                        f"{_d(h['han']).strftime('%d/%m/%Y')} (còn {h['con']} ngày).", r))
+        k = s.get("khong_ghi")
+        if k:
+            m.append(_m(THUONG, f"{ten}: {k['so_ngay']} ngày chưa ghi dòng nào",
+                        (f"Dòng gần nhất {_d(k['ngay_cuoi']).strftime('%d/%m/%Y')}." if k.get("ngay_cuoi")
+                         else "Sổ chưa có dòng nào.") + f" Sổ này phải ghi ít nhất {k['nguong']} ngày một lần.", r))
+        cho = s.get("cho") or []
+        if cho:
+            viec = re.sub(r"\s*\(ký\)\s*$", "", s.get("nhan_xac_nhan") or "") or "xác nhận"
+            m.append(_m(THUONG, f"{ten}: {len(cho)} dòng chờ {viec} quá {s.get('cho_nguong') or 2} ngày",
+                        f"Sớm nhất ngày {_d(cho[0]['ngay']).strftime('%d/%m')}: {cho[0].get('tom_tat') or ''}.", r))
+        for x in s.get("kiem_lai") or []:
+            m.append(_m(CAO, f"{x['ma']} chưa kiểm lại sau sửa chữa ngày {_d(x['ngay']).strftime('%d/%m')}",
+                        f"{x.get('ten') or ''} — QT.06: hiệu chuẩn / kiểm lại theo {x.get('bieu_mau') or 'BM.06.0x'} "
+                        f"trước khi dùng. Ghi phiếu kiểm ở màn Thiết bị đo.".strip(" —"), "#/qc/thietbi"))
+        bd = s.get("bao_duong") or []
+        if bd:
+            m.append(_m(THUONG, f"{len(bd)} máy sản xuất quá hạn bảo dưỡng định kỳ",
+                        "; ".join(f"{x['ma']} {x.get('ten') or ''} (hạn {_d(x['han']).strftime('%d/%m/%Y')})".strip()
+                                  for x in bd[:3]) + ("…" if len(bd) > 3 else "")
+                        + ". Bảo dưỡng rồi ghi sổ BM.06.05 (QT.06: 6 tháng/lần).", r))
+        cx = s.get("chua_xem") or []
+        if cx:
+            m.append(_m(THUONG, f"{ten}: tháng {', '.join(f'{t[5:7]}/{t[:4]}' for t in cx[:3])}"
+                                f"{'…' if len(cx) > 3 else ''} chưa xem xét cuối tháng",
+                        f"{s.get('nhan_xem_thang') or 'Xem xét cuối tháng'}: mở sổ, chọn tháng, bấm \"Đã xem tháng\".", r))
+        ra += _nhom(s.get("mang") or "so_khac", m)
     return ra
 
 

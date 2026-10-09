@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 23:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 23:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX So Cot",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "key",
+  "nhan",
+  "kieu",
+  "lua_chon",
+  "link_doctype",
+  "column_break_1",
+  "bat_buoc",
+  "han",
+  "bao_truoc",
+  "hien_ds",
+  "thu_tu"
+ ],
+ "fields": [
+  {
+   "fieldname": "key",
+   "fieldtype": "Data",
+   "label": "Khóa (chữ thường không dấu, _)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "nhan",
+   "fieldtype": "Data",
+   "label": "Nhãn (như cột giấy)",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 3
+  },
+  {
+   "fieldname": "kieu",
+   "fieldtype": "Select",
+   "label": "Kiểu",
+   "options": "Data\nDate\nDatetime\nTime\nInt\nFloat\nSelect\nMultiSelect\nCheck\nText\nLink\nAttach\nUser",
+   "default": "Data",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "lua_chon",
+   "fieldtype": "Small Text",
+   "label": "Lựa chọn (mỗi dòng một)",
+   "description": "Select / MultiSelect: các lựa chọn. Link: các giá trị ô `loai` của bản ghi được chọn (để trống = mọi bản ghi)."
+  },
+  {
+   "fieldname": "link_doctype",
+   "fieldtype": "Link",
+   "label": "Liên kết tới",
+   "options": "DocType",
+   "description": "Kiểu Link: DocType được phép trong code (sx/qc/so.py → LINK_DUOC)."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "bat_buoc",
+   "fieldtype": "Check",
+   "label": "Bắt buộc",
+   "in_list_view": 1,
+   "columns": 1
+  },
+  {
+   "fieldname": "han",
+   "fieldtype": "Check",
+   "label": "Cột hạn (nhắc)",
+   "description": "Chỉ kiểu Date. Đến hạn / quá hạn → hộp nhắc."
+  },
+  {
+   "fieldname": "bao_truoc",
+   "fieldtype": "Int",
+   "label": "Báo trước (ngày)"
+  },
+  {
+   "fieldname": "hien_ds",
+   "fieldtype": "Check",
+   "label": "Hiện ở danh sách",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "Ghép vào dòng tóm tắt trên điện thoại (và để tìm)."
+  },
+  {
+   "fieldname": "thu_tu",
+   "fieldtype": "Int",
+   "label": "Thứ tự"
+  }
+ ],
+ "permissions": []
+}

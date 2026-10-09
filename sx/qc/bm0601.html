@@ -1,4 +1,4 @@
-{#- BM.06.01 — danh mục thiết bị đo, theo dõi (W17, D143). A4 ngang. -#}
+{#- BM.06.01 — danh mục thiết bị sản xuất và thiết bị đo (W17, D143; máy sản xuất W43, D172). A4 ngang. -#}
 {% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
@@ -15,20 +15,20 @@
   .tb .ky td { border: 0; height: 56px; }
 </style>
 <div class="tb">
-  {{ dau_trang("BM.06.01", "Danh mục thiết bị đo, theo dõi") }}
+  {{ dau_trang("BM.06.01", "Danh mục thiết bị sản xuất và thiết bị đo") }}
   <div class="ma">Ngày in {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }} &nbsp;·&nbsp; {{ ds|length }} thiết bị</div>
   <table>
     <tr><th style="width:4%">STT</th><th style="width:9%">Mã</th><th class="t">Tên thiết bị</th><th style="width:10%">Loại</th>
-      <th style="width:13%">Vị trí / máy</th><th style="width:6%">Chu kỳ<br>(tháng)</th><th style="width:9%">Kiểm gần nhất</th>
+      <th style="width:13%">Vị trí / máy</th><th style="width:6%">Chu kỳ<br>(tháng)</th><th style="width:9%">Kiểm / bảo dưỡng gần nhất</th>
       <th style="width:7%">Kết quả</th><th style="width:9%">Hạn kế tiếp</th><th style="width:11%">Trạng thái</th></tr>
     {% for x in ds %}
     <tr>
       <td>{{ loop.index }}</td><td>{{ x.name }}</td><td class="t">{{ x.ten }}</td><td>{{ x.loai }}</td>
       <td class="t">{{ x.vi_tri or "" }}{% if x.may %} · {{ x.may }}{% endif %}</td>
-      <td>{{ x.chu_ky }}{% if x.loai == "Cân" %}<br><small>theo giấy KĐ</small>{% endif %}</td>
-      <td>{{ frappe.utils.formatdate(x.lan_cuoi, "dd/MM/yyyy") if x.lan_cuoi else "chưa kiểm" }}</td>
-      <td>{{ x.ket_qua_cuoi or "" }}</td>
-      <td>{{ frappe.utils.formatdate(x.han, "dd/MM/yyyy") }}</td>
+      <td>{{ x.chu_ky }}{% if x.loai == "Cân" %}<br><small>theo giấy KĐ</small>{% elif x.san_xuat %}<br><small>bảo dưỡng</small>{% endif %}</td>
+      <td>{{ frappe.utils.formatdate(x.lan_cuoi, "dd/MM/yyyy") if x.lan_cuoi else ("chưa ghi BM.06.05" if x.san_xuat else "chưa kiểm") }}</td>
+      <td>{{ "Không hiệu chuẩn" if x.san_xuat else (x.ket_qua_cuoi or "") }}</td>
+      <td>{{ frappe.utils.formatdate(x.han, "dd/MM/yyyy") if x.han else "" }}</td>
       <td{% if x.trang_thai != "Đang dùng" %} class="ngung"{% endif %}>{{ x.trang_thai }}</td>
     </tr>
     {% else %}

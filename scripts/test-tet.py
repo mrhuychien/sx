@@ -350,7 +350,7 @@ kiem("QC vào hộp thường KHÔNG dùng màn Tết", isinstance(e, frappe.Per
 VAI.clear(); VAI.add("SX QC Tet")
 kiem("role mới có trong VAI_MAC_DINH (site mới tự tạo, không vào Desk)",
      R.VAI_MAC_DINH.get("SX QC Tet") == 0)
-kiem("role → tab 'tet' → thẻ vaohoptet", R.ROLE_VIEWS["SX QC Tet"] == ["tet", "tailieu"]
+kiem("role → tab 'tet' → thẻ vaohoptet", R.ROLE_VIEWS["SX QC Tet"] == ["tet", "so", "tailieu"]
      and R.VIEW_CARDS["tet"] == ["vaohoptet"] and R.CARD_ROLES["vaohoptet"] == ["SX QC Tet"])
 kiem("quản lý cũng vào được tab Tết", "tet" in R.ROLE_VIEWS["SX Quan Ly"] and "tet" in R.MOI_VIEW)
 sh = open("sx/public/sx/shell.js", encoding="utf-8").read()

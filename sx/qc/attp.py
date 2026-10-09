@@ -40,6 +40,7 @@ LINH_VUC = (
     ("rework", "Rework", "BM.15.01", "#/qc/rework"),
     ("viec_dinh_ky", "Việc định kỳ", "", "#/qc/lichviec"),
     ("tai_lieu", "Tài liệu", "BM.01.02", "#/tailieu"),
+    ("so_khac", "Sổ khác", "BM.PRP.06, BM.03.01–03.03", "#/so"),
 )
 THU_TU_DEN = {DO: 0, VANG: 1, XANH: 2}
 
@@ -226,6 +227,15 @@ def _tai_lieu(s):
                      f"{s.get('ngoai', 0)} tài liệu bên ngoài · {s.get('soat_xet', 0)} quá 12 tháng chưa soát xét"]}
 
 
+def _so_khac(s):
+    """W43: các sổ ghi theo dòng thuộc thẻ "Sổ khác" (khách vào xưởng, PCCC, dịch bệnh, kiểm định an toàn…)."""
+    if not s.get("so_so"):
+        return {"so": "–", "nhan_so": "chưa có sổ nào", "dong": []}
+    return {"so": str(s.get("dong_ky", 0)), "nhan_so": f"dòng ghi trong kỳ · {s['so_so']} sổ",
+            "dong": [f"{s.get('cho', 0)} dòng chờ xác nhận · {s.get('han', 0)} mục đến / quá hạn",
+                     ", ".join(s.get("ma") or [])]}
+
+
 def _viec_dinh_ky(s):
     t = s.get("tiep")
     return {"so": str(s.get("qua_han", 0)), "nhan_so": "việc quá hạn",
@@ -236,7 +246,7 @@ THE = {"vong_kiem": _vong_kiem, "su_co": _su_co, "khac_phuc": _khac_phuc, "xuat_
        "thiet_bi": _thiet_bi,
        "kiem_nghiem": _kiem_nghiem, "cat": _cat, "vai_u": _vai_u, "dong_vat": _dong_vat, "kiem_xe": _kiem_xe,
        "luu_mau": _luu_mau,
-       "rework": _rework, "viec_dinh_ky": _viec_dinh_ky, "tai_lieu": _tai_lieu}
+       "rework": _rework, "viec_dinh_ky": _viec_dinh_ky, "tai_lieu": _tai_lieu, "so_khac": _so_khac}
 THE_ROUTE = {"khieu_nai": _khieu_nai, "truy_xuat": _truy_xuat, "ncc": _ncc}
 
 

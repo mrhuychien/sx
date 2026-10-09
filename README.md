@@ -167,6 +167,10 @@ hương liệu quy **1 lít = 1 kg** (ĐVT Kg).
 | **Warehouse** | | | | ✓ kiểm nguyên liệu đầu vào trên Purchase Invoice | |
 | **SX Quan Ly** | ✓ | ✓ | ✓ | ✓ | ✓ chốt ngày, dashboard, truy xuất, tài khoản |
 
+Thêm hai tab cho mọi vai: **📚 Tài liệu** (W42 — thấy tài liệu phân phối cho mình) và **📒 Sổ** (W43 — chỉ hiện khi
+được giao ít nhất một sổ; quyền ghi / xác nhận / xem theo từng sổ). Vai mới C24 `SX Co Dien`, `SX Hanh Chinh`,
+`SX Bao Ve` chỉ có hai tab này — xem mục D171, D172.
+
 **QC chế biến ≠ QC vào hộp** — hai người, hai việc, hai role. Ai làm cả hai thì gán cả hai.
 
 **Ghi được ≠ chốt được**: QC đóng gói ghi mục 11–13 trên bản nháp của người khác, nhưng
@@ -314,6 +318,69 @@ bao bì đã trừ, nợ BOM / nợ vào hộp của phiếu → *Đã huỷ*, s
 bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ chứng từ xuất trước. Duyệt lại
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
+
+## Sổ ghi theo dòng: BM.06.05, BM.PRP.06, BM.03.01, BM.03.02, BM.03.03 (D172 — W43)
+
+**Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).** Một khung chung cho các sổ giấy "mỗi lần một dòng" —
+thêm sổ mới chỉ khai định nghĩa (Desk → `SX So`), không sửa code màn hình.
+
+- **Định nghĩa sổ** `SX So` (`field:ma`): mã, tên, kiểu **Ghi theo dòng** (sổ sự kiện) / **Danh mục** (mỗi dòng một
+  đối tượng), mảng ở Tổng quan ATTP (`mang`), cột (`SX So Cot`: khóa, nhãn, kiểu Data / Date / Datetime / Time / Int /
+  Float / Select / MultiSelect / Check / Text / Link / Attach / User, lựa chọn, bắt buộc, cột hạn + báo trước, hiện ở
+  danh sách), vai ghi / xác nhận / chỉ xem / xem xét cuối tháng (Table MultiSelect role), nhãn bước xác nhận, xem xét
+  cuối tháng, nhắc khi quá N ngày không ghi, dòng hướng dẫn in đầu sổ, hàm riêng `tinh_toan` (khóa có tên trong code,
+  không chạy biểu thức người gõ). Controller chặn định nghĩa sai (khóa có dấu / trùng, Select không lựa chọn, Link
+  ngoài danh sách cho phép, cột hạn không phải ngày) và chặn bỏ / đổi khóa cột đã có dữ liệu.
+- **Dòng sổ** `SX So Dong` (`SOD-.YYYY.-.#####`): dữ liệu JSON kiểm theo cột (đúng kiểu, đủ ô bắt buộc — ô tích bắt
+  buộc là phải tích, đúng lựa chọn, không nhận khóa lạ), tóm tắt + hạn gần nhất tự lập; người ghi + giờ, xác nhận
+  (người + giờ + ý kiến, C23), lịch sử sửa `SX So Dong Sua` (trước / sau, nối thêm). **Ghi theo dòng**: người ghi sửa
+  trong ngày khi chưa xác nhận, xác nhận xong là khóa; ghi nhầm → Ngừng có lý do (người ghi trong ngày, hoặc Trưởng
+  Ban ISO), dòng vẫn trên sổ, bản in gạch. **Danh mục**: người có quyền ghi sửa được, mọi lần sửa có vết; dòng đã xác
+  nhận bị sửa thì về chờ xác nhận lại; bỏ = Ngừng, không xóa. Người xác nhận không phải người ghi / người sửa gần nhất.
+  Trạng thái, người ký chỉ đổi qua app — Desk chỉ đọc. Xem xét cuối tháng: `SX So Xem` (mỗi lần bấm một bản ghi);
+  dòng ghi bù sau lần xem → tháng đó lại chờ xem.
+- **Quyền**: theo định nghĩa sổ cộng siêu quyền; Trưởng Ban ISO xem mọi sổ, xem xét tháng mọi sổ có xem xét. Tab
+  **📒 Sổ** (`#/so`, `#/so/<mã>`) có trong `ROLE_VIEWS` của mọi vai (đứng ngay trước Tài liệu), nhưng chỉ hiện với
+  người được giao ít nhất một sổ (`sx.qc.so.co_so` — trang `/sx` và `get_boot` hỏi một lần). Cơ điện, Hành chính, Bảo
+  vệ mở app vào Sổ (C24). QC vào qua ô **📒 Sổ khác** ở màn QC Hôm nay.
+- **Màn** `#/so`: danh sách sổ mình có quyền (dòng tháng này / đang dùng, chờ xác nhận, hạn, tháng chưa xem, BM.06.05:
+  thiết bị chờ kiểm lại, máy quá hạn bảo dưỡng). `#/so/<mã>`: tháng ◀ ▶ (Ghi theo dòng) hoặc "hiện cả dòng đã ngừng"
+  (Danh mục), tìm không dấu, **+ GHI DÒNG** — phiếu sinh từ cột (ô chữ, giờ, tích, chọn, bàn số của `qcui.js`; nhiều
+  lựa chọn bấm chip; Link / User chọn từ danh sách server lọc sẵn), bấm dòng → chi tiết, SỬA, ✓ XÁC NHẬN, NGỪNG DÒNG,
+  tải bản ký tay (scan) / tệp kèm (tệp riêng tư, tải qua `sx.api.qc_so.tep` có kiểm quyền), lịch sử sửa; **ĐÃ XEM
+  THÁNG**; **🖨 IN SỔ** — `sx/qc/so.html`: đầu trang chung (W42), dòng hướng dẫn, cột như giấy (ô nhiều lựa chọn ≤ 12
+  mục vẽ thành lưới — 12 tháng kế hoạch BM.03.03), ô xác nhận "Ký trên phần mềm: Họ tên, giờ", khối xem xét cuối tháng.
+- **5 sổ** (`sx/qc/seed/so.json`, patch `d172_so` chỉ tạo sổ còn thiếu — không đè định nghĩa Ban ISO đã sửa trên
+  site; tự gọi `dam_bao_role` trước vì role C24 do after_migrate tạo SAU patch):
+
+  | Sổ | Kiểu | Ghi | Xác nhận | Xem xét tháng | Ghi chú |
+  |---|---|---|---|---|---|
+  | BM.06.05 bảo dưỡng, sửa chữa | Ghi theo dòng | Cơ điện | QC, QC đóng gói ("QC kiểm trước chạy") | Trưởng Cơ điện (SX Co Dien), QLSX, ISO | mảng Thiết bị đo; QLSX xem |
+  | BM.PRP.06 khách, nhà thầu | Ghi theo dòng | Bảo vệ, QLSX | — | Trưởng Ban ISO | khách khai sức khỏe = ô tích bắt buộc |
+  | BM.03.01 thiết bị PCCC | Danh mục | Hành chính, Cơ điện | — | — | + cột app: ngày kiểm gần nhất, hạn kiểm / nạp (báo trước 30 ngày), số tem / giấy |
+  | BM.03.02 dịch bệnh | Ghi theo dòng | Hành chính | — | Trưởng Ban ISO | ghi khi phát sinh |
+  | BM.03.03 kiểm định an toàn | Danh mục | Hành chính, QLSX | — | — | 12 cột tháng → ô nhiều lựa chọn; + cột app như BM.03.01 |
+
+  Cột "QC kiểm trước chạy (ký)" của BM.06.05 thành **bước xác nhận**; cột "TT" của sổ giấy là số thứ tự bản in; giờ
+  dừng / bàn giao / vào / ra là ô giờ.
+- **BM.06.05 + danh mục thiết bị BM.06.01** (hàm riêng `bao_duong`): `SX Thiet Bi Do` thêm loại **Thiết bị sản xuất**
+  (BM.06.01 là "Danh mục thiết bị sản xuất và thiết bị đo") — không hiệu chuẩn, không hạn kiểm / quá hạn / sự cố; chu
+  kỳ của máy là chu kỳ **bảo dưỡng** (trống = 6 tháng, QT.06). Patch tạo sẵn 3 máy có mã trong BM.06.01 (máy rang M1
+  TBSX-2024-00003, M2 TBSX-2024-00002, máy rang lạc TBSX-2026-00001); máy chưa cấp mã (M3, máy hút ẩm…) QC / Ban ISO
+  khai ở màn Thiết bị đo. Cột "Thiết bị" chọn từ danh mục; cột "Cần hiệu chuẩn / kiểm lại" chọn **thiết bị đo** (đồng
+  hồ nhiệt, nam châm, lưới) — bản in ghi kèm BM.06.02 / 06.03 / 06.04; sửa chính một thiết bị đo mà chưa chọn thì app tự
+  điền. Có thiết bị phải kiểm lại mà **chưa có phiếu kiểm từ ngày sửa** → nhắc mức **cao** ở mảng Thiết bị đo (QT.06:
+  kiểm lại trước khi dùng) tới khi ghi phiếu BM.06.02–04; QC vẫn xác nhận được máy (màn báo kèm). Máy sản xuất quá chu kỳ
+  chưa có dòng "Bảo dưỡng" (mốc: lần bảo dưỡng gần nhất, chưa có thì ngày khai máy) → nhắc. Màn Thiết bị đo hiện thẻ
+  máy với hạn bảo dưỡng + nút SỔ BẢO DƯỠNG; bản in BM.06.01 có cả máy.
+- **Nhắc** (mảng theo `mang` của sổ; thẻ mới **Sổ khác** ở Tổng quan ATTP cho sổ chung): cột hạn đã quá / còn ≤ số
+  ngày báo trước; quá N ngày không ghi (sổ có đặt N — 5 sổ đầu đều 0, ghi khi phát sinh); dòng chờ xác nhận quá 2
+  ngày; tháng đã qua ngày 5 chưa xem xét. Gói hồ sơ cho đoàn đánh giá (W27): mỗi sổ có trong `BIEU_MAU` (Select +
+  patch thêm dòng danh mục hồ sơ), sổ Ghi theo dòng in theo tháng có dòng, Danh mục in bản hiện hành.
+- **Giấy chưa có** (Ban ISO bổ sung mẫu khi sửa đổi): BM.03.01, BM.03.03 cột Ngày kiểm gần nhất, Hạn kiểm / nạp tiếp,
+  Số tem / giấy kiểm định; BM.06.05 ghi rõ thiết bị đo phải kiểm lại (giấy chỉ ghi số BM). Mẫu BM.06.05 ghi người xem xét
+  cuối tháng là Trưởng bộ phận Cơ điện, Lịch biểu mẫu ghi QLSX — app cho cả hai (bỏ bớt ở "Vai xem xét cuối tháng").
+- Build **sx-136**. Deploy (sau Orion): `git pull` → `bench --site site1.local migrate` → `bench restart`.
 
 ## Thư viện tài liệu: đề nghị BM.01.01, đợt ban hành, xác nhận đã đọc, BM.01.02 / 01.03 / 01.13 (D171 — W42)
 

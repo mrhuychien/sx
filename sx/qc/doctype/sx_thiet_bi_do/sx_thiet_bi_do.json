@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "links": [],
- "modified": "2026-10-09 08:00:00.000000",
+ "modified": "2026-10-09 23:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "owner": "Administrator",
@@ -57,7 +57,7 @@
    "reqd": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
-   "options": "Đồng hồ nhiệt\nNam châm\nLưới sàng, rây\nCân\nKhác"
+   "options": "Đồng hồ nhiệt\nNam châm\nLưới sàng, rây\nCân\nKhác\nThiết bị sản xuất"
   },
   {
    "fieldname": "vi_tri",
@@ -77,8 +77,8 @@
   {
    "fieldname": "chu_ky_thang",
    "fieldtype": "Int",
-   "label": "Chu kỳ kiểm (tháng)",
-   "description": "Bỏ trống = 12 tháng (đồng hồ nhiệt: 1 lần/năm theo tài liệu; nam châm, lưới sàng: TẠM — tài liệu chưa ghi). Có hạn ghi trên giấy hiệu chuẩn / kiểm định thì lấy hạn đó; cân luôn theo hạn giấy kiểm định gần nhất."
+   "label": "Chu kỳ kiểm / bảo dưỡng (tháng)",
+   "description": "Thiết bị đo: bỏ trống = 12 tháng (đồng hồ nhiệt: 1 lần/năm theo tài liệu; nam châm, lưới sàng: TẠM — tài liệu chưa ghi). Có hạn ghi trên giấy hiệu chuẩn / kiểm định thì lấy hạn đó; cân luôn theo hạn giấy kiểm định gần nhất. Thiết bị sản xuất: chu kỳ BẢO DƯỠNG, bỏ trống = 6 tháng (QT.06) — nhắc theo sổ BM.06.05."
   },
   {
    "fieldname": "thanh_ly",

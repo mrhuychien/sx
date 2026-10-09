@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 23:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 23:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX So Dong Sua",
+ "istable": 1,
+ "field_order": [
+  "luc",
+  "nguoi",
+  "hanh_dong",
+  "truoc",
+  "sau"
+ ],
+ "fields": [
+  {
+   "fieldname": "luc",
+   "fieldtype": "Datetime",
+   "label": "Lúc",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "nguoi",
+   "fieldtype": "Link",
+   "label": "Người",
+   "options": "User",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "hanh_dong",
+   "fieldtype": "Data",
+   "label": "Việc",
+   "in_list_view": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "truoc",
+   "fieldtype": "JSON",
+   "label": "Trước",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sau",
+   "fieldtype": "JSON",
+   "label": "Sau",
+   "read_only": 1
+  }
+ ],
+ "permissions": []
+}

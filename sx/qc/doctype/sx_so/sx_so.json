@@ -1,0 +1,213 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 23:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 23:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX So",
+ "autoname": "field:ma",
+ "naming_rule": "By fieldname",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "title_field": "ten",
+ "sort_field": "ma",
+ "sort_order": "ASC",
+ "field_order": [
+  "ma",
+  "ten",
+  "kieu",
+  "quy_trinh",
+  "mang",
+  "ngung",
+  "column_break_1",
+  "nhan_xac_nhan",
+  "xem_cuoi_thang",
+  "nhan_xem_thang",
+  "nhac_khong_ghi_ngay",
+  "tinh_toan",
+  "section_cot",
+  "cot",
+  "section_quyen",
+  "vai_ghi",
+  "vai_xac_nhan",
+  "column_break_2",
+  "vai_xem",
+  "vai_xem_thang",
+  "section_in",
+  "dau_trang_ghi_chu",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã biểu mẫu",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên sổ",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "kieu",
+   "fieldtype": "Select",
+   "label": "Kiểu",
+   "options": "Ghi theo dòng\nDanh mục",
+   "default": "Ghi theo dòng",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Ghi theo dòng: mỗi lần một dòng, người ghi sửa trong ngày khi chưa xác nhận, xác nhận xong là khóa. Danh mục: mỗi dòng một đối tượng (thiết bị…), sửa được nhưng mọi lần sửa lưu vết, bỏ = Ngừng."
+  },
+  {
+   "fieldname": "quy_trinh",
+   "fieldtype": "Data",
+   "label": "Quy trình / căn cứ"
+  },
+  {
+   "fieldname": "mang",
+   "fieldtype": "Select",
+   "label": "Mảng ở Tổng quan ATTP",
+   "options": "vong_kiem\nsu_co\nkhac_phuc\nkhieu_nai\nxuat_xuong\ntruy_xuat\nthiet_bi\nkiem_nghiem\ncat\nvai_u\ndong_vat\nncc\nkiem_xe\nluu_mau\nrework\nviec_dinh_ky\ntai_lieu\nso_khac",
+   "default": "so_khac",
+   "reqd": 1,
+   "description": "Mã thẻ ở Tổng quan ATTP mà mục nhắc của sổ thuộc về; so_khac = thẻ Sổ khác."
+  },
+  {
+   "fieldname": "ngung",
+   "fieldtype": "Check",
+   "label": "Ngừng dùng sổ"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nhan_xac_nhan",
+   "fieldtype": "Data",
+   "label": "Nhãn bước xác nhận",
+   "description": "Vd \"QC kiểm trước chạy (ký)\". Trống khi sổ không có bước xác nhận."
+  },
+  {
+   "fieldname": "xem_cuoi_thang",
+   "fieldtype": "Check",
+   "label": "Xem xét cuối tháng"
+  },
+  {
+   "fieldname": "nhan_xem_thang",
+   "fieldtype": "Data",
+   "label": "Nhãn xem xét cuối tháng",
+   "depends_on": "xem_cuoi_thang",
+   "description": "Vd \"Trưởng bộ phận Cơ điện xem xét cuối tháng\"."
+  },
+  {
+   "fieldname": "nhac_khong_ghi_ngay",
+   "fieldtype": "Int",
+   "label": "Nhắc khi quá … ngày không ghi dòng nào",
+   "description": "0 = không nhắc."
+  },
+  {
+   "fieldname": "tinh_toan",
+   "fieldtype": "Data",
+   "label": "Hàm riêng (khóa trong code)",
+   "description": "Khóa hàm có tên trong sx/qc/so.py (TINH_TOAN), vd bao_duong. Không chạy biểu thức người dùng gõ."
+  },
+  {
+   "fieldname": "section_cot",
+   "fieldtype": "Section Break",
+   "label": "Cột"
+  },
+  {
+   "fieldname": "cot",
+   "fieldtype": "Table",
+   "label": "Cột",
+   "options": "SX So Cot",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_quyen",
+   "fieldtype": "Section Break",
+   "label": "Quyền (cộng siêu quyền; Trưởng Ban ISO xem mọi sổ)"
+  },
+  {
+   "fieldname": "vai_ghi",
+   "fieldtype": "Table MultiSelect",
+   "label": "Vai ghi",
+   "options": "SX So Vai"
+  },
+  {
+   "fieldname": "vai_xac_nhan",
+   "fieldtype": "Table MultiSelect",
+   "label": "Vai xác nhận",
+   "options": "SX So Vai",
+   "description": "Trống = sổ không có bước xác nhận. Người xác nhận không phải người ghi dòng đó."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vai_xem",
+   "fieldtype": "Table MultiSelect",
+   "label": "Vai chỉ xem",
+   "options": "SX So Vai"
+  },
+  {
+   "fieldname": "vai_xem_thang",
+   "fieldtype": "Table MultiSelect",
+   "label": "Vai xem xét cuối tháng (ngoài Trưởng Ban ISO)",
+   "options": "SX So Vai",
+   "depends_on": "xem_cuoi_thang"
+  },
+  {
+   "fieldname": "section_in",
+   "fieldtype": "Section Break",
+   "label": "Bản in"
+  },
+  {
+   "fieldname": "dau_trang_ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Dòng hướng dẫn in đầu sổ"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú (hiện trên màn, không in)"
+  }
+ ],
+ "track_changes": 1
+}

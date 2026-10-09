@@ -497,4 +497,13 @@ node scripts/test-tailieu.mjs > /tmp/sx-tailieu-js.log 2>&1 \
   && tail -1 /tmp/sx-tailieu-js.log \
   || { cat /tmp/sx-tailieu-js.log; loi=1; }
 
+# D172 (W43): khung Sổ ghi theo dòng. Dòng đã xác nhận sửa được, người ghi tự xác nhận, ô lạ / sai kiểu lọt vào sổ,
+# Bảo vệ đọc được sổ bảo dưỡng, sửa máy rang mà không nhắc hiệu chuẩn lại đồng hồ nhiệt — đều lặng lẽ.
+python3 scripts/test-so.py > /tmp/sx-so.log 2>&1 \
+  && tail -1 /tmp/sx-so.log \
+  || { cat /tmp/sx-so.log; loi=1; }
+node scripts/test-so.mjs > /tmp/sx-so-js.log 2>&1 \
+  && tail -1 /tmp/sx-so-js.log \
+  || { cat /tmp/sx-so-js.log; loi=1; }
+
 exit $loi

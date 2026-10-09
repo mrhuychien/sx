@@ -109,26 +109,29 @@ def vai_tro_hien(roles=None):
 
 # view nào role nào được vào. "tailieu" (W42): thư viện tài liệu — mọi vai có tài khoản app đều vào (thấy tài
 # liệu phân phối cho mình, C27), luôn là tab CUỐI (allowed_views) nên màn mở đầu của mỗi vai không đổi.
+# "so" (W43, D172): sổ ghi theo dòng (bảo dưỡng, khách vào xưởng, PCCC…) — mọi vai vào được, thấy sổ mình có quyền
+# theo định nghĩa sổ; tab đứng ngay trước Tài liệu. Người chưa được giao sổ nào thì không hiện tab (co_so=False).
 TAI_LIEU = "tailieu"
+SO = "so"
 ROLE_VIEWS = {
-    GHI_SO: ["ghiso", TAI_LIEU],
-    VAO_HOP: ["vaohop", "nhapkho", TAI_LIEU],
-    THU_KHO: ["nhapkho", TAI_LIEU],
-    QC_TET: ["tet", TAI_LIEU],
-    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly", TAI_LIEU],
-    QC: ["qc", TAI_LIEU],
-    QC_GOI: ["qc", TAI_LIEU],
-    ISO: ["qc", TAI_LIEU],
-    QLSX: ["qc", TAI_LIEU],
-    KHO_NL: [TAI_LIEU],
-    CO_DIEN: [TAI_LIEU],
-    HANH_CHINH: [TAI_LIEU],
-    BAO_VE: [TAI_LIEU],
-    MUA_HANG: [TAI_LIEU],
-    KINH_DOANH: [TAI_LIEU],
+    GHI_SO: ["ghiso", SO, TAI_LIEU],
+    VAO_HOP: ["vaohop", "nhapkho", SO, TAI_LIEU],
+    THU_KHO: ["nhapkho", SO, TAI_LIEU],
+    QC_TET: ["tet", SO, TAI_LIEU],
+    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly", SO, TAI_LIEU],
+    QC: ["qc", SO, TAI_LIEU],
+    QC_GOI: ["qc", SO, TAI_LIEU],
+    ISO: ["qc", SO, TAI_LIEU],
+    QLSX: ["qc", SO, TAI_LIEU],
+    KHO_NL: [SO, TAI_LIEU],
+    CO_DIEN: [SO, TAI_LIEU],
+    HANH_CHINH: [SO, TAI_LIEU],
+    BAO_VE: [SO, TAI_LIEU],
+    MUA_HANG: [SO, TAI_LIEU],
+    KINH_DOANH: [SO, TAI_LIEU],
 }
 
-MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly", TAI_LIEU]
+MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly", SO, TAI_LIEU]
 
 # view lắp từ những card nào (thứ tự hiển thị).
 # D33: hai màn NHẬP LIỆU chỉ giữ việc phải gõ. Chốt ngày (hành động chốt sổ) và lưu đồ
@@ -219,26 +222,38 @@ def is_super(roles=None):
     return bool((roles or user_roles()) & SUPER_ROLES)
 
 
-def allowed_views(roles=None):
-    """Danh sách view user được vào (super = tất cả), giữ thứ tự ổn định."""
+def co_so(roles=None):
+    """User có thấy sổ nào không (W43) — hỏi sx.qc.so (định nghĩa sổ trên site). Lỗi / chưa migrate → False."""
+    roles = roles or user_roles()
+    try:
+        from sx.qc.so import co_so as _co_so
+        return _co_so(roles, is_super(roles))
+    except Exception:
+        return False
+
+
+def allowed_views(roles=None, co_so=True):
+    """Danh sách view user được vào (super = tất cả), giữ thứ tự ổn định. `co_so=False`: bỏ tab Sổ (chưa được giao
+    sổ nào — xem co_so())."""
     roles = roles or user_roles()
     if is_super(roles):
-        return list(MOI_VIEW)
+        return [v for v in MOI_VIEW if co_so or v != SO]
     out = []
     for r in roles:
         for v in ROLE_VIEWS.get(r, []):
             if v not in out:
                 out.append(v)
-    # Tài liệu luôn đứng cuối: người giữ hai vai không bị mở app vào thư viện thay vì màn làm việc.
-    return [v for v in out if v != TAI_LIEU] + ([TAI_LIEU] if TAI_LIEU in out else [])
+    # Sổ rồi Tài liệu luôn đứng cuối: người giữ hai vai không bị mở app vào sổ / thư viện thay vì màn làm việc.
+    cuoi = [v for v in (SO, TAI_LIEU) if v in out and (co_so or v != SO)]
+    return [v for v in out if v not in (SO, TAI_LIEU)] + cuoi
 
 
-def view_cards(roles=None):
+def view_cards(roles=None, co_so=True):
     """{view: [card...]} user được thấy = VIEW_CARDS lọc theo card user được phép."""
     roles = roles or user_roles()
     super_ = is_super(roles)
     out = {}
-    for v in allowed_views(roles):
+    for v in allowed_views(roles, co_so):
         cards = []
         for c in VIEW_CARDS.get(v, []):
             if super_ or roles & set(CARD_ROLES.get(c, [])):
@@ -247,11 +262,11 @@ def view_cards(roles=None):
     return out
 
 
-def landing_view(roles=None):
+def landing_view(roles=None, co_so=True):
     roles = roles or user_roles()
     if is_super(roles):
         return "quanly"
-    views = allowed_views(roles)
+    views = allowed_views(roles, co_so)
     return views[0] if views else None
 
 

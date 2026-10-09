@@ -1,0 +1,74 @@
+{#- Bản in chung của một sổ ghi theo dòng (W43, D172) — sx/api/qc_so.html_so. A4 ngang.
+    Đầu trang chung (W42), dòng hướng dẫn như giấy, bảng cột theo định nghĩa sổ (ô nhiều lựa chọn ≤ 12 mục vẽ thành
+    lưới, vd 12 tháng kế hoạch kiểm định), ô xác nhận "Ký trên phần mềm: Họ tên, giờ" (C23), khối xem xét cuối tháng.
+    Dòng ngừng in gạch kèm lý do (Ghi theo dòng); Danh mục chỉ in dòng đang dùng. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .so { font: 10.5px/1.3 "Times New Roman", serif; color: #000; }
+  .so .hd { font-size: 10px; margin: 0 0 6px; }
+  .so table.bang { width: 100%; border-collapse: collapse; }
+  .so .bang td, .so .bang th { border: 1px solid #000; padding: 2px 3px; text-align: center; vertical-align: top; }
+  .so .bang th { background: #eee; font-weight: bold; }
+  .so .bang td.t { text-align: left; }
+  .so .bang tr { break-inside: avoid; }
+  .so .bang tr.ngung td { text-decoration: line-through; color: #555; }
+  .so .bang tr.ngung td.ky { text-decoration: none; }
+  .so .bang td.ky { font-size: 9px; text-align: left; }
+  .so .bang th.l, .so .bang td.l { width: 14px; padding: 2px 1px; }
+  .so .chua { font-weight: bold; }
+  .so .cuoi { margin-top: 12px; width: 100%; }
+  .so .cuoi td { border: 0; text-align: left; vertical-align: top; padding: 2px 0; }
+  .so .nho { font-size: 9px; }
+</style>
+{%- set co_xn = dn.vai_xac_nhan | length > 0 -%}
+{%- if gtd -%}
+  {%- set phu = ("tháng " ~ thang) if thang else ("từ " ~ frappe.utils.formatdate(tu, "dd/MM/yyyy") ~ " đến " ~ frappe.utils.formatdate(den, "dd/MM/yyyy")) -%}
+{%- else -%}
+  {%- set phu = ("Năm " ~ nam ~ " · " if luoi else "") ~ "lập ngày " ~ frappe.utils.formatdate(ngay_in, "dd/MM/yyyy") -%}
+{%- endif -%}
+<div class="so">
+  {{ dau_trang(dn.ma, dn.ten, phu) }}
+  {% if dn.dau_trang_ghi_chu %}<div class="hd">{{ dn.dau_trang_ghi_chu }}</div>{% endif %}
+  <table class="bang">
+    <tr>
+      <th rowspan="{{ 2 if luoi else 1 }}" style="width:3%">TT</th>
+      {% if gtd %}<th rowspan="{{ 2 if luoi else 1 }}" style="width:6%">Ngày</th>{% endif %}
+      {% for c in dn.cot %}
+        {% if c.key in luoi %}<th colspan="{{ luoi[c.key] | length }}">{{ c.nhan }}</th>
+        {% else %}<th rowspan="{{ 2 if luoi else 1 }}">{{ c.nhan }}</th>{% endif %}
+      {% endfor %}
+      {% if co_xn %}<th rowspan="{{ 2 if luoi else 1 }}" style="width:11%">{{ dn.nhan_xac_nhan or "Xác nhận" }}</th>{% endif %}
+      <th rowspan="{{ 2 if luoi else 1 }}" style="width:10%">Ghi trên phần mềm</th>
+    </tr>
+    {% if luoi %}<tr>{% for c in dn.cot if c.key in luoi %}{% for o in luoi[c.key] %}<th class="l">{{ o }}</th>{% endfor %}{% endfor %}</tr>{% endif %}
+    {% for x in ds %}
+    <tr{% if x.trang_thai == "Ngừng" %} class="ngung"{% endif %}>
+      <td>{{ loop.index }}</td>
+      {% if gtd %}<td>{{ frappe.utils.formatdate(x.ngay, "dd/MM/yyyy") }}</td>{% endif %}
+      {% for c in dn.cot %}
+        {% if c.key in luoi %}{% for o in luoi[c.key] %}<td class="l">{{ "✓" if o in (x.du_lieu[c.key] or []) else "" }}</td>{% endfor %}
+        {% else %}<td class="{{ 't' if c.kieu in ('Data', 'Text', 'Link', 'User', 'Select') else '' }}">{{ x.hien[c.key] }}</td>{% endif %}
+      {% endfor %}
+      {% if co_xn %}<td class="ky">{% if x.ky_xac_nhan %}{{ x.ky_xac_nhan }}{% if x.y_kien_xac_nhan %}<br>{{ x.y_kien_xac_nhan }}{% endif %}{% elif x.trang_thai != "Ngừng" %}<span class="chua">CHƯA XÁC NHẬN</span>{% endif %}</td>{% endif %}
+      <td class="ky">{{ x.ten_ghi }}{% if x.ghi_luc %}, {{ frappe.utils.formatdate(x.ghi_luc, "dd/MM/yyyy") }} {{ x.ghi_luc[11:16] }}{% endif %}
+        {%- set n_sua = x.sua_doi | selectattr("hanh_dong", "equalto", "Sửa") | list | length %}{% if n_sua %}<br>sửa {{ n_sua }} lần{% endif %}
+        {%- if x.trang_thai == "Ngừng" %}<br><b>Ngừng</b>: {{ x.ly_do_ngung or "" }}{% endif %}
+        {%- if x.ban_ky_tay %}<br>có bản ký tay (scan){% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="99">{{ "Không có dòng nào trong khoảng này." if gtd else "Danh mục chưa có dòng nào." }}</td></tr>
+    {% endfor %}
+  </table>
+  <table class="cuoi">
+    {% if gtd and dn.xem_cuoi_thang %}
+    <tr><td><b>{{ dn.nhan_xem_thang }}:</b>
+      {% if xem %}{{ xem.ky }}{% if xem.nhan_xet %} — {{ xem.nhan_xet }}{% endif %}{% if xem.can_xem_lai %} <span class="chua">(có dòng ghi sau lần xem — chờ xem lại)</span>{% endif %}
+      {% else %}…………………………………… &nbsp; Ngày ……/……/20……{% endif %}</td></tr>
+    {% endif %}
+    {% if not gtd %}
+    <tr><td class="nho">{{ ds | length }} dòng đang dùng{% if so_ngung %} · {{ so_ngung }} dòng đã ngừng (không in, xem trên app){% endif %}.</td></tr>
+    <tr><td style="padding-top:8px"><b>Người lập</b> (ký, ghi rõ họ tên): ……………………………… &nbsp; Ngày ……/……/20……</td></tr>
+    {% endif %}
+  </table>
+</div>

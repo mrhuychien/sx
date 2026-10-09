@@ -36,6 +36,7 @@ from sx.qc import kiem_nghiem as _kiem_nghiem
 from sx.qc import kiem_xe as _kiem_xe
 from sx.qc import muc as M
 from sx.qc import nhac as _nhac
+from sx.qc import so as _so
 from sx.qc import so_do as _so_do
 from sx.qc import tai_lieu as _tai_lieu
 from sx.qc import thiet_bi as _thiet_bi
@@ -564,7 +565,7 @@ def _du_lieu_nhac(d):
             "dong_vat": _dong_vat.nhac(d), "cat": _cat.nhac(d),
             "thiet_bi": _thiet_bi.nhac(d), "kiem_nghiem": _kiem_nghiem.nhac(d),
             "viec_dinh_ky": _viec_dinh_ky.nhac(d), "khac_phuc": _khac_phuc.nhac(d), "vai_u": _vai_u.nhac(d),
-            "kiem_xe": _kiem_xe.nhac(d), "tai_lieu": _tai_lieu.nhac(d)}
+            "kiem_xe": _kiem_xe.nhac(d), "tai_lieu": _tai_lieu.nhac(d), "so": _so.nhac(d)}
 
 
 def _xuat_xuong_nhac():

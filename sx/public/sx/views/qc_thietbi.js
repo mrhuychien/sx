@@ -3,6 +3,8 @@
 // Danh mục theo loại, mỗi thiết bị một thẻ: hạn kiểm kế tiếp, lần kiểm gần nhất, trạng thái.
 // Không đạt hoặc quá hạn = NGỪNG DÙNG (app tự lập phiếu sự cố); kiểm lại Đạt thì dùng lại.
 // Trạng thái tính lúc xem (không đợi lịch chạy nền). Luật ở sx/qc/thiet_bi.py + controller.
+// W43 (D172): thiết bị sản xuất (máy rang, máy nghiền…) cùng danh mục BM.06.01 — không hiệu chuẩn; thẻ của máy
+// hiện hạn BẢO DƯỠNG theo sổ BM.06.05 và mở thẳng sổ đó.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
@@ -13,6 +15,8 @@ const DH = 'Đồng hồ nhiệt';
 const NC = 'Nam châm';
 const LS = 'Lưới sàng, rây';
 const CAN = 'Cân';
+const SX = 'Thiết bị sản xuất';
+const SO_BD = '#/so/BM.06.05';
 const ngayDu = (s) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}` : '');
 const KIEU_TT = { 'Đang dùng': 'dong', 'Ngừng — không đạt': 'cao', 'Ngừng — quá hạn': 'cao', 'Thanh lý': '' };
 
@@ -27,7 +31,8 @@ export async function render(api) {
     <div class="sx-qc-ngay">🌡 Thiết bị đo</div>
     <div class="sx-qc-ai">BM.06.01–06.04 · hiệu chuẩn, kiểm tra định kỳ</div></div>`));
 
-  const dung = dl.ds.filter((x) => !x.thanh_ly);
+  const dung = dl.ds.filter((x) => !x.thanh_ly && !x.san_xuat);
+  const mayQua = dl.ds.filter((x) => !x.thanh_ly && x.san_xuat && x.con !== null && x.con < 0);
   const qua = dung.filter((x) => x.trang_thai === 'Ngừng — quá hạn');
   const hong = dung.filter((x) => x.trang_thai === 'Ngừng — không đạt');
   const sap = dung.filter((x) => x.trang_thai === 'Đang dùng' && x.con <= dl.sap_den);
@@ -38,14 +43,20 @@ export async function render(api) {
   if (sap.length) tom.appendChild(chip(`${sap.length} đến hạn trong ${dl.sap_den} ngày`, 'oprp'));
   if (chuaKiem.length) tom.appendChild(chip(`${chuaKiem.length} chưa kiểm lần nào — hạn ${ngayDu(dl.han_dau)}`, 'han'));
   if (!qua.length && !hong.length && !sap.length && dung.length) tom.appendChild(chip('mọi thiết bị còn hạn', 'dong'));
+  if (mayQua.length) tom.appendChild(chip(`${mayQua.length} máy quá hạn bảo dưỡng (BM.06.05)`, 'oprp'));
   container.appendChild(tom);
 
   dl.loai.forEach((loai) => {
     const nhom = dl.ds.filter((x) => x.loai === loai);
     const khoi = el('div', 'sx-dv-nhom');
-    khoi.appendChild(el('div', 'sx-dv-khu', `${esc(loai)}${dl.bieu_mau[loai] ? ` · ${esc(dl.bieu_mau[loai])}` : ''}`));
+    const bm = loai === SX ? 'bảo dưỡng BM.06.05' : dl.bieu_mau[loai];
+    khoi.appendChild(el('div', 'sx-dv-khu', `${esc(loai)}${bm ? ` · ${esc(bm)}` : ''}`));
     if (!nhom.length) {
-      if (loai !== 'Khác') khoi.appendChild(el('div', 'sx-qc-goiy', 'Chưa khai thiết bị loại này.'));
+      if (loai !== 'Khác') {
+        khoi.appendChild(el('div', 'sx-qc-goiy', loai === SX
+          ? 'Chưa khai máy nào — khai máy rang, máy nghiền… (mã TBSX theo BM.06.01) để Cơ điện ghi sổ bảo dưỡng.'
+          : 'Chưa khai thiết bị loại này.'));
+      }
     }
     nhom.forEach((x) => khoi.appendChild(veThe(x, dl, api, lai)));
     if (nhom.length || loai !== 'Khác') container.appendChild(khoi);
@@ -76,6 +87,7 @@ export async function render(api) {
 }
 
 function veThe(x, dl, api, lai) {
+  if (x.san_xuat) return veMay(x, dl, api, lai);
   const ngung = x.trang_thai !== 'Đang dùng';
   const the = el('div', `sx-qc-sc ${ngung && !x.thanh_ly ? 'sx-qc-sc-mo' : 'sx-qc-sc-dong'}`);
   the.appendChild(el('div', 'sx-qc-sc-ten', `${esc(x.name)} · ${esc(x.ten)}`));
@@ -112,6 +124,35 @@ function veThe(x, dl, api, lai) {
   return the;
 }
 
+/** Thẻ máy sản xuất: không hiệu chuẩn — hạn bảo dưỡng theo sổ BM.06.05. */
+function veMay(x, dl, api, lai) {
+  const qua = !x.thanh_ly && x.con !== null && x.con < 0;
+  const the = el('div', `sx-qc-sc ${qua ? 'sx-qc-sc-mo' : 'sx-qc-sc-dong'}`);
+  the.appendChild(el('div', 'sx-qc-sc-ten', `${esc(x.name)} · ${esc(x.ten)}`));
+  const meta = el('div', 'sx-qc-sc-meta');
+  meta.appendChild(chip(x.thanh_ly ? 'Thanh lý' : 'Đang dùng', x.thanh_ly ? '' : 'dong'));
+  if (!x.thanh_ly && x.han) {
+    meta.appendChild(el('span', null, qua ? `<b>quá hạn bảo dưỡng ${-x.con} ngày</b> (${esc(ngayDu(x.han))})`
+      : `bảo dưỡng trước ${esc(ngayDu(x.han))} · còn ${x.con} ngày`));
+  }
+  if (x.vi_tri || x.may) meta.appendChild(el('span', null, esc([x.vi_tri, x.may].filter(Boolean).join(' · '))));
+  the.appendChild(meta);
+  the.appendChild(el('div', 'sx-qc-goiy', `${x.lan_cuoi ? `Bảo dưỡng gần nhất ${esc(ngayDu(x.lan_cuoi))}`
+    : 'Chưa ghi lần bảo dưỡng nào trên sổ BM.06.05'} · chu kỳ ${x.chu_ky} tháng · không hiệu chuẩn`));
+  const nut = el('div', 'sx-qc-chips sx-tb-nut');
+  const so = el('a', 'sx-btn sx-btn-primary', 'SỔ BẢO DƯỠNG');
+  so.href = SO_BD;
+  nut.appendChild(so);
+  if (dl.duoc_ghi) {
+    const s = el('button', 'sx-btn sx-btn-ghost', 'SỬA');
+    s.type = 'button';
+    s.addEventListener('click', () => moThietBi(x, dl, api, lai));
+    nut.appendChild(s);
+  }
+  the.appendChild(nut);
+  return the;
+}
+
 function oNhap(body, nhan, gt, kieu) {
   body.appendChild(el('div', 'sx-qc-goiy', esc(nhan)));
   const n = el(kieu === 'ta' ? 'textarea' : 'input');
@@ -125,7 +166,8 @@ function oNhap(body, nhan, gt, kieu) {
 
 function moThietBi(x, dl, api, lai) {
   const m = openModal({ kicker: 'DANH MỤC THIẾT BỊ BM.06.01', title: x ? `${x.name} · ${x.ten}` : 'Thêm thiết bị' });
-  const ma = x ? null : oNhap(m.body, 'Mã thiết bị (VD: DH-01, NC-01, CAN-01) — không đổi được sau khi tạo', '');
+  const ma = x ? null : oNhap(m.body, 'Mã thiết bị (VD: DH-01, NC-01, CAN-01; máy: TBSX-2024-00003) — không đổi '
+    + 'được sau khi tạo', '');
   if (ma) ma.setAttribute('autocapitalize', 'characters');
   const ten = oNhap(m.body, 'Tên thiết bị', x ? x.ten : '');
   m.body.appendChild(el('div', 'sx-qc-goiy', 'Loại'));
@@ -133,7 +175,8 @@ function moThietBi(x, dl, api, lai) {
   m.body.appendChild(segment(dl.loai, loai, (v) => { loai = v; }, false));
   const vt = oNhap(m.body, 'Vị trí / công đoạn', x ? x.vi_tri : '');
   const may = oNhap(m.body, 'Máy (M1 / M2 / M3 — nếu gắn theo máy)', x ? x.may : '');
-  const ck = oNhap(m.body, 'Chu kỳ kiểm (tháng) — bỏ trống = 12; cân theo hạn giấy kiểm định',
+  const ck = oNhap(m.body, 'Chu kỳ (tháng) — thiết bị đo: kiểm, bỏ trống = 12, cân theo hạn giấy kiểm định; '
+    + 'thiết bị sản xuất: bảo dưỡng, bỏ trống = 6',
     x && x.chu_ky_thang ? x.chu_ky_thang : '', 'number');
   ck.min = '0';
   ck.inputMode = 'numeric';

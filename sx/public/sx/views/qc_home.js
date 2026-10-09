@@ -138,6 +138,8 @@ export async function render({ container, call, st }) {
   //  · W33 (D160) tiếp nhận nguyên liệu BM.07.03 + kiểm xe — phiếu nhập mua nháp, QC không cần Desk.
   //  · W29 (D163) sổ giặt vải ủ BM.08.05 — giặt, đun sôi ≥ 10 phút 1 lần/tuần, QC ký.
   //  · W34 (D165) kiểm xe BM.09.01 — QC kiểm ngẫu nhiên ít nhất 1 chuyến/tuần, Trưởng Ban ISO xem tháng.
+  //  · W43 (D172) Sổ khác — sổ ghi theo dòng (bảo dưỡng BM.06.05: QC xác nhận máy trước khi chạy lại; khách vào
+  //    xưởng, PCCC…). Chỉ hiện khi người dùng có tab Sổ (được giao ít nhất một sổ).
   const so = el('div', 'sx-qc-luoi-so');
   [['#/qc/tiepnhan', '📦 Tiếp nhận NL', 'BM.07.03 · phiếu nhập mua'],
     ['#/qc/kiemxe', '🚚 Kiểm xe', 'BM.09.01 · QC ≥ 1 chuyến/tuần'],
@@ -147,7 +149,10 @@ export async function render({ container, call, st }) {
     ['#/qc/thietbi', '🌡 Thiết bị đo', 'BM.06 · hạn hiệu chuẩn'],
     ['#/qc/kiemnghiem', '🧪 Kiểm nghiệm', 'KH.KN.01 · gửi mẫu năm'],
     ['#/qc/rework', '♻ Rework', 'BM.15.01 · ≤ 10% mẻ'],
-    ['#/qc/lichviec', '📅 Việc định kỳ', 'năm / quý · hồ sơ giấy']].forEach(([href, ten, phu]) => {
+    ['#/qc/lichviec', '📅 Việc định kỳ', 'năm / quý · hồ sơ giấy'],
+    ...(((window.SX_CONTEXT || {}).views || []).includes('so')
+      ? [['#/so', '📒 Sổ khác', 'BM.06.05 bảo dưỡng · khách · PCCC']] : []),
+  ].forEach(([href, ten, phu]) => {
     const b = el('button', 'sx-btn sx-btn-ghost', `${esc(ten)}<small>${esc(phu)}</small>`);
     b.type = 'button';
     b.addEventListener('click', () => { window.location.hash = href; });

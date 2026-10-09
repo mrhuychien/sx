@@ -273,6 +273,10 @@ def _in(bm, tu, den):
         return [("danh-muc-san-pham.html", _trang("Sản phẩm tự công bố", _bang(
             "Danh mục sản phẩm tự công bố", f"Lập ngày {HS.ngay_vn(getdate(nowdate()))}",
             ["Số bản tự công bố", "Tên sản phẩm", "Loại", "TCCS", "Hạn dùng", "Quy cách"], hang)))]
+    # W43 (D172): mọi sổ ghi theo dòng (SX So) — mỗi tháng có dòng một bản / danh mục hiện hành.
+    if frappe.db.exists("SX So", bm):
+        from sx.api import qc_so
+        return [(t, _trang(f"{bm} — {t[:-5]}", h)) for t, h in qc_so.in_ho_so(bm, tu, den)]
     return []
 
 

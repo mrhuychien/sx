@@ -21,6 +21,10 @@ class SXKiemThietBi(Document):
         tb = frappe.db.get_value(TBM.TB, self.thiet_bi, ["loai", "ten"], as_dict=True)
         if not tb:
             frappe.throw(_("Không có thiết bị {0}.").format(self.thiet_bi))
+        if tb.loai == TBM.SAN_XUAT:
+            frappe.throw(_("{0} là thiết bị sản xuất — không hiệu chuẩn. Bảo dưỡng, sửa chữa ghi ở sổ BM.06.05; "
+                           "đồng hồ nhiệt, nam châm, lưới gắn trên máy là thiết bị đo riêng trong danh mục.").format(
+                self.thiet_bi))
         self.loai, self.ten_thiet_bi = tb.loai, tb.ten
         if getdate(self.ngay) > getdate(nowdate()):
             frappe.throw(_("Ngày kiểm không được sau hôm nay."))

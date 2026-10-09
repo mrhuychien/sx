@@ -118,22 +118,31 @@ kiem("Ghi sổ: card sự cố vẫn trên màn của mình",
      "suco" in R.view_cards().get("ghiso", []))
 
 nhu_la(R.THU_KHO)
-kiem("Thủ kho: chỉ thấy màn Nhập kho (+ Tài liệu, W42)", R.allowed_views() == ["nhapkho", "tailieu"],
+kiem("Thủ kho: chỉ thấy màn Nhập kho (+ Sổ W43, Tài liệu W42)", R.allowed_views() == ["nhapkho", "so", "tailieu"],
      str(R.allowed_views()))
+kiem("Thủ kho chưa được giao sổ nào: không có tab Sổ, màn mở đầu vẫn là Nhập kho",
+     R.allowed_views(co_so=False) == ["nhapkho", "tailieu"] and R.landing_view(co_so=False) == "nhapkho"
+     and "so" not in R.view_cards(co_so=False), str(R.allowed_views(co_so=False)))
 kiem("Thủ kho: không ghi hộp được", not goi_duoc("vaohop"))
 kiem("Thủ kho: không tạo tài khoản được", not goi_duoc("nguoidung"))
 
 # W42 (D171): thư viện tài liệu — mọi vai vào được, luôn là tab CUỐI (màn mở đầu không đổi); vai mới C24 và
-# Mua hàng / Kinh doanh (role chuẩn ERPNext) chỉ có tab Tài liệu.
+# Mua hàng / Kinh doanh (role chuẩn ERPNext) chỉ có tab Tài liệu. W43 (D172): + tab Sổ ngay trước Tài liệu (C24:
+# Cơ điện, Hành chính, Bảo vệ ghi sổ — mở app vào Sổ); người chưa được giao sổ nào (co_so=False) thì không có tab Sổ.
 for vai in (R.CO_DIEN, R.HANH_CHINH, R.BAO_VE, R.MUA_HANG, R.KINH_DOANH, R.KHO_NL):
     nhu_la(vai)
-    kiem(f"{vai}: chỉ tab Tài liệu, mở app vào đó", R.allowed_views() == ["tailieu"]
-         and R.landing_view() == "tailieu", str(R.allowed_views()))
+    kiem(f"{vai}: tab Sổ, Tài liệu; mở app vào Sổ", R.allowed_views() == ["so", "tailieu"]
+         and R.landing_view() == "so", str(R.allowed_views()))
+    kiem(f"{vai}: chưa được giao sổ nào → chỉ tab Tài liệu, mở app vào đó",
+         R.allowed_views(co_so=False) == ["tailieu"] and R.landing_view(co_so=False) == "tailieu",
+         str(R.allowed_views(co_so=False)))
 nhu_la(R.GHI_SO, R.VAO_HOP, R.QC)
 kiem("giữ nhiều vai: Tài liệu vẫn là tab cuối, màn mở đầu không phải Tài liệu",
      R.allowed_views()[-1] == "tailieu" and R.landing_view() != "tailieu" and R.allowed_views().count("tailieu") == 1,
      str(R.allowed_views()))
 kiem("mọi vai trong ROLE_VIEWS đều có Tài liệu", all("tailieu" in v for v in R.ROLE_VIEWS.values()))
+kiem("mọi vai trong ROLE_VIEWS đều có Sổ, ngay trước Tài liệu (W43)",
+     all(v[-2:] == ["so", "tailieu"] for v in R.ROLE_VIEWS.values()) and R.MOI_VIEW[-2:] == ["so", "tailieu"])
 _nd = pathlib.Path("sx/api/nguoidung.py").read_text(encoding="utf-8").split("ROLE_CHO_PHEP = {")[1].split("}")[0]
 kiem("vai mới gán được từ màn Người dùng; tên hiện tiếng Việt; tạo mới không vào Desk",
      all(f"{k}:" in _nd for k in ("CO_DIEN", "HANH_CHINH", "BAO_VE"))
@@ -142,6 +151,7 @@ kiem("vai mới gán được từ màn Người dùng; tên hiện tiếng Vi�
 
 nhu_la(R.QUAN_LY)
 kiem("Quản lý: thấy mọi màn", R.allowed_views() == R.MOI_VIEW, str(R.allowed_views()))
+kiem("Quản lý, site chưa có sổ nào: mọi màn trừ Sổ", R.allowed_views(co_so=False) == [v for v in R.MOI_VIEW if v != "so"])
 kiem("Quản lý: tạo tài khoản được", goi_duoc("nguoidung"))
 
 # ── QC chế biến (module qc) — KHÔNG lấn sang mấy màn nhập liệu cũ ──────
@@ -149,7 +159,7 @@ print("\n-- module QC: 4 vai, và chỗ khác nhau giữa chúng --")
 for vai, ten in [(R.QC, "QC chế biến"), (R.QC_GOI, "QC đóng gói"),
                  (R.ISO, "Ban ISO"), (R.QLSX, "QLSX")]:
     nhu_la(vai)
-    kiem(f"{ten}: thấy đúng màn QC (+ Tài liệu, W42)", R.allowed_views() == ["qc", "tailieu"],
+    kiem(f"{ten}: thấy đúng màn QC (+ Sổ W43, Tài liệu W42)", R.allowed_views() == ["qc", "so", "tailieu"],
          str(R.allowed_views()))
     kiem(f"{ten}: không vào được màn nhập liệu cũ",
          not any(goi_duoc(c) for c in ["vaohop", "nhapkhotp", "chotngay",
@@ -194,7 +204,8 @@ print("\n-- không có cửa hậu: mọi method whitelist đều chốt quyền
 # nó có bộ chốt riêng. Vẫn phải có chốt — chỉ là tên khác.
 CHOT = {"guard_card", "_kiem_quyen", "_any_sx_guard",
         "_guard_qc", "_guard_ghi", "_guard_manager",
-        "_guard_tai_lieu"}          # W42: thư viện tài liệu — mọi vai có tài khoản app (sx/api/qc_tailieu.py)
+        "_guard_tai_lieu",          # W42: thư viện tài liệu — mọi vai có tài khoản app (sx/api/qc_tailieu.py)
+        "_guard_so"}                # W43: sổ ghi theo dòng — mọi vai có tài khoản app; quyền từng sổ (sx/api/qc_so.py)
 ho = []
 tong = 0
 
@@ -257,7 +268,8 @@ for ten_mod, ten_file in [("sx.qc.muc", "sx/qc/muc.py"),
                           ("sx.qc.vai_u", "sx/qc/vai_u.py"),
                           ("sx.qc.ncc", "sx/qc/ncc.py"),
                           ("sx.qc.kiem_xe", "sx/qc/kiem_xe.py"),
-                          ("sx.qc.tai_lieu", "sx/qc/tai_lieu.py")]:
+                          ("sx.qc.tai_lieu", "sx/qc/tai_lieu.py"),
+                          ("sx.qc.so", "sx/qc/so.py")]:
     sp2 = importlib.util.spec_from_file_location(ten_mod, ten_file)
     mod2 = importlib.util.module_from_spec(sp2)
     sys.modules[ten_mod] = mod2

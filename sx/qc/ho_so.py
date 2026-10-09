@@ -38,7 +38,7 @@ BIEU_MAU = {
     "BM.08.05": ("Sổ giặt vải ủ", "vai_u"),
     "BM.11.01": ("Sổ khiếu nại khách hàng", "khieu_nai"),
     "BM.15.01": ("Phiếu rework", "rework"),
-    "BM.06.01": ("Danh mục thiết bị đo", "thiet_bi"),
+    "BM.06.01": ("Danh mục thiết bị sản xuất và thiết bị đo", "thiet_bi"),
     "BM.06.02": ("Kiểm tra đồng hồ nhiệt", "thiet_bi"),
     "BM.06.03": ("Kiểm tra nam châm", "thiet_bi"),
     "BM.06.04": ("Kiểm tra lưới sàng, rây", "thiet_bi"),
@@ -57,6 +57,12 @@ BIEU_MAU = {
     "BM.01.02": ("Danh mục tài liệu nội bộ", "tai_lieu"),
     "BM.01.03": ("Danh mục tài liệu bên ngoài", "tai_lieu"),
     "BM.01.13": ("Biên bản phổ biến tài liệu, danh sách phân phối", "tai_lieu"),
+    # W43 (D172): sổ ghi theo dòng (SX So) — bản in theo tháng (Ghi theo dòng) / danh mục hiện hành (Danh mục).
+    "BM.06.05": ("Sổ bảo dưỡng, sửa chữa thiết bị", "thiet_bi"),
+    "BM.PRP.06": ("Sổ theo dõi khách, nhà thầu vào xưởng", "so_khac"),
+    "BM.03.01": ("Sổ quản lý thiết bị PCCC", "so_khac"),
+    "BM.03.02": ("Sổ theo dõi tình hình phát sinh dịch bệnh", "so_khac"),
+    "BM.03.03": ("Sổ quản lý thiết bị kiểm định an toàn", "so_khac"),
 }
 
 

@@ -10,6 +10,10 @@ Setting, mặc định 31/10/2026 — tài liệu 08/10).
 Không đạt hoặc quá hạn → NGỪNG DÙNG và lập phiếu sự cố BM.08.02 (nguồn Thiết bị đo). Quá
 hạn do lịch chạy nền mỗi ngày quét — một phiếu gộp cho các thiết bị mới quá hạn hôm đó.
 Kiểm lại Đạt → thiết bị dùng lại.
+
+Thiết bị sản xuất (W43, D172 — BM.06.01 là "Danh mục thiết bị sản xuất và thiết bị đo"): máy rang, máy nghiền…
+nằm cùng danh mục để sổ bảo dưỡng, sửa chữa BM.06.05 trỏ đúng mã; KHÔNG hiệu chuẩn — không hạn kiểm, không quá
+hạn, không phiếu sự cố. `chu_ky_thang` của máy là chu kỳ bảo dưỡng (trống = 6 tháng, QT.06), nhắc ở sx/qc/so.py.
 """
 
 import calendar
@@ -21,13 +25,16 @@ from frappe.utils import cint, getdate, nowdate
 
 TB, KT = "SX Thiet Bi Do", "SX Kiem Thiet Bi"
 DONG_HO, NAM_CHAM, LUOI, CAN, KHAC = "Đồng hồ nhiệt", "Nam châm", "Lưới sàng, rây", "Cân", "Khác"
-LOAI = (DONG_HO, NAM_CHAM, LUOI, CAN, KHAC)
+SAN_XUAT = "Thiết bị sản xuất"
+LOAI = (DONG_HO, NAM_CHAM, LUOI, CAN, KHAC, SAN_XUAT)
+LOAI_DO = (DONG_HO, NAM_CHAM, LUOI, CAN, KHAC)          # thiết bị đo — có hạn kiểm / hiệu chuẩn
 # Biểu mẫu theo loại (BM.06.01 là danh mục). Cân / khác nằm trong danh mục, không có tờ riêng.
 BIEU_MAU = {DONG_HO: "BM.06.02", NAM_CHAM: "BM.06.03", LUOI: "BM.06.04"}
 # Chu kỳ mặc định (tháng) khi thiết bị để trống. Đồng hồ nhiệt 1 năm theo tài liệu; nam châm,
 # lưới sàng 12 tháng (chốt 09/10/2026 — thiết bị nào khác thì Ban ISO sửa chu kỳ của nó). Cân: hạn
 # là hạn ghi trên giấy kiểm định; 12 tháng chỉ để dự phòng khi chưa có giấy nào.
-CHU_KY = {DONG_HO: 12, NAM_CHAM: 12, LUOI: 12, CAN: 12, KHAC: 12}
+CHU_KY = {DONG_HO: 12, NAM_CHAM: 12, LUOI: 12, CAN: 12, KHAC: 12,
+          SAN_XUAT: 6}                       # máy sản xuất: chu kỳ BẢO DƯỠNG (QT.06: 6 tháng/lần)
 HAN_DAU = date(2026, 10, 31)
 DANG_DUNG, NGUNG_HONG, NGUNG_HAN, THANH_LY = ("Đang dùng", "Ngừng — không đạt",
                                               "Ngừng — quá hạn", "Thanh lý")
@@ -69,7 +76,9 @@ def han_ke_tiep(tb, cuoi, han_dau=HAN_DAU, giay=None):
 
 def trang_thai(tb, cuoi, hom_nay, han_dau=HAN_DAU, giay=None):
     """(trạng thái, hạn) — hàm thuần. Thanh lý giữ nguyên; lần kiểm gần nhất Không đạt →
-    ngừng; quá hạn → ngừng; còn lại đang dùng."""
+    ngừng; quá hạn → ngừng; còn lại đang dùng. Thiết bị sản xuất: không hạn (None)."""
+    if tb.get("loai") == SAN_XUAT:
+        return (THANH_LY if cint(tb.get("thanh_ly")) else DANG_DUNG), None
     han = han_ke_tiep(tb, cuoi, han_dau, giay)
     if cint(tb.get("thanh_ly")):
         return THANH_LY, han
@@ -234,6 +243,8 @@ def nhac(hom_nay):
     hd = han_dau()
     qua, sap, hong = [], [], []
     for x in ds:
+        if x.loai == SAN_XUAT:            # máy sản xuất: nhắc bảo dưỡng ở sổ BM.06.05 (sx/qc/so.py)
+            continue
         tt, han = trang_thai(x, cuoi.get(x.name), d, hd, giay.get(x.name))
         if tt == NGUNG_HONG:
             hong.append({"ma": x.name, "ten": x.ten})

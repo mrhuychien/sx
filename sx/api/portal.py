@@ -10,6 +10,7 @@ from frappe.utils import add_days, cint, flt, getdate, nowdate
 from sx.config.roles import (
     ROLE_VIEWS,
     allowed_views,
+    co_so,
     guard_card,
     is_super,
     landing_view,
@@ -204,15 +205,17 @@ def get_boot(ngay=None, phan=None):
             "SX Ngay San Xuat", {"ngay": ngay_xem, "docstatus": ("<", 2)}, "name"
         )
     )
+    cs = co_so(roles)
 
     boot = {
         "user": frappe.session.user,
         "is_quan_ly": super_,
         # D132: Trưởng Ban ISO (hoặc quản lý) — tab Xem xét / Truy xuất trong màn QC.
         "la_iso": super_ or "ISO Manager" in roles,
-        "views": allowed_views(roles),
-        "viewCards": view_cards(roles),
-        "landing": landing_view(roles),
+        # W43: tab Sổ chỉ với người được giao sổ — cùng cách tính như trang /sx.
+        "views": allowed_views(roles, cs),
+        "viewCards": view_cards(roles, cs),
+        "landing": landing_view(roles, cs),
         "hom_nay": hom_nay,
         "ngay_xem": ngay_xem,
         "la_hom_nay": ngay_xem == hom_nay,

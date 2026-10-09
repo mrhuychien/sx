@@ -959,6 +959,7 @@ main > .container {
 .sx-toast-show { opacity: 1; transform: none; }
 .sx-toast-ok { border-left-color: var(--sx-success); }
 .sx-toast-err { border-left-color: var(--sx-danger); }
+.sx-toast-warn { border-left-color: var(--sx-warning); }
 
 .sx-offline-banner, .sx-stale-banner {
   background: var(--sx-danger);

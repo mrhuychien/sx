@@ -178,6 +178,7 @@ nap("sx.qc.khac_phuc", "sx/qc/khac_phuc.py")
 nap("sx.qc.vai_u", "sx/qc/vai_u.py")
 nap("sx.qc.kiem_xe", "sx/qc/kiem_xe.py")
 nap("sx.qc.tai_lieu", "sx/qc/tai_lieu.py")
+nap("sx.qc.so", "sx/qc/so.py")
 nap("sx.api.qc", "sx/api/qc.py")
 A = nap("sx.api.qc_ncc", "sx/api/qc_ncc.py")
 

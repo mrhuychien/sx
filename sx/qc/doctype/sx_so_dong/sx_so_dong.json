@@ -1,0 +1,188 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 23:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 23:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX So Dong",
+ "autoname": "SOD-.YYYY.-.#####",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "title_field": "tom_tat",
+ "sort_field": "ngay",
+ "sort_order": "DESC",
+ "field_order": [
+  "so",
+  "ngay",
+  "trang_thai",
+  "tom_tat",
+  "han_gan_nhat",
+  "column_break_1",
+  "nguoi_ghi",
+  "ghi_luc",
+  "xac_nhan_boi",
+  "xac_nhan_luc",
+  "y_kien_xac_nhan",
+  "ly_do_ngung",
+  "section_du_lieu",
+  "du_lieu",
+  "su_co",
+  "tep",
+  "ban_ky_tay",
+  "section_sua",
+  "sua_doi"
+ ],
+ "fields": [
+  {
+   "fieldname": "so",
+   "fieldtype": "Link",
+   "label": "Sổ",
+   "options": "SX So",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày",
+   "reqd": 1,
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Đã ghi\nĐã xác nhận\nNgừng",
+   "default": "Đã ghi",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "tom_tat",
+   "fieldtype": "Data",
+   "label": "Tóm tắt",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "han_gan_nhat",
+   "fieldtype": "Date",
+   "label": "Hạn gần nhất",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguoi_ghi",
+   "fieldtype": "Link",
+   "label": "Người ghi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ghi_luc",
+   "fieldtype": "Datetime",
+   "label": "Ghi lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xac_nhan_boi",
+   "fieldtype": "Link",
+   "label": "Xác nhận bởi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xac_nhan_luc",
+   "fieldtype": "Datetime",
+   "label": "Xác nhận lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "y_kien_xac_nhan",
+   "fieldtype": "Small Text",
+   "label": "Ý kiến khi xác nhận",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ly_do_ngung",
+   "fieldtype": "Small Text",
+   "label": "Lý do ngừng",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_du_lieu",
+   "fieldtype": "Section Break",
+   "label": "Dữ liệu"
+  },
+  {
+   "fieldname": "du_lieu",
+   "fieldtype": "JSON",
+   "label": "Dữ liệu (theo cột của sổ)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố",
+   "options": "SX Su Co"
+  },
+  {
+   "fieldname": "tep",
+   "fieldtype": "Attach",
+   "label": "Tệp đính kèm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ban_ky_tay",
+   "fieldtype": "Attach",
+   "label": "Bản ký tay (scan)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_sua",
+   "fieldtype": "Section Break",
+   "label": "Lịch sử sửa"
+  },
+  {
+   "fieldname": "sua_doi",
+   "fieldtype": "Table",
+   "label": "Các lần sửa, ngừng",
+   "options": "SX So Dong Sua",
+   "read_only": 1
+  }
+ ],
+ "track_changes": 1
+}

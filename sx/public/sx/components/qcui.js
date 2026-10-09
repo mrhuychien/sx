@@ -275,11 +275,15 @@ export function oGio(m, giaTri, onSet, khoa) {
 }
 
 export function oCheck(m, giaTri, onSet, khoa) {
+  // Dựng bằng el() (không innerHTML + querySelector): cùng cây DOM, và test DOM giả dựng được (sổ W43 dùng ô này).
   const row = el('div', 'sx-qc-hang');
   row.dataset.f = m.f;
-  row.innerHTML = `<div class="sx-qc-nhan">${nhan(m)}</div>
-    <div class="sx-qc-nut2"><button type="button">☐ Không</button></div>`;
-  const b = row.querySelector('button');
+  row.appendChild(el('div', 'sx-qc-nhan', nhan(m)));
+  const nut2 = el('div', 'sx-qc-nut2');
+  const b = el('button', null, '☐ Không');
+  b.type = 'button';
+  nut2.appendChild(b);
+  row.appendChild(nut2);
   let v = Number(giaTri) ? 1 : 0;
   const ve = () => {
     b.textContent = v ? '☑ Có' : '☐ Không';
