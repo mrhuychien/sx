@@ -180,6 +180,12 @@ def _in(bm, tu, den):
         return ra
     if bm == "BM.08.02":
         return [("so-su-co.csv", Q.export_csv(str(tu), str(den), "su_co"))]
+    if bm == "BM.01.07":
+        from sx.api import qc_khacphuc
+        from sx.qc import khac_phuc as KP
+        ds = [frappe.get_doc(KP.PT, n) for n in frappe.get_all(
+            KP.PT, filters={"ngay": ("between", [tu, den])}, pluck="name", order_by="ngay asc, creation asc")]
+        return [("phieu-khac-phuc.html", _trang("BM.01.07 — hành động khắc phục", qc_khacphuc.in_phieu(ds)))] if ds else []
     if bm == "BM.08.03":
         from sx.api import qc_cat
         return [(f"{t}.html", _trang(f"BM.08.03 — {t}", qc_cat.in_bm0803(t))) for t, _a, _b in thang]

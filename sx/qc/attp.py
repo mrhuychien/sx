@@ -25,6 +25,7 @@ CAN_BANG_DAT = 98       # W06: cân bằng lô đạt ≥ 98%
 LINH_VUC = (
     ("vong_kiem", "Vòng kiểm hằng ngày", "BM.08.01", "#/qc/review"),
     ("su_co", "Sự cố", "BM.08.02", "#/qc/incidents"),
+    ("khac_phuc", "Hành động khắc phục", "BM.01.07", "#/qc/khacphuc"),
     ("khieu_nai", "Khiếu nại khách hàng", "BM.11.01", "#/qc/khieunai"),
     ("xuat_xuong", "Kiểm tra xuất xưởng", "BM.08.04", "#/qc/xuatxuong"),
     ("truy_xuat", "Truy xuất, thu hồi", "BM.02.04", "#/qc/truyxuat"),
@@ -82,6 +83,12 @@ def _su_co(s):
             "dong": [f"{s.get('qua_han', 0)} quá hạn · {s.get('cao', 0)} mức Cao",
                      f"{s.get('ky', 0)} phiếu mới trong kỳ" + (f" · {s['dien_tap']} phiếu diễn tập"
                                                               if s.get("dien_tap") else "")]}
+
+
+def _khac_phuc(s):
+    return {"so": str(s.get("mo", 0)), "nhan_so": "phiếu chưa đóng",
+            "dong": [f"{s.get('qua_han', 0)} quá hạn · {s.get('cho_kiem', 0)} chờ kiểm tra hiệu lực",
+                     f"{s.get('lap_ky', 0)} lập · {s.get('dong_ky', 0)} đóng trong kỳ"]}
 
 
 def _khieu_nai(s, route):
@@ -191,7 +198,8 @@ def _viec_dinh_ky(s):
             "dong": [f"Tiếp theo: {t['ten']} — {_ngay(t['han'])}" if t else "Chưa có việc định kỳ nào"]}
 
 
-THE = {"vong_kiem": _vong_kiem, "su_co": _su_co, "xuat_xuong": _xuat_xuong, "thiet_bi": _thiet_bi,
+THE = {"vong_kiem": _vong_kiem, "su_co": _su_co, "khac_phuc": _khac_phuc, "xuat_xuong": _xuat_xuong,
+       "thiet_bi": _thiet_bi,
        "kiem_nghiem": _kiem_nghiem, "cat": _cat, "dong_vat": _dong_vat, "luu_mau": _luu_mau,
        "rework": _rework, "viec_dinh_ky": _viec_dinh_ky}
 THE_ROUTE = {"khieu_nai": _khieu_nai, "truy_xuat": _truy_xuat, "ncc": _ncc}

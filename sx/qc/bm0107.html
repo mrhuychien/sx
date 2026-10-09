@@ -1,0 +1,42 @@
+{#- BM.01.07 — phiếu hành động khắc phục (W24, D150). A4 dọc, một phiếu một trang. -#}
+<style>
+  @page { size: A4 portrait; margin: 12mm 12mm; }
+  .kp { font: 12px/1.4 "Times New Roman", serif; color: #000; }
+  .kp h1 { font-size: 16px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .kp .ma { text-align: center; font-size: 11px; margin-bottom: 10px; }
+  .kp table { width: 100%; border-collapse: collapse; }
+  .kp td, .kp th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; text-align: left; }
+  .kp th { background: #eee; width: 26%; font-weight: bold; }
+  .kp .o { min-height: 44px; white-space: pre-wrap; }
+  .kp h2 { font-size: 12.5px; margin: 10px 0 4px; text-transform: uppercase; }
+  .kp .ky { margin-top: 16px; width: 100%; }
+  .kp .ky td { border: 0; text-align: center; height: 64px; width: 33%; }
+</style>
+<div class="kp">
+  <h1>Phiếu hành động khắc phục</h1>
+  <div class="ma">BM.01.07 &nbsp;·&nbsp; Số {{ d.name }} &nbsp;·&nbsp; Ngày lập
+    {{ frappe.utils.formatdate(d.ngay, "dd/MM/yyyy") if d.ngay else "—" }} &nbsp;·&nbsp; Trạng thái: {{ d.trang_thai }}</div>
+  <table>
+    <tr><th>Nguồn</th><td>{{ d.nguon }}{% if d.su_co %} — phiếu sự cố <b>{{ d.su_co }}</b>{% if sc %}
+      ngày {{ frappe.utils.formatdate(sc.ngay, "dd/MM/yyyy") }}{% if sc.muc_do == "Cao" %}, mức CAO{% endif %}{% endif %}{% endif %}</td></tr>
+    <tr><th>Điều không phù hợp</th><td class="o">{{ d.mo_ta or "" }}</td></tr>
+    <tr><th>Nguyên nhân gốc</th><td class="o">{{ d.nguyen_nhan or "" }}</td></tr>
+    <tr><th>Hành động khắc phục</th><td class="o">{{ d.hanh_dong or "" }}</td></tr>
+    <tr><th>Người thực hiện / hạn</th><td>{{ d.nguoi_thuc_hien or "—" }} &nbsp;·&nbsp; hạn
+      {{ frappe.utils.formatdate(d.han, "dd/MM/yyyy") if d.han else "—" }}</td></tr>
+  </table>
+  <h2>Kết quả thực hiện</h2>
+  <table>
+    <tr><th>Kết quả</th><td class="o">{{ d.ket_qua or "" }}</td></tr>
+    <tr><th>Ngày hoàn thành</th><td>{{ frappe.utils.formatdate(d.ngay_xong, "dd/MM/yyyy") if d.ngay_xong else "—" }}</td></tr>
+  </table>
+  <h2>Kiểm tra hiệu lực</h2>
+  <table>
+    <tr><th>Kết luận</th><td>{{ d.hieu_luc or "Chưa kiểm tra" }}{% if d.so_lan %} &nbsp;·&nbsp; {{ d.so_lan }} lần chưa hiệu lực trước đó{% endif %}</td></tr>
+    <tr><th>Nhận xét</th><td class="o">{{ d.nhan_xet or "" }}</td></tr>
+    <tr><th>Người kiểm tra / ngày</th><td>{{ d.kiem_boi or "—" }} &nbsp;·&nbsp;
+      {{ frappe.utils.formatdate(d.kiem_ngay, "dd/MM/yyyy") if d.kiem_ngay else "—" }}</td></tr>
+  </table>
+  <table class="ky"><tr><td><b>Người lập</b><br>(ký, ghi rõ họ tên)</td><td><b>Người thực hiện</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Trưởng Ban ISO</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

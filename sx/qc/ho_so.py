@@ -32,6 +32,7 @@ TOI_DA_THANG = 24       # gói zip tối đa chừng này tháng
 BIEU_MAU = {
     "BM.08.01": ("Vòng kiểm hằng ngày", "vong_kiem"),
     "BM.08.02": ("Sổ phiếu sự cố", "su_co"),
+    "BM.01.07": ("Phiếu hành động khắc phục", "khac_phuc"),
     "BM.08.03": ("Nhật ký cát rang", "cat"),
     "BM.08.04": ("Kiểm tra xuất xưởng theo lô", "xuat_xuong"),
     "BM.11.01": ("Sổ khiếu nại khách hàng", "khieu_nai"),

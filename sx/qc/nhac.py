@@ -53,7 +53,7 @@ def _nhom(ma, ds):
 
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
-         cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None):
+         cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -63,7 +63,8 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `cat` = sx/qc/cat.nhac(): đổi nguồn còn thiếu, ngày có rang thiếu nhật ký — W20 (D141).
     `thiet_bi` = sx/qc/thiet_bi.nhac(): quá hạn, không đạt, sắp đến hạn, loại chưa khai — W17 (D143).
     `kiem_nghiem` = sx/qc/kiem_nghiem.nhac(): sản phẩm quá / đến hạn gửi mẫu, chờ kết quả lâu — W18 (D144).
-    `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn — W21 (D146)."""
+    `viec_dinh_ky` = sx/qc/viec_dinh_ky.nhac(): việc năm / quý quá hạn, sắp đến hạn — W21 (D146).
+    `khac_phuc` = sx/qc/khac_phuc.nhac(): phiếu BM.01.07 quá hạn, chờ kiểm tra hiệu lực lâu — W24 (D150)."""
     nay = _d(hom_nay)
     ra = []
     # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (oPRP-3), nên thuộc mảng vòng kiểm.
@@ -71,6 +72,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhom("luu_mau", _nhac_luu_mau(nay, luu_mau or {}))
     ra += _nhom("xuat_xuong", _nhac_xuat_xuong(nay, xuat_xuong or {}))
     ra += _nhom("su_co", _nhac_su_co(nay, su_co, ng))
+    ra += _nhom("khac_phuc", _nhac_khac_phuc(khac_phuc or {}))
     ra += _nhom("vong_kiem", _nhac_luot_tuan(nay, luot) + _nhac_luot_thieu(nay, luot)
                 + _nhac_xem_xet(nay, luot))
     ra += _nhom("dong_vat", _nhac_dong_vat(dong_vat or {}))
@@ -161,6 +163,24 @@ def _nhac_su_co(nay, su_co, ng):
     if con > 0:
         ra.append(_m(THUONG, f"{con} phiếu sự cố đang mở",
                      "Đã ghi xử lý, chờ Ban ISO đóng.", "#/qc/incidents"))
+    return ra
+
+
+def _nhac_khac_phuc(kp):
+    """Phiếu hành động khắc phục BM.01.07 (W24): quá hạn hoàn thành (cao — nguyên nhân còn đó thì sự cố
+    lặp lại), đã làm xong mà Ban ISO để lâu chưa kiểm tra hiệu lực (thường)."""
+    ra = []
+    qua = kp.get("qua_han") or []
+    if qua:
+        ra.append(_m(CAO, f"{len(qua)} phiếu khắc phục BM.01.07 quá hạn",
+                     ", ".join(f"{x['name']} (hạn {_d(x['han']).strftime('%d/%m')})" for x in qua[:4])
+                     + ("…" if len(qua) > 4 else "") + ". Nguyên nhân chưa xử lý thì sự cố còn lặp lại.",
+                     "#/qc/khacphuc"))
+    cho = kp.get("cho_kiem") or []
+    if cho:
+        ra.append(_m(THUONG, f"{len(cho)} phiếu khắc phục chờ kiểm tra hiệu lực",
+                     f"{', '.join(x['name'] for x in cho[:4])}{'…' if len(cho) > 4 else ''} — đã làm xong hơn "
+                     "một tuần, Trưởng Ban ISO kiểm tra rồi đóng.", "#/qc/khacphuc"))
     return ra
 
 

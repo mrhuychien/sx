@@ -45,7 +45,7 @@ kiem("mục nhắc vào đúng thẻ theo `nhom`; mảng không số liệu vẫ
 kiem("thẻ đỏ lên đầu, rồi vàng, rồi xanh; cùng màu giữ thứ tự danh mục; việc mức cao đứng trước",
      [x["ma"] for x in r["linh_vuc"]][:2] == ["thiet_bi", "cat"]
      and [x["ma"] for x in r["linh_vuc"]][2:] == [m for m in MA if m not in ("thiet_bi", "cat")]
-     and th["thiet_bi"]["nhac"][0]["muc_do"] == "cao" and r["dem"] == {"do": 1, "vang": 1, "xanh": 11})
+     and th["thiet_bi"]["nhac"][0]["muc_do"] == "cao" and r["dem"] == {"do": 1, "vang": 1, "xanh": 12})
 kiem("số kiểu tờ giấy: 99.25 → 99,25; 15.0 → 15", A._so(99.25) == "99,25" and A._so(15.0) == "15")
 
 
@@ -90,7 +90,9 @@ ds = NH.tinh("2026-10-09", luot, [{"name": "S", "ngay": "2026-09-01", "trang_tha
              kiem_nghiem={"qua_han": [{"ten": "a", "han": "2026-10-01"}], "den_han": [{"ten": "b", "han": "2026-10-20"}],
                           "cho_lau": [{"ten": "c"}], "khong_dat": [{"ten": "d"}]},
              viec_dinh_ky={"qua_han": [{"ten": "x", "han": "2026-10-01", "con": -8}],
-                           "sap_den": [{"ten": "y", "han": "2026-10-20", "con": 11}]})
+                           "sap_den": [{"ten": "y", "han": "2026-10-20", "con": 11}]},
+             khac_phuc={"qua_han": [{"name": "CAR-1", "han": "2026-10-01"}],
+                        "cho_kiem": [{"name": "CAR-2", "ngay_xong": "2026-09-20"}]})
 # Nhà máy chưa ghi dấu hiệu theo trạm (W15) → nhắc bẫy cũ theo lượt tuần, cũng phải có mảng.
 ds += NH.tinh("2026-10-09", [{"name": "T1", "ngay": "2026-09-28", "luot": "Tuần", "docstatus": 1,
                               "t2_so_bay_dau_hieu": 2},
@@ -104,7 +106,7 @@ kiem(f"hộp nhắc: {len(ds)} mục, mục nào cũng gắn một mảng có tr
 kiem("mảng của mục nhắc: bột nền → vòng kiểm (mục 8 kho bột), xuất xưởng, cát, việc định kỳ…",
      {x["route"]: x["nhom"] for x in ds}["#/qc/xuatxuong"] == "xuat_xuong"
      and next(x for x in ds if "bột nền" in x["tieu_de"])["nhom"] == "vong_kiem"
-     and {"cat", "thiet_bi", "kiem_nghiem", "viec_dinh_ky", "dong_vat", "luu_mau", "su_co"} <= nhom)
+     and {"cat", "thiet_bi", "kiem_nghiem", "viec_dinh_ky", "dong_vat", "luu_mau", "su_co", "khac_phuc"} <= nhom)
 
 # ═══ 2. API: số liệu 13 mảng ═══════════════════════════════════════════════
 print("\n-- tong_quan: số liệu từng mảng --")
@@ -223,8 +225,8 @@ kiem("rework: 2 phiếu trong kỳ (bỏ phiếu ngoài kỳ), cao nhất 8%", t
 kiem("việc định kỳ: 1 quá hạn → Đỏ; 'tiếp theo' là việc chưa tới hạn (bỏ việc quá hạn, việc đã ngừng)",
      th["viec_dinh_ky"]["so"] == "1" and th["viec_dinh_ky"]["den"] == A.DO
      and th["viec_dinh_ky"]["dong"] == ["Tiếp theo: Thử khôi phục dữ liệu — 30/11/2026"], th["viec_dinh_ky"])
-kiem("đếm đèn 5 đỏ · 4 vàng · 4 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
-     r["dem"] == {"do": 5, "vang": 4, "xanh": 4}
+kiem("đếm đèn 5 đỏ · 4 vàng · 5 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
+     r["dem"] == {"do": 5, "vang": 4, "xanh": 5}
      and [x["ma"] for x in r["linh_vuc"][:5]] == ["su_co", "xuat_xuong", "truy_xuat", "kiem_nghiem", "viec_dinh_ky"],
      r["dem"])
 F.vai("SX QC")
@@ -254,7 +256,7 @@ API._rework = lambda *a: 1 / 0
 r2 = API.tong_quan()
 API._rework = goc
 th2 = {x["ma"]: x for x in r2["linh_vuc"]}
-kiem("mảng rework lỗi → thẻ 'chưa có số liệu', 12 thẻ còn lại vẫn đủ số",
+kiem("mảng rework lỗi → thẻ 'chưa có số liệu', các thẻ còn lại vẫn đủ số",
      th2["rework"]["so"] == "–" and th2["rework"]["nhan_so"] == "chưa có số liệu"
      and th2["cat"]["so"] == "12" and th2["su_co"]["den"] == A.DO)
 F.bang("SX Dien Tap Truy Xuat").clear()

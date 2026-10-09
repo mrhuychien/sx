@@ -1,0 +1,258 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 20:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "autoname": "naming_series:",
+ "name": "SX Khac Phuc",
+ "field_order": [
+  "naming_series",
+  "ngay",
+  "nguon",
+  "su_co",
+  "column_break_1",
+  "trang_thai",
+  "lap_boi",
+  "section_noi_dung",
+  "mo_ta",
+  "nguyen_nhan",
+  "hanh_dong",
+  "column_break_2",
+  "nguoi_thuc_hien",
+  "han",
+  "section_ket_qua",
+  "ket_qua",
+  "column_break_3",
+  "ngay_xong",
+  "ket_qua_boi",
+  "section_kiem",
+  "hieu_luc",
+  "nhan_xet",
+  "column_break_4",
+  "kiem_boi",
+  "kiem_ngay",
+  "so_lan"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số phiếu",
+   "options": "CAR-.YYYY.-.###",
+   "default": "CAR-.YYYY.-.###",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày lập",
+   "default": "Today",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nguon",
+   "fieldtype": "Select",
+   "label": "Nguồn",
+   "options": "Sự cố\nKhiếu nại\nĐánh giá nội bộ\nĐánh giá bên ngoài\nXem xét của lãnh đạo\nKhác",
+   "default": "Sự cố",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố (BM.08.02)",
+   "options": "SX Su Co",
+   "description": "Bắt buộc khi nguồn là Sự cố. Mỗi sự cố tối đa một phiếu khắc phục chưa đóng."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Mở\nChờ kiểm tra\nĐóng",
+   "default": "Mở",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "lap_boi",
+   "fieldtype": "Link",
+   "label": "Người lập",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_noi_dung",
+   "fieldtype": "Section Break",
+   "label": "Nội dung"
+  },
+  {
+   "fieldname": "mo_ta",
+   "fieldtype": "Small Text",
+   "label": "Điều không phù hợp",
+   "reqd": 1
+  },
+  {
+   "fieldname": "nguyen_nhan",
+   "fieldtype": "Small Text",
+   "label": "Nguyên nhân gốc"
+  },
+  {
+   "fieldname": "hanh_dong",
+   "fieldtype": "Small Text",
+   "label": "Hành động khắc phục",
+   "description": "Xoá nguyên nhân để việc không lặp lại — khác xử lý ngay trên phiếu sự cố."
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguoi_thuc_hien",
+   "fieldtype": "Data",
+   "label": "Người thực hiện"
+  },
+  {
+   "fieldname": "han",
+   "fieldtype": "Date",
+   "label": "Hạn hoàn thành",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_ket_qua",
+   "fieldtype": "Section Break",
+   "label": "Kết quả thực hiện"
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Small Text",
+   "label": "Kết quả thực hiện"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ngay_xong",
+   "fieldtype": "Date",
+   "label": "Ngày hoàn thành"
+  },
+  {
+   "fieldname": "ket_qua_boi",
+   "fieldtype": "Link",
+   "label": "Người báo đã thực hiện",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_kiem",
+   "fieldtype": "Section Break",
+   "label": "Kiểm tra hiệu lực (Trưởng Ban ISO)"
+  },
+  {
+   "fieldname": "hieu_luc",
+   "fieldtype": "Select",
+   "label": "Kết luận",
+   "options": "\nCó hiệu lực\nChưa hiệu lực"
+  },
+  {
+   "fieldname": "nhan_xet",
+   "fieldtype": "Small Text",
+   "label": "Nhận xét các lần kiểm tra"
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "kiem_boi",
+   "fieldtype": "Link",
+   "label": "Người kiểm tra",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "kiem_ngay",
+   "fieldtype": "Date",
+   "label": "Ngày kiểm tra",
+   "read_only": 1
+  },
+  {
+   "fieldname": "so_lan",
+   "fieldtype": "Int",
+   "label": "Số lần chưa hiệu lực",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Production Manager",
+   "read": 1,
+   "report": 1,
+   "print": 1,
+   "write": 1,
+   "create": 1
+  }
+ ],
+ "sort_field": "ngay",
+ "sort_order": "DESC",
+ "title_field": "mo_ta",
+ "track_changes": 1
+}

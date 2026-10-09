@@ -315,6 +315,20 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Phiếu hành động khắc phục BM.01.07 (D150 — W24)
+
+- Màn QC → tab **Sự cố** → nút **Khắc phục** (`#/qc/khacphuc`, doctype `SX Khac Phuc`, số CAR-YYYY-###).
+  Lập từ phiếu sự cố (nút **+ LẬP PHIẾU KHẮC PHỤC** trong phiếu sự cố — lấy sẵn mô tả, nguyên nhân, hành
+  động đã ghi) hoặc lập tay (đánh giá nội bộ, đoàn đánh giá, xem xét lãnh đạo…). Số phiếu tự ghi vào ô
+  "Số CAR" của sự cố; mỗi sự cố tối đa một phiếu chưa đóng. Ô Số CAR gõ tay cũ vẫn hiện trên phiếu cũ.
+- Ba bước: **Mở** (nguyên nhân gốc, hành động khắc phục, người thực hiện, hạn) → **Chờ kiểm tra** (bấm
+  *ĐÃ THỰC HIỆN* — phải có nguyên nhân, hành động, kết quả, ngày xong) → **Đóng**: Trưởng Ban ISO / người
+  được giao **kiểm tra hiệu lực**. *Chưa hiệu lực* → phiếu về Mở, đếm số lần làm lại, ghi làm gì tiếp.
+  Người làm không tự ghi kết luận / tự đóng (chặn cả Desk); rút lại được khi Ban ISO chưa kiểm.
+- Hộp nhắc + Tổng quan ATTP (thẻ thứ 14 *Hành động khắc phục*): phiếu quá hạn (mức cao), phiếu chờ kiểm
+  tra hiệu lực quá 7 ngày. In **BM.01.07** từng phiếu; gói hồ sơ cho đoàn có thư mục BM.01.07 (patch d150
+  thêm dòng vào danh mục).
+
 ## Hồ sơ cho đoàn đánh giá (D149 — W27)
 
 - Màn QC → tab **Xem xét** → nút **Hồ sơ đánh giá** (`#/qc/hoso`, doctype `SX Ho So Danh Muc`): danh mục
@@ -339,7 +353,8 @@ không thành `…-2`.
 - Màn QC → tab **Xem xét** (Trưởng Ban ISO, quản lý / Giám đốc) giờ mở vào **Tổng quan ATTP**
   (`#/qc/attp`); *Xem xét tháng* là nút thứ hai ngay trên đầu. Card QC ở màn Quản lý có nút
   **TỔNG QUAN ATTP**.
-- 13 thẻ, mỗi mảng hồ sơ một thẻ: vòng kiểm BM.08.01, sự cố BM.08.02, khiếu nại BM.11.01, xuất xưởng
+- 14 thẻ, mỗi mảng hồ sơ một thẻ: vòng kiểm BM.08.01, sự cố BM.08.02, hành động khắc phục BM.01.07 (D150),
+  khiếu nại BM.11.01, xuất xưởng
   BM.08.04, truy xuất / thu hồi, thiết bị đo BM.06, kiểm nghiệm KH.KN.01, cát rang BM.08.03, động vật
   gây hại, nhà cung cấp BM.07.02, lưu mẫu, rework BM.15.01, việc định kỳ. Mỗi thẻ: **đèn Đỏ / Vàng /
   Xanh**, con số chính, vài dòng số liệu **30 ngày tới hôm qua**, các việc đang treo; bấm thẻ sang đúng

@@ -17,6 +17,7 @@ from frappe.utils import add_days, cint, flt, getdate, nowdate
 from sx.api import qc as Q
 from sx.api.qc_ncc import _ds as _ds_ncc
 from sx.qc import attp as A
+from sx.qc import khac_phuc as KP
 from sx.qc import kiem_nghiem as KN
 from sx.qc import muc as M
 from sx.qc import nhac as NH
@@ -56,6 +57,16 @@ def _su_co(d, tu, den):
             "cao": sum(1 for x in mo if x.get("muc_do") == "Cao"),
             "ky": sum(1 for x in ky if not cint(x.get("dien_tap"))),
             "dien_tap": sum(1 for x in ky if cint(x.get("dien_tap")))}
+
+
+def _khac_phuc(d, tu, den):
+    ds = frappe.get_all(KP.PT, fields=["trang_thai", "han", "ngay", "kiem_ngay"])
+    trong = lambda x: bool(x) and tu <= getdate(x) <= den  # noqa: E731
+    return {"mo": sum(1 for x in ds if x.get("trang_thai") != KP.DONG),
+            "qua_han": sum(1 for x in ds if KP.qua_han(x, d)),
+            "cho_kiem": sum(1 for x in ds if x.get("trang_thai") == KP.CHO_KIEM),
+            "lap_ky": sum(1 for x in ds if trong(x.get("ngay"))),
+            "dong_ky": sum(1 for x in ds if x.get("trang_thai") == KP.DONG and trong(x.get("kiem_ngay")))}
 
 
 def _khieu_nai(d, tu, den):
@@ -153,6 +164,7 @@ def tong_quan(ngay=None):
     so = {
         "vong_kiem": _thu(lambda: _vong_kiem(d, tu, den, dl)),
         "su_co": _thu(lambda: _su_co(d, tu, den)),
+        "khac_phuc": _thu(lambda: _khac_phuc(d, tu, den)),
         "khieu_nai": _thu(lambda: _khieu_nai(d, tu, den)),
         "xuat_xuong": _thu(lambda: _xuat_xuong(tu, den, dl)),
         "truy_xuat": _thu(lambda: _truy_xuat(d)),

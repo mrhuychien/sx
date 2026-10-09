@@ -18,6 +18,8 @@ const MAN = {
   xuatxuong: '/assets/sx/sx/views/qc_xuatxuong.js',
   // W13 (D135): sổ khiếu nại BM.11.01 — nằm trong tab Sự cố (hai nút trên đầu).
   khieunai: '/assets/sx/sx/views/qc_khieunai.js',
+  // W24 (D150): phiếu hành động khắc phục BM.01.07 — nút thứ ba trong tab Sự cố.
+  khacphuc: '/assets/sx/sx/views/qc_khacphuc.js',
   // W06 (D132): Ban ISO diễn tập truy xuất ngay trong màn QC.
   truyxuat: '/assets/sx/sx/views/qc_truyxuat.js',
   // W15 (D140): động vật gây hại theo trạm — nút ở cuối Hôm nay; #/qc/dvgh/R05 là URL trên
@@ -100,7 +102,7 @@ function veTab(dang, api) {
   tabs.forEach(([ma, ten]) => {
     const a = el('a', 'sx-qc-tab', ten);
     a.href = ma === 'home' ? '#/qc' : `#/qc/${ma}`;
-    const on = ma === dang || (ma === 'incidents' && dang === 'khieunai')
+    const on = ma === dang || (ma === 'incidents' && (dang === 'khieunai' || dang === 'khacphuc'))
       || (ma === 'xuatxuong' && dang === 'luumau') || (ma === 'home' && SO_HOM_NAY.includes(dang))
       || (ma === 'attp' && XEM_XET.includes(dang));
     a.className = `sx-qc-tab${on ? ' sx-qc-seg-on' : ''}`;

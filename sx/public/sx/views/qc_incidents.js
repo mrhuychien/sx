@@ -206,14 +206,15 @@ function moChiTiet(s, dl, api) {
   const hd = o(m.body, 'Hành động khắc phục', s.hanh_dong_khac_phuc, 'ta');
   const qd = chonBox(m.body, 'Quyết định với sản phẩm (bắt buộc trước khi đóng)',
     dl.quyet_dinh_sp, s.quyet_dinh_sp);
-  const car = o(m.body, 'Số CAR (BM.01.07)', s.car_so);
+  // W24 (D150): phiếu hành động khắc phục BM.01.07 là phiếu thật gắn sự cố, không còn là ô số gõ tay.
+  khoiKhacPhuc(m, s, api);
   // Cờ diễn tập đổi được sau khi lập: chỉ người được đóng phiếu (controller chặn
   // người khác) — QC đổi được là giấu được một sự cố thật khỏi số liệu.
   const dt = dl.duoc_dong ? oCheck(m.body, 'Phiếu diễn tập (không tính vào số liệu)', s.dien_tap) : null;
 
   const goi = () => ({
     xu_ly_ngay: xl.value, lo_anh_huong: lo.value, nguyen_nhan: nn.value,
-    hanh_dong_khac_phuc: hd.value, quyet_dinh_sp: qd.value, car_so: car.value,
+    hanh_dong_khac_phuc: hd.value, quyet_dinh_sp: qd.value,
     ds_lo: kLo.lay(), ...(dt ? { dien_tap: dt.checked ? 1 : 0 } : {}),
   });
 
@@ -241,8 +242,7 @@ function moChiTiet(s, dl, api) {
         // đóng thẳng mà chưa lưu là báo thiếu đúng cái người ta vừa gõ xong.
         await api.call('sx.api.qc.update_incident',
           { name: s.name, payload: JSON.stringify(goi()) });
-        await api.call('sx.api.qc.close_incident',
-          { name: s.name, quyet_dinh_sp: qd.value, car_so: car.value });
+        await api.call('sx.api.qc.close_incident', { name: s.name, quyet_dinh_sp: qd.value });
         toast('Đã đóng phiếu');
         m.close();
         render(api);
@@ -254,6 +254,31 @@ function moChiTiet(s, dl, api) {
       'Đóng phiếu là việc của Trưởng Ban ISO — người ghi không tự duyệt.'));
   }
   return m;
+}
+
+/** Khối phiếu khắc phục BM.01.07 trên phiếu sự cố: đã có → trạng thái + nút mở; chưa có → nút lập
+ *  (lấy sẵn mô tả / nguyên nhân / hành động đã ghi ở đây). Số CAR gõ tay trước D150 vẫn hiện. */
+function khoiKhacPhuc(m, s, api) {
+  const { body } = m;
+  const kp = s.khac_phuc;
+  body.appendChild(el('div', 'sx-qc-goiy', 'Hành động khắc phục BM.01.07 (xoá nguyên nhân để không lặp lại)'));
+  if (kp) {
+    body.appendChild(el('div', 'sx-qc-goiy', `<b>${esc(kp.name)}</b> · ${esc(kp.trang_thai)}${
+      kp.han ? ` · hạn ${esc(kp.han.slice(8, 10))}/${esc(kp.han.slice(5, 7))}` : ''}`));
+  } else if (s.car_so) {
+    body.appendChild(el('div', 'sx-qc-goiy', `Số CAR ghi tay: ${esc(s.car_so)}`));
+  }
+  const b = el('button', 'sx-btn sx-btn-ghost', kp ? 'MỞ PHIẾU KHẮC PHỤC' : '+ LẬP PHIẾU KHẮC PHỤC');
+  b.type = 'button';
+  b.addEventListener('click', async () => {
+    b.disabled = true;
+    try {
+      const r = kp ? { name: kp.name } : await api.call('sx.api.qc_khacphuc.lap', { payload: JSON.stringify({ su_co: s.name }) });
+      m.close();
+      window.location.hash = `#/qc/khacphuc?mo=${encodeURIComponent(r.name)}`;
+    } catch (e) { b.disabled = false; toastErr(e.message); }
+  });
+  body.appendChild(b);
 }
 
 function moThem(dl, api) {

@@ -414,4 +414,10 @@ python3 scripts/test-hoso.py > /tmp/sx-hoso.log 2>&1 \
   && tail -1 /tmp/sx-hoso.log \
   || { cat /tmp/sx-hoso.log; loi=1; }
 
+# D150 (W24): phiếu hành động khắc phục BM.01.07. Người làm tự đóng / tự ghi có hiệu lực, phiếu rỗng
+# báo đã thực hiện, một sự cố hai phiếu, phiếu quá hạn không lên nhắc — đều im lặng.
+python3 scripts/test-khacphuc.py > /tmp/sx-khacphuc.log 2>&1 \
+  && tail -1 /tmp/sx-khacphuc.log \
+  || { cat /tmp/sx-khacphuc.log; loi=1; }
+
 exit $loi

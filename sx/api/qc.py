@@ -31,6 +31,7 @@ from frappe.utils import (
 
 from sx.qc import cat as _cat
 from sx.qc import dong_vat as _dong_vat
+from sx.qc import khac_phuc as _khac_phuc
 from sx.qc import kiem_nghiem as _kiem_nghiem
 from sx.qc import muc as M
 from sx.qc import nhac as _nhac
@@ -561,7 +562,7 @@ def _du_lieu_nhac(d):
             "luu_mau": _luu_mau_nhac(d), "xuat_xuong": _xuat_xuong_nhac(),
             "dong_vat": _dong_vat.nhac(d), "cat": _cat.nhac(d, rang),
             "thiet_bi": _thiet_bi.nhac(d), "kiem_nghiem": _kiem_nghiem.nhac(d),
-            "viec_dinh_ky": _viec_dinh_ky.nhac(d)}
+            "viec_dinh_ky": _viec_dinh_ky.nhac(d), "khac_phuc": _khac_phuc.nhac(d)}
 
 
 def _xuat_xuong_nhac():
@@ -719,14 +720,27 @@ def list_incidents(trang_thai=None, tu=None, den=None, loai=None, cong_doan=None
                 "car_so", "dien_tap"],
         order_by="ngay desc, creation desc")
     lo = _lo_cua_su_co([s.name for s in ds])
+    kp = _khac_phuc_cua(ds)
     for s in ds:
         s["ds_lo"] = lo.get(s.name, [])
         s["dien_tap"] = cint(s.get("dien_tap"))
+        s["khac_phuc"] = kp.get(s.name)
     return {"danh_sach": _dong_su_co(ds),
             "duoc_dong": duoc_dong_su_co(),
             "cong_doan": _ds_cong_doan(), "loai": list(M.LOAI_SU_CO),
             "nguon_tay": list(M.NGUON_TAY),
             "quyet_dinh_sp": list(M.QUYET_DINH_SP)}
+
+
+def _khac_phuc_cua(ds):
+    """Phiếu hành động khắc phục BM.01.07 (W24) mới nhất của từng sự cố: {sự cố: {name, trang_thai, han}}.
+    Chưa migrate → {} (ô Số CAR cũ vẫn hiện như trước)."""
+    try:
+        kp = frappe.get_all(_khac_phuc.PT, filters={"su_co": ("in", [s.name for s in ds] or [""])},
+                            fields=["name", "su_co", "trang_thai", "han"], order_by="creation asc")
+    except Exception:
+        return {}
+    return {x.su_co: {"name": x.name, "trang_thai": x.trang_thai, "han": str(x.han or "")} for x in kp}
 
 
 @frappe.whitelist()

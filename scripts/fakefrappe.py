@@ -397,7 +397,7 @@ def nap(ten, p):
 def nap_qc():
     """Nạp chuỗi module QC mà sx/api/qc.py cần, theo đúng thứ tự phụ thuộc."""
     for t in ("muc", "nguong", "quyen", "san_pham", "su_co", "xuat", "nhac", "dong_vat", "cat", "so_do",
-              "thiet_bi", "kiem_nghiem", "viec_dinh_ky"):
+              "thiet_bi", "kiem_nghiem", "viec_dinh_ky", "khac_phuc"):
         nap(f"sx.qc.{t}", f"sx/qc/{t}.py")
     return nap("sx.api.qc", "sx/api/qc.py")
 
