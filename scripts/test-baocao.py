@@ -212,8 +212,8 @@ if F.jinja2:
     kiem("việc đang treo tại ngày lập (từ Tổng quan ATTP) và chỗ ký Giám đốc", "Việc đang treo" in h and "Giám đốc" in h)
     # W41 (D170): báo cáo tháng là BM.01.12 "Báo cáo phân tích dữ liệu tháng" — mã, lần BH ghi cứng tới W42.
     hn = " ".join(h.replace("&nbsp;", " ").split())
-    kiem("W41: tiêu đề BM.01.12 'Báo cáo phân tích dữ liệu tháng', mã + lần BH 01, ô ký như giấy",
-         "Báo cáo phân tích dữ liệu tháng 09/2026" in h and "BM.01.12 · Lần BH 01 · QT.01 mục 5.7 · Số liệu" in hn
+    kiem("W41/W42: đầu trang chung — 'Báo cáo phân tích dữ liệu tháng' (QT.01 mục 5.7), mã BM.01.12, lần BH 01; ô ký",
+         "Báo cáo phân tích dữ liệu tháng (QT.01 mục 5.7) — tháng 09/2026" in hn and "BM.01.12 Lần BH: 01" in hn
          and "Báo cáo an toàn thực phẩm" not in h and "Trưởng Ban ISO (lập)" in h and "Giám đốc (đã xem)" in h,
          h[:300])
 goc = FR.get_all

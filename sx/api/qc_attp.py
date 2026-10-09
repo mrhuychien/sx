@@ -23,6 +23,7 @@ from sx.qc import kiem_xe as KX
 from sx.qc import muc as M
 from sx.qc import nhac as NH
 from sx.qc import rework as RW
+from sx.qc import tai_lieu as TL
 from sx.qc import thiet_bi as TBM
 from sx.qc import vai_u as VU
 from sx.qc import viec_dinh_ky as VD
@@ -179,6 +180,19 @@ def _viec_dinh_ky(d, dl):
             "tiep": {"ten": tiep[0]["ten"], "han": str(tiep[0]["han"])} if tiep else None}
 
 
+def _tai_lieu(dl):
+    """W42: tài liệu hiện hành, lượt chưa xác nhận đọc, đề nghị đang chờ, tài liệu bên ngoài (chưa soát xét)."""
+    tl = dl.get("tai_lieu")
+    if tl is None or tl == {}:
+        return None
+    ds = frappe.get_all(TL.PT, fields=["trang_thai", "nguon"])
+    return {"tong": len(ds), "hien_hanh": sum(1 for x in ds if x.trang_thai == TL.HIEN_HANH),
+            "ngoai": sum(1 for x in ds if x.nguon == TL.BEN_NGOAI and x.trang_thai == TL.HIEN_HANH),
+            "chua_doc": frappe.db.count(TL.PT_DOC, {"doc_luc": ("is", "not set")}),
+            "de_nghi": frappe.db.count(TL.PT_DN, {"trang_thai": ("in", [TL.CHO_XET, TL.CHO_DUYET])}),
+            "soat_xet": len(tl.get("soat_xet") or [])}
+
+
 @frappe.whitelist()
 def tong_quan(ngay=None):
     """{linh_vuc: [thẻ], dem: {do, vang, xanh}, ngay, tu, den} — xem sx/qc/attp.py."""
@@ -203,5 +217,6 @@ def tong_quan(ngay=None):
         "luu_mau": _thu(lambda: _luu_mau(dl)),
         "rework": _thu(lambda: _rework(tu, den)),
         "viec_dinh_ky": _thu(lambda: _viec_dinh_ky(d, dl)),
+        "tai_lieu": _thu(lambda: _tai_lieu(dl)),
     }
     return dict(A.tong_hop(NH.tinh(d, **dl), so), ngay=str(d), tu=str(tu), den=str(den), so_ngay=SO_NGAY)

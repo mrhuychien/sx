@@ -1,0 +1,123 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Tai Lieu Doc",
+ "autoname": "hash",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "title_field": "ten_tai_lieu",
+ "field_order": [
+  "tai_lieu",
+  "ma",
+  "ten_tai_lieu",
+  "lan_ban_hanh",
+  "dot_ban_hanh",
+  "column_break_1",
+  "user",
+  "ho_ten",
+  "vai",
+  "mo_luc",
+  "doc_luc"
+ ],
+ "fields": [
+  {
+   "fieldname": "tai_lieu",
+   "fieldtype": "Link",
+   "label": "Tài liệu",
+   "options": "SX Tai Lieu",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ten_tai_lieu",
+   "fieldtype": "Data",
+   "label": "Tên tài liệu",
+   "read_only": 1
+  },
+  {
+   "fieldname": "lan_ban_hanh",
+   "fieldtype": "Data",
+   "label": "Lần ban hành",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "dot_ban_hanh",
+   "fieldtype": "Link",
+   "label": "Đợt ban hành",
+   "options": "SX Dot Ban Hanh",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "Người",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "ho_ten",
+   "fieldtype": "Data",
+   "label": "Họ tên"
+  },
+  {
+   "fieldname": "vai",
+   "fieldtype": "Data",
+   "label": "Vai / chức danh"
+  },
+  {
+   "fieldname": "mo_luc",
+   "fieldtype": "Datetime",
+   "label": "Mở tệp lần đầu lúc"
+  },
+  {
+   "fieldname": "doc_luc",
+   "fieldtype": "Datetime",
+   "label": "Bấm 'Đã đọc, hiểu' lúc",
+   "in_list_view": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

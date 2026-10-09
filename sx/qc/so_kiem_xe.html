@@ -1,5 +1,6 @@
 {#- BM.09.01 — phiếu kiểm tra phương tiện vận chuyển (W14 D139, W34 D165). A4 ngang, đúng cột giấy QT.09
     lần BH 01: mỗi chuyến đã duyệt một dòng. Chuyến ghi theo bộ mục cũ (trước D165, bốn mục) in bảng riêng. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .kx { font: 10.5px/1.3 "Times New Roman", serif; color: #000; }
@@ -19,10 +20,8 @@
 </style>
 {%- macro dk(v) -%}{{ "Đ" if v == "Đạt" else ("K" if v == "Không đạt" else "") }}{%- endmacro -%}
 <div class="kx">
-  <h1>Phiếu kiểm tra phương tiện vận chuyển{% if thang %} — tháng {{ thang }}{% endif %}</h1>
-  <div class="ma">BM.09.01 &nbsp;·&nbsp; Lần BH 01 &nbsp;·&nbsp; QT.09
-    {% if not thang %}&nbsp;·&nbsp; Từ {{ frappe.utils.formatdate(tu, "dd/MM/yyyy") }} đến {{ frappe.utils.formatdate(den, "dd/MM/yyyy") }}{% endif %}
-    &nbsp;·&nbsp; {{ ds|length }} chuyến</div>
+  {{ dau_trang("BM.09.01", "Phiếu kiểm tra phương tiện vận chuyển", ("tháng " ~ thang) if thang else ("Từ " ~ frappe.utils.formatdate(tu, "dd/MM/yyyy") ~ " đến " ~ frappe.utils.formatdate(den, "dd/MM/yyyy")), "01", "QT.09") }}
+  <div class="ma">{{ ds|length }} chuyến</div>
   <div class="hd">Đ = đạt, K = không đạt. Mỗi chuyến một dòng. K ở bất kỳ mục nào: ghi xử lý ở cột Xử lý. QC kiểm ngẫu
     nhiên ít nhất 1 chuyến/tuần — ghi dưới tên người kiểm.</div>
   {% for b in bang %}

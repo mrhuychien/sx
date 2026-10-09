@@ -557,3 +557,16 @@ button.sx-qc-tag-chon {
 .sx-kx-dk.sx-kx-k { color: #fff; background: var(--sx-danger); border-radius: var(--sx-radius-sm); }
 .sx-kx-qc { margin: var(--sx-s2) 0; padding: var(--sx-s2) var(--sx-s3); border-radius: var(--sx-radius-sm);
   background: var(--sx-success-soft); color: var(--sx-success-text); }
+
+/* ── Thư viện tài liệu #/tailieu (W42, D171) — tiền tố sx-tl- ─────────────── */
+.sx-tl a.sx-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.sx-tl a.sx-qc-sc { text-decoration: none; color: inherit; }
+.sx-tl-ten { text-decoration: none; color: inherit; cursor: pointer; }
+.sx-tl-ma { font-family: var(--sx-mono); font-size: var(--sx-f-sm); color: var(--sx-text-2); }
+.sx-tl-het { opacity: .6; }
+.sx-tl-tim { width: 100%; }
+.sx-tl-cando { display: flex; flex-direction: column; gap: var(--sx-s2); }
+.sx-tl-nn { margin: var(--sx-s1) 0 var(--sx-s2); }
+.sx-tl-nn-o { cursor: pointer; border: 1px solid var(--sx-line); min-height: 34px; }
+.sx-tl-nn-on { background: var(--sx-season-btn); color: #fff; border-color: transparent; }
+.sx-tl-nk { font-family: var(--sx-mono); white-space: normal; }

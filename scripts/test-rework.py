@@ -177,7 +177,7 @@ print("\n-- BM.15.01, màn hình --")
 if F.jinja2:
     h = re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", A.in_bm1501("2026-10").split("</style>")[1]))
     kiem("BM.15.01: tháng, hàng → sản phẩm nhận, kg, tỷ lệ, lạc nguồn / nhận, sự cố, chỗ ký",
-         "BM.15.01" in h and "Tháng 10/2026" in h and "01/2023 · Bánh đậu xanh sen" in h and "5%" in h
+         "BM.15.01" in h and "tháng 10/2026" in h and "01/2023 · Bánh đậu xanh sen" in h and "5%" in h
          and "SC-2026-0007" in h and "Quản lý sản xuất" in h, h[:300])
     kiem("BM.15.01 (W32): cột giờ bắt đầu – kết thúc, QLSX quyết định (tên + giờ)",
          "Giờ bắt đầu – kết thúc" in h and "07:30 – 08:05" in h and "QLSX quyết định (giờ)" in h

@@ -487,4 +487,14 @@ node scripts/test-vaiu.mjs > /tmp/sx-vaiu-js.log 2>&1 \
   && tail -1 /tmp/sx-vaiu-js.log \
   || { cat /tmp/sx-vaiu-js.log; loi=1; }
 
+# D171 (W42): thư viện tài liệu. Ban hành không đẩy bản cũ vào lịch sử, bản Hiện hành sửa tay được, người đề nghị
+# tự duyệt, "Đã đọc, hiểu" bấm được khi chưa mở tệp, người ngoài nơi nhận tải được tệp riêng tư, nạp bộ hai lần
+# ra hai bộ — đều lặng lẽ.
+python3 scripts/test-tailieu.py > /tmp/sx-tailieu.log 2>&1 \
+  && tail -1 /tmp/sx-tailieu.log \
+  || { cat /tmp/sx-tailieu.log; loi=1; }
+node scripts/test-tailieu.mjs > /tmp/sx-tailieu-js.log 2>&1 \
+  && tail -1 /tmp/sx-tailieu-js.log \
+  || { cat /tmp/sx-tailieu-js.log; loi=1; }
+
 exit $loi

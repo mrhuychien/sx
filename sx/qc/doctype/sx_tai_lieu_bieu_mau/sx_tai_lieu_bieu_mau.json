@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Tai Lieu Bieu Mau",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "ma",
+  "ten",
+  "man_app"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã biểu mẫu",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên biểu mẫu",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "man_app",
+   "fieldtype": "Data",
+   "label": "Màn ghi trên app",
+   "in_list_view": 1,
+   "description": "Route màn app ghi biểu mẫu này (vd #/qc/cat). Trống = biểu mẫu giấy."
+  }
+ ],
+ "permissions": []
+}

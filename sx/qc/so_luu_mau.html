@@ -1,5 +1,6 @@
 {#- SLM — Sổ lưu mẫu sản phẩm, một tháng (lần BH 02, 21/9/2026 — W36 D167). A4 ngang, đúng cột giấy.
     Bảng 1: mẫu lấy trong tháng (mọi trạng thái). Bảng 2: mẫu huỷ / lấy ra trong tháng mà lấy từ tháng trước. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .lm { font: 10.5px/1.3 "Times New Roman", serif; color: #000; }
@@ -33,8 +34,8 @@
 </table>
 {%- endmacro -%}
 <div class="lm">
-  <h1>Sổ lưu mẫu sản phẩm — tháng {{ thang }}</h1>
-  <div class="ma">SLM &nbsp;·&nbsp; Lần BH 02 &nbsp;·&nbsp; QĐ.01 Lưu mẫu sản phẩm &nbsp;·&nbsp; {{ lay|length }} mẫu lấy trong tháng
+  {{ dau_trang("SLM", "Sổ lưu mẫu sản phẩm", "QĐ.01 Lưu mẫu sản phẩm — tháng " ~ thang, "02") }}
+  <div class="ma">{{ lay|length }} mẫu lấy trong tháng
     &nbsp;·&nbsp; {{ xu|length }} mẫu tháng trước huỷ / lấy ra trong tháng</div>
   <div class="hd">Mỗi lô một mẫu, lưu 1 năm từ NSX (QĐ.01 mục 5.3); số lô = HSD in trên bao bì. Lô đang có khiếu nại, sự cố,
     truy xuất chưa đóng: "GIỮ — chưa hủy". Hằng tháng QC rà sổ, hủy mẫu đến hạn; Trưởng Ban ISO xác nhận (mục 5.5).</div>

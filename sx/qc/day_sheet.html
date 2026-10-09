@@ -1,6 +1,7 @@
 {#- kem_style = False khi in GỘP NHIỀU NGÀY: nhét 30 bản sao khối <style> vào
     một tài liệu thì trình duyệt vẫn chạy, nhưng file PDF phình ra và ai mở ra
     đọc cũng tưởng có gì đó hỏng. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 {%- if kem_style is not defined or kem_style -%}
 {#- Tờ ngày BM.08.01 — một trang A4, ba cột lượt. In ra để đưa auditor.
     Bố cục bám bản giấy: người đã quen tập hồ sơ cũ cầm tờ này lên là đọc được
@@ -30,9 +31,7 @@
 </style>
 {%- endif %}
 <div class="qcs">
-  <h1>PHIẾU KIỂM TRA QC HÀNG NGÀY</h1>
-  <div class="ma">BM.08.01 &nbsp;·&nbsp; Ngày {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }}
-    {%- if co_bot %} &nbsp;·&nbsp; có sản xuất bột{% endif %}</div>
+  {{ dau_trang("BM.08.01", "Phiếu kiểm tra QC hàng ngày", "Ngày " ~ frappe.utils.formatdate(ngay, "dd/MM/yyyy") ~ (" · có sản xuất bột" if co_bot else "")) }}
 
   {% if not rounds %}
     <div class="trong">Ngày này chưa có lượt kiểm nào được hoàn tất.</div>

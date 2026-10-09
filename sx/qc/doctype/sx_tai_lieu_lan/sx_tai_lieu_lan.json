@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Tai Lieu Lan",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "lan_ban_hanh",
+  "ngay_ban_hanh",
+  "ngay_hieu_luc",
+  "het_hieu_luc_tu",
+  "tep",
+  "dot_ban_hanh",
+  "tom_tat_thay_doi"
+ ],
+ "fields": [
+  {
+   "fieldname": "lan_ban_hanh",
+   "fieldtype": "Data",
+   "label": "Lần ban hành",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngay_ban_hanh",
+   "fieldtype": "Date",
+   "label": "Ngày ban hành",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngay_hieu_luc",
+   "fieldtype": "Date",
+   "label": "Ngày hiệu lực"
+  },
+  {
+   "fieldname": "het_hieu_luc_tu",
+   "fieldtype": "Date",
+   "label": "Hết hiệu lực từ",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tep",
+   "fieldtype": "Attach",
+   "label": "Tệp PDF"
+  },
+  {
+   "fieldname": "dot_ban_hanh",
+   "fieldtype": "Link",
+   "label": "Đợt ban hành",
+   "options": "SX Dot Ban Hanh"
+  },
+  {
+   "fieldname": "tom_tat_thay_doi",
+   "fieldtype": "Small Text",
+   "label": "Tóm tắt thay đổi (lần sau so với lần này)",
+   "in_list_view": 1
+  }
+ ],
+ "permissions": []
+}

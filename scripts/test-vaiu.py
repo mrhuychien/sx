@@ -458,7 +458,7 @@ F.CAI_DAT.update({"vai_u_noi_giat": "Nhà giặt sau xưởng", "vai_u_thu_giat"
 F.vai("SX QC")
 h = re.sub(r"\s+", " ", API.in_bm0805("2026-10"))
 kiem("bản in BM.08.05: tiêu đề tháng, mã, lần BH 01, nơi giặt, ngày giặt cố định",
-     "Sổ giặt vải ủ — tháng 10/2026" in h and "BM.08.05" in h and "Lần BH 01" in h
+     "Sổ giặt vải ủ" in h and "tháng 10/2026" in h and "BM.08.05" in h and "Lần BH: 01" in h and "Kèm HD.08.02" in h
      and "Giặt tại: Nhà giặt sau xưởng" in h and "Ngày giặt cố định: Thứ Hai" in h)
 kiem("đúng 8 cột giấy theo thứ tự",
      re.findall(r"<th[^>]*>(.*?)</th>", h) == ["Ngày", "Việc", "Mã vải (V01-A…) hoặc số lượng",
@@ -478,7 +478,7 @@ kiem("tháng trống: 'chưa có dòng nào', ô xem xét để trống như gi�
 F.vai("ISO Manager")
 f = HSA._in("BM.08.05", date(2026, 9, 1), date(2026, 10, 9))
 kiem("gói zip hồ sơ: BM.08.05 mỗi tháng một tệp", [x[0] for x in f] == ["2026-09.html", "2026-10.html"]
-     and "Sổ giặt vải ủ — tháng 10/2026" in f[1][1])
+     and "Sổ giặt vải ủ" in f[1][1] and "tháng 10/2026" in f[1][1])
 
 # ═══ 9. Màn tong_quan, quyền ════════════════════════════════════════════════
 print("\n-- tong_quan, quyền theo vai --")

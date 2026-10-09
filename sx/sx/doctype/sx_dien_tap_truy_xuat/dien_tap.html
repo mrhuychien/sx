@@ -1,6 +1,7 @@
 {#- Phụ lục BM.02.04 — kết quả diễn tập truy xuất (W06, D132). Một trang A4 đứng,
     kẹp sau biên bản diễn tập giấy. Mọi số liệu là ẢNH CHỤP lúc bấm kết thúc (ket_qua),
     không phải tra lại lúc in: in lại tháng sau vẫn đúng như hôm diễn tập. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 portrait; margin: 12mm 10mm; }
   .dt { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -19,8 +20,8 @@
 {%- set cb = kq.get("can_bang") or {} -%}
 {%- set l = kq.get("lo") or {} -%}
 <div class="dt">
-  <h1>KẾT QUẢ DIỄN TẬP TRUY XUẤT NGUỒN GỐC</h1>
-  <div class="ma">Phụ lục BM.02.04 &nbsp;·&nbsp; Số: <b>{{ d.name }}</b>
+  {{ dau_trang("BM.02.04", "Kết quả diễn tập truy xuất nguồn gốc", "Phụ lục BM.02.04") }}
+  <div class="ma">Số: <b>{{ d.name }}</b>
     &nbsp;·&nbsp; Ngày {{ frappe.utils.formatdate(d.ngay, "dd/MM/yyyy") }}</div>
 
   <table>

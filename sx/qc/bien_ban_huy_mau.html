@@ -1,5 +1,6 @@
 {#- Biên bản huỷ mẫu lưu — một đợt tháng (W07, D133). A4 đứng, kẹp hồ sơ lưu mẫu.
     Chữ ký = tài khoản + giờ server ghi lúc đề xuất / xác nhận; ô ký tay để ký lại. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 portrait; margin: 12mm 10mm; }
   .bb { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -14,7 +15,7 @@
   .bb .ky td { border: 0; text-align: center; height: 60px; }
 </style>
 <div class="bb">
-  <h1>BIÊN BẢN HUỶ MẪU LƯU</h1>
+  {{ dau_trang("QĐ.01", "Biên bản huỷ mẫu lưu", "Lưu mẫu sản phẩm — huỷ mẫu hết hạn lưu") }}
   <div class="ma">Đợt <b>{{ d.name }}</b> &nbsp;·&nbsp; Tháng {{ d.thang }} &nbsp;·&nbsp; {{ d.trang_thai }}</div>
   <table style="margin-bottom:6px">
     <tr><th style="width:22%">QC đề xuất</th><td>{{ d.lap_boi or "—" }}

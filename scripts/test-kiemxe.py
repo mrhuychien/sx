@@ -401,8 +401,8 @@ if F.jinja2:
     c = chu(html)
     dau = re.findall(r"<tr><th.*?</tr>", html, re.S)
     cot = [re.sub(r"\s+", " ", re.sub("<[^>]+>", "", t)).strip() for t in re.findall(r"<th[^>]*>(.*?)</th>", dau[0], re.S)]
-    kiem("tháng 10/2026, mã BM.09.01 · Lần BH 01, cột đúng tờ giấy",
-         "tháng 10/2026" in c and "BM.09.01 · Lần BH 01" in c
+    kiem("tháng 10/2026, đầu trang chung (W42): mã BM.09.01 kèm QT.09, lần BH 01; cột đúng tờ giấy",
+         "tháng 10/2026" in c and "BM.09.01 Kèm QT.09 Lần BH: 01" in c
          and cot == ["Ngày", "Biển số", "Đơn vị VC", "Hàng, số lượng, HSD", "Sạch khô", "Mùi", "Kín/che", "Hàng chung",
                      "Sàn", "Đạt", "Xử lý", "Người kiểm", "Lái xe ký"], cot)
     kiem("chỉ chuyến đã duyệt (nháp SI-C không in); Đ / K; xử lý; QC kiểm ghi dưới người kiểm; lái xe ký",

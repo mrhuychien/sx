@@ -1,0 +1,19 @@
+{#- Đầu trang in chung (W42, D171) — khối 3 cột như giấy: công ty · tên biểu mẫu · mã / lần BH / ngày BH.
+    Dùng: {% from "sx/qc/_dau_trang.html" import dau_trang %}{{ dau_trang("BM.08.03", "Nhật ký cát rang", "tháng 10/2026") }}
+    Mã, lần BH tra trong thư viện tài liệu (sx/qc/mau_in.py, hàm Jinja `sx_dau_trang`); thư viện chưa có mã thì in
+    `lan` truyền vào (lần BH ghi sẵn trước W42), không có nữa thì để chấm cho ghi tay. `kem`: tài liệu đi kèm. -#}
+{%- macro dau_trang(ma, ten, phu="", lan="", kem="") -%}
+{%- set d = sx_dau_trang(ma, ten) if sx_dau_trang is defined else {"ma": ma, "ten": ten, "lan_ban_hanh": "",
+    "ngay_ban_hanh": "", "kem": "", "cong_ty": ""} -%}
+{%- set kem_in = d.kem or kem -%}
+<table class="sx-dau-trang" style="width:100%;border-collapse:collapse;margin:0 0 6px">
+  <tr>
+    <td style="width:22%;border:1px solid #000;padding:3px 5px;text-align:center;vertical-align:middle;font-weight:bold;font-size:10.5px">{{ d.cong_ty }}</td>
+    <td style="border:1px solid #000;padding:3px 5px;text-align:center;vertical-align:middle"><div style="font-weight:bold;font-size:14px;text-transform:uppercase">{{ ten }}</div>
+      {%- if phu %}<div style="font-size:10.5px;font-weight:normal">{{ phu }}</div>{% endif %}</td>
+    <td style="width:22%;border:1px solid #000;padding:3px 5px;text-align:left;vertical-align:middle;font-size:10px"><b>{{ d.ma }}</b>
+      {%- if kem_in %}<br>Kèm {{ kem_in }}{% endif %}<br>Lần BH: {{ d.lan_ban_hanh or lan or "……" }}
+      {%- if d.ngay_ban_hanh %}<br>Ngày BH: {{ d.ngay_ban_hanh }}{% endif %}</td>
+  </tr>
+</table>
+{%- endmacro -%}

@@ -1,4 +1,5 @@
 {#- BM.01.07 — phiếu hành động khắc phục (W24, D150). A4 dọc, một phiếu một trang. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 portrait; margin: 12mm 12mm; }
   .kp { font: 12px/1.4 "Times New Roman", serif; color: #000; }
@@ -13,8 +14,8 @@
   .kp .ky td { border: 0; text-align: center; height: 64px; width: 33%; }
 </style>
 <div class="kp">
-  <h1>Phiếu hành động khắc phục</h1>
-  <div class="ma">BM.01.07 &nbsp;·&nbsp; Số {{ d.name }} &nbsp;·&nbsp; Ngày lập
+  {{ dau_trang("BM.01.07", "Phiếu hành động khắc phục") }}
+  <div class="ma">Số {{ d.name }} &nbsp;·&nbsp; Ngày lập
     {{ frappe.utils.formatdate(d.ngay, "dd/MM/yyyy") if d.ngay else "—" }} &nbsp;·&nbsp; Trạng thái: {{ d.trang_thai }}</div>
   <table>
     <tr><th>Nguồn</th><td>{{ d.nguon }}{% if d.su_co %} — phiếu sự cố <b>{{ d.su_co }}</b>{% if sc %}

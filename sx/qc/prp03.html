@@ -1,4 +1,5 @@
 {#- BM.PRP.03 — theo dõi động vật gây hại theo trạm, một tuần (W15, D140). A4 đứng. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 portrait; margin: 10mm 8mm; }
   .dv { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -14,8 +15,7 @@
   .dv .ky td { border: 0; text-align: center; height: 56px; }
 </style>
 <div class="dv">
-  <h1>Theo dõi động vật gây hại theo trạm</h1>
-  <div class="ma">BM.PRP.03 &nbsp;·&nbsp; Tuần {{ frappe.utils.formatdate(tu, "dd/MM/yyyy") }} – {{ frappe.utils.formatdate(den, "dd/MM/yyyy") }}</div>
+  {{ dau_trang("BM.PRP.03", "Theo dõi động vật gây hại theo trạm", "Tuần " ~ frappe.utils.formatdate(tu, "dd/MM/yyyy") ~ " – " ~ frappe.utils.formatdate(den, "dd/MM/yyyy")) }}
   {% for c in canh_bao %}<div class="cb">⚠ {{ c.khu }}: có dấu hiệu hai tuần liền (trạm {{ c.tram|join(", ") }}) — gọi đơn vị dịch vụ.</div>{% endfor %}
   <table>
     <tr><th style="width:7%">Trạm</th><th style="width:16%">Khu / vị trí</th><th style="width:10%">Kết quả</th>

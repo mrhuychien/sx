@@ -1,0 +1,195 @@
+{
+ "nguon": "BM.01.03 Danh mục tài liệu bên ngoài, cập nhật 21/9/2026",
+ "soat_xet": "Ban ISO soát xét khi có văn bản mới hoặc ít nhất 1 lần/năm (QT.01)",
+ "ds": [
+  {
+   "stt": 1,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "Hệ thống quản lý an toàn thực phẩm – Yêu cầu đối với các tổ chức trong chuỗi cung ứng thực phẩm",
+   "so_hieu_co_quan": "ISO 22000:2018; ISO",
+   "noi_dung_ap_dung": "Chuẩn mực của HTQL ATTP Công ty",
+   "dan_chieu": "Sổ tay, CS.ATTP, MT.ATTP; các quy trình QT.01–QT.15; KH.HACCP.01, 02; PRP; QĐ.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 2,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "Chương trình tiên quyết về an toàn thực phẩm, Phần 1: Chế biến thực phẩm",
+   "so_hieu_co_quan": "ISO/TS 22002-1:2009; ISO",
+   "noi_dung_ap_dung": "Yêu cầu PRP; mục 18 phòng vệ thực phẩm",
+   "dan_chieu": "PRP; QT.14",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 3,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "Quản lý rủi ro – Hướng dẫn",
+   "so_hieu_co_quan": "ISO 31000:2018; ISO",
+   "noi_dung_ap_dung": "Phương pháp xác định, đánh giá rủi ro",
+   "dan_chieu": "QT.05",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 4,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "Chuẩn công nhận năng lực phòng thử nghiệm",
+   "so_hieu_co_quan": "ISO/IEC 17025",
+   "noi_dung_ap_dung": "Tiêu chí chọn phòng thử nghiệm bên ngoài",
+   "dan_chieu": "KH.KN.01; MT.ATTP; QT.04",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 5,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "GFSI Benchmarking Requirements",
+   "so_hieu_co_quan": "GFSI",
+   "noi_dung_ap_dung": "Đánh giá tổn thương gian lận thực phẩm và kế hoạch giảm thiểu",
+   "dan_chieu": "QT.14",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 6,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "TACCP – phân tích mối đe dọa",
+   "so_hieu_co_quan": "PAS 96",
+   "noi_dung_ap_dung": "Phòng vệ thực phẩm",
+   "dan_chieu": "QT.14",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 7,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "Nguyên tắc chung về vệ sinh thực phẩm (kể cả phụ lục HACCP)",
+   "so_hieu_co_quan": "TCVN 5603:2023 (CXC 1-1969, Rev. 2020)",
+   "noi_dung_ap_dung": "Nguyên tắc vệ sinh; các nguyên tắc HACCP của Codex",
+   "dan_chieu": "KH.HACCP.01, 02; PRP; QT.08; QT.09; QT.11; QT.15; QĐ.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 8,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "Bánh đậu xanh",
+   "so_hieu_co_quan": "TCVN 7240:2003",
+   "noi_dung_ap_dung": "Tham khảo (TCCS 03)",
+   "dan_chieu": "KH.HACCP.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 9,
+   "nhom": "TIÊU CHUẨN, HƯỚNG DẪN",
+   "ten": "Đường trắng",
+   "so_hieu_co_quan": "TCVN 13744:2023",
+   "noi_dung_ap_dung": "Yêu cầu đối với đường nguyên liệu",
+   "dan_chieu": "KH.HACCP.01, 02; HD.07.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 10,
+   "nhom": "QUY CHUẨN KỸ THUẬT, VĂN BẢN CỦA BỘ Y TẾ",
+   "ten": "Quy chuẩn kỹ thuật quốc gia về chất lượng nước sạch sử dụng cho mục đích sinh hoạt",
+   "so_hieu_co_quan": "QCVN 01-1:2024/BYT; Bộ Y tế",
+   "noi_dung_ap_dung": "Nước dùng sản xuất; kiểm nghiệm nước",
+   "dan_chieu": "PRP (SSOP 1); KH.HACCP.01, 02; HD.07.01; KH.KN.01; QT.03; KH.03.01; QT.08",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 11,
+   "nhom": "QUY CHUẨN KỸ THUẬT, VĂN BẢN CỦA BỘ Y TẾ",
+   "ten": "Quy chuẩn về độc tố vi nấm trong thực phẩm (giới hạn aflatoxin)",
+   "so_hieu_co_quan": "QCVN 8-1:2011/BYT; Bộ Y tế",
+   "noi_dung_ap_dung": "Aflatoxin lạc, đỗ (oPRP-6); chỉ tiêu thành phẩm",
+   "dan_chieu": "KH.HACCP.01, 02; HD.07.01; KH.KN.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 12,
+   "nhom": "QUY CHUẨN KỸ THUẬT, VĂN BẢN CỦA BỘ Y TẾ",
+   "ten": "Quy chuẩn về kim loại nặng trong thực phẩm",
+   "so_hieu_co_quan": "QCVN 8-2:2011/BYT; Bộ Y tế",
+   "noi_dung_ap_dung": "Chỉ tiêu kim loại nặng thành phẩm",
+   "dan_chieu": "KH.HACCP.01, 02; KH.KN.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 13,
+   "nhom": "QUY CHUẨN KỸ THUẬT, VĂN BẢN CỦA BỘ Y TẾ",
+   "ten": "Quy chuẩn về bao bì nhựa tiếp xúc trực tiếp với thực phẩm",
+   "so_hieu_co_quan": "QCVN 12-1:2011/BYT; Bộ Y tế",
+   "noi_dung_ap_dung": "Công bố hợp quy/phù hợp bao bì; thôi nhiễm khi đổi NCC",
+   "dan_chieu": "HD.07.01; KH.KN.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 14,
+   "nhom": "QUY CHUẨN KỸ THUẬT, VĂN BẢN CỦA BỘ Y TẾ",
+   "ten": "Quy chuẩn về bao bì kim loại tiếp xúc trực tiếp với thực phẩm",
+   "so_hieu_co_quan": "QCVN 12-3:2011/BYT; Bộ Y tế",
+   "noi_dung_ap_dung": "Công bố hợp quy/phù hợp bao bì; thôi nhiễm khi đổi NCC",
+   "dan_chieu": "HD.07.01; KH.KN.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 15,
+   "nhom": "QUY CHUẨN KỸ THUẬT, VĂN BẢN CỦA BỘ Y TẾ",
+   "ten": "Giới hạn ô nhiễm vi sinh vật trong thực phẩm",
+   "so_hieu_co_quan": "Quyết định 46/2007/QĐ-BYT; Bộ Y tế",
+   "noi_dung_ap_dung": "Căn cứ tự công bố 2021, 2023",
+   "dan_chieu": "KH.HACCP.01, 02",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 16,
+   "nhom": "QUY CHUẨN KỸ THUẬT, VĂN BẢN CỦA BỘ Y TẾ",
+   "ten": "Quản lý và sử dụng phụ gia thực phẩm",
+   "so_hieu_co_quan": "Thông tư 24/2019/TT-BYT; Bộ Y tế",
+   "noi_dung_ap_dung": "Danh mục phụ gia, hương liệu, phẩm màu được phép dùng",
+   "dan_chieu": "KH.HACCP.01, 02; HD.07.01; KH.KN.01; QT.14",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 17,
+   "nhom": "LUẬT, NGHỊ ĐỊNH, QUY ĐỊNH KHÁC",
+   "ten": "Luật An toàn thực phẩm",
+   "so_hieu_co_quan": "Luật 55/2010/QH12; Quốc hội",
+   "noi_dung_ap_dung": "Căn cứ pháp lý về điều kiện bảo đảm ATTP",
+   "dan_chieu": "PRP; KH.HACCP.01",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 18,
+   "nhom": "LUẬT, NGHỊ ĐỊNH, QUY ĐỊNH KHÁC",
+   "ten": "Quy định chi tiết thi hành Luật An toàn thực phẩm",
+   "so_hieu_co_quan": "Nghị định 15/2018/NĐ-CP; Chính phủ",
+   "noi_dung_ap_dung": "Điều kiện bảo đảm ATTP; tập huấn kiến thức, khám sức khỏe",
+   "dan_chieu": "KH.HACCP.01, 02; PRP",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 19,
+   "nhom": "LUẬT, NGHỊ ĐỊNH, QUY ĐỊNH KHÁC",
+   "ten": "Quy định về ghi nhãn hàng hóa hiện hành",
+   "so_hieu_co_quan": "NĐ 37/2026/NĐ-CP; TT 29/2023/TT-BYT",
+   "noi_dung_ap_dung": "Ghi nhãn, số lô, cảnh báo chất gây dị ứng",
+   "dan_chieu": "KH.HACCP.01, 02",
+   "bo_phan": "Ban ISO"
+  },
+  {
+   "stt": 20,
+   "nhom": "LUẬT, NGHỊ ĐỊNH, QUY ĐỊNH KHÁC",
+   "ten": "Luật Phòng cháy, chữa cháy và cứu nạn, cứu hộ",
+   "so_hieu_co_quan": "55/2024/QH15; Quốc hội",
+   "noi_dung_ap_dung": "Căn cứ công tác PCCC, diễn tập, hồ sơ PCCC",
+   "dan_chieu": "QT.03; KH.03.01; Hồ sơ quản lý PCCC",
+   "bo_phan": "Hành chính – Văn thư"
+  },
+  {
+   "stt": 21,
+   "nhom": "LUẬT, NGHỊ ĐỊNH, QUY ĐỊNH KHÁC",
+   "ten": "Quy định chi tiết một số điều và biện pháp thi hành Luật Phòng cháy, chữa cháy và cứu nạn, cứu hộ",
+   "so_hieu_co_quan": "Nghị định 105/2025/NĐ-CP; Chính phủ",
+   "noi_dung_ap_dung": "Nội quy, đội PCCC, hồ sơ quản lý PCCC",
+   "dan_chieu": "Hồ sơ quản lý PCCC",
+   "bo_phan": "Hành chính – Văn thư"
+  }
+ ]
+}

@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-134';
+const BUILD = 'sx-135';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -23,6 +23,8 @@ const VIEW_PATHS = {
   tet: '/assets/sx/sx/views/tet.js',
   quanly: '/assets/sx/sx/views/quanly.js',
   qc: '/assets/sx/sx/views/qc.js',
+  // W42 (D171): thư viện tài liệu — mọi vai vào được, tab cuối.
+  tailieu: '/assets/sx/sx/views/tailieu.js',
 };
 const CARD_PATHS = {
   xuatdau: '/assets/sx/sx/cards/xuatdau.js',
@@ -55,11 +57,12 @@ const VIEW_META = {
   tet: { label: 'Vào hộp Tết', icon: '🧧' },
   quanly: { label: 'Quản lý', icon: '📊' },
   qc: { label: 'QC', icon: '🧪' },
+  tailieu: { label: 'Tài liệu', icon: '📚' },
 };
 
 // Màn hình tự dựng nhiều màn con (#/qc/round/:name…) và tự lo thanh ngày của
 // mình. Shell giấu thanh ngày chung để không có HAI ô ngày trên một màn.
-const VIEW_TU_LO_NGAY = new Set(['qc']);
+const VIEW_TU_LO_NGAY = new Set(['qc', 'tailieu']);
 
 const views = (CTX.views && CTX.views.length) ? CTX.views : ['ghiso'];
 const landing = CTX.landing || views[0];
@@ -398,6 +401,8 @@ Object.keys(VIEW_PATHS).forEach((v) => {
 // Màn con của QC: '#/qc/incidents', '#/qc/round/QC-…'. Cùng một view lo hết,
 // nó tự đọc hash — xem sx/public/sx/views/qc.js.
 router.registerPrefix('#/qc/', async (container) => renderView('qc', container));
+// Thư viện tài liệu (W42): '#/tailieu/denghi', '#/tailieu/dot/DBH-…' — view tailieu tự đọc hash.
+router.registerPrefix('#/tailieu/', async (container) => renderView('tailieu', container));
 router.register('#/', async (container) => renderView(landing, container));
 
 async function renderView(viewName, container) {

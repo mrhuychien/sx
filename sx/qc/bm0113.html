@@ -1,0 +1,69 @@
+{#- BM.01.13 — biên bản phổ biến, đào tạo tài liệu và danh sách phân phối, theo một đợt ban hành (W42, D171).
+    Người có tài khoản bấm "Đã đọc, hiểu" trên app → in giờ xác nhận thay chữ ký (C28); người chưa xác nhận / không
+    có tài khoản → ô ký tay (Ban ISO in, cho ký, scan vào hồ sơ của đợt). A4 ngang. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .pb { font: 11px/1.3 "Times New Roman", serif; color: #000; }
+  .pb .ma { font-size: 10.5px; margin-bottom: 4px; }
+  .pb h2 { font-size: 12px; margin: 8px 0 3px; }
+  .pb table.b { width: 100%; border-collapse: collapse; }
+  .pb .b td, .pb .b th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
+  .pb .b th { background: #eee; }
+  .pb tr { break-inside: avoid; }
+  .pb .c { text-align: center; }
+  .pb .ky { width: 100%; margin-top: 10px; }
+  .pb .ky td { border: 0; text-align: center; height: 56px; vertical-align: top; }
+  .pb .dt { font-size: 10px; font-style: italic; }
+</style>
+<div class="pb">
+  {{ dau_trang("BM.01.13", "Biên bản phổ biến, đào tạo tài liệu và danh sách phân phối", "(QT.01) — đợt " ~ d.name, "01") }}
+  <div class="ma">Số: ……/BB-HG &nbsp;·&nbsp; Theo quyết định số <b>{{ d.so_quyet_dinh or "……/QĐ-HG" }}</b>
+    ngày {{ frappe.utils.formatdate(d.ngay_ban_hanh, "dd/MM/yyyy") if d.ngay_ban_hanh else "……" }},
+    áp dụng từ {{ frappe.utils.formatdate(d.ngay_hieu_luc, "dd/MM/yyyy") if d.ngay_hieu_luc else "……" }}
+    {% if ky_ban_hanh %}&nbsp;·&nbsp; Ban hành: {{ ky_ban_hanh }}{% endif %}</div>
+  <div class="ma">Thời gian: …… giờ ……, ngày ……/……/20…… &nbsp;·&nbsp; Địa điểm: …………… &nbsp;·&nbsp; Người phổ biến: ……………</div>
+
+  <h2>1. Tài liệu được phổ biến và nội dung chính</h2>
+  <table class="b">
+    <tr><th style="width:4%">TT</th><th style="width:13%">Mã tài liệu</th><th>Tên tài liệu</th><th style="width:9%">Lần BH</th>
+      <th style="width:12%">Hành động</th><th style="width:34%">Nội dung chính đã phổ biến (điểm mới, thông số, việc phải làm)</th></tr>
+    {% set tt = namespace(n=0) %}
+    {% for r in d.ds if r.hanh_dong != "Giữ nguyên" %}{% set tt.n = tt.n + 1 %}
+    <tr><td class="c">{{ tt.n }}</td><td>{{ r.ma or "—" }}</td><td>{{ r.ten }}</td><td>{{ r.lan_ban_hanh_moi or r.lan_hien }}</td>
+      <td>{{ r.hanh_dong }}</td><td>{{ r.tom_tat }}</td></tr>
+    {% else %}
+    <tr><td colspan="6" class="c">Đợt không có tài liệu mới / sửa đổi.</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>2. Người nhận — xác nhận đã được phổ biến, đọc, hiểu và áp dụng</h2>
+  <table class="b">
+    <tr><th style="width:4%">TT</th><th style="width:20%">Họ và tên</th><th style="width:18%">Bộ phận / vai</th>
+      <th style="width:18%">Tài liệu</th><th>Xác nhận</th></tr>
+    {% for r in doc %}
+    <tr><td class="c">{{ loop.index }}</td><td>{{ r.ho_ten or r.user }}</td><td>{{ r.vai or "" }}</td>
+      <td>{{ r.ma or r.ten_tai_lieu }}{% if r.lan_ban_hanh %} (lần {{ r.lan_ban_hanh }}){% endif %}</td>
+      <td>{% if r.doc_luc %}Đã đọc trên phần mềm lúc {{ r.doc_luc[11:16] }} ngày {{ frappe.utils.formatdate(r.doc_luc, "dd/MM/yyyy") }}{% else %}Ký: ……………………{% endif %}</td></tr>
+    {% else %}
+    <tr><td colspan="5">Đợt không tạo yêu cầu đọc trên app — người dự ký tay dưới đây.</td></tr>
+    {% for i in range(8) %}<tr><td class="c">{{ i + 1 }}</td><td style="height:22px"></td><td></td><td></td><td></td></tr>{% endfor %}
+    {% endfor %}
+  </table>
+
+  <h2>3. Danh sách phân phối tài liệu</h2>
+  <table class="b">
+    <tr><th style="width:4%">TT</th><th style="width:15%">Mã tài liệu</th><th style="width:22%">Bộ phận nhận</th>
+      <th style="width:12%">Hình thức</th><th style="width:7%">Số bản</th><th style="width:10%">Ngày nhận</th>
+      <th style="width:12%">Người nhận ký</th><th>Thu hồi bản cũ (ngày, ký)</th></tr>
+    {% for r in phan_phoi %}
+    <tr><td class="c">{{ loop.index }}</td><td>{{ r.ma }}</td><td>{{ r.noi_nhan }}</td><td>{{ r.hinh_thuc }}</td>
+      <td></td><td></td><td></td><td></td></tr>
+    {% else %}
+    <tr><td colspan="8" class="c">Tài liệu của đợt chưa khai nơi nhận.</td></tr>
+    {% endfor %}
+  </table>
+  <div class="ma" style="margin-top:6px">Đánh giá hiệu quả: ☐ Hỏi đáp tại chỗ đạt &nbsp; ☐ Kiểm tra áp dụng tại hiện trường
+    ngày ……/……/20…… (kết quả: ……………)</div>
+  <table class="ky"><tr><td><b>Người phổ biến</b><br>(ký, ghi rõ họ tên)</td><td><b>Trưởng Ban ISO</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

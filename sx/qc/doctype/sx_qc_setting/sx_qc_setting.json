@@ -55,7 +55,9 @@
   "kn_han_dau",
   "section_quyen",
   "nguoi_dong_su_co",
-  "nguoi_duyet_xuat_xuong"
+  "nguoi_duyet_xuat_xuong",
+  "section_in",
+  "ten_cong_ty"
  ],
  "fields": [
   {
@@ -374,10 +376,21 @@
    "label": "Được duyệt phiếu kiểm tra xuất xưởng BM.08.04 (ngoài Ban ISO)",
    "options": "SX QC Nguoi Duoc Giao",
    "description": "W08: người duyệt là Trưởng Ban ISO hoặc người được giao ở đây — và không phải QC đã kiểm lô đó."
+  },
+  {
+   "fieldname": "section_in",
+   "fieldtype": "Section Break",
+   "label": "Bản in"
+  },
+  {
+   "fieldname": "ten_cong_ty",
+   "fieldtype": "Data",
+   "label": "Tên công ty trên đầu trang in",
+   "description": "W42: ô trái đầu trang mọi bản in (như giấy). Để trống = CÔNG TY CỔ PHẦN HOÀNG GIANG."
   }
  ],
  "links": [],
- "modified": "2026-10-09 22:00:00.000000",
+ "modified": "2026-10-09 22:30:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

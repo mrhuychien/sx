@@ -53,6 +53,10 @@ BIEU_MAU = {
     "HUY_MAU": ("Biên bản huỷ mẫu lưu", "luu_mau"),
     "TU_CONG_BO": ("Danh mục sản phẩm tự công bố", None),
     "BC.THANG": ("Báo cáo ATTP tháng, chỉ tiêu ATTP", None),
+    # W42 (D171): thư viện tài liệu — app tự lập BM.01.02 / BM.01.03; BM.01.13 theo đợt ban hành trong kỳ.
+    "BM.01.02": ("Danh mục tài liệu nội bộ", "tai_lieu"),
+    "BM.01.03": ("Danh mục tài liệu bên ngoài", "tai_lieu"),
+    "BM.01.13": ("Biên bản phổ biến tài liệu, danh sách phân phối", "tai_lieu"),
 }
 
 

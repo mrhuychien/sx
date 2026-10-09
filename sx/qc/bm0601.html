@@ -1,4 +1,5 @@
 {#- BM.06.01 — danh mục thiết bị đo, theo dõi (W17, D143). A4 ngang. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .tb { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -14,8 +15,8 @@
   .tb .ky td { border: 0; height: 56px; }
 </style>
 <div class="tb">
-  <h1>Danh mục thiết bị đo, theo dõi</h1>
-  <div class="ma">BM.06.01 &nbsp;·&nbsp; Ngày in {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }} &nbsp;·&nbsp; {{ ds|length }} thiết bị</div>
+  {{ dau_trang("BM.06.01", "Danh mục thiết bị đo, theo dõi") }}
+  <div class="ma">Ngày in {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }} &nbsp;·&nbsp; {{ ds|length }} thiết bị</div>
   <table>
     <tr><th style="width:4%">STT</th><th style="width:9%">Mã</th><th class="t">Tên thiết bị</th><th style="width:10%">Loại</th>
       <th style="width:13%">Vị trí / máy</th><th style="width:6%">Chu kỳ<br>(tháng)</th><th style="width:9%">Kiểm gần nhất</th>

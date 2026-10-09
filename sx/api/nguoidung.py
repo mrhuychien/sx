@@ -30,16 +30,21 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, get_url, now_datetime
 
-from sx.config.roles import GHI_SO, QC_TET, QUAN_LY, THU_KHO, VAO_HOP, guard_card
+from sx.config.roles import (BAO_VE, CO_DIEN, GHI_SO, HANH_CHINH, QC_TET, QUAN_LY, THU_KHO, VAO_HOP,
+                             guard_card)
 
 # Role gán được từ màn này. QUAN_LY có trong danh sách vì xưởng cần người thay ca,
 # nhưng không có role nào của Frappe lõi — xem docstring.
+# W42 (D171, C24): Cơ điện, Hành chính – Văn thư, Bảo vệ — đọc tài liệu được phân phối (W43: ghi sổ).
 ROLE_CHO_PHEP = {
     VAO_HOP: "QC vào hộp",
     GHI_SO: "Ghi sổ",
     THU_KHO: "Thủ kho",
     QC_TET: "QC vào hộp Tết",
     QUAN_LY: "Quản lý",
+    CO_DIEN: "Cơ điện",
+    HANH_CHINH: "Hành chính – Văn thư",
+    BAO_VE: "Bảo vệ",
 }
 
 # Mã QR sống bao lâu. Đủ để in thẻ hôm nay, phát cho ca sau; không đủ để một tờ giấy

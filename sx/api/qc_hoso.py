@@ -164,8 +164,10 @@ def _cac_thang(tu, den):
     return ra
 
 
-def _bang(tieu_de, phu, cot, hang):
-    return frappe.render_template("sx/qc/hs_bang.html", {"tieu_de": tieu_de, "phu": phu, "cot": cot, "hang": hang})
+def _bang(tieu_de, phu, cot, hang, ma=""):
+    """Bảng đơn giản; có `ma` thì in đầu trang chung (W42) theo mã đó."""
+    return frappe.render_template("sx/qc/hs_bang.html", {"tieu_de": tieu_de, "phu": phu, "cot": cot, "hang": hang,
+                                                         "ma": ma})
 
 
 def _in(bm, tu, den):
@@ -237,7 +239,7 @@ def _in(bm, tu, den):
                  f"{float(x.get('can_bang_pt') or 0):g}%", "Đạt" if cint(x.get("dat")) else "Chưa đạt"] for x in ds]
         return [("dien-tap.html", _trang("Diễn tập truy xuất", _bang(
             "Các lần diễn tập truy xuất", f"{HS.ngay_vn(tu)} – {HS.ngay_vn(den)} · bản in từng lần ở thẻ Truy xuất",
-            ["Phiếu", "Ngày", "Sản phẩm", "Lô", "HSD", "Phút", "Cân bằng", "Kết quả"], hang)))]
+            ["Phiếu", "Ngày", "Sản phẩm", "Lô", "HSD", "Phút", "Cân bằng", "Kết quả"], hang, "BM.02.04")))]
     if bm == "SLM":
         return [(f"{t}.html", _trang(f"SLM — sổ lưu mẫu {t}", Q.in_so_luu_mau(t))) for t, _a, _b in thang]
     if bm == "BM.07.03":
@@ -252,6 +254,16 @@ def _in(bm, tu, den):
         hom_qua = add_days(getdate(nowdate()), -1)
         return [(f"{t}.html", _trang(f"Báo cáo ATTP {t}", qc_baocao.in_bao_cao(t))) for t, a, _b in thang
                 if a.replace(day=1) <= hom_qua]
+    if bm in ("BM.01.02", "BM.01.03"):            # W42: danh mục hiện hành lúc tải gói
+        from sx.api import qc_tailieu
+        ham = qc_tailieu.in_bm0102 if bm == "BM.01.02" else qc_tailieu.in_bm0103
+        return [(f"{bm}.html", _trang(f"{bm} — {HS.BIEU_MAU[bm][0]}", ham()))]
+    if bm == "BM.01.13":                             # W42: mỗi đợt ban hành trong kỳ một biên bản
+        from sx.api import qc_tailieu
+        ds = frappe.get_all("SX Dot Ban Hanh", filters={"trang_thai": "Đã ban hành",
+                                                        "ngay_ban_hanh": ("between", [tu, den])},
+                            pluck="name", order_by="ngay_ban_hanh asc")
+        return [(f"{HS.slug(n)}.html", _trang(f"BM.01.13 — {n}", qc_tailieu.in_bm0113(n))) for n in ds]
     if bm == "TU_CONG_BO":
         ds = frappe.get_all(SP, filters={"ngung_san_xuat": 0}, order_by="so_cong_bo asc",
                             fields=["so_cong_bo", "ten_san_pham", "loai", "tccs", "han_dung_thang", "quy_cach"])

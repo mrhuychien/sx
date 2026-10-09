@@ -1,4 +1,5 @@
 {#- BM.06.02 / 06.03 / 06.04 — các lần kiểm thiết bị đo trong một năm (W17, D143). A4 ngang. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .tb { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -14,8 +15,8 @@
   .tb .ky td { border: 0; height: 56px; }
 </style>
 <div class="tb">
-  <h1>{{ ten }}</h1>
-  <div class="ma">{{ ma }} &nbsp;·&nbsp; Năm {{ nam }} &nbsp;·&nbsp; {{ ds|length }} lần kiểm</div>
+  {{ dau_trang(ma, ten, "Năm " ~ nam) }}
+  <div class="ma">{{ ds|length }} lần kiểm</div>
   <table>
     <tr><th style="width:8%">Ngày</th><th style="width:16%">Thiết bị</th><th style="width:11%">Hình thức</th>
       {% if loai == "Đồng hồ nhiệt" %}<th>Điểm 1<br>chuẩn / đọc (°C)</th><th>Điểm 2<br>chuẩn / đọc (°C)</th><th>Sai số / cho phép</th>

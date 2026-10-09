@@ -3,6 +3,7 @@
     7 việc đang treo tại ngày lập. Danh sách nào site chưa có hồ sơ (None) thì ghi "chưa có trên app".
     W41 (D170): là BM.01.12 "Báo cáo phân tích dữ liệu tháng" (QT.01 mục 5.7) — mã, lần BH ghi cứng tới khi có
     đầu trang chung (W42); ô ký như giấy: Trưởng Ban ISO lập, Giám đốc đã xem. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .bc { font: 11px/1.35 "Times New Roman", serif; color: #000; }
@@ -21,8 +22,8 @@
 </style>
 {%- macro kq(d) -%}{{ "Đạt" if d == True else ("KHÔNG ĐẠT" if d == False else "—") }}{%- endmacro -%}
 <div class="bc">
-  <h1>Báo cáo phân tích dữ liệu tháng {{ thang[5:7] }}/{{ nam }}</h1>
-  <div class="ma">BM.01.12 &nbsp;·&nbsp; Lần BH 01 &nbsp;·&nbsp; QT.01 mục 5.7 &nbsp;·&nbsp; Số liệu tới hết {{ frappe.utils.formatdate(cat, "dd/MM/yyyy") }} &nbsp;·&nbsp; Lập lúc {{ lap_luc }}
+  {{ dau_trang("BM.01.12", "Báo cáo phân tích dữ liệu tháng", "(QT.01 mục 5.7) — tháng " ~ thang[5:7] ~ "/" ~ nam, "01") }}
+  <div class="ma">Số liệu tới hết {{ frappe.utils.formatdate(cat, "dd/MM/yyyy") }} &nbsp;·&nbsp; Lập lúc {{ lap_luc }}
     &nbsp;·&nbsp; {{ nguoi }}</div>
 
   <h2>1. Chỉ tiêu ATTP năm {{ nam }}</h2>

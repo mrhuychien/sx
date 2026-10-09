@@ -1,4 +1,5 @@
 {#- Bảng đơn giản trong gói hồ sơ cho đoàn (W27, D149): diễn tập truy xuất, sản phẩm tự công bố. A4 ngang. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .hsb { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -10,8 +11,8 @@
   .hsb tr { break-inside: avoid; }
 </style>
 <div class="hsb">
-  <h1>{{ tieu_de }}</h1>
-  <div class="ma">{{ phu }}</div>
+  {% if ma %}{{ dau_trang(ma, tieu_de, phu) }}{% else %}<h1>{{ tieu_de }}</h1>
+  <div class="ma">{{ phu }}</div>{% endif %}
   <table>
     <tr><th style="width:3%">#</th>{% for c in cot %}<th>{{ c }}</th>{% endfor %}</tr>
     {% for h in hang %}

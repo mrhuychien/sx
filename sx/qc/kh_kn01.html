@@ -1,6 +1,7 @@
 {#- KH.KN.01 — kế hoạch kiểm nghiệm năm (W18, D144). A4 ngang. W35 (D166): thêm bảng nước, nguyên liệu, bao bì,
     thẩm tra — việc kiểm nghiệm định kỳ, cột như giấy (đối tượng, chỉ tiêu, tần suất, căn cứ, gửi gần nhất, kết quả,
     lần kế tiếp). -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .kn { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -16,8 +17,8 @@
   .kn .ky td { border: 0; height: 56px; }
 </style>
 <div class="kn">
-  <h1>Kế hoạch kiểm nghiệm</h1>
-  <div class="ma">KH.KN.01 &nbsp;·&nbsp; Năm {{ nam }} &nbsp;·&nbsp; {{ kh|length }} sản phẩm, mỗi sản phẩm ít nhất 1 lần / năm
+  {{ dau_trang("KH.KN.01", "Kế hoạch kiểm nghiệm", "Năm " ~ nam) }}
+  <div class="ma">{{ kh|length }} sản phẩm, mỗi sản phẩm ít nhất 1 lần / năm
     &nbsp;·&nbsp; Ngày in {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }}</div>
   <table>
     <tr><th style="width:4%">STT</th><th style="width:12%">Số bản<br>tự công bố</th><th class="t">Sản phẩm</th>

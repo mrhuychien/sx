@@ -1,4 +1,5 @@
 {#- Danh sách nhà cung cấp được duyệt BM.07.02 (W09, D138). A4 ngang. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .ncc { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -13,9 +14,8 @@
   .ncc .ky td { border: 0; text-align: center; height: 56px; }
 </style>
 <div class="ncc">
-  <h1>Danh sách nhà cung cấp được duyệt</h1>
-  <div class="ma">BM.07.02 &nbsp;·&nbsp; Lập ngày {{ frappe.utils.formatdate(ngay, "dd/MM/yyyy") }} &nbsp;·&nbsp;
-    {{ ds|selectattr("duyet")|list|length }} / {{ ds|length }} nhà cung cấp đã duyệt</div>
+  {{ dau_trang("BM.07.02", "Danh sách nhà cung cấp được duyệt", "Lập ngày " ~ frappe.utils.formatdate(ngay, "dd/MM/yyyy")) }}
+  <div class="ma">{{ ds|selectattr("duyet")|list|length }} / {{ ds|length }} nhà cung cấp đã duyệt</div>
   <table>
     <tr><th style="width:3%">#</th><th style="width:22%">Nhà cung cấp</th><th style="width:15%">Loại</th>
       <th style="width:8%">Nguồn</th><th style="width:10%">Trạng thái</th><th style="width:12%">Ngày duyệt / người</th>

@@ -1,4 +1,5 @@
 {#- BM.15.01 — phiếu rework trong tháng (W19, D145; W32 D164: giờ bắt đầu – kết thúc, QLSX quyết định). A4 ngang. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .rw { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -13,8 +14,8 @@
   .rw .ky td { border: 0; height: 56px; }
 </style>
 <div class="rw">
-  <h1>Phiếu rework</h1>
-  <div class="ma">BM.15.01 &nbsp;·&nbsp; Tháng {{ thang }} &nbsp;·&nbsp; {{ ds|length }} lần rework &nbsp;·&nbsp;
+  {{ dau_trang("BM.15.01", "Phiếu rework", "tháng " ~ thang) }}
+  <div class="ma">{{ ds|length }} lần rework &nbsp;·&nbsp;
     tối đa {{ "%g"|format(toi_da) }}% khối lượng mẻ; không đưa hàng có lạc vào sản phẩm không lạc</div>
   <table>
     <tr><th style="width:6%">Ngày</th><th class="t" style="width:14%">Hàng đem rework<br>(sản phẩm · lô)</th>

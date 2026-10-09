@@ -411,10 +411,11 @@ export function tabLo(dang) {
  *  thêm tab thứ bảy là chữ gãy dòng trên điện thoại. */
 export function tabXemXet(dang) {
   const box = el('div', 'sx-qc-seg sx-sc-tab');
+  // W42 (D171): "Tài liệu" sang thư viện tài liệu (#/tailieu, tab Ban hành / Đề nghị cho Ban ISO).
   [['attp', 'Tổng quan'], ['review', 'Xem xét tháng'], ['baocao', 'Báo cáo'],
-    ['hoso', 'Hồ sơ đánh giá']].forEach(([ma, ten]) => {
+    ['hoso', 'Hồ sơ đánh giá'], ['tailieu', 'Tài liệu']].forEach(([ma, ten]) => {
     const a = el('a', `sx-qc-tab${ma === dang ? ' sx-qc-seg-on' : ''}`, esc(ten));
-    a.href = `#/qc/${ma}`;
+    a.href = ma === 'tailieu' ? '#/tailieu/tatca' : `#/qc/${ma}`;
     box.appendChild(a);
   });
   return box;

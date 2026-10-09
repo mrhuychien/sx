@@ -522,8 +522,9 @@ frappe.get_roles = lambda u=None: ["SX QC"]
 print("\n-- tờ ngày BM.08.01: dựng được và có đủ thứ auditor hỏi --")
 import jinja2  # noqa: E402
 
+# Nạp từ gốc repo: tờ ngày import macro đầu trang chung sx/qc/_dau_trang.html (W42) theo đường dẫn app.
 tt = jinja2.Environment(
-    loader=jinja2.FileSystemLoader("sx/qc"), autoescape=True).get_template("day_sheet.html")
+    loader=jinja2.FileSystemLoader("."), autoescape=True).get_template("sx/qc/day_sheet.html")
 r1 = luot(**{**day_du, "luot": M.TUAN, "finished_at": datetime(2026, 9, 14, 7, 30),
              "ghi_muon": 1, "qc_user": "hoa@rvhg.vn", "rang_nhiet_do": 235,
              "ghi_chu": "không luộc mẻ nào buổi sáng"})
@@ -547,6 +548,8 @@ html = tt.render(
         formatdate=lambda d, f=None: "14/09/2026",
         format_datetime=lambda d, f=None: "20/09/2026 10:00")))
 kiem("dựng được tờ in", "BM.08.01" in html)
+kiem("W42: đầu trang chung — tên phiếu, mã, ngày (không có thư viện: lần BH để chấm ghi tay)",
+     "Phiếu kiểm tra QC hàng ngày" in html and "Ngày 14/09/2026" in html and "Lần BH: ……" in html, html[:600])
 # Auditor cầm tờ này lên và hỏi: ai ghi, ghi lúc mấy giờ, mục nào không đạt, và
 # đã làm gì. Thiếu bất kỳ cái nào thì tờ giấy không dùng được để chứng minh.
 for ten, can in [("nhãn ĐẦY ĐỦ của mục (không phải nhãn ngắn của điện thoại)",

@@ -1,5 +1,6 @@
 {#- Sổ khiếu nại khách hàng BM.11.01 (W13, D135). A4 ngang, một dòng một khiếu nại.
     Nguồn: Issue có tích "Là khiếu nại khách hàng". -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .kn { font: 10.5px/1.3 "Times New Roman", serif; color: #000; }
@@ -15,9 +16,8 @@
   .kn .ky td { border: 0; text-align: center; height: 56px; }
 </style>
 <div class="kn">
-  <h1>Sổ theo dõi khiếu nại khách hàng</h1>
-  <div class="ma">BM.11.01 &nbsp;·&nbsp; Từ {{ frappe.utils.formatdate(tu, "dd/MM/yyyy") }}
-    đến {{ frappe.utils.formatdate(den, "dd/MM/yyyy") }} &nbsp;·&nbsp; {{ ds|length }} khiếu nại</div>
+  {{ dau_trang("BM.11.01", "Sổ theo dõi khiếu nại khách hàng", "Từ " ~ frappe.utils.formatdate(tu, "dd/MM/yyyy") ~ " đến " ~ frappe.utils.formatdate(den, "dd/MM/yyyy")) }}
+  <div class="ma">{{ ds|length }} khiếu nại</div>
   <table>
     <tr><th style="width:3%">#</th><th style="width:7%">Ngày nhận</th><th style="width:11%">Khách hàng / liên hệ</th>
       <th style="width:11%">Sản phẩm</th><th style="width:8%">HSD (lô)</th><th style="width:5%">SL</th>

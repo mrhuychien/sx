@@ -1,0 +1,46 @@
+{#- BM.01.01 — phiếu yêu cầu sửa đổi / biên soạn tài liệu (W42, D171). A4 dọc, theo mẫu trắng lần BH 01 (thêm
+    Hủy bỏ và ý kiến Ban ISO như hồ sơ đã điền 20/9/2026). Chữ ký điện tử: "Ký trên phần mềm: Họ tên, giờ" (C23). -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
+<style>
+  @page { size: A4 portrait; margin: 12mm 12mm; }
+  .dn { font: 12px/1.45 "Times New Roman", serif; color: #000; }
+  .dn h2 { font-size: 13px; margin: 10px 0 4px; }
+  .dn .o { margin: 3px 0; }
+  .dn .nd { border: 1px solid #000; padding: 4px 6px; min-height: 44px; white-space: pre-wrap; }
+  .dn .ky { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .dn .ky td { width: 33%; text-align: center; vertical-align: top; padding: 2px 4px; height: 64px; }
+  .dn .dt { font-size: 10.5px; font-style: italic; }
+  .dn .nk { font-size: 10.5px; white-space: pre-wrap; border-top: 1px dashed #000; margin-top: 10px; padding-top: 4px; }
+</style>
+{%- macro o(v) -%}{{ "☒" if v else "☐" }}{%- endmacro -%}
+<div class="dn">
+  {{ dau_trang("BM.01.01", "Phiếu yêu cầu sửa đổi / biên soạn tài liệu", "(QT.01) — Số " ~ d.name ~ " · " ~ d.trang_thai, "01") }}
+  <div class="o">Kính gửi: Trưởng Ban ISO; Giám đốc</div>
+  <h2>I/ PHẦN I</h2>
+  <div class="o">1. Yêu cầu: {{ o(d.loai_yeu_cau == "Soạn mới") }} Soạn thảo &nbsp; {{ o(d.loai_yeu_cau == "Sửa đổi") }} Sửa đổi
+    &nbsp; {{ o(d.loai_yeu_cau == "Áp dụng tài liệu bên ngoài") }} Áp dụng &nbsp; {{ o(d.loai_yeu_cau == "Hủy bỏ") }} Hủy bỏ</div>
+  <div class="o">2. Tên tài liệu: <b>{{ d.ten_de_xuat or "" }}</b></div>
+  <div class="o">3. Mã số: {{ d.ma_de_xuat or "……" }} &nbsp;&nbsp; Lần ban hành: {{ d.lan_ban_hanh or "……" }}
+    &nbsp;&nbsp; Ngày hiệu lực: {{ frappe.utils.formatdate(d.ngay_hieu_luc, "dd/MM/yyyy") if d.ngay_hieu_luc else "……" }}</div>
+  <div class="o">4. Lý do và nội dung:</div>
+  <div class="nd">{{ d.ly_do or "" }}{% if d.noi_dung %}
+{{ d.noi_dung }}{% endif %}</div>
+  <div class="o">5. Những phòng ban chịu tác động bởi lần ban hành mới / sửa đổi / áp dụng: {{ d.bo_phan_tac_dong or "" }}</div>
+  <table class="ky"><tr>
+    <td>Ngày {{ frappe.utils.formatdate(d.ngay_de_nghi, "dd/MM/yyyy") if d.ngay_de_nghi else "……" }}</td>
+    <td><b>Người yêu cầu</b><br>{{ d.ho_ten_de_nghi or "" }}{% if d.chuc_danh_de_nghi %}<br>{{ d.chuc_danh_de_nghi }}{% endif %}
+      <div class="dt">{{ d.ky_de_nghi }}</div></td>
+    <td><b>Bộ phận</b><br>{{ d.bo_phan or "" }}</td>
+  </tr></table>
+  <h2>II/ PHẦN II</h2>
+  <div class="o">Người soạn thảo: {{ d.nguoi_soan_thao or "……" }} &nbsp;&nbsp; Ngày hoàn thành:
+    {{ frappe.utils.formatdate(d.ngay_hoan_thanh, "dd/MM/yyyy") if d.ngay_hoan_thanh else "……" }}</div>
+  <div class="o">Ý kiến Ban ISO: {{ d.y_kien_xem_xet or ("đồng ý — chuyển Giám đốc duyệt" if d.xem_xet_luc else "……") }}</div>
+  <table class="ky"><tr>
+    <td><b>Trưởng Ban ISO (xem xét)</b><br>{{ d.xem_xet_ten or "" }}<div class="dt">{{ d.ky_xem_xet }}</div></td>
+    <td><b>Người phê duyệt</b><br>{{ d.duyet_ten or "" }}{% if d.duyet_chuc_danh %}<br>{{ d.duyet_chuc_danh }}{% endif %}
+      <div class="dt">{{ d.ky_duyet }}</div>{% if d.y_kien_duyet %}<div class="dt">{{ d.y_kien_duyet }}</div>{% endif %}</td>
+    <td><b>Đợt ban hành</b><br>{{ d.dot_ban_hanh or "—" }}</td>
+  </tr></table>
+  {% if d.nhat_ky %}<div class="nk">{{ d.nhat_ky }}</div>{% endif %}
+</div>

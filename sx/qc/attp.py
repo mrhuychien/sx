@@ -39,6 +39,7 @@ LINH_VUC = (
     ("luu_mau", "Lưu mẫu", "", "#/qc/luumau"),
     ("rework", "Rework", "BM.15.01", "#/qc/rework"),
     ("viec_dinh_ky", "Việc định kỳ", "", "#/qc/lichviec"),
+    ("tai_lieu", "Tài liệu", "BM.01.02", "#/tailieu"),
 )
 THU_TU_DEN = {DO: 0, VANG: 1, XANH: 2}
 
@@ -216,6 +217,15 @@ def _rework(s):
             "dong": [f"Cao nhất {_so(s.get('cao_nhat'))}% khối lượng mẻ (tối đa 10%)" if n else "Không có phiếu"]}
 
 
+def _tai_lieu(s):
+    """W42: tài liệu hiện hành; đợt chờ người đọc, đề nghị chờ, tài liệu bên ngoài chưa soát xét."""
+    if not s.get("tong"):
+        return {"so": "–", "nhan_so": "chưa nạp thư viện tài liệu", "dong": []}
+    return {"so": str(s.get("hien_hanh", 0)), "nhan_so": "tài liệu hiện hành",
+            "dong": [f"{s.get('chua_doc', 0)} lượt chưa xác nhận đọc · {s.get('de_nghi', 0)} đề nghị đang chờ",
+                     f"{s.get('ngoai', 0)} tài liệu bên ngoài · {s.get('soat_xet', 0)} quá 12 tháng chưa soát xét"]}
+
+
 def _viec_dinh_ky(s):
     t = s.get("tiep")
     return {"so": str(s.get("qua_han", 0)), "nhan_so": "việc quá hạn",
@@ -226,7 +236,7 @@ THE = {"vong_kiem": _vong_kiem, "su_co": _su_co, "khac_phuc": _khac_phuc, "xuat_
        "thiet_bi": _thiet_bi,
        "kiem_nghiem": _kiem_nghiem, "cat": _cat, "vai_u": _vai_u, "dong_vat": _dong_vat, "kiem_xe": _kiem_xe,
        "luu_mau": _luu_mau,
-       "rework": _rework, "viec_dinh_ky": _viec_dinh_ky}
+       "rework": _rework, "viec_dinh_ky": _viec_dinh_ky, "tai_lieu": _tai_lieu}
 THE_ROUTE = {"khieu_nai": _khieu_nai, "truy_xuat": _truy_xuat, "ncc": _ncc}
 
 

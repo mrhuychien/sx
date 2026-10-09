@@ -1,0 +1,43 @@
+{#- BM.01.02 — danh mục tài liệu nội bộ (W42, D171). App tự lập từ thư viện tài liệu: tài liệu Hiện hành theo nhóm,
+    cột theo md W42 (Stt, tên, mã, lần BH, ngày ban hành, ngày hiệu lực, nơi phân phối); cuối là tài liệu đã hết
+    hiệu lực (giữ để tra). A4 ngang. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
+<style>
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+  .tl { font: 11px/1.3 "Times New Roman", serif; color: #000; }
+  .tl .ma { text-align: center; font-size: 10px; margin-bottom: 6px; }
+  .tl h2 { font-size: 12px; margin: 8px 0 3px; }
+  .tl table.b { width: 100%; border-collapse: collapse; }
+  .tl .b td, .tl .b th { border: 1px solid #000; padding: 2px 4px; vertical-align: top; }
+  .tl .b th { background: #eee; }
+  .tl tr { break-inside: avoid; }
+  .tl .c { text-align: center; }
+</style>
+<div class="tl">
+  {{ dau_trang("BM.01.02", "Danh mục tài liệu nội bộ", "Cập nhật " ~ frappe.utils.formatdate(ngay, "dd/MM/yyyy")) }}
+  <div class="ma">{{ tong }} tài liệu hiện hành &nbsp;·&nbsp; App lập từ thư viện tài liệu &nbsp;·&nbsp; {{ nguoi }}</div>
+  {% set stt = namespace(n=0) %}
+  {% for ten, ds in nhom %}
+  <h2>{{ ten }}</h2>
+  <table class="b">
+    <tr><th style="width:4%">Stt</th><th>Tên tài liệu</th><th style="width:12%">Mã số</th><th style="width:12%">Lần BH</th>
+      <th style="width:9%">Ngày ban hành</th><th style="width:9%">Ngày hiệu lực</th><th style="width:22%">Nơi phân phối</th></tr>
+    {% for x in ds %}{% set stt.n = stt.n + 1 %}
+    <tr><td class="c">{{ stt.n }}</td><td>{{ x.ten }}{% if x.loai == "Biểu mẫu trên phần mềm" %} <i>(biểu mẫu trên phần mềm)</i>{% endif %}</td>
+      <td>{{ x.ma or "—" }}</td><td>{{ x.lan_ban_hanh or "" }}</td>
+      <td class="c">{{ frappe.utils.formatdate(x.ngay_ban_hanh, "dd/MM/yyyy") if x.ngay_ban_hanh else "" }}</td>
+      <td class="c">{{ frappe.utils.formatdate(x.ngay_hieu_luc, "dd/MM/yyyy") if x.ngay_hieu_luc else "" }}</td>
+      <td>{{ x.phan_phoi|join(", ") }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <div class="ma">Chưa có tài liệu nào trong thư viện — Ban ISO nạp bộ tài liệu ở màn Tài liệu.</div>
+  {% endfor %}
+  {% if het %}
+  <h2>Tài liệu đã hết hiệu lực (giữ để tra, không dùng)</h2>
+  <table class="b">
+    <tr><th style="width:12%">Mã số</th><th>Tên tài liệu</th><th style="width:12%">Lần BH cuối</th><th style="width:14%">Hết theo đợt</th></tr>
+    {% for x in het %}<tr><td>{{ x.ma or "—" }}</td><td>{{ x.ten }}</td><td>{{ x.lan_ban_hanh or "" }}</td><td>{{ x.dot_ban_hanh or "" }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+</div>

@@ -1,0 +1,303 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX De Nghi Tai Lieu",
+ "autoname": "DNTL-.YYYY.-.###",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "title_field": "ten_de_xuat",
+ "search_fields": "ten_de_xuat,ma_de_xuat",
+ "field_order": [
+  "loai_yeu_cau",
+  "tai_lieu",
+  "ma_de_xuat",
+  "ten_de_xuat",
+  "lan_ban_hanh",
+  "ngay_hieu_luc",
+  "column_break_1",
+  "trang_thai",
+  "nguoi_de_nghi",
+  "ho_ten_de_nghi",
+  "chuc_danh_de_nghi",
+  "bo_phan",
+  "ngay_de_nghi",
+  "gui_luc",
+  "section_nd",
+  "ly_do",
+  "noi_dung",
+  "bo_phan_tac_dong",
+  "tep_du_thao",
+  "column_break_2",
+  "nguoi_soan_thao",
+  "ngay_hoan_thanh",
+  "section_xet",
+  "y_kien_xem_xet",
+  "xem_xet_boi",
+  "xem_xet_ten",
+  "xem_xet_chuc_danh",
+  "xem_xet_luc",
+  "section_duyet",
+  "y_kien_duyet",
+  "duyet_boi",
+  "duyet_ten",
+  "duyet_chuc_danh",
+  "duyet_luc",
+  "section_nk",
+  "dot_ban_hanh",
+  "nhat_ky"
+ ],
+ "fields": [
+  {
+   "fieldname": "loai_yeu_cau",
+   "fieldtype": "Select",
+   "label": "Loại yêu cầu",
+   "options": "Soạn mới\nSửa đổi\nHủy bỏ\nÁp dụng tài liệu bên ngoài",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tai_lieu",
+   "fieldtype": "Link",
+   "label": "Tài liệu (sửa đổi / hủy bỏ)",
+   "options": "SX Tai Lieu"
+  },
+  {
+   "fieldname": "ma_de_xuat",
+   "fieldtype": "Data",
+   "label": "Mã số"
+  },
+  {
+   "fieldname": "ten_de_xuat",
+   "fieldtype": "Data",
+   "label": "Tên tài liệu",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "lan_ban_hanh",
+   "fieldtype": "Data",
+   "label": "Lần ban hành (đề xuất)"
+  },
+  {
+   "fieldname": "ngay_hieu_luc",
+   "fieldtype": "Date",
+   "label": "Ngày hiệu lực (đề xuất)"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Nháp\nChờ xem xét\nChờ duyệt\nĐã duyệt\nTrả lại\nHủy",
+   "default": "Nháp",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "nguoi_de_nghi",
+   "fieldtype": "Link",
+   "label": "Người yêu cầu",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ho_ten_de_nghi",
+   "fieldtype": "Data",
+   "label": "Họ tên người yêu cầu",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chuc_danh_de_nghi",
+   "fieldtype": "Data",
+   "label": "Chức danh lúc ký",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bo_phan",
+   "fieldtype": "Data",
+   "label": "Bộ phận"
+  },
+  {
+   "fieldname": "ngay_de_nghi",
+   "fieldtype": "Date",
+   "label": "Ngày"
+  },
+  {
+   "fieldname": "gui_luc",
+   "fieldtype": "Datetime",
+   "label": "Ký gửi lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_nd",
+   "fieldtype": "Section Break",
+   "label": "Lý do và nội dung"
+  },
+  {
+   "fieldname": "ly_do",
+   "fieldtype": "Small Text",
+   "label": "Lý do"
+  },
+  {
+   "fieldname": "noi_dung",
+   "fieldtype": "Text",
+   "label": "Nội dung"
+  },
+  {
+   "fieldname": "bo_phan_tac_dong",
+   "fieldtype": "Small Text",
+   "label": "Những phòng ban chịu tác động"
+  },
+  {
+   "fieldname": "tep_du_thao",
+   "fieldtype": "Attach",
+   "label": "Tệp dự thảo"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguoi_soan_thao",
+   "fieldtype": "Data",
+   "label": "Người soạn thảo"
+  },
+  {
+   "fieldname": "ngay_hoan_thanh",
+   "fieldtype": "Date",
+   "label": "Ngày hoàn thành"
+  },
+  {
+   "fieldname": "section_xet",
+   "fieldtype": "Section Break",
+   "label": "Xem xét — Trưởng Ban ISO"
+  },
+  {
+   "fieldname": "y_kien_xem_xet",
+   "fieldtype": "Small Text",
+   "label": "Ý kiến Ban ISO",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xem_xet_boi",
+   "fieldtype": "Link",
+   "label": "Người xem xét",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xem_xet_ten",
+   "fieldtype": "Data",
+   "label": "Họ tên",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xem_xet_chuc_danh",
+   "fieldtype": "Data",
+   "label": "Chức danh lúc ký",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xem_xet_luc",
+   "fieldtype": "Datetime",
+   "label": "Ký lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_duyet",
+   "fieldtype": "Section Break",
+   "label": "Phê duyệt — Giám đốc"
+  },
+  {
+   "fieldname": "y_kien_duyet",
+   "fieldtype": "Small Text",
+   "label": "Ý kiến phê duyệt",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duyet_boi",
+   "fieldtype": "Link",
+   "label": "Người phê duyệt",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duyet_ten",
+   "fieldtype": "Data",
+   "label": "Họ tên",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duyet_chuc_danh",
+   "fieldtype": "Data",
+   "label": "Chức danh lúc ký",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duyet_luc",
+   "fieldtype": "Datetime",
+   "label": "Ký lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_nk",
+   "fieldtype": "Section Break",
+   "label": "Nhật ký"
+  },
+  {
+   "fieldname": "dot_ban_hanh",
+   "fieldtype": "Link",
+   "label": "Đợt ban hành",
+   "options": "SX Dot Ban Hanh",
+   "read_only": 1
+  },
+  {
+   "fieldname": "nhat_ky",
+   "fieldtype": "Text",
+   "label": "Nhật ký gửi / xem xét / duyệt / trả lại",
+   "read_only": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

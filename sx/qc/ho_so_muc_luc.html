@@ -1,5 +1,6 @@
 {#- Mục lục gói hồ sơ cho đoàn đánh giá (W27, D149) — tệp 00-MUC-LUC.html trong zip. A4 ngang.
     Mỗi hồ sơ: căn cứ, nằm ở đâu (đường dẫn trong gói / nơi lưu bản giấy), hạn, cờ Đỏ / Vàng kèm lý do. -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .ml { font: 11px/1.35 "Times New Roman", serif; color: #000; }
@@ -17,8 +18,8 @@
   .ml .ky td { border: 0; text-align: center; height: 56px; }
 </style>
 <div class="ml">
-  <h1>Danh mục hồ sơ an toàn thực phẩm</h1>
-  <div class="ma">Kỳ hồ sơ {{ tu }} – {{ den }} &nbsp;·&nbsp; Lập lúc {{ lap_luc }} &nbsp;·&nbsp; {{ nguoi }}
+  {{ dau_trang("BM.01.04", "Danh mục hồ sơ an toàn thực phẩm", "Kỳ hồ sơ " ~ tu ~ " – " ~ den) }}
+  <div class="ma">Lập lúc {{ lap_luc }} &nbsp;·&nbsp; {{ nguoi }}
     &nbsp;·&nbsp; Cờ: <span class="do">{{ dem.do }} Đỏ</span>, <span class="vang">{{ dem.vang }} Vàng</span></div>
   {% for ten_nhom, ds in nhom %}
   <h2>{{ ten_nhom }}</h2>

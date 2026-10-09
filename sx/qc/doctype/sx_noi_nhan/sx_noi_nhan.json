@@ -1,0 +1,102 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Noi Nhan",
+ "autoname": "field:ten",
+ "naming_rule": "By fieldname",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "thu_tu",
+ "sort_order": "ASC",
+ "title_field": "ten",
+ "field_order": [
+  "ten",
+  "hinh_thuc",
+  "thu_tu",
+  "column_break_1",
+  "moi_nguoi",
+  "vai",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Nơi nhận",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "hinh_thuc",
+   "fieldtype": "Select",
+   "label": "Hình thức",
+   "options": "Bản mềm\nBản giấy\nNiêm yết\nBản gốc + bản mềm",
+   "default": "Bản giấy",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "thu_tu",
+   "fieldtype": "Int",
+   "label": "Thứ tự (Phụ lục 3)"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "moi_nguoi",
+   "fieldtype": "Check",
+   "label": "Mọi tài khoản app (toàn bộ người lao động)"
+  },
+  {
+   "fieldname": "vai",
+   "fieldtype": "Table MultiSelect",
+   "label": "Vai (role) thuộc nơi nhận",
+   "options": "SX Noi Nhan Vai",
+   "description": "Người có một trong các role này thấy tài liệu phân phối cho nơi nhận (C27)."
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "track_changes": 1
+}

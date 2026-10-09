@@ -31,6 +31,15 @@ ISO = "ISO Manager"               # Trưởng Ban ISO — đóng sự cố, xem 
 QLSX = "Production Manager"       # QLSX — đọc, ghi xử lý sự cố
 KHO_NL = "Warehouse"              # thủ kho nguyên liệu — BM.07.03 (P1)
 
+# ── Thư viện tài liệu (W42, D171) ──────────────────────────────────────────
+# C24: ba vai mới (desk 0) cho bộ phận chưa có tài khoản — Phụ lục 3 phân phối tài liệu cho họ; W43 (Sổ) cho
+# họ ghi sổ. Mua hàng, Kinh doanh dùng role chuẩn ERPNext (đã có trên Desk), chỉ thêm view Tài liệu.
+CO_DIEN = "SX Co Dien"
+HANH_CHINH = "SX Hanh Chinh"
+BAO_VE = "SX Bao Ve"
+MUA_HANG = "Purchase User"
+KINH_DOANH = "Sales User"
+
 # Role của app và quyền vào Desk MẶC ĐỊNH khi tạo mới (D105).
 #
 # Trước D105 các role này nằm trong fixtures/role.json. Frappe nạp fixtures ở MỌI
@@ -55,6 +64,11 @@ VAI_MAC_DINH = {
     "ISO Manager": 1,
     "Production Manager": 1,   # role chuẩn của ERPNext — thường đã có sẵn
     "Warehouse": 1,
+    CO_DIEN: 0,
+    HANH_CHINH: 0,
+    BAO_VE: 0,
+    MUA_HANG: 1,               # role chuẩn của ERPNext — có sẵn, chỉ tạo khi site thiếu
+    KINH_DOANH: 1,
 }
 
 # Role "siêu quyền" — thấy mọi view/card
@@ -74,6 +88,11 @@ NHAN_ROLE = {
     ISO: "Trưởng Ban ISO",
     QLSX: "Quản lý sản xuất",
     KHO_NL: "Thủ kho nguyên liệu",
+    CO_DIEN: "Cơ điện",
+    HANH_CHINH: "Hành chính – Văn thư",
+    BAO_VE: "Bảo vệ",
+    MUA_HANG: "Mua hàng",
+    KINH_DOANH: "Kinh doanh",
     "System Manager": "Quản trị hệ thống",
 }
 
@@ -88,20 +107,28 @@ def vai_tro_hien(roles=None):
     return [ten for r, ten in NHAN_ROLE.items() if r in roles]
 
 
-# view nào role nào được vào
+# view nào role nào được vào. "tailieu" (W42): thư viện tài liệu — mọi vai có tài khoản app đều vào (thấy tài
+# liệu phân phối cho mình, C27), luôn là tab CUỐI (allowed_views) nên màn mở đầu của mỗi vai không đổi.
+TAI_LIEU = "tailieu"
 ROLE_VIEWS = {
-    GHI_SO: ["ghiso"],
-    VAO_HOP: ["vaohop", "nhapkho"],
-    THU_KHO: ["nhapkho"],
-    QC_TET: ["tet"],
-    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly"],
-    QC: ["qc"],
-    QC_GOI: ["qc"],
-    ISO: ["qc"],
-    QLSX: ["qc"],
+    GHI_SO: ["ghiso", TAI_LIEU],
+    VAO_HOP: ["vaohop", "nhapkho", TAI_LIEU],
+    THU_KHO: ["nhapkho", TAI_LIEU],
+    QC_TET: ["tet", TAI_LIEU],
+    QUAN_LY: ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly", TAI_LIEU],
+    QC: ["qc", TAI_LIEU],
+    QC_GOI: ["qc", TAI_LIEU],
+    ISO: ["qc", TAI_LIEU],
+    QLSX: ["qc", TAI_LIEU],
+    KHO_NL: [TAI_LIEU],
+    CO_DIEN: [TAI_LIEU],
+    HANH_CHINH: [TAI_LIEU],
+    BAO_VE: [TAI_LIEU],
+    MUA_HANG: [TAI_LIEU],
+    KINH_DOANH: [TAI_LIEU],
 }
 
-MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly"]
+MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly", TAI_LIEU]
 
 # view lắp từ những card nào (thứ tự hiển thị).
 # D33: hai màn NHẬP LIỆU chỉ giữ việc phải gõ. Chốt ngày (hành động chốt sổ) và lưu đồ
@@ -202,7 +229,8 @@ def allowed_views(roles=None):
         for v in ROLE_VIEWS.get(r, []):
             if v not in out:
                 out.append(v)
-    return out
+    # Tài liệu luôn đứng cuối: người giữ hai vai không bị mở app vào thư viện thay vì màn làm việc.
+    return [v for v in out if v != TAI_LIEU] + ([TAI_LIEU] if TAI_LIEU in out else [])
 
 
 def view_cards(roles=None):

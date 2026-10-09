@@ -3,6 +3,7 @@
     5 mẫu, C. Kết luận, ba ô ký. Phiếu trước D159 (8 mục tạm "1".."8") in theo bố cục cũ.
     Chữ ký = tài khoản + giờ server ghi lúc gửi duyệt / ký / duyệt; ô ký tay để ký lại.
     Tự đủ dữ liệu từ `d` (màn QC và gói hồ sơ đánh giá cùng gọi). -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 {%- set moi = ((d.ds_muc[0].ma if d.ds_muc else "") or "")[:1] in ["A", "B"] -%}
 {%- set kl = {"Đạt": "Cho xuất xưởng", "Không đạt": "Không cho xuất"}.get(d.ket_luan, d.ket_luan) or "" -%}
 {%- macro ngay(v) -%}{{ frappe.utils.formatdate(v, "dd/MM/yyyy") if v else "" }}{%- endmacro -%}
@@ -30,11 +31,12 @@
   .xx .kl { font-size: 13px; font-weight: bold; }
 </style>
 <div class="xx">
-  <table class="dau"><tr>
+  {% if moi %}{{ dau_trang("BM.08.04", "Phiếu kiểm tra xuất xưởng lô thành phẩm", "", "01 — 21/9/2026", "QT.08 lần BH 02") }}
+  {%- else %}<table class="dau"><tr>
     <td class="cty">CÔNG TY CỔ PHẦN<br>HOÀNG GIANG</td>
     <td class="ten">Phiếu kiểm tra xuất xưởng lô thành phẩm</td>
-    <td class="ma"><b>BM.08.04</b><br>{% if moi %}Lần BH: 01 — 21/9/2026<br>Kèm QT.08 lần BH 02{% else %}Mẫu tạm trước lần BH 01{% endif %}</td>
-  </tr></table>
+    <td class="ma"><b>BM.08.04</b><br>Mẫu tạm trước lần BH 01</td>
+  </tr></table>{% endif %}
   <div class="so">Số: <b>{{ d.name }}</b> · {{ d.trang_thai }}</div>
 {%- if moi %}
   <div class="loi">Lập cho mỗi lô = một sản phẩm (vị), một quy cách, một ngày sản xuất. QC kiểm sau khi đóng thùng

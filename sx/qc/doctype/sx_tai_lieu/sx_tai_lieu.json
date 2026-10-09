@@ -1,0 +1,295 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Tai Lieu",
+ "autoname": "TL-.####",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "search_fields": "ma,ten",
+ "title_field": "ten",
+ "sort_field": "thu_tu",
+ "sort_order": "ASC",
+ "show_title_field_in_link": 1,
+ "field_order": [
+  "ma",
+  "ten",
+  "loai",
+  "nguon",
+  "column_break_1",
+  "trang_thai",
+  "nhom_thu_muc",
+  "thu_muc",
+  "thuoc",
+  "thu_tu",
+  "section_ban",
+  "lan_ban_hanh",
+  "ngay_ban_hanh",
+  "ngay_hieu_luc",
+  "dot_ban_hanh",
+  "column_break_2",
+  "tep",
+  "tep_soan",
+  "can_xac_nhan",
+  "tep_goc",
+  "section_pp",
+  "phan_phoi",
+  "section_bm",
+  "ma_bieu_mau",
+  "tep_kem",
+  "section_ngoai",
+  "so_hieu_co_quan",
+  "noi_dung_ap_dung",
+  "column_break_3",
+  "dan_chieu",
+  "bo_phan_quan_ly",
+  "ngay_soat_xet",
+  "section_ls",
+  "lich_su",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "description": "Duy nhất trong các tài liệu có mã. Tài liệu không mã (sơ đồ tổ chức, hồ sơ PCCC) để trống."
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên tài liệu",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "loai",
+   "fieldtype": "Select",
+   "label": "Loại",
+   "options": "Sổ tay\nChính sách\nMục tiêu\nQuy trình\nHướng dẫn\nQuy định\nKế hoạch\nKế hoạch HACCP\nPRP\nSơ đồ\nPhụ lục\nPhương án\nBiểu mẫu\nBiểu mẫu trên phần mềm\nTờ trình\nTài liệu bên ngoài\nKhác",
+   "default": "Khác",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "nguon",
+   "fieldtype": "Select",
+   "label": "Nguồn",
+   "options": "Nội bộ\nBên ngoài",
+   "default": "Nội bộ",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Dự thảo\nHiện hành\nHết hiệu lực",
+   "default": "Dự thảo",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1,
+   "description": "Đổi qua Ban hành (màn Tài liệu → Ban hành), không sửa tay."
+  },
+  {
+   "fieldname": "nhom_thu_muc",
+   "fieldtype": "Data",
+   "label": "Nhóm hiển thị"
+  },
+  {
+   "fieldname": "thu_muc",
+   "fieldtype": "Data",
+   "label": "Thư mục"
+  },
+  {
+   "fieldname": "thuoc",
+   "fieldtype": "Link",
+   "label": "Thuộc tài liệu",
+   "options": "SX Tai Lieu"
+  },
+  {
+   "fieldname": "thu_tu",
+   "fieldtype": "Int",
+   "label": "Thứ tự trong sổ đăng ký"
+  },
+  {
+   "fieldname": "section_ban",
+   "fieldtype": "Section Break",
+   "label": "Bản hiện hành"
+  },
+  {
+   "fieldname": "lan_ban_hanh",
+   "fieldtype": "Data",
+   "label": "Lần ban hành",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ngay_ban_hanh",
+   "fieldtype": "Date",
+   "label": "Ngày ban hành",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ngay_hieu_luc",
+   "fieldtype": "Date",
+   "label": "Ngày hiệu lực",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dot_ban_hanh",
+   "fieldtype": "Link",
+   "label": "Đợt ban hành",
+   "options": "SX Dot Ban Hanh",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tep",
+   "fieldtype": "Attach",
+   "label": "Tệp PDF bản đã ký",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tep_soan",
+   "fieldtype": "Attach",
+   "label": "Tệp soạn (.docx, tùy chọn)"
+  },
+  {
+   "fieldname": "can_xac_nhan",
+   "fieldtype": "Check",
+   "label": "Người được phân phối phải xác nhận đã đọc",
+   "default": "1"
+  },
+  {
+   "fieldname": "tep_goc",
+   "fieldtype": "Data",
+   "label": "Tên tệp gốc (nạp bộ)",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_pp",
+   "fieldtype": "Section Break",
+   "label": "Phân phối (Phụ lục 3, BM.01.13)"
+  },
+  {
+   "fieldname": "phan_phoi",
+   "fieldtype": "Table MultiSelect",
+   "label": "Nơi nhận",
+   "options": "SX Tai Lieu Noi Nhan"
+  },
+  {
+   "fieldname": "section_bm",
+   "fieldtype": "Section Break",
+   "label": "Biểu mẫu trong tệp, tệp kèm"
+  },
+  {
+   "fieldname": "ma_bieu_mau",
+   "fieldtype": "Table",
+   "label": "Mã biểu mẫu trong tệp",
+   "options": "SX Tai Lieu Bieu Mau"
+  },
+  {
+   "fieldname": "tep_kem",
+   "fieldtype": "Table",
+   "label": "Tệp kèm (ảnh sơ đồ, phụ lục)",
+   "options": "SX Tai Lieu Tep"
+  },
+  {
+   "fieldname": "section_ngoai",
+   "fieldtype": "Section Break",
+   "label": "Tài liệu bên ngoài (BM.01.03)",
+   "depends_on": "eval:doc.nguon=='Bên ngoài'"
+  },
+  {
+   "fieldname": "so_hieu_co_quan",
+   "fieldtype": "Data",
+   "label": "Số hiệu, cơ quan ban hành"
+  },
+  {
+   "fieldname": "noi_dung_ap_dung",
+   "fieldtype": "Small Text",
+   "label": "Nội dung áp dụng"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "dan_chieu",
+   "fieldtype": "Small Text",
+   "label": "Nơi dẫn chiếu trong hệ thống"
+  },
+  {
+   "fieldname": "bo_phan_quan_ly",
+   "fieldtype": "Data",
+   "label": "Bộ phận quản lý"
+  },
+  {
+   "fieldname": "ngay_soat_xet",
+   "fieldtype": "Date",
+   "label": "Soát xét gần nhất",
+   "description": "QT.01: Ban ISO soát xét ít nhất 1 lần / năm."
+  },
+  {
+   "fieldname": "section_ls",
+   "fieldtype": "Section Break",
+   "label": "Các lần ban hành trước"
+  },
+  {
+   "fieldname": "lich_su",
+   "fieldtype": "Table",
+   "label": "Lịch sử",
+   "options": "SX Tai Lieu Lan",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "track_changes": 1
+}

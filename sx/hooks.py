@@ -70,6 +70,10 @@ scheduler_events = {
     "daily": ["sx.qc.thiet_bi.quet_qua_han"],
 }
 
+# W42 (D171): đầu trang in chung — template gọi sx_dau_trang(mã, tên) qua macro sx/qc/_dau_trang.html (mã, lần BH
+# tra trong thư viện tài liệu).
+jinja = {"methods": ["sx.qc.mau_in.sx_dau_trang"]}
+
 # Tạo role còn thiếu — chỉ TẠO, không sửa role đã có (D105).
 after_install = ["sx.setup.dam_bao_role", "sx.api.mfg.bat_lo_he_thong"]
 after_migrate = ["sx.setup.dam_bao_role", "sx.api.mfg.bat_lo_he_thong"]

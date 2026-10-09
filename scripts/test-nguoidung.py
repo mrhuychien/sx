@@ -159,6 +159,7 @@ roles = types.ModuleType("sx.config.roles")
 roles.QUAN_LY, roles.GHI_SO = "SX Quan Ly", "SX Ghi So"
 roles.VAO_HOP, roles.THU_KHO = "SX Vao Hop", "SX Thu Kho"
 roles.QC_TET = "SX QC Tet"
+roles.CO_DIEN, roles.HANH_CHINH, roles.BAO_VE = "SX Co Dien", "SX Hanh Chinh", "SX Bao Ve"   # W42 (C24)
 roles.guard_card = lambda c: None
 api = types.ModuleType("sx.api")
 api.__path__ = []

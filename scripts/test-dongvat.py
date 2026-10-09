@@ -208,6 +208,7 @@ nap("sx.qc.khac_phuc", "sx/qc/khac_phuc.py")
 nap("sx.qc.vai_u", "sx/qc/vai_u.py")
 nap("sx.qc.ncc", "sx/qc/ncc.py")
 nap("sx.qc.kiem_xe", "sx/qc/kiem_xe.py")
+nap("sx.qc.tai_lieu", "sx/qc/tai_lieu.py")
 nap("sx.api.qc", "sx/api/qc.py")
 A = nap("sx.api.qc_dvgh", "sx/api/qc_dvgh.py")
 TRC = nap("tram_ctl", "sx/qc/doctype/sx_tram_dong_vat/sx_tram_dong_vat.py")
@@ -427,12 +428,12 @@ if jinja2:
         ghi(tram=tram, ngay=ngay)
     h = chu(A.in_prp01("2026-09"))
     kiem("BM.PRP.01: tháng 09/2026, cột tuần từ thứ Hai 31/08 đến 28/09, đếm đủ 3 lần",
-         "Tháng 09/2026" in h and "Tuần 31/08" in h and "Tuần 28/09" in h and "Tuần 05/10" not in h
+         "tháng 09/2026" in h and "BM.PRP.01" in h and "Tuần 31/08" in h and "Tuần 28/09" in h and "Tuần 05/10" not in h
          and "3 lần có dấu hiệu" in h, h[:300])
     kiem("… chuỗi hai tuần liền ĐẦU tháng (R01 02/09, R02 09/09) vẫn lên cảnh báo tháng",
          "Kho nguyên liệu: dấu hiệu 2 tuần liền (tuần 31/08 → 07/09" in h, h[:400])
     h = chu(A.in_prp01())
-    kiem("BM.PRP.01 mặc định tháng này", "Tháng 10/2026" in h, h[:120])
+    kiem("BM.PRP.01 mặc định tháng này", "tháng 10/2026" in h, h[:120])
 else:
     print("  (bỏ qua bản in — không có jinja2)")
 

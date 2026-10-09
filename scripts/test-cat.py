@@ -426,8 +426,8 @@ kiem("Ban ISO sửa được dòng đã ký", thu(dd.save) is None and SO[n_bs][
 print("\n-- BM.08.03, doctype, màn hình --")
 F.vai("SX QC")
 h = re.sub(r"\s+", " ", A.in_bm0803("2026-10"))
-kiem("BM.08.03: tháng, mã, lần BH 01; đúng 7 cột giấy theo thứ tự",
-     "Nhật ký cát rang — tháng 10/2026" in h and "Lần BH 01" in h
+kiem("BM.08.03: đầu trang chung (W42) — tên, tháng, mã kèm HD.08.03, lần BH 01; đúng 7 cột giấy theo thứ tự",
+     "Nhật ký cát rang" in h and "tháng 10/2026" in h and "Lần BH: 01" in h and "Kèm HD.08.03" in h
      and re.findall(r"<th[^>]*>(.*?)</th>", h.split('class="doi"')[0]) == [
          "Ngày", "Việc", "Nguồn, số BM.07.03", "Khối lượng (kg)", "Thùng số / nhãn ngày",
          "Số ngày đã dùng; lý do loại", "Người làm / QC ký"], re.findall(r"<th[^>]*>(.*?)</th>", h)[:7])

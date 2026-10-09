@@ -1,0 +1,176 @@
+{
+ "nguon": "QĐ ban hành, sửa đổi tài liệu 21/9/2026, Phụ lục 3 Danh sách phân phối tài liệu",
+ "cach_doc": "tai_lieu: mã tài liệu hoặc mã biểu mẫu (tìm SX Tai Lieu có ma = mã, hoặc có mã trong ma_bieu_mau); 'stt:N' = dòng N của seed_tai_lieu.json (tài liệu không mã); '*' = toàn bộ. vai: role gợi ý cho nơi nhận (SX Co Dien, SX Hanh Chinh là role mới, C24; Purchase User, Sales User là role chuẩn ERPNext; '*' = mọi tài khoản). PRP cho Cơ điện chỉ gồm SSOP 1, 7, 8, 10, 11, 13 (ghi chú, vẫn phân phối cả tài liệu).",
+ "ds": [
+  {
+   "noi_nhan": "Giám đốc",
+   "vai": [
+    "SX Quan Ly"
+   ],
+   "tai_lieu": [
+    "*"
+   ],
+   "hinh_thuc": "Bản mềm"
+  },
+  {
+   "noi_nhan": "Ban ISO (bản gốc)",
+   "vai": [
+    "ISO Manager"
+   ],
+   "tai_lieu": [
+    "*"
+   ],
+   "hinh_thuc": "Bản gốc + bản mềm"
+  },
+  {
+   "noi_nhan": "Xưởng sản xuất (QLSX)",
+   "vai": [
+    "Production Manager"
+   ],
+   "tai_lieu": [
+    "KH.HACCP.01",
+    "KH.HACCP.02",
+    "KH.HACCP.01-PL",
+    "QT.08",
+    "HD.08.01",
+    "BM.08.01",
+    "BM.08.02",
+    "HD.08.02",
+    "BM.08.05",
+    "HD.08.03",
+    "BM.08.03",
+    "QT.15",
+    "PRP",
+    "QT.14",
+    "BM.PRP.06"
+   ],
+   "hinh_thuc": "Bản giấy"
+  },
+  {
+   "noi_nhan": "QC",
+   "vai": [
+    "SX QC",
+    "SX QC Packing"
+   ],
+   "tai_lieu": [
+    "HD.08.01",
+    "BM.08.01",
+    "BM.08.02",
+    "HD.08.02",
+    "BM.08.05",
+    "HD.08.03",
+    "BM.08.04",
+    "KH.KN.01",
+    "QĐ.01",
+    "SLM",
+    "HD.07.01",
+    "BM.07.03",
+    "PRP",
+    "SĐ.02",
+    "SĐ.03",
+    "BM.PRP.01",
+    "BM.PRP.02",
+    "BM.PRP.03",
+    "BM.HACCP.01"
+   ],
+   "hinh_thuc": "Bản giấy"
+  },
+  {
+   "noi_nhan": "Kho",
+   "vai": [
+    "SX Thu Kho",
+    "Warehouse"
+   ],
+   "tai_lieu": [
+    "HD.07.01",
+    "BM.07.03",
+    "HD.08.03",
+    "QT.02",
+    "QĐ.01"
+   ],
+   "hinh_thuc": "Bản giấy"
+  },
+  {
+   "noi_nhan": "Mua hàng",
+   "vai": [
+    "Purchase User"
+   ],
+   "tai_lieu": [
+    "QT.07",
+    "BM.07.01",
+    "BM.07.02",
+    "HD.07.01"
+   ],
+   "hinh_thuc": "Bản giấy"
+  },
+  {
+   "noi_nhan": "Cơ điện",
+   "vai": [
+    "SX Co Dien"
+   ],
+   "tai_lieu": [
+    "QT.06",
+    "BM.06.01",
+    "BM.06.02",
+    "BM.06.03",
+    "BM.06.04",
+    "SĐ.02",
+    "SĐ.03",
+    "PRP",
+    "BM.06.05",
+    "BM.PRP.04",
+    "BM.PRP.05"
+   ],
+   "hinh_thuc": "Bản giấy"
+  },
+  {
+   "noi_nhan": "Hành chính – Văn thư",
+   "vai": [
+    "SX Hanh Chinh"
+   ],
+   "tai_lieu": [
+    "ST.ATTP",
+    "CS.ATTP",
+    "MT.ATTP",
+    "stt:9",
+    "QT.01",
+    "QT.03",
+    "PL.03.01",
+    "PL.03.02",
+    "PL.03.03",
+    "PL.03.04",
+    "PL.03.05",
+    "KH.03.01",
+    "BM.03.04",
+    "stt:46",
+    "BM.01.11",
+    "BM.01.12",
+    "BM.01.13",
+    "BM.PRP.07"
+   ],
+   "hinh_thuc": "Bản giấy"
+  },
+  {
+   "noi_nhan": "Kinh doanh",
+   "vai": [
+    "Sales User"
+   ],
+   "tai_lieu": [
+    "QT.11",
+    "QT.02",
+    "QT.09"
+   ],
+   "hinh_thuc": "Bản giấy"
+  },
+  {
+   "noi_nhan": "Toàn bộ người lao động",
+   "vai": [
+    "*"
+   ],
+   "tai_lieu": [
+    "CS.ATTP"
+   ],
+   "hinh_thuc": "Niêm yết"
+  }
+ ]
+}

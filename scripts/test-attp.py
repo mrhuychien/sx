@@ -232,8 +232,11 @@ kiem("vải ủ (W29): chưa khai vải, chưa ghi sổ giặt → '–', không
 kiem("kiểm xe (W34): chưa có chuyến nào ghi kiểm xe → '–', không nhắc gì → Xanh",
      th["kiem_xe"]["so"] == "–" and th["kiem_xe"]["den"] == A.XANH and th["kiem_xe"]["bieu_mau"] == "BM.09.01"
      and th["kiem_xe"]["route"] == "#/qc/kiemxe", th["kiem_xe"])
-kiem("đếm đèn 5 đỏ · 4 vàng · 7 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
-     r["dem"] == {"do": 5, "vang": 4, "xanh": 7}
+kiem("tài liệu (W42): chưa nạp thư viện → '–', không nhắc gì → Xanh; mã BM.01.02, sang #/tailieu",
+     th["tai_lieu"]["so"] == "–" and th["tai_lieu"]["den"] == A.XANH and th["tai_lieu"]["bieu_mau"] == "BM.01.02"
+     and th["tai_lieu"]["route"] == "#/tailieu", th["tai_lieu"])
+kiem("đếm đèn 5 đỏ · 4 vàng · 8 xanh; thẻ đỏ lên đầu theo thứ tự danh mục",
+     r["dem"] == {"do": 5, "vang": 4, "xanh": 8}
      and [x["ma"] for x in r["linh_vuc"][:5]] == ["su_co", "xuat_xuong", "truy_xuat", "kiem_nghiem", "viec_dinh_ky"],
      r["dem"])
 F.vai("SX QC")

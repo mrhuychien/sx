@@ -315,6 +315,59 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Thư viện tài liệu: đề nghị BM.01.01, đợt ban hành, xác nhận đã đọc, BM.01.02 / 01.03 / 01.13 (D171 — W42)
+
+**Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).** Thay sổ đăng ký Excel, thư mục bản mềm, phát bản giấy, ký
+nhận giấy. Căn cứ QT.01 phần kiểm soát tài liệu; QĐ ban hành 21/9/2026 (Phụ lục 1, Phụ lục 3).
+
+- **Màn `#/tailieu`** (tab 📚 Tài liệu, cuối thanh dưới; lối vào thêm ở tab Xem xét của QC). Mọi vai có tài khoản app
+  vào được: thêm `tailieu` vào `ROLE_VIEWS` mọi vai + `MOI_VIEW`; Mua hàng / Kinh doanh (role chuẩn `Purchase User`,
+  `Sales User`) và Thủ kho NL (`Warehouse`) chỉ có tab này. Vai mới (C24): `SX Co Dien`, `SX Hanh Chinh`, `SX Bao Ve`
+  (desk 0), gán được ở màn Người dùng.
+  - **Của tôi**: "Cần đọc" trên cùng — 📄 MỞ ĐỌC (thẻ `<a>` trỏ thẳng tệp, mở tab mới) ghi giờ mở; xong mới bật
+    **ĐÃ ĐỌC, HIỂU** (C28, thay ký nhận giấy). Dưới là tài liệu phân phối cho vai mình theo nhóm, ô tìm mã / tên / mã
+    biểu mẫu; biểu mẫu có màn app → ✍ GHI TRÊN APP. QC mở HD.08.01 trong 2 lần bấm.
+  - **Tất cả** (Ban ISO, siêu quyền): mọi trạng thái, nội bộ / bên ngoài, các lần ban hành trước (PDF cũ); sửa tên,
+    nơi nhận, biểu mẫu kèm, "phải xác nhận đọc"; thêm tài liệu bên ngoài; ✓ ĐÃ SOÁT XÉT (BM.01.03); in BM.01.02, 01.03.
+  - **Đề nghị** BM.01.01 (`SX De Nghi Tai Lieu`, `DNTL-.YYYY.-.###`): SX Quan Ly, ISO, QLSX, QC, QC đóng gói, Cơ điện,
+    Hành chính lập → **ký gửi** → Trưởng Ban ISO xem xét (đồng ý / trả lại có lý do) → Giám đốc (SX Quan Ly) duyệt.
+    Người đề nghị không tự duyệt; đã gửi chỉ sửa khi bị trả lại; đã duyệt / hủy là khóa; trạng thái không sửa được
+    trên Desk. Ký điện tử (C23) = người + giờ + chức danh; nhật ký nối thêm, không sửa đè; in BM.01.01 có
+    "Ký trên phần mềm: Họ tên, dd/mm/yyyy hh:mm".
+  - **Ban hành** (`SX Dot Ban Hanh`, `DBH-.YYYY.-.##` = QĐ + Phụ lục 1): lập đợt, KÉO ĐỀ NGHỊ ĐÃ DUYỆT, thêm tài liệu
+    (mới / sửa đổi / ban hành lại / hủy bỏ / giữ nguyên), tải PDF đã ký từng dòng, tải QĐ đã ký (scan), **BAN HÀNH**
+    (Trưởng Ban ISO / Giám đốc): kiểm số QĐ, QĐ scan, PDF từng dòng nội bộ; rồi trong một giao dịch: bản cũ vào lịch
+    sử (hết hiệu lực từ ngày hiệu lực của đợt), bản mới Hiện hành, Hủy bỏ → Hết hiệu lực, tài liệu mới được tạo (nơi
+    nhận theo dòng); yêu cầu đọc cho người thuộc nơi nhận; đợt khóa (chỉ thêm hồ sơ: biên bản phổ biến có chữ ký…).
+    Tiến độ đọc x/y, người chưa đọc; in **BM.01.13** (đọc trên phần mềm có giờ, chưa đọc / không tài khoản → ô ký tay).
+- **DocType** (module QC): `SX Tai Lieu` (+ bảng `SX Tai Lieu Bieu Mau`, `… Tep`, `… Noi Nhan`, `… Lan`), `SX Noi Nhan`
+  (+ `SX Noi Nhan Vai`), `SX De Nghi Tai Lieu`, `SX Dot Ban Hanh` (+ `SX Dot Ban Hanh Muc`), `SX Tai Lieu Doc`. Bản
+  Hiện hành / Hết hiệu lực: lần BH, ngày, PDF, trạng thái, đợt, lịch sử chỉ đổi qua ban hành (cờ `frappe.flags`), kể
+  cả trên Desk. Xác nhận đọc đã bấm: không sửa, không xóa. Mã duy nhất trong các tài liệu có mã.
+- **Quyền xem (C27)**: người thường thấy tài liệu Hiện hành phân phối cho nơi nhận của mình (theo role của nơi nhận;
+  "Toàn bộ người lao động" = mọi tài khoản app → Chính sách ATTP); Ban ISO, siêu quyền thấy hết, cả bản cũ. Tệp là tệp
+  riêng tư, tải qua `sx.api.qc_tailieu.tai_tep` (GET, kiểm quyền) — `mo` (POST) ghi giờ mở.
+- **Nạp bộ tài liệu (một lần)** — Tài liệu → Ban hành → 📦 NẠP BỘ: (1) chọn `seed_tai_lieu.json`,
+  `seed_tai_lieu_ngoai.json`, `seed_phan_phoi.json` → NẠP DANH MỤC; (2) chọn các PDF, PNG giải nén từ
+  `tai_lieu_pdf.zip` → TẢI TỆP (khớp tên, ≤ 10 MB, kiểm chữ ký đầu tệp, bỏ qua tệp đã có). Tạo 79 tài liệu sổ đăng ký
+  + PLK, BCSX ("Biểu mẫu trên phần mềm", C25) + 21 tài liệu bên ngoài (mã = số hiệu, nhóm A/B/C, soát xét 21/9/2026),
+  10 nơi nhận theo Phụ lục 3, đợt 21/9/2026 "Đã ban hành" (không tạo yêu cầu đọc — đã phổ biến giấy 22/9; bật được),
+  4 hồ sơ của đợt, hồ sơ vận hành trước audit 17/9 vào danh mục hồ sơ. Chạy lại không nhân đôi, không đè chỗ Ban ISO
+  đã sửa (phân phối…). Ghi sổ, Vào hộp không có trong Phụ lục 3: chỉ thấy Chính sách ATTP tới khi Ban ISO phân phối
+  thêm.
+- **Đầu trang in chung**: `sx/qc/_dau_trang.html` (macro) + `sx/qc/mau_in.py` (`sx_dau_trang`, đăng ký Jinja ở
+  `hooks.py`) — khối 3 cột như giấy: tên công ty (SX QC Setting → "Tên công ty trên đầu trang in", trống = CÔNG TY CỔ
+  PHẦN HOÀNG GIANG) · tên biểu mẫu · mã / kèm / lần BH / ngày BH lấy từ thư viện (mã biểu mẫu nằm trong tài liệu khác:
+  BM.08.05 → HD.08.02). Thay dòng `.ma` của mọi mẫu `sx/qc/*.html` và `dien_tap.html`; thư viện chưa có mã thì in lần BH
+  ghi sẵn trước đây (hoặc chấm để ghi tay).
+- **Nhắc** (mảng mới "Tài liệu" ở Tổng quan ATTP, route `#/tailieu`): đợt quá 7 ngày còn người chưa xác nhận đọc (theo
+  đợt), đề nghị chờ xem xét / duyệt quá 7 ngày, tài liệu bên ngoài quá 12 tháng chưa soát xét, đợt nháp thiếu PDF.
+  "Cần đọc" của từng người ở đầu màn Tài liệu. Không gửi email / Zalo (C29).
+- Danh mục hồ sơ: thêm BM.01.02, BM.01.03, BM.01.13 (`BIEU_MAU` + Select; patch `d171_thu_vien_tai_lieu` thêm 3 dòng
+  app lập) — gói zip có danh mục lúc tải và BM.01.13 của các đợt trong kỳ.
+- Build **sx-135**. Deploy (sau Orion): `git pull` → `bench --site site1.local migrate` → `bench restart`; rồi Ban ISO
+  nạp bộ tài liệu.
+
 ## Báo cáo tháng là BM.01.12 "Báo cáo phân tích dữ liệu tháng" (D170 — W41)
 
 - Bản in báo cáo tháng (`sx.api.qc_baocao.in_bao_cao`) và màn `#/qc/baocao` đổi tiêu đề "Báo cáo an toàn thực phẩm

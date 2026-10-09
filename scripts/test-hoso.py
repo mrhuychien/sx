@@ -287,8 +287,9 @@ kiem("BM.PRP.03: một tờ mỗi tuần chạm kỳ (6 tuần)", len([x for x i
 kiem("W36: SLM và BM.07.03 mỗi tháng một tờ (tháng 9, tháng 10) — đúng mẫu giấy",
      sorted(x.rsplit("/", 1)[1] for x in ten if "-SLM/" in x) == ["2026-09.html", "2026-10.html"]
      and sorted(x.rsplit("/", 1)[1] for x in ten if "BM.07.03/" in x) == ["2026-09.html", "2026-10.html"]
-     and "Lần BH 02" in z.read(next(x for x in ten if "-SLM/" in x)).decode("utf-8")
-     and "BM.07.03 (QT.07)" in z.read(next(x for x in ten if "BM.07.03/" in x)).decode("utf-8"),
+     and "Lần BH: 02" in z.read(next(x for x in ten if "-SLM/" in x)).decode("utf-8")
+     and "(QT.07)" in z.read(next(x for x in ten if "BM.07.03/" in x)).decode("utf-8")
+     and "Lần BH: Sửa đổi 01" in z.read(next(x for x in ten if "BM.07.03/" in x)).decode("utf-8"),
      [x for x in ten if "SLM" in x or "07.03" in x])
 kiem("hồ sơ app kỳ này không có bản ghi (BM.08.04) → mục lục nói rõ, không có thư mục rỗng",
      "kỳ này không có bản ghi" in mlt and not any("BM.08.04" in x for x in ten))

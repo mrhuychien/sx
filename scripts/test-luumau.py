@@ -290,6 +290,7 @@ nap("sx.qc.khac_phuc", "sx/qc/khac_phuc.py")
 nap("sx.qc.vai_u", "sx/qc/vai_u.py")
 nap("sx.qc.ncc", "sx/qc/ncc.py")
 nap("sx.qc.kiem_xe", "sx/qc/kiem_xe.py")
+nap("sx.qc.tai_lieu", "sx/qc/tai_lieu.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 P = nap("sx.patches.d133_luu_mau_mot_nam", "sx/patches/d133_luu_mau_mot_nam.py")
 
@@ -698,8 +699,8 @@ if jinja2:
     kiem("huỷ thẳng (chỉ Ban ISO làm được): người hủy = người xác nhận", o2[0][11:] == ["03/10/2026", "iso@x",
                                                                                        "iso@x 03/10/2026"], o2[0])
     chu = re.sub(r"\s+", " ", re.sub("<[^>]+>", " ", html.split("</style>")[1]).replace("&nbsp;", " "))
-    kiem("đầu tờ: SLM · Lần BH 02 · QĐ.01, tháng 10/2026; chân tờ Trưởng Ban ISO xem xét tháng",
-         "SLM · Lần BH 02 · QĐ.01" in chu and "tháng 10/2026" in chu and "Trưởng Ban ISO xem xét Sổ lưu mẫu tháng 10/2026" in chu)
+    kiem("đầu tờ (đầu trang chung W42): SLM, lần BH 02, QĐ.01, tháng 10/2026; chân tờ Trưởng Ban ISO xem xét tháng",
+         "QĐ.01 Lưu mẫu sản phẩm — tháng 10/2026" in chu and "SLM Lần BH: 02" in chu and "Trưởng Ban ISO xem xét Sổ lưu mẫu tháng 10/2026" in chu)
     kiem("tháng không lấy mẫu nào → nói rõ, không có bảng 2", "Tháng này chưa lấy mẫu nào" in Q.in_so_luu_mau("2026-08")
          and Q.in_so_luu_mau("2026-08").count("<table>") == 1)
 vai("Stock User")

@@ -1,5 +1,6 @@
 {#- BM.08.03 — nhật ký cát rang, một tháng: mỗi việc một dòng (W20 D141, W32 D164). A4 ngang, đúng cột giấy
     HD.08.03 lần BH 01 (viết lại 07/10). Dòng sổ cũ (mỗi ngày có rang một dòng, trước D164) in kèm, ghi "sổ cũ". -#}
+{% from "sx/qc/_dau_trang.html" import dau_trang %}
 <style>
   @page { size: A4 landscape; margin: 10mm 8mm; }
   .cat { font: 11px/1.3 "Times New Roman", serif; color: #000; }
@@ -18,8 +19,8 @@
   .cat .xem td { border: 0; text-align: left; height: 40px; }
 </style>
 <div class="cat">
-  <h1>Nhật ký cát rang — tháng {{ thang }}</h1>
-  <div class="ma">BM.08.03 &nbsp;·&nbsp; Lần BH 01 &nbsp;·&nbsp; HD.08.03 &nbsp;·&nbsp; {{ ds|length }} dòng
+  {{ dau_trang("BM.08.03", "Nhật ký cát rang", "tháng " ~ thang, "01", "HD.08.03") }}
+  <div class="ma">{{ ds|length }} dòng
     &nbsp;·&nbsp; {{ "Cát dùng tối đa " ~ toi_da ~ " ngày" if toi_da else "Số ngày tối đa: chưa quy định (chỉ đếm)" }}</div>
   <div class="hd">Mỗi lần nhập, rang khô đưa vào dùng, bổ sung, loại bỏ hoặc vệ sinh thùng, khay: một dòng. Khi bổ sung hoặc loại, ghi số ngày đã dùng của cát trong máy (app đếm ngày có rang từ lần thay toàn bộ). Sàng lại hàng ngày ghi BM.08.01 mục 4.</div>
   <table>

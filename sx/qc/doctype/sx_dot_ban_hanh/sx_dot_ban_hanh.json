@@ -1,0 +1,171 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Dot Ban Hanh",
+ "autoname": "DBH-.YYYY.-.##",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "field_order": [
+  "so_quyet_dinh",
+  "ngay_ban_hanh",
+  "ngay_hieu_luc",
+  "trang_thai",
+  "tao_yeu_cau_doc",
+  "column_break_1",
+  "tep_qd",
+  "ban_hanh_boi",
+  "ban_hanh_ten",
+  "ban_hanh_luc",
+  "ma_nap",
+  "tep_qd_goc",
+  "ghi_chu",
+  "section_ds",
+  "ds",
+  "section_hs",
+  "ho_so"
+ ],
+ "fields": [
+  {
+   "fieldname": "so_quyet_dinh",
+   "fieldtype": "Data",
+   "label": "Số quyết định",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngay_ban_hanh",
+   "fieldtype": "Date",
+   "label": "Ngày ban hành",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ngay_hieu_luc",
+   "fieldtype": "Date",
+   "label": "Ngày hiệu lực"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Nháp\nĐã ban hành",
+   "default": "Nháp",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "tao_yeu_cau_doc",
+   "fieldtype": "Check",
+   "label": "Tạo yêu cầu đọc khi ban hành",
+   "default": "1",
+   "description": "Người thuộc nơi nhận của tài liệu có 'phải xác nhận đã đọc' sẽ thấy 'Cần đọc'."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tep_qd",
+   "fieldtype": "Attach",
+   "label": "Quyết định đã ký (scan)"
+  },
+  {
+   "fieldname": "ban_hanh_boi",
+   "fieldtype": "Link",
+   "label": "Người bấm ban hành",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ban_hanh_ten",
+   "fieldtype": "Data",
+   "label": "Họ tên",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ban_hanh_luc",
+   "fieldtype": "Datetime",
+   "label": "Ban hành lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ma_nap",
+   "fieldtype": "Data",
+   "label": "Mã nạp bộ",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "tep_qd_goc",
+   "fieldtype": "Data",
+   "label": "Tên tệp QĐ gốc (nạp bộ)",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  },
+  {
+   "fieldname": "section_ds",
+   "fieldtype": "Section Break",
+   "label": "Phụ lục 1 — tài liệu trong đợt"
+  },
+  {
+   "fieldname": "ds",
+   "fieldtype": "Table",
+   "label": "Tài liệu",
+   "options": "SX Dot Ban Hanh Muc"
+  },
+  {
+   "fieldname": "section_hs",
+   "fieldtype": "Section Break",
+   "label": "Hồ sơ của đợt"
+  },
+  {
+   "fieldname": "ho_so",
+   "fieldtype": "Table",
+   "label": "QĐ khác, BM.01.01 giấy, biên bản họp, biên bản phổ biến có chữ ký",
+   "options": "SX Tai Lieu Tep"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

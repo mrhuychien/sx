@@ -1,0 +1,28 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Tai Lieu Noi Nhan",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "noi_nhan"
+ ],
+ "fields": [
+  {
+   "fieldname": "noi_nhan",
+   "fieldtype": "Link",
+   "label": "Nơi nhận",
+   "options": "SX Noi Nhan",
+   "reqd": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": []
+}

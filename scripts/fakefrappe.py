@@ -185,13 +185,22 @@ def count(dt, f=None):
     return len(get_all(dt, f))
 
 
+def sx_dau_trang(ma, ten=None):
+    """Hàm Jinja của đầu trang in chung (W42) — như hooks.py đăng ký trên site; nạp sx/qc/mau_in.py thật."""
+    for t in ("tai_lieu", "mau_in"):
+        if f"sx.qc.{t}" not in sys.modules:
+            nap(f"sx.qc.{t}", f"sx/qc/{t}.py")
+    return sys.modules["sx.qc.mau_in"].sx_dau_trang(ma, ten)
+
+
 def render_template(path, ctx):
     if jinja2 is None:
         return ""
     fu_in = types.SimpleNamespace(formatdate=lambda v, f=None: getdate(v).strftime(
         "%d/%m" if f == "dd/MM" else ("%m/%Y" if f == "MM/yyyy" else "%d/%m/%Y")))
-    return jinja2.Environment(loader=jinja2.FileSystemLoader(".")).get_template(path).render(
-        frappe=types.SimpleNamespace(utils=fu_in), **ctx)
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
+    env.globals["sx_dau_trang"] = sx_dau_trang
+    return env.get_template(path).render(frappe=types.SimpleNamespace(utils=fu_in), **ctx)
 
 
 def getdate(x=None):
@@ -202,11 +211,18 @@ def getdate(x=None):
     return date.fromisoformat(str(x)[:10]) if x else hom_nay()
 
 
+def _dong_con(v):
+    """Như frappe: bảng con truyền vào bằng list dict thành các dòng có thuộc tính (r.ten_o)."""
+    if isinstance(v, list) and any(isinstance(r, dict) for r in v):
+        return [Doc(r) if isinstance(r, dict) and not isinstance(r, Doc) else r for r in v]
+    return v
+
+
 class Document:
     """Document giả. Thuộc tính đọc / ghi vào dict; vòng đời như frappe."""
 
     def __init__(self, d=None):
-        self.__dict__["_d"] = dict(d or {})
+        self.__dict__["_d"] = {k: _dong_con(v) for k, v in dict(d or {}).items()}
         self.__dict__["_moi"] = "name" not in self._d or self._d.get("__moi")
         self.__dict__["_cu"] = None if self._moi else copy.deepcopy(self._d)
         self.__dict__["flags"] = types.SimpleNamespace()
@@ -224,13 +240,13 @@ class Document:
         return d if v is None and d is not None else v
 
     def set(self, k, v):
-        self._d[k] = v
+        self._d[k] = _dong_con(v)
 
     def append(self, k, v):
         self._d.setdefault(k, []).append(Doc(v) if isinstance(v, dict) else v)
 
     def update(self, d):
-        self._d.update(d)
+        self._d.update({k: _dong_con(v) for k, v in dict(d).items()})
 
     def as_dict(self):
         return Doc(self._d)
@@ -276,6 +292,7 @@ class Document:
     def _luu(self):
         self._goi("validate")
         dt = self._d["doctype"]
+        _dat_ten_con(dt, self._d)
         bang(dt)[self._d["name"]] = copy.deepcopy(self._d)
         _chep_con(dt, self._d)
         self._goi("on_update")
@@ -349,6 +366,17 @@ def bang_con(dt, f, dt_con):
     CON[(dt, f)] = dt_con
 
 
+def _dat_ten_con(dt, d):
+    """Như frappe: dòng con (bảng khai bằng bang_con) có `name` riêng, giữ nguyên qua các lần lưu."""
+    for (cha, f), _con in CON.items():
+        if cha != dt:
+            continue
+        for r in d.get(f) or []:
+            if isinstance(r, dict) and not r.get("name"):
+                SO["n"] += 1
+                r["name"] = f"{d['name']}-{f}-{SO['n']}"
+
+
 def _chep_con(dt, d, xoa=False):
     for (cha, f), con in CON.items():
         if cha != dt:
@@ -358,7 +386,7 @@ def _chep_con(dt, d, xoa=False):
             b.pop(k)
         for i, r in enumerate([] if xoa else (d.get(f) or []), 1):
             h = dict(r, parent=d["name"], parenttype=dt, parentfield=f, idx=i)
-            h["name"] = f"{d['name']}-{f}-{i}"
+            h["name"] = r.get("name") or f"{d['name']}-{f}-{i}"
             b[h["name"]] = h
 
 
@@ -445,7 +473,8 @@ def nap(ten, p):
 def nap_qc():
     """Nạp chuỗi module QC mà sx/api/qc.py cần, theo đúng thứ tự phụ thuộc."""
     for t in ("muc", "nguong", "quyen", "san_pham", "su_co", "xuat", "nhac", "dong_vat", "cat", "so_do",
-              "thiet_bi", "kiem_nghiem", "viec_dinh_ky", "khac_phuc", "vai_u", "ncc", "kiem_xe", "giu_mau"):
+              "thiet_bi", "kiem_nghiem", "viec_dinh_ky", "khac_phuc", "vai_u", "ncc", "kiem_xe", "giu_mau",
+              "tai_lieu"):
         nap(f"sx.qc.{t}", f"sx/qc/{t}.py")
     return nap("sx.api.qc", "sx/api/qc.py")
 

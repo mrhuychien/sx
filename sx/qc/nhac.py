@@ -54,7 +54,7 @@ def _nhom(ma, ds):
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
          cat=None, thiet_bi=None, kiem_nghiem=None, viec_dinh_ky=None, khac_phuc=None, vai_u=None,
-         kiem_xe=None):
+         kiem_xe=None, tai_lieu=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -68,7 +68,9 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
                      phần `kiem_nghiem` (nước, nguyên liệu, khác theo KH.KN.01) vào mảng Kiểm nghiệm — W35 (D166).
     `khac_phuc` = sx/qc/khac_phuc.nhac(): phiếu BM.01.07 quá hạn, chờ kiểm tra hiệu lực lâu — W24 (D150).
     `vai_u` = sx/qc/vai_u.nhac(): quá chu kỳ chưa giặt vải ủ, dòng chờ QC ký, tháng chưa xem — W29 (D163).
-    `kiem_xe` = sx/qc/kiem_xe.nhac(): tuần có chuyến mà chưa chuyến nào QC kiểm, tháng BM.09.01 chưa xem — W34."""
+    `kiem_xe` = sx/qc/kiem_xe.nhac(): tuần có chuyến mà chưa chuyến nào QC kiểm, tháng BM.09.01 chưa xem — W34.
+    `tai_lieu` = sx/qc/tai_lieu.nhac(): đợt ban hành quá 7 ngày còn người chưa xác nhận đọc, đề nghị BM.01.01 chờ
+                 lâu, tài liệu bên ngoài quá 12 tháng chưa soát xét, đợt nháp thiếu PDF — W42 (D171)."""
     nay = _d(hom_nay)
     ra = []
     # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (PRP từ W38), nên thuộc mảng vòng kiểm.
@@ -83,6 +85,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhom("cat", _nhac_cat(cat or {}))
     ra += _nhom("vai_u", _nhac_vai_u(nay, vai_u or {}))
     ra += _nhom("kiem_xe", _nhac_kiem_xe(kiem_xe or {}))
+    ra += _nhom("tai_lieu", _nhac_tai_lieu(tai_lieu or {}))
     ra += _nhom("thiet_bi", _nhac_thiet_bi(nay, thiet_bi or {}))
     ra += _nhom("kiem_nghiem", _nhac_kiem_nghiem(kiem_nghiem or {}))
     ra += _nhom("viec_dinh_ky", _nhac_viec_dinh_ky(viec_dinh_ky or {}))
@@ -369,6 +372,33 @@ def _nhac_kiem_xe(kx):
         ra.append(_m(THUONG, f"Kiểm xe BM.09.01 tháng {t[5:7]}/{t[:4]} chưa được Trưởng Ban ISO xem",
                      "QT.09 mục 4: Trưởng Ban ISO xem BM.09.01 hằng tháng — bấm \"Đã xem tháng\" trên màn Kiểm xe.",
                      "#/qc/kiemxe"))
+    return ra
+
+
+def _nhac_tai_lieu(tl):
+    """Thư viện tài liệu (W42). "Cần đọc" của từng người hiện ở đầu màn Tài liệu, không ở đây — hộp này nhắc
+    việc của Ban ISO / Giám đốc: đợt ban hành quá 7 ngày mà còn người chưa xác nhận đọc (theo đợt), đề nghị
+    BM.01.01 chờ xem xét / duyệt quá 7 ngày, tài liệu bên ngoài quá 12 tháng chưa soát xét (QT.01), đợt nháp còn
+    dòng thiếu PDF đã ký."""
+    ra = []
+    for x in tl.get("chua_doc") or []:
+        ra.append(_m(THUONG, f"Đợt ban hành {x['dot']}: {x['chua']}/{x['tong']} người chưa xác nhận đã đọc",
+                     f"QĐ {x.get('so') or '…'} ban hành {_d(x['ngay']).strftime('%d/%m/%Y') if x.get('ngay') else ''}"
+                     " — quá 7 ngày. Nhắc người chưa đọc, hoặc in BM.01.13 cho người không có tài khoản ký tay.",
+                     f"#/tailieu/dot/{x['dot']}"))
+    dn = tl.get("de_nghi") or []
+    if dn:
+        ra.append(_m(THUONG, f"{len(dn)} đề nghị tài liệu (BM.01.01) chờ xem xét / duyệt quá 7 ngày",
+                     "; ".join(f"{x['name']} {x.get('ten') or ''} — {x['trang_thai'].lower()}".strip()
+                               for x in dn[:3]) + ("…" if len(dn) > 3 else ""), "#/tailieu/denghi"))
+    sx_ = tl.get("soat_xet") or []
+    if sx_:
+        ra.append(_m(THUONG, f"{len(sx_)} tài liệu bên ngoài quá 12 tháng chưa soát xét (BM.01.03)",
+                     "QT.01: Ban ISO soát xét danh mục tài liệu bên ngoài ít nhất 1 lần / năm — "
+                     + ", ".join(sx_[:4]) + ("…" if len(sx_) > 4 else ""), "#/tailieu/tatca"))
+    for x in tl.get("dot_thieu") or []:
+        ra.append(_m(THUONG, f"Đợt ban hành {x['dot']} (nháp) còn {x['thieu']} tài liệu chưa có PDF đã ký",
+                     "Tải PDF bản đã ký cho từng dòng rồi bấm Ban hành.", f"#/tailieu/dot/{x['dot']}"))
     return ra
 
 

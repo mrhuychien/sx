@@ -1,0 +1,99 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 22:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 22:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "name": "SX Dot Ban Hanh Muc",
+ "istable": 1,
+ "editable_grid": 1,
+ "field_order": [
+  "tai_lieu",
+  "ma",
+  "ten",
+  "loai",
+  "hanh_dong",
+  "lan_ban_hanh_moi",
+  "tep_moi",
+  "de_nghi",
+  "tom_tat",
+  "phan_phoi",
+  "tep_goc"
+ ],
+ "fields": [
+  {
+   "fieldname": "tai_lieu",
+   "fieldtype": "Link",
+   "label": "Tài liệu",
+   "options": "SX Tai Lieu",
+   "in_list_view": 1,
+   "description": "Trống khi ban hành mới — app tạo tài liệu lúc ban hành."
+  },
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "loai",
+   "fieldtype": "Select",
+   "label": "Loại (tài liệu mới)",
+   "options": "\nSổ tay\nChính sách\nMục tiêu\nQuy trình\nHướng dẫn\nQuy định\nKế hoạch\nKế hoạch HACCP\nPRP\nSơ đồ\nPhụ lục\nPhương án\nBiểu mẫu\nBiểu mẫu trên phần mềm\nTờ trình\nTài liệu bên ngoài\nKhác"
+  },
+  {
+   "fieldname": "hanh_dong",
+   "fieldtype": "Select",
+   "label": "Hành động",
+   "options": "Ban hành mới\nSửa đổi – thay thế\nBan hành lại – thay thế\nHủy bỏ\nGiữ nguyên",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "lan_ban_hanh_moi",
+   "fieldtype": "Data",
+   "label": "Lần ban hành mới",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tep_moi",
+   "fieldtype": "Attach",
+   "label": "Tệp PDF bản mới (đã ký)"
+  },
+  {
+   "fieldname": "de_nghi",
+   "fieldtype": "Link",
+   "label": "Đề nghị BM.01.01",
+   "options": "SX De Nghi Tai Lieu"
+  },
+  {
+   "fieldname": "tom_tat",
+   "fieldtype": "Small Text",
+   "label": "Tóm tắt thay đổi / nội dung chính phổ biến"
+  },
+  {
+   "fieldname": "phan_phoi",
+   "fieldtype": "Small Text",
+   "label": "Nơi nhận (tài liệu mới)",
+   "description": "Tên nơi nhận cách nhau dấu phẩy. Tài liệu đã có thì giữ phân phối trên tài liệu."
+  },
+  {
+   "fieldname": "tep_goc",
+   "fieldtype": "Data",
+   "label": "Tên tệp gốc (nạp bộ)",
+   "hidden": 1,
+   "read_only": 1
+  }
+ ],
+ "permissions": []
+}
