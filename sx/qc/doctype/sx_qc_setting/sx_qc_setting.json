@@ -41,6 +41,10 @@
   "luu_mau_so_thang",
   "section_cat",
   "cat_so_ngay_toi_da",
+  "section_thiet_bi",
+  "thiet_bi_han_dau",
+  "chung_chi_dong_ho",
+  "nguoi_kiem_dong_ho",
   "section_quyen",
   "nguoi_dong_su_co",
   "nguoi_duyet_xuat_xuong"
@@ -271,6 +275,31 @@
    "label": "Cát dùng tối đa bao nhiêu ngày",
    "default": "0",
    "description": "W20 / C19: CHƯA CHỐT — để 0 thì app chỉ đếm số ngày cát đã dùng, không nhắc. Điền số ngày khi đã chốt: tới ngưỡng thì hộp nhắc QC báo thay cát."
+  },
+  {
+   "fieldname": "section_thiet_bi",
+   "fieldtype": "Section Break",
+   "label": "Thiết bị đo (BM.06)"
+  },
+  {
+   "fieldname": "thiet_bi_han_dau",
+   "fieldtype": "Date",
+   "label": "Hạn kiểm lần đầu",
+   "default": "2026-10-31",
+   "description": "W17: thiết bị chưa kiểm lần nào phải kiểm trước ngày này (tài liệu 08/10: trước 31/10/2026)."
+  },
+  {
+   "fieldname": "chung_chi_dong_ho",
+   "fieldtype": "Select",
+   "label": "Người kiểm đồng hồ nhiệt",
+   "options": "\nĐào tạo nội bộ\nGiữ chứng chỉ",
+   "description": "W17 (f) — CHỜ QUYẾT ĐỊNH. Trống / Đào tạo nội bộ: app chỉ lưu biên bản đào tạo ở bảng dưới. Giữ chứng chỉ: người tự kiểm đồng hồ nhiệt (kiểm tra nội bộ) phải có chứng chỉ còn hạn trong bảng dưới, không thì app chặn ghi."
+  },
+  {
+   "fieldname": "nguoi_kiem_dong_ho",
+   "fieldtype": "Table",
+   "label": "Biên bản đào tạo / chứng chỉ người kiểm",
+   "options": "SX QC Nguoi Kiem"
   },
   {
    "fieldname": "section_quyen",

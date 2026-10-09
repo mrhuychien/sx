@@ -192,6 +192,7 @@ LMC = nap("sx.qc.doctype.sx_qc_luu_mau.sx_qc_luu_mau",
 nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
 nap("sx.qc.cat", "sx/qc/cat.py")
 nap("sx.qc.so_do", "sx/qc/so_do.py")
+nap("sx.qc.thiet_bi", "sx/qc/thiet_bi.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 P = nap("sx.patches.d100_qc_may_va_lac", "sx/patches/d100_qc_may_va_lac.py")
 

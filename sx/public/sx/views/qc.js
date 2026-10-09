@@ -25,7 +25,12 @@ const MAN = {
   dvgh: '/assets/sx/sx/views/qc_dvgh.js',
   // W20 (D141): nhật ký cát rang BM.08.03 — nút ở cuối Hôm nay, cạnh động vật gây hại.
   cat: '/assets/sx/sx/views/qc_cat.js',
+  // W17 (D143): thiết bị đo, hiệu chuẩn BM.06.01–06.04.
+  thietbi: '/assets/sx/sx/views/qc_thietbi.js',
 };
+
+// Sổ mở từ lưới nút cuối màn Hôm nay — tab "Hôm nay" sáng khi đang ở các màn này.
+const SO_HOM_NAY = ['dvgh', 'cat', 'thietbi'];
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
 // null = hôm nay. Giữ ngoài hàm render để đổi tab không mất ngày đang xem.
@@ -83,7 +88,7 @@ function veTab(dang, api) {
     const a = el('a', 'sx-qc-tab', ten);
     a.href = ma === 'home' ? '#/qc' : `#/qc/${ma}`;
     const on = ma === dang || (ma === 'incidents' && dang === 'khieunai')
-      || (ma === 'xuatxuong' && dang === 'luumau') || (ma === 'home' && ['dvgh', 'cat'].includes(dang));
+      || (ma === 'xuatxuong' && dang === 'luumau') || (ma === 'home' && SO_HOM_NAY.includes(dang));
     a.className = `sx-qc-tab${on ? ' sx-qc-seg-on' : ''}`;
     box.appendChild(a);
   });

@@ -372,4 +372,10 @@ python3 scripts/test-somay.py > /tmp/sx-somay.log 2>&1 \
   && tail -1 /tmp/sx-somay.log \
   || { cat /tmp/sx-somay.log; loi=1; }
 
+# D143 (W17): thiết bị đo BM.06. Hạn tính sai, cân bị kiểm nội bộ kéo dài hạn kiểm định, hỏng
+# mà vẫn Đạt, quá hạn không ngừng dùng / không phiếu sự cố, phiếu sự cố lặp mỗi ngày — đều im lặng.
+python3 scripts/test-thietbi.py > /tmp/sx-thietbi.log 2>&1 \
+  && tail -1 /tmp/sx-thietbi.log \
+  || { cat /tmp/sx-thietbi.log; loi=1; }
+
 exit $loi

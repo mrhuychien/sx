@@ -1,0 +1,315 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 08:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 08:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "track_changes": 1,
+ "autoname": "naming_series:",
+ "name": "SX Kiem Thiet Bi",
+ "naming_rule": "By \"Naming Series\" field",
+ "field_order": [
+  "naming_series",
+  "thiet_bi",
+  "ten_thiet_bi",
+  "loai",
+  "column_break_1",
+  "ngay",
+  "hinh_thuc",
+  "section_dong_ho",
+  "chuan_1",
+  "doc_1",
+  "column_break_dh",
+  "chuan_2",
+  "doc_2",
+  "sai_so_cho_phep",
+  "sai_so",
+  "section_nam_cham",
+  "be_mat",
+  "luc_hut",
+  "luc_hut_gauss",
+  "section_luoi",
+  "nguyen_ven",
+  "mat_luoi",
+  "khung",
+  "section_giay",
+  "so_giay",
+  "don_vi",
+  "column_break_giay",
+  "han_giay",
+  "section_kq",
+  "ket_qua",
+  "ghi_chu",
+  "file_dinh_kem",
+  "column_break_2",
+  "nguoi_kiem",
+  "su_co"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "KTB-.YYYY.-.#####",
+   "default": "KTB-.YYYY.-.#####",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "thiet_bi",
+   "fieldtype": "Link",
+   "label": "Thiết bị",
+   "options": "SX Thiet Bi Do",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ten_thiet_bi",
+   "fieldtype": "Data",
+   "label": "Tên thiết bị",
+   "read_only": 1,
+   "fetch_from": "thiet_bi.ten"
+  },
+  {
+   "fieldname": "loai",
+   "fieldtype": "Data",
+   "label": "Loại",
+   "read_only": 1,
+   "fetch_from": "thiet_bi.loai"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ngay",
+   "fieldtype": "Date",
+   "label": "Ngày kiểm",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "hinh_thuc",
+   "fieldtype": "Select",
+   "label": "Hình thức",
+   "default": "Kiểm tra nội bộ",
+   "options": "Kiểm tra nội bộ\nHiệu chuẩn bên ngoài\nKiểm định bên ngoài"
+  },
+  {
+   "fieldname": "section_dong_ho",
+   "fieldtype": "Section Break",
+   "label": "Đồng hồ nhiệt (BM.06.02)",
+   "depends_on": "eval:doc.loai=='Đồng hồ nhiệt'"
+  },
+  {
+   "fieldname": "chuan_1",
+   "fieldtype": "Data",
+   "label": "Điểm 1 — nhiệt độ chuẩn (°C)",
+   "description": "Số, VD 0 (nước đá) hoặc 100 (nước sôi). Để trống nếu không đo điểm này."
+  },
+  {
+   "fieldname": "doc_1",
+   "fieldtype": "Data",
+   "label": "Điểm 1 — đồng hồ đọc (°C)",
+   "description": "Số, VD 0 (nước đá) hoặc 100 (nước sôi). Để trống nếu không đo điểm này."
+  },
+  {
+   "fieldname": "column_break_dh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "chuan_2",
+   "fieldtype": "Data",
+   "label": "Điểm 2 — nhiệt độ chuẩn (°C)",
+   "description": "Số, VD 0 (nước đá) hoặc 100 (nước sôi). Để trống nếu không đo điểm này."
+  },
+  {
+   "fieldname": "doc_2",
+   "fieldtype": "Data",
+   "label": "Điểm 2 — đồng hồ đọc (°C)",
+   "description": "Số, VD 0 (nước đá) hoặc 100 (nước sôi). Để trống nếu không đo điểm này."
+  },
+  {
+   "fieldname": "sai_so_cho_phep",
+   "fieldtype": "Float",
+   "label": "Sai số cho phép (± °C)",
+   "default": "2"
+  },
+  {
+   "fieldname": "sai_so",
+   "fieldtype": "Float",
+   "label": "Sai số lớn nhất (°C)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_nam_cham",
+   "fieldtype": "Section Break",
+   "label": "Nam châm (BM.06.03)",
+   "depends_on": "eval:doc.loai=='Nam châm'"
+  },
+  {
+   "fieldname": "be_mat",
+   "fieldtype": "Select",
+   "label": "Bề mặt nguyên vẹn, không nứt vỡ",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "luc_hut",
+   "fieldtype": "Select",
+   "label": "Lực hút (thử bằng que thử / máy đo)",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "luc_hut_gauss",
+   "fieldtype": "Float",
+   "label": "Lực hút đo được (Gauss, nếu có máy đo)"
+  },
+  {
+   "fieldname": "section_luoi",
+   "fieldtype": "Section Break",
+   "label": "Lưới sàng, rây (BM.06.04)",
+   "depends_on": "eval:doc.loai=='Lưới sàng, rây'"
+  },
+  {
+   "fieldname": "nguyen_ven",
+   "fieldtype": "Select",
+   "label": "Không rách, thủng",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "mat_luoi",
+   "fieldtype": "Select",
+   "label": "Mắt lưới đúng cỡ, không giãn",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "khung",
+   "fieldtype": "Select",
+   "label": "Khung, mối hàn chắc",
+   "options": "\nĐạt\nKhông đạt"
+  },
+  {
+   "fieldname": "section_giay",
+   "fieldtype": "Section Break",
+   "label": "Giấy kiểm định / hiệu chuẩn",
+   "depends_on": "eval:doc.hinh_thuc!='Kiểm tra nội bộ' || doc.loai=='Cân'"
+  },
+  {
+   "fieldname": "so_giay",
+   "fieldtype": "Data",
+   "label": "Số giấy chứng nhận"
+  },
+  {
+   "fieldname": "don_vi",
+   "fieldtype": "Data",
+   "label": "Đơn vị kiểm định / hiệu chuẩn"
+  },
+  {
+   "fieldname": "column_break_giay",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "han_giay",
+   "fieldtype": "Date",
+   "label": "Hạn ghi trên giấy",
+   "description": "Có ngày này thì hạn kiểm kế tiếp lấy đúng ngày này. Cân: bắt buộc khi kiểm định bên ngoài."
+  },
+  {
+   "fieldname": "section_kq",
+   "fieldtype": "Section Break",
+   "label": "Kết luận"
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Select",
+   "label": "Kết quả",
+   "reqd": 1,
+   "options": "Đạt\nKhông đạt",
+   "in_list_view": 1,
+   "description": "Một tiêu chí Không đạt / sai số vượt cho phép → app ép Không đạt. Không đạt → thiết bị ngừng dùng, app lập phiếu sự cố."
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  },
+  {
+   "fieldname": "file_dinh_kem",
+   "fieldtype": "Attach",
+   "label": "Ảnh / giấy chứng nhận"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "nguoi_kiem",
+   "fieldtype": "Link",
+   "label": "Người kiểm",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố",
+   "options": "SX Su Co",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "ngay",
+ "sort_order": "DESC",
+ "title_field": "thiet_bi"
+}

@@ -34,6 +34,7 @@ from sx.qc import dong_vat as _dong_vat
 from sx.qc import muc as M
 from sx.qc import nhac as _nhac
 from sx.qc import so_do as _so_do
+from sx.qc import thiet_bi as _thiet_bi
 from sx.qc import xuat
 from sx.qc.nguong import nguong
 from sx.qc.quyen import duoc_dong_su_co
@@ -536,7 +537,8 @@ def nhac(ngay=None):
     rang = {str(r.get("ngay")) for r in luot if cint(r.get("rang_nhiet_do")) > 0}
     return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton(),
                                              _luu_mau_nhac(d), _xuat_xuong_nhac(),
-                                             _dong_vat.nhac(d), _cat.nhac(d, rang))}
+                                             _dong_vat.nhac(d), _cat.nhac(d, rang),
+                                             _thiet_bi.nhac(d))}
 
 
 def _xuat_xuong_nhac():

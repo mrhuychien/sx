@@ -450,3 +450,7 @@ button.sx-qc-tag-chon {
 .sx-qc-o-loi { background: var(--sx-danger-soft); color: var(--sx-danger-text); font-weight: 700; }
 .sx-qc-hang-nghi td { color: var(--sx-text-3); background: transparent; }
 .sx-qc-hang-sau td { color: var(--sx-line-2); }
+
+/* ── D143 (W17): thiết bị đo ────────────────────────────────────────────── */
+.sx-tb-nut .sx-btn { min-height: 38px; padding: 4px 14px; font-size: var(--sx-f-sm); }
+.sx-tb-kq { font-weight: 600; color: var(--sx-text-2); }

@@ -315,6 +315,29 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Thiết bị đo, hiệu chuẩn BM.06.01–06.04 (D143 — W17)
+
+- Màn QC → Hôm nay → **🌡 Thiết bị đo** (`#/qc/thietbi`): danh mục theo loại (đồng hồ nhiệt, nam châm,
+  lưới sàng / rây, cân, khác) — `SX Thiet Bi Do`. Patch tạo sẵn **LS-01-M1/M2/M3** (lưới sàng từng máy
+  rang) và **RY-01** (rây kiểm). Đồng hồ nhiệt, nam châm, cân: Ban ISO / QC thêm (hộp nhắc báo loại
+  nào chưa khai).
+- **GHI KIỂM TRA** (`SX Kiem Thiet Bi`), tiêu chí theo loại: đồng hồ nhiệt — 1–2 điểm đo so chuẩn (0 °C
+  nước đá được), sai số > cho phép (mặc định ± 2 °C) → Không đạt; nam châm — bề mặt, lực hút (Gauss nếu
+  có); lưới sàng / rây — không rách, mắt lưới, khung; cân — kiểm định bên ngoài phải có số giấy + hạn.
+  Tiêu chí hỏng mà ghi Đạt → app ép Không đạt.
+- **Hạn kiểm**: lần kiểm gần nhất + chu kỳ (mặc định 12 tháng — đồng hồ nhiệt 1 lần/năm theo tài liệu;
+  nam châm, lưới sàng **tạm** 12 tháng, sửa từng thiết bị), hoặc hạn ghi trên giấy hiệu chuẩn; **cân
+  theo hạn giấy kiểm định gần nhất** (kiểm nội bộ bằng quả chuẩn không kéo dài hạn). Chưa kiểm lần nào
+  → hạn **31/10/2026** (*SX QC Setting → Hạn kiểm lần đầu*).
+- **Không đạt hoặc quá hạn → NGỪNG DÙNG + phiếu sự cố BM.08.02** (nguồn Thiết bị đo, mức Cao): Không đạt
+  lập ngay; quá hạn do lịch chạy nền mỗi ngày quét — một phiếu gộp cho các thiết bị mới quá hạn, không
+  lập lại cho cùng hạn. Kiểm lại Đạt → dùng lại. Hộp nhắc: quá hạn / không đạt (cao), đến hạn 30 ngày.
+- In **BM.06.01** (danh mục), **BM.06.02 / 06.03 / 06.04** (các lần kiểm trong năm).
+- **Người kiểm đồng hồ nhiệt — chờ anh chọn (W17 f)**: *SX QC Setting → Người kiểm đồng hồ nhiệt*
+  để trống / "Đào tạo nội bộ" = chỉ lưu biên bản đào tạo ở bảng ngay dưới; "Giữ chứng chỉ" = người
+  tự kiểm đồng hồ nhiệt (nội bộ) phải có chứng chỉ còn hạn trong bảng, không thì app chặn ghi.
+  C20 (cân phối trộn) chưa đưa vào.
+
 ## Số đo theo máy rang M1–M3, máy gói bột (D142 — W16)
 
 - Máy rang đỗ mang mã **M1 / M2 / M3** (tài liệu 08/10): nhiệt độ, vòng quay lồng rang ghi theo

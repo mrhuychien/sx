@@ -45,14 +45,15 @@ def _m(muc_do, tieu_de, chi_tiet, route):
 
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
-         cat=None):
+         cat=None, thiet_bi=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
     `luu_mau` = {"den_han": n, "lau_nhat": ngày, "dot_cho": [{name, thang, lap_luc}]} (W07).
     `xuat_xuong` = {"cho_duyet": n, "lau_nhat": ngày gửi} — phiếu BM.08.04 chờ duyệt (W08).
     `dong_vat` = {"co_du_lieu": bool, "khu_hai_tuan": [{khu, tram, tuan}]} — W15 (D140).
-    `cat` = sx/qc/cat.nhac(): đổi nguồn còn thiếu, ngày có rang thiếu nhật ký — W20 (D141)."""
+    `cat` = sx/qc/cat.nhac(): đổi nguồn còn thiếu, ngày có rang thiếu nhật ký — W20 (D141).
+    `thiet_bi` = sx/qc/thiet_bi.nhac(): quá hạn, không đạt, sắp đến hạn, loại chưa khai — W17 (D143)."""
     nay = _d(hom_nay)
     ra = []
     ra += _nhac_bot_nen(nay, bot_nen or [])
@@ -64,6 +65,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhac_xem_xet(nay, luot)
     ra += _nhac_dong_vat(dong_vat or {})
     ra += _nhac_cat(cat or {})
+    ra += _nhac_thiet_bi(nay, thiet_bi or {})
     # Nhắc cũ theo số trạm có dấu hiệu ở lượt tuần (T2, không biết khu) — chỉ còn dùng khi
     # nhà máy CHƯA ghi dấu hiệu theo trạm (W15); có dữ liệu trạm thì nhắc theo khu thay.
     if not (dong_vat or {}).get("co_du_lieu"):
@@ -273,6 +275,31 @@ def _nhac_cat(c):
     if c.get("hom_nay_chua"):
         ra.append(_m(THUONG, "Hôm nay có rang — chưa ghi nhật ký cát",
                      "Ghi trong ngày: nguồn cát, có thay cát không, vệ sinh thùng / khay.", "#/qc/cat"))
+    return ra
+
+
+def _nhac_thiet_bi(nay, tb):
+    """Thiết bị đo (W17): quá hạn / không đạt = đang NGỪNG DÙNG (mức cao); sắp đến hạn 30 ngày;
+    loại thiết bị chưa khai trong danh mục (đồng hồ nhiệt, nam châm, lưới sàng, cân)."""
+    ra = []
+    ds = lambda xs: ", ".join(x["ma"] for x in xs[:5]) + ("…" if len(xs) > 5 else "")  # noqa: E731
+    if tb.get("qua_han"):
+        x = tb["qua_han"]
+        ra.append(_m(CAO, f"{len(x)} thiết bị đo quá hạn kiểm — ngừng dùng",
+                     f"{ds(x)}. Kiểm / hiệu chuẩn rồi ghi phiếu trên màn Thiết bị đo; phiếu sự cố đã "
+                     f"được lập tự động.", "#/qc/thietbi"))
+    if tb.get("khong_dat"):
+        x = tb["khong_dat"]
+        ra.append(_m(CAO, f"{len(x)} thiết bị đo Không đạt — đang ngừng dùng",
+                     f"{ds(x)}. Sửa / thay, kiểm lại Đạt thì mới dùng lại.", "#/qc/thietbi"))
+    if tb.get("sap_den"):
+        x = tb["sap_den"]
+        ra.append(_m(THUONG, f"{len(x)} thiết bị đo đến hạn kiểm trong 30 ngày",
+                     f"Sớm nhất {x[0]['ma']} — hạn {_d(x[0]['han']).strftime('%d/%m/%Y')}.", "#/qc/thietbi"))
+    if tb.get("thieu_loai"):
+        ra.append(_m(THUONG, f"Danh mục thiết bị đo chưa có: {', '.join(tb['thieu_loai']).lower()}",
+                     f"Ban ISO khai trên màn Thiết bị đo — hạn kiểm lần đầu "
+                     f"{_d(tb.get('han_dau') or nay).strftime('%d/%m/%Y')}.", "#/qc/thietbi"))
     return ra
 
 

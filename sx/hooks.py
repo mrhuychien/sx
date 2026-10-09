@@ -64,7 +64,11 @@ doc_events = {
 
 # D123: lưới an toàn của đồng bộ ngầm — ngày còn dấu "cần đồng bộ" (job nền lỡ,
 # worker vừa khởi động lại…) được làm trong vòng 5 phút.
-scheduler_events = {"cron": {"*/5 * * * *": ["sx.api.dongbo.chay_tat_ca"]}}
+scheduler_events = {
+    "cron": {"*/5 * * * *": ["sx.api.dongbo.chay_tat_ca"]},
+    # W17 (D143): thiết bị đo quá hạn kiểm → ngừng dùng + phiếu sự cố (một phiếu gộp mỗi ngày).
+    "daily": ["sx.qc.thiet_bi.quet_qua_han"],
+}
 
 # Tạo role còn thiếu — chỉ TẠO, không sửa role đã có (D105).
 after_install = ["sx.setup.dam_bao_role", "sx.api.mfg.bat_lo_he_thong"]

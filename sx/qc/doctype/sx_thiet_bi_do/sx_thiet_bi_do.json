@@ -1,0 +1,200 @@
+{
+ "actions": [],
+ "creation": "2026-10-09 08:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-09 08:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "track_changes": 1,
+ "autoname": "field:ma",
+ "name": "SX Thiet Bi Do",
+ "naming_rule": "By fieldname",
+ "field_order": [
+  "ma",
+  "ten",
+  "loai",
+  "vi_tri",
+  "may",
+  "column_break_1",
+  "chu_ky_thang",
+  "thanh_ly",
+  "trang_thai",
+  "han_kiem",
+  "section_cuoi",
+  "lan_kiem_cuoi",
+  "ket_qua_cuoi",
+  "phieu_cuoi",
+  "column_break_2",
+  "qua_han_su_co",
+  "qua_han_su_co_han",
+  "ghi_chu"
+ ],
+ "fields": [
+  {
+   "fieldname": "ma",
+   "fieldtype": "Data",
+   "label": "Mã thiết bị",
+   "reqd": 1,
+   "unique": 1,
+   "set_only_once": 1,
+   "in_list_view": 1,
+   "description": "VD: DH-01 (đồng hồ nhiệt), NC-01 (nam châm), LS-01-M1 (lưới sàng máy rang M1), RY-01 (rây kiểm), CAN-01."
+  },
+  {
+   "fieldname": "ten",
+   "fieldtype": "Data",
+   "label": "Tên thiết bị",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "loai",
+   "fieldtype": "Select",
+   "label": "Loại",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "options": "Đồng hồ nhiệt\nNam châm\nLưới sàng, rây\nCân\nKhác"
+  },
+  {
+   "fieldname": "vi_tri",
+   "fieldtype": "Data",
+   "label": "Vị trí / công đoạn"
+  },
+  {
+   "fieldname": "may",
+   "fieldtype": "Data",
+   "label": "Máy",
+   "description": "M1 / M2 / M3 nếu thiết bị gắn theo máy."
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "chu_ky_thang",
+   "fieldtype": "Int",
+   "label": "Chu kỳ kiểm (tháng)",
+   "description": "Bỏ trống = 12 tháng (đồng hồ nhiệt: 1 lần/năm theo tài liệu; nam châm, lưới sàng: TẠM — tài liệu chưa ghi). Có hạn ghi trên giấy hiệu chuẩn / kiểm định thì lấy hạn đó; cân luôn theo hạn giấy kiểm định gần nhất."
+  },
+  {
+   "fieldname": "thanh_ly",
+   "fieldtype": "Check",
+   "label": "Thanh lý / không dùng nữa"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Data",
+   "label": "Trạng thái",
+   "read_only": 1,
+   "in_list_view": 1,
+   "description": "App tự tính: Đang dùng / Ngừng — không đạt / Ngừng — quá hạn / Thanh lý."
+  },
+  {
+   "fieldname": "han_kiem",
+   "fieldtype": "Date",
+   "label": "Hạn kiểm kế tiếp",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "section_cuoi",
+   "fieldtype": "Section Break",
+   "label": "Lần kiểm gần nhất"
+  },
+  {
+   "fieldname": "lan_kiem_cuoi",
+   "fieldtype": "Date",
+   "label": "Ngày kiểm",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ket_qua_cuoi",
+   "fieldtype": "Data",
+   "label": "Kết quả",
+   "read_only": 1
+  },
+  {
+   "fieldname": "phieu_cuoi",
+   "fieldtype": "Link",
+   "label": "Phiếu kiểm",
+   "options": "SX Kiem Thiet Bi",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "qua_han_su_co",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố quá hạn",
+   "options": "SX Su Co",
+   "read_only": 1
+  },
+  {
+   "fieldname": "qua_han_su_co_han",
+   "fieldtype": "Date",
+   "label": "Quá hạn của hạn",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "ma",
+ "sort_order": "ASC",
+ "title_field": "ten",
+ "show_title_field_in_link": 1,
+ "search_fields": "ten,loai"
+}

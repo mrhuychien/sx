@@ -82,6 +82,7 @@ for t in ("san_pham", "su_co", "xuat", "nhac"):
 nap("sx.qc.dong_vat", "sx/qc/dong_vat.py")
 nap("sx.qc.cat", "sx/qc/cat.py")
 SD = nap("sx.qc.so_do", "sx/qc/so_do.py")
+nap("sx.qc.thiet_bi", "sx/qc/thiet_bi.py")
 Q = nap("sx.api.qc", "sx/api/qc.py")
 
 hong = 0
