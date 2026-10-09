@@ -137,7 +137,7 @@
    "fieldtype": "Data",
    "label": "Mã oPRP",
    "in_standard_filter": 1,
-   "description": "oPRP cụ thể theo KH.HACCP (oPRP-1 … oPRP-4). Vòng kiểm tự ghi; phiếu nhập tay thì ghi khi Loại = oPRP."
+   "description": "oPRP cụ thể theo KH.HACCP (oPRP-1, 2, 5–9). Vòng kiểm tự ghi; phiếu nhập tay thì ghi khi Loại = oPRP."
   },
   {
    "fieldname": "column_break_pl",
@@ -281,7 +281,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 16:00:00.000000",
+ "modified": "2026-10-09 22:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX Su Co",

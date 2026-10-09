@@ -126,9 +126,9 @@ BUOC = [
     ("5",  "Ủ",                "",        ""),
     ("6",  "Vỡ đỗ · Nam châm", "oPRP-2",  ""),
     ("7",  "Nghiền",           "oPRP-2",  ""),
-    ("8",  "Kho bột",          "oPRP-3",  ""),
+    ("8",  "Kho bột",          "",        ""),
     ("10", "Ủ sau trộn",       "",        ""),
-    ("12", "Đóng gói",         "oPRP-4",  "QC đóng gói ghi"),
+    ("12", "Đóng gói",         "",        "QC đóng gói ghi"),
     ("C",  "Lượt tuần",        "",        "thứ Hai"),
     ("B",  "Bột đậu",          "",        "hôm nay có bột"),
 ]
@@ -148,11 +148,10 @@ def _oprp_buoc(ma):
 
 
 # oPRP của phần bột (W03, D128). Dây chuyền bánh gắn oPRP theo công đoạn (BUOC);
-# phần bột gắn theo MỤC, cùng loại kiểm soát với bánh: xử lý nhiệt (rang lạc) như
-# luộc/rang đỗ → oPRP-1; hàn kín bao gói như đóng gói bánh → oPRP-4.
-# Ban ISO đối chiếu KH.HACCP dây chuyền bột — khác thì sửa đúng hai hằng số này.
-OPRP_NHIET = "oPRP-1"
-OPRP_GOI = "oPRP-4"
+# phần bột gắn theo MỤC. W38 (D168), quyết định 09/10/2026: bánh chỉ còn oPRP-1, oPRP-2
+# (số 3, 4 để trống); lưu bột 2 ngày, mối hàn túi, nắp hộp bột là PRP — các mục đó khai
+# `loai="PRP"` (OPRP_GOI = oPRP-4 của hàn túi bột bỏ hẳn); rang lạc là oPRP-7 (bột: oPRP-5…9).
+OPRP_NHIET = "oPRP-7"
 
 
 # ── Máy chạy song song (D100) ─────────────────────────────────────────────
@@ -321,13 +320,13 @@ MUC = [
        kieu="co_khong", may="nghien", tu=2, phu=True, ngan="Có dị vật trên rây",
        goi_y="tích = tạo sự cố"),
     _m("thung_bot_qua_han", "8", "Thùng bột quá 2 ngày / hở nắp",
-       "8", "8 Kho bột", kieu="nguyen", dv="thùng",
+       "8", "8 Kho bột", kieu="nguyen", dv="thùng", loai="PRP",
        goi_y="0 thùng = đạt · > 0 tạo sự cố"),
     _m("thung_u_day_kin", "10", "Thùng ủ sau trộn đậy kín", "10", "10 Ủ sau trộn"),
     _m("kl_tinh_dat", "11", "Khối lượng tịnh đạt", "12",
        "12 Cân, khối lượng tịnh", goi=True),
     _m("moi_han_kin", "12", "Mối hàn túi kín", "12", "13 Hàn túi", goi=True,
-       ap=(TRUA, CUOI_CHIEU)),
+       ap=(TRUA, CUOI_CHIEU), loai="PRP"),
     _m("nhan_hsd_dung", "13", "Nhãn, HSD đúng lô", "12", "14 Nhãn, HSD", goi=True),
 
     # ── C: lượt tuần ─────────────────────────────────────────────────────
@@ -367,9 +366,9 @@ MUC = [
     # Máy đóng gói bột (D100): nhiệt độ hàn + mối hàn + khối lượng, TỪNG MÁY.
     _m("b8_nhiet_han", "B8", "Máy đóng gói: nhiệt độ hàn", "B", "Bột: đóng túi",
        kieu="nguyen", bot=True, goi=True, dv="°C", may="goi_bot",
-       ngan="Nhiệt độ hàn", goi_y="150 – 190 °C", oprp=OPRP_GOI),
+       ngan="Nhiệt độ hàn", goi_y="150 – 190 °C", loai="PRP"),
     _m("b4_moi_han_tui", "B4", "Mối hàn túi 40 g kín, 5 túi", "B", "Bột: đóng túi",
-       bot=True, goi=True, ap=(TRUA, CUOI_CHIEU), may="goi_bot", oprp=OPRP_GOI),
+       bot=True, goi=True, ap=(TRUA, CUOI_CHIEU), may="goi_bot", loai="PRP"),
     _m("b6_kl_tui", "B6", "KL tịnh túi 40 g", "B", "Bột: đóng túi",
        bot=True, goi=True, may="goi_bot"),
     _m("b5_nhan_di_ung", "B5", "Nhãn đúng sản phẩm, HSD, cảnh báo lạc/sữa — túi 40 g, hộp nhựa",

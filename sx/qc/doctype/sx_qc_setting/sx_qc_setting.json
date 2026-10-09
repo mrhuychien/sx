@@ -158,7 +158,7 @@
    "fieldname": "han_nhiet_min",
    "fieldtype": "Int",
    "label": "Máy đóng gói: nhiệt độ hàn tối thiểu (°C)",
-   "description": "Mặc định 150–190 °C (W03). Ngoài khoảng → phiếu sự cố oPRP.",
+   "description": "Mặc định 150–190 °C (W03). Ngoài khoảng → phiếu sự cố PRP (mối hàn túi bột là PRP — W38).",
    "default": "150"
   },
   {
@@ -377,7 +377,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-08 20:00:00.000000",
+ "modified": "2026-10-09 22:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "name": "SX QC Setting",

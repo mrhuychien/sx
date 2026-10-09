@@ -24,7 +24,7 @@ THUONG = "thuong"
 # "nhắc" mà là lịch sử — chỗ của nó là màn Xem xét, không phải hộp nhắc việc.
 SO_NGAY_SOI = 7
 NGAY_CHUA_XEM_XET = 14
-# Bột nền để quá chừng này ngày là vượt giới hạn kho bột (mục 8 BM.08.01, oPRP-3).
+# Bột nền để quá chừng này ngày là vượt giới hạn kho bột (mục 8 BM.08.01; lưu bột 2 ngày là PRP — W38).
 BOT_NEN_TOI_DA_NGAY = 2
 
 
@@ -71,7 +71,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `kiem_xe` = sx/qc/kiem_xe.nhac(): tuần có chuyến mà chưa chuyến nào QC kiểm, tháng BM.09.01 chưa xem — W34."""
     nay = _d(hom_nay)
     ra = []
-    # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (oPRP-3), nên thuộc mảng vòng kiểm.
+    # Bột nền quá hạn là giới hạn kho bột — mục 8 BM.08.01 (PRP từ W38), nên thuộc mảng vòng kiểm.
     ra += _nhom("vong_kiem", _nhac_bot_nen(nay, bot_nen or []))
     ra += _nhom("luu_mau", _nhac_luu_mau(nay, luu_mau or {}))
     ra += _nhom("xuat_xuong", _nhac_xuat_xuong(nay, xuat_xuong or {}))

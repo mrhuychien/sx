@@ -165,6 +165,9 @@ jd = json.load(open("sx/qc/doctype/sx_qc_round/sx_qc_round.json", encoding="utf-
 field = {f["fieldname"]: f for f in jd["fields"]}
 thieu = [m["f"] for m in M.MUC if m["f"] not in field]
 kiem("mọi mục trong muc.py đều có field trong JSON", not thieu, ", ".join(thieu))
+kiem("W38: nhãn bước trong JSON không còn (oPRP-3), (oPRP-4); 8 Kho bột, 12 Đóng gói không mã",
+     field["section_buoc_8"]["label"] == "8. Kho bột" and field["section_buoc_12"]["label"] == "12. Đóng gói"
+     and not [f for f in jd["fields"] if "oPRP-3" in (f.get("label") or "") or "oPRP-4" in (f.get("label") or "")])
 
 KIEU_JSON = {"chon": "Select", "chon3": "Select", "chon_cd": "Select", "so": "Float", "nguyen": "Int",
              "chu": "Data", "co_khong": "Check", "gio": "Time", "chon_bot": "Small Text"}
@@ -292,6 +295,31 @@ for ten, kw, so in [("rang lạc 90 °C (< 150) → sự cố", dict(b2_rang_lac
     kiem(ten, len(pt(**kw, **bot)) == so, str(pt(**kw, **bot)))
 kiem("sự cố rang lạc là oPRP (không phải Khác)",
      [x[2] for x in pt(b2_rang_lac_nhiet=90, **bot)] == ["oPRP"])
+
+# W38 (D168), quyết định 09/10/2026: bánh chỉ còn oPRP-1, oPRP-2; lưu bột 2 ngày, mối hàn túi,
+# nắp hộp bột là PRP; rang lạc oPRP-7. Mục kiểm, tần suất không đổi — chỉ loại sự cố và nhãn.
+print("\n-- W38: lưu bột, mối hàn là PRP; rang lạc oPRP-7 --")
+_oprp = {b[0]: b[2] for b in M.BUOC}
+kiem("bánh chỉ còn oPRP-1, oPRP-2: luộc/rang oPRP-1, sàng cát/vỡ đỗ/nghiền oPRP-2, kho bột và đóng gói không mã",
+     _oprp == {"A": "", "2": "oPRP-1", "3": "oPRP-1", "4": "oPRP-2", "5": "", "6": "oPRP-2", "7": "oPRP-2",
+               "8": "", "10": "", "12": "", "C": "", "B": ""}, str(_oprp))
+kiem("không mục nào còn mang oPRP-3 / oPRP-4; rang lạc B2a/B2b/B2c mang oPRP-7",
+     not [m["f"] for m in M.MUC if m["oprp"] in ("oPRP-3", "oPRP-4")]
+     and {m["f"]: m["oprp"] for m in M.MUC if m["oprp"] and m["buoc"] == "B"}
+     == {"b2_rang_lac_nhiet": "oPRP-7", "b2_rang_lac_phut": "oPRP-7", "b2_lac_chin": "oPRP-7"})
+kiem("thùng bột quá 2 ngày / hở nắp → sự cố PRP (không còn oPRP)",
+     [x[2] for x in pt(thung_bot_qua_han=1)] == ["PRP"], str(pt(thung_bot_qua_han=1)))
+kiem("mối hàn túi kín (mục 12) Không đạt → sự cố PRP",
+     [x[2] for x in pt(luot=M.TRUA, moi_han_kin="Không đạt")] == ["PRP"])
+kiem("bột: mối hàn túi B4, nhiệt độ hàn B8 ngoài khoảng → sự cố PRP",
+     [x[2] for x in pt(b4_moi_han_tui="Không đạt", **bot)] == ["PRP"]
+     and [x[2] for x in pt(b8_nhiet_han=200, **bot)] == ["PRP"], str(pt(b8_nhiet_han=200, **bot)))
+kiem("các mục khác của bước 12 (khối lượng tịnh, nhãn HSD) Không đạt → sự cố Khác",
+     [x[2] for x in pt(kl_tinh_dat="Không đạt")] == ["Khác"]
+     and [x[2] for x in pt(nhan_hsd_dung="Không đạt")] == ["Khác"])
+kiem("rang lạc vẫn là oPRP; luộc, rang, nam châm vẫn oPRP",
+     [x[2] for x in pt(b2_rang_lac_phut=45, **bot)] == ["oPRP"]
+     and [x[2] for x in pt(luoc_soi_du="Không đạt")] == ["oPRP"])
 CAI_DAT["rang_lac_nhiet_min"] = 140
 kiem("Setting hạ ngưỡng xuống 140 → 145 °C thành đạt",
      not pt(b2_rang_lac_nhiet=145, **bot))
@@ -446,6 +474,19 @@ kiem("sự cố oPRP ghi đúng mã oPRP (rang → oPRP-1), sự cố không ph�
      == [("2", "oPRP", "oPRP-1"), ("3a", "oPRP", "oPRP-1")], str([(x["muc"], x["oprp"]) for x in DA_TAO]))
 kiem("gọi lại lần nữa không nhân đôi bảng con", (
     lambda: (DA_TAO.clear(), SC.tao_tu_vong_kiem(d), len(d["su_co"]) == 2)[-1])())
+DA_TAO[:] = []
+SC.tao_tu_vong_kiem(luot(**{**day_du, "luot": M.TRUA, "co_san_xuat_bot": 1, "co_lac": 1,
+                           "b2_rang_lac_nhiet": 90, "thung_bot_qua_han": 2, "moi_han_kin": "Không đạt",
+                           "kl_tinh_dat": "Không đạt"}))
+kiem("W38: phiếu sự cố ghi rang lạc oPRP-7; kho bột, mối hàn PRP không mã oPRP; khối lượng tịnh Khác",
+     sorted((x["muc"].split()[0], x["loai"], x["oprp"]) for x in DA_TAO)
+     == [("11", "Khác", ""), ("12", "PRP", ""), ("8", "PRP", ""), ("B2a", "oPRP", "oPRP-7")],
+     str(sorted((x["muc"], x["loai"], x["oprp"]) for x in DA_TAO)))
+DA_TAO[:] = []
+SC.tao_tu_vong_kiem(luot(**{**day_du, "thung_khay_cat_sach": "Không đạt"}))
+kiem("sự cố PRP ở bước có oPRP (4b thùng, khay cát — bước 4 oPRP-2) không mang mã oPRP",
+     [(x["muc"].split()[0], x["loai"], x["oprp"]) for x in DA_TAO] == [("4b", "PRP", "")],
+     str([(x["muc"], x["loai"], x["oprp"]) for x in DA_TAO]))
 
 # ═══ 9. Sự cố không có luật nào thì không sinh ════════════════════════════
 DA_TAO[:] = []

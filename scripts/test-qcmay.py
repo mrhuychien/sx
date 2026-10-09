@@ -298,9 +298,9 @@ kiem("máy 3 vượt trần vận hành → cảnh báo nói rõ máy rang M3 (W
      any("M3" in c for c in cb), str(cb))
 
 print("\n-- nhiệt độ hàn máy đóng gói bột --")
-# W03 (D128): hàn túi 150–190 °C là MẶC ĐỊNH, và sự cố hàn là oPRP (trước: Khác).
-kiem("mặc định 150–190: 90 °C → sự cố oPRP",
-     [x[2] for x in sc(b8_nhiet_han=90, so_may_goi_bot=1)] == ["oPRP"])
+# W03 (D128): hàn túi 150–190 °C là MẶC ĐỊNH. W38 (D168): mối hàn túi bột là PRP (D128 từng xếp oPRP).
+kiem("mặc định 150–190: 90 °C → sự cố PRP",
+     [x[2] for x in sc(b8_nhiet_han=90, so_may_goi_bot=1)] == ["PRP"])
 kiem("mặc định 150–190: 170 °C → không sự cố", not sc(b8_nhiet_han=170))
 kiem("mặc định 150–190: 195 °C → sự cố", len(sc(b8_nhiet_han=195)) == 1)
 CAI_DAT.update(han_nhiet_min=140, han_nhiet_max=180)

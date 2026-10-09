@@ -204,12 +204,16 @@ qua cả hộp.
 
 - **Rang lạc 150–180 °C, 30–40 phút; hàn túi 150–190 °C** là mặc định trong code
   (`nguong.MAC_DINH`), sửa được ở *SX QC Setting* (thêm hai ô tối đa cho rang lạc).
-  Ngoài khoảng → phiếu sự cố **oPRP** (hàn túi trước đây ghi "Khác").
+  Ngoài khoảng → phiếu sự cố **oPRP** (rang lạc) / **PRP** (hàn túi, từ W38).
 - Phiếu sự cố có ô **Mã oPRP** (`oprp`): vòng kiểm tự ghi. Dây chuyền bánh theo công
-  đoạn (Luộc/Rang oPRP-1, Sàng cát/Nghiền oPRP-2, Kho bột oPRP-3, Đóng gói oPRP-4);
-  phần bột theo mục: rang lạc → **oPRP-1** (xử lý nhiệt), hàn túi B4/B8 → **oPRP-4**
-  (hàn kín bao gói). Hai mã của phần bột là SUY theo cùng loại kiểm soát với bánh —
-  Ban ISO đối chiếu KH.HACCP bột, khác thì sửa `OPRP_NHIET` / `OPRP_GOI` trong `muc.py`.
+  đoạn (Luộc/Rang oPRP-1, Sàng cát/Vỡ đỗ/Nghiền oPRP-2); phần bột theo mục: rang lạc →
+  **oPRP-7** (`OPRP_NHIET` trong `muc.py`).
+- **W38 (D168), quyết định 09/10/2026:** bánh chỉ còn oPRP-1, oPRP-2 (số 3, 4 để trống);
+  bột oPRP-5 … oPRP-9. **Lưu bột 2 ngày (mục 8 Kho bột) và mối hàn túi, nắp hộp bột
+  (mục 12 hàn túi, B4, B8) là PRP**: hai bước 8, 12 bỏ nhãn oPRP-3 / oPRP-4, mấy mục đó
+  khai `loai="PRP"` nên lỗi ghi sự cố loại **PRP** (không mã oPRP); các mục khác của bước
+  12 (khối lượng tịnh, nhãn HSD) ghi **Khác**. Mục kiểm, tần suất, ngưỡng không đổi; rây
+  < 0,2 mm mỗi lượt giữ nguyên. Phiếu sự cố cũ giữ loại / mã đã ghi.
 - Tờ in BM.08.02, danh sách sự cố, CSV đều hiện mã oPRP.
 
 ## Bộ mục bản 2 — BM.08.01 sửa đổi (D129 — W01, W02)

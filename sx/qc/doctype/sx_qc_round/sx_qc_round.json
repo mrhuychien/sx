@@ -616,7 +616,7 @@
   {
    "fieldname": "section_buoc_8",
    "fieldtype": "Section Break",
-   "label": "8. Kho bột  (oPRP-3)",
+   "label": "8. Kho bột",
    "collapsible": 1
   },
   {
@@ -641,7 +641,7 @@
   {
    "fieldname": "section_buoc_12",
    "fieldtype": "Section Break",
-   "label": "12. Đóng gói  (oPRP-4)",
+   "label": "12. Đóng gói",
    "collapsible": 1
   },
   {

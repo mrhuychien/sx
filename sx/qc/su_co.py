@@ -116,19 +116,20 @@ def phat_hien(doc):
                                may, flt(v, 1), ng["vong_quay_min"], ng["vong_quay_max"])))
 
         elif goc == "b8_nhiet_han" and M.co_ghi(m, v):
-            # Hàn nguội → hở túi; hàn nóng → cháy màng, cũng hở. oPRP từ D128 (W03):
-            # hàn kín bao gói là bước kiểm soát, không phải "Khác".
+            # Hàn nguội → hở túi; hàn nóng → cháy màng, cũng hở. Mối hàn túi bột là PRP
+            # (W38, D168 — quyết định 09/10/2026; D128 từng xếp oPRP): loại theo mục.
             lo, hi = ng["han_nhiet_min"], ng["han_nhiet_max"]
             if (lo is not None and flt(v) < lo) or (hi is not None and flt(v) > hi):
-                ra.append((m["f"], m["cd"], "oPRP", THUONG,
+                ra.append((m["f"], m["cd"], _loai(m), THUONG,
                            _("Máy đóng gói bột{0}: nhiệt độ hàn {1} °C ngoài khoảng "
                              "{2}–{3} °C").format(may, int(flt(v)),
                                                   "…" if lo is None else lo,
                                                   "…" if hi is None else hi)))
 
         elif goc == "thung_bot_qua_han":
+            # Lưu bột 2 ngày, nắp hộp bột là PRP (W38, D168) — loại theo mục.
             if cint(v) > ng["thung_bot_max"]:
-                ra.append((m["f"], m["cd"], "oPRP", THUONG,
+                ra.append((m["f"], m["cd"], _loai(m), THUONG,
                            _("Kho bột: {0} thùng quá 2 ngày / hở nắp").format(cint(v))))
 
         elif goc in ("b2_rang_lac_nhiet", "b2_rang_lac_phut") and M.co_ghi(m, v):

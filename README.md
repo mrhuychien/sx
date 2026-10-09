@@ -315,6 +315,19 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Lưu bột, mối hàn túi: oPRP → PRP; rang lạc oPRP-7 (D168 — W38)
+
+- Quyết định 09/10/2026: bánh chỉ còn **oPRP-1, oPRP-2** (số 3, 4 để trống); bột **oPRP-5 … oPRP-9**. Lưu bột 2 ngày
+  và mối hàn túi, nắp hộp bột là **PRP**.
+- BM.08.01: bước **8 Kho bột** và **12 Đóng gói** bỏ nhãn oPRP-3 / oPRP-4 (màn QC, tờ in, nhãn Desk sinh lại). Các mục
+  thùng bột quá 2 ngày / hở nắp, mối hàn túi kín, B4 mối hàn túi 40 g, B8 nhiệt độ hàn khai `loai="PRP"` → lỗi ghi
+  **sự cố PRP** (không mã oPRP); khối lượng tịnh, nhãn HSD (bước 12) → **Khác**. Rang lạc B2a/B2b/B2c → **oPRP-7**
+  (`OPRP_NHIET`); `OPRP_GOI` bỏ.
+- Mục kiểm, tần suất, ngưỡng không đổi; rây < 0,2 mm mỗi lượt giữ nguyên. Phiếu sự cố cũ giữ loại / mã đã ghi.
+- Việc giao ghi "Khác"; làm theo §3 (lưu bột, mối hàn **là PRP**) nên ghi loại PRP — Select loại sự cố đã có PRP,
+  cùng cách thùng ủ, vải ủ (D129).
+- Cần `bench --site site1.local migrate` (nhãn bước, mô tả trường) rồi `bench restart`.
+
 ## In Sổ lưu mẫu SLM và sổ tiếp nhận BM.07.03 theo tháng; vào gói hồ sơ (D167 — W36)
 
 - **Sổ lưu mẫu SLM** (lần BH 02, 21/9/2026) — `sx.api.qc.in_so_luu_mau(thang)`, A4 ngang, đúng 14 cột giấy: sản phẩm /
