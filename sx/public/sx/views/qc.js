@@ -27,10 +27,12 @@ const MAN = {
   cat: '/assets/sx/sx/views/qc_cat.js',
   // W17 (D143): thiết bị đo, hiệu chuẩn BM.06.01–06.04.
   thietbi: '/assets/sx/sx/views/qc_thietbi.js',
+  // W18 (D144): kế hoạch kiểm nghiệm KH.KN.01.
+  kiemnghiem: '/assets/sx/sx/views/qc_kiemnghiem.js',
 };
 
 // Sổ mở từ lưới nút cuối màn Hôm nay — tab "Hôm nay" sáng khi đang ở các màn này.
-const SO_HOM_NAY = ['dvgh', 'cat', 'thietbi'];
+const SO_HOM_NAY = ['dvgh', 'cat', 'thietbi', 'kiemnghiem'];
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
 // null = hôm nay. Giữ ngoài hàm render để đổi tab không mất ngày đang xem.

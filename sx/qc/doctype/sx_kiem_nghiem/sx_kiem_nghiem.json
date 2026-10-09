@@ -1,0 +1,212 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-10-09 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "doi_tuong",
+  "san_pham",
+  "ten_san_pham",
+  "nhat_ky_cat",
+  "mo_ta_mau",
+  "column_break_1",
+  "ngay_gui",
+  "phong_kn",
+  "chi_tieu",
+  "lan_sau",
+  "section_kq",
+  "ket_qua",
+  "ngay_kq",
+  "so_phieu",
+  "column_break_2",
+  "file_ket_qua",
+  "ghi_chu",
+  "nguoi_ghi",
+  "su_co"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Số",
+   "options": "KN-.YYYY.-.#####",
+   "default": "KN-.YYYY.-.#####",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "doi_tuong",
+   "fieldtype": "Select",
+   "label": "Mẫu của",
+   "reqd": 1,
+   "default": "Sản phẩm",
+   "options": "Sản phẩm\nCát rang\nNguyên liệu\nNước\nKhác",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "san_pham",
+   "fieldtype": "Link",
+   "label": "Sản phẩm (bộ tự công bố)",
+   "options": "SX San Pham Cong Bo",
+   "depends_on": "eval:doc.doi_tuong=='Sản phẩm'",
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "ten_san_pham",
+   "fieldtype": "Data",
+   "label": "Tên sản phẩm",
+   "read_only": 1,
+   "fetch_from": "san_pham.ten_san_pham"
+  },
+  {
+   "fieldname": "nhat_ky_cat",
+   "fieldtype": "Link",
+   "label": "Lần đổi nguồn cát (nhật ký cát)",
+   "options": "SX Nhat Ky Cat",
+   "depends_on": "eval:doc.doi_tuong=='Cát rang'"
+  },
+  {
+   "fieldname": "mo_ta_mau",
+   "fieldtype": "Data",
+   "label": "Mẫu (lô / HSD / mô tả)"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ngay_gui",
+   "fieldtype": "Date",
+   "label": "Ngày gửi mẫu",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "phong_kn",
+   "fieldtype": "Data",
+   "label": "Đơn vị kiểm nghiệm"
+  },
+  {
+   "fieldname": "chi_tieu",
+   "fieldtype": "Small Text",
+   "label": "Chỉ tiêu"
+  },
+  {
+   "fieldname": "lan_sau",
+   "fieldtype": "Date",
+   "label": "Lần gửi sau (dự kiến)",
+   "read_only": 1,
+   "description": "Sản phẩm: ngày gửi + 12 tháng (ít nhất 1 lần / năm)."
+  },
+  {
+   "fieldname": "section_kq",
+   "fieldtype": "Section Break",
+   "label": "Kết quả"
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Select",
+   "label": "Kết quả",
+   "options": "\nĐạt\nKhông đạt",
+   "in_list_view": 1,
+   "description": "Trống = đang chờ kết quả. Không đạt → app lập phiếu sự cố (cát: nhật ký cát lập)."
+  },
+  {
+   "fieldname": "ngay_kq",
+   "fieldtype": "Date",
+   "label": "Ngày có kết quả"
+  },
+  {
+   "fieldname": "so_phieu",
+   "fieldtype": "Data",
+   "label": "Số phiếu kết quả"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "file_ket_qua",
+   "fieldtype": "Attach",
+   "label": "Bản chụp phiếu kết quả"
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Small Text",
+   "label": "Ghi chú"
+  },
+  {
+   "fieldname": "nguoi_ghi",
+   "fieldtype": "Link",
+   "label": "Người ghi",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "su_co",
+   "fieldtype": "Link",
+   "label": "Phiếu sự cố",
+   "options": "SX Su Co",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-09 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "name": "SX Kiem Nghiem",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "report": 1,
+   "print": 1
+  },
+  {
+   "role": "SX QC Packing",
+   "read": 1,
+   "report": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "ngay_gui",
+ "sort_order": "DESC",
+ "title_field": "ten_san_pham",
+ "track_changes": 1
+}

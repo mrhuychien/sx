@@ -45,7 +45,7 @@ def _m(muc_do, tieu_de, chi_tiet, route):
 
 
 def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, dong_vat=None,
-         cat=None, thiet_bi=None):
+         cat=None, thiet_bi=None, kiem_nghiem=None):
     """[{muc_do, tieu_de, chi_tiet, route}] — mức cao trước.
 
     `bot_nen` = [{batch, ten, ngay, ton, dvt}] lô bột nền còn tồn (W06).
@@ -53,7 +53,8 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     `xuat_xuong` = {"cho_duyet": n, "lau_nhat": ngày gửi} — phiếu BM.08.04 chờ duyệt (W08).
     `dong_vat` = {"co_du_lieu": bool, "khu_hai_tuan": [{khu, tram, tuan}]} — W15 (D140).
     `cat` = sx/qc/cat.nhac(): đổi nguồn còn thiếu, ngày có rang thiếu nhật ký — W20 (D141).
-    `thiet_bi` = sx/qc/thiet_bi.nhac(): quá hạn, không đạt, sắp đến hạn, loại chưa khai — W17 (D143)."""
+    `thiet_bi` = sx/qc/thiet_bi.nhac(): quá hạn, không đạt, sắp đến hạn, loại chưa khai — W17 (D143).
+    `kiem_nghiem` = sx/qc/kiem_nghiem.nhac(): sản phẩm quá / đến hạn gửi mẫu, chờ kết quả lâu — W18 (D144)."""
     nay = _d(hom_nay)
     ra = []
     ra += _nhac_bot_nen(nay, bot_nen or [])
@@ -66,6 +67,7 @@ def tinh(hom_nay, luot, su_co, ng, bot_nen=None, luu_mau=None, xuat_xuong=None, 
     ra += _nhac_dong_vat(dong_vat or {})
     ra += _nhac_cat(cat or {})
     ra += _nhac_thiet_bi(nay, thiet_bi or {})
+    ra += _nhac_kiem_nghiem(kiem_nghiem or {})
     # Nhắc cũ theo số trạm có dấu hiệu ở lượt tuần (T2, không biết khu) — chỉ còn dùng khi
     # nhà máy CHƯA ghi dấu hiệu theo trạm (W15); có dữ liệu trạm thì nhắc theo khu thay.
     if not (dong_vat or {}).get("co_du_lieu"):
@@ -300,6 +302,31 @@ def _nhac_thiet_bi(nay, tb):
         ra.append(_m(THUONG, f"Danh mục thiết bị đo chưa có: {', '.join(tb['thieu_loai']).lower()}",
                      f"Ban ISO khai trên màn Thiết bị đo — hạn kiểm lần đầu "
                      f"{_d(tb.get('han_dau') or nay).strftime('%d/%m/%Y')}.", "#/qc/thietbi"))
+    return ra
+
+
+def _nhac_kiem_nghiem(kn):
+    """Kế hoạch kiểm nghiệm (W18): sản phẩm quá hạn gửi mẫu năm (cao), không đạt chờ kiểm lại
+    (cao), đến hạn trong 30 ngày, gửi mẫu lâu chưa có kết quả. Cát: nhắc ở nhật ký cát (W20)."""
+    ra = []
+    ds = lambda xs: ", ".join(x.get("so_cong_bo") or x["ten"] for x in xs[:5]) + ("…" if len(xs) > 5 else "")  # noqa: E731
+    if kn.get("qua_han"):
+        x = kn["qua_han"]
+        ra.append(_m(CAO, f"{len(x)} sản phẩm quá hạn gửi mẫu kiểm nghiệm",
+                     f"{ds(x)}. Mỗi sản phẩm ít nhất 1 lần / năm (KH.KN.01) — gửi mẫu rồi ghi trên màn "
+                     f"Kiểm nghiệm.", "#/qc/kiemnghiem"))
+    if kn.get("khong_dat"):
+        x = kn["khong_dat"]
+        ra.append(_m(CAO, f"{len(x)} sản phẩm kiểm nghiệm Không đạt — chưa kiểm lại",
+                     f"{ds(x)}. Xử lý theo phiếu sự cố rồi gửi mẫu kiểm lại.", "#/qc/kiemnghiem"))
+    if kn.get("den_han"):
+        x = kn["den_han"]
+        ra.append(_m(THUONG, f"{len(x)} sản phẩm đến hạn gửi mẫu kiểm nghiệm trong 30 ngày",
+                     f"{ds(x)} — hạn sớm nhất {_d(x[0]['han']).strftime('%d/%m/%Y')}.", "#/qc/kiemnghiem"))
+    if kn.get("cho_lau"):
+        x = kn["cho_lau"]
+        ra.append(_m(THUONG, f"{len(x)} mẫu kiểm nghiệm gửi lâu chưa có kết quả",
+                     f"{ds(x)} — hỏi đơn vị kiểm nghiệm, có kết quả thì ghi ngay.", "#/qc/kiemnghiem"))
     return ra
 
 

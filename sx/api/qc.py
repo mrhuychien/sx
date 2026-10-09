@@ -31,6 +31,7 @@ from frappe.utils import (
 
 from sx.qc import cat as _cat
 from sx.qc import dong_vat as _dong_vat
+from sx.qc import kiem_nghiem as _kiem_nghiem
 from sx.qc import muc as M
 from sx.qc import nhac as _nhac
 from sx.qc import so_do as _so_do
@@ -538,7 +539,7 @@ def nhac(ngay=None):
     return {"ngay": str(d), "ds": _nhac.tinh(d, luot, su_co, nguong(), _bot_nen_ton(),
                                              _luu_mau_nhac(d), _xuat_xuong_nhac(),
                                              _dong_vat.nhac(d), _cat.nhac(d, rang),
-                                             _thiet_bi.nhac(d))}
+                                             _thiet_bi.nhac(d), _kiem_nghiem.nhac(d))}
 
 
 def _xuat_xuong_nhac():

@@ -378,4 +378,10 @@ python3 scripts/test-thietbi.py > /tmp/sx-thietbi.log 2>&1 \
   && tail -1 /tmp/sx-thietbi.log \
   || { cat /tmp/sx-thietbi.log; loi=1; }
 
+# D144 (W18): kế hoạch kiểm nghiệm KH.KN.01. Hạn 1 lần / năm tính sai, sản phẩm chưa gửi không có
+# hạn, Không đạt không thành sự cố, mẫu cát không chép sang nhật ký / sự cố trùng — đều im lặng.
+python3 scripts/test-kiemnghiem.py > /tmp/sx-kiemnghiem.log 2>&1 \
+  && tail -1 /tmp/sx-kiemnghiem.log \
+  || { cat /tmp/sx-kiemnghiem.log; loi=1; }
+
 exit $loi

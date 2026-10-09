@@ -45,6 +45,8 @@
   "thiet_bi_han_dau",
   "chung_chi_dong_ho",
   "nguoi_kiem_dong_ho",
+  "section_kn",
+  "kn_han_dau",
   "section_quyen",
   "nguoi_dong_su_co",
   "nguoi_duyet_xuat_xuong"
@@ -300,6 +302,18 @@
    "fieldtype": "Table",
    "label": "Biên bản đào tạo / chứng chỉ người kiểm",
    "options": "SX QC Nguoi Kiem"
+  },
+  {
+   "fieldname": "section_kn",
+   "fieldtype": "Section Break",
+   "label": "Kế hoạch kiểm nghiệm (KH.KN.01)"
+  },
+  {
+   "fieldname": "kn_han_dau",
+   "fieldtype": "Date",
+   "label": "Hạn gửi mẫu lần đầu",
+   "default": "2026-10-31",
+   "description": "W18: sản phẩm chưa gửi mẫu lần nào phải gửi trước ngày này (tài liệu 08/10: trước 31/10/2026). Sau đó mỗi sản phẩm ít nhất 1 lần / năm."
   },
   {
    "fieldname": "section_quyen",

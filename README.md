@@ -315,6 +315,20 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kế hoạch kiểm nghiệm KH.KN.01 (D144 — W18)
+
+- Màn QC → Hôm nay → **🧪 Kiểm nghiệm** (`#/qc/kiemnghiem`): mỗi sản phẩm trong bộ tự công bố (W28,
+  bỏ sản phẩm ngừng sản xuất) gửi mẫu **ít nhất 1 lần / năm** — lần sau = lần gửi gần nhất + 12 tháng;
+  chưa gửi lần nào → hạn **31/10/2026** (*SX QC Setting → Hạn gửi mẫu lần đầu*).
+- **GỬI MẪU** (`SX Kiem Nghiem`): ngày gửi, mẫu (lô / HSD), đơn vị kiểm nghiệm, chỉ tiêu; **GHI KẾT QUẢ**
+  sau: Đạt / Không đạt, ngày, số phiếu. **Không đạt → phiếu sự cố** (nguồn Kết quả kiểm nghiệm, mức Cao).
+  Trạng thái từng sản phẩm: Đạt / Đến hạn (30 ngày) / Quá hạn / Chờ kết quả / Không đạt — kiểm lại.
+- **Cát rang chỉ kiểm khi đổi nguồn**: kế hoạch lấy các lần đổi nguồn còn thiếu kết quả kim loại nặng từ
+  nhật ký cát (W20); **GỬI MẪU CÁT** gắn với lần đổi nguồn đó, kết quả chép sang nhật ký cát (phiếu sự
+  cố do nhật ký cát lập — một phiếu). Mẫu nguyên liệu / nước / khác: **+ GỬI MẪU KHÁC**.
+- Hộp nhắc: sản phẩm quá hạn, Không đạt chưa kiểm lại (cao); đến hạn 30 ngày; gửi mẫu ≥ 21 ngày chưa có
+  kết quả. In **KH.KN.01** (năm): từng sản phẩm, TCCS, tháng dự kiến, các lần gửi, kết quả.
+
 ## Thiết bị đo, hiệu chuẩn BM.06.01–06.04 (D143 — W17)
 
 - Màn QC → Hôm nay → **🌡 Thiết bị đo** (`#/qc/thietbi`): danh mục theo loại (đồng hồ nhiệt, nam châm,
