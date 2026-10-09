@@ -131,6 +131,8 @@ function dongHang(r, d, khoa) {
     o.appendChild(oChon('Kết quả aflatoxin', lc.custom_aflatoxin, r.custom_aflatoxin, (v) => { r.custom_aflatoxin = v; },
       khoa, r.can_aflatoxin ? 'nhóm hàng phải có' : ''));
   }
+  // W40 (D162): đỗ, lạc không đo độ ẩm khi nhận — ô chỉ hiện khi site đặt ngưỡng, hoặc dòng đã có số cũ.
+  const coAm = d.do_am_toi_da || r.custom_do_am != null;
   const am = el('button', 'sx-qc-oso-khung', '');
   am.type = 'button';
   am.disabled = khoa;
@@ -147,7 +149,7 @@ function dongHang(r, d, khoa) {
     allowDecimal: true, unitLabel: '%',
     onOk: (n) => { r.custom_do_am = n > 0 ? n : null; veAm(); },
   }));
-  o.appendChild(oAm);
+  if (coAm) o.appendChild(oAm);
   o.appendChild(oChon('Cảm quan', lc.custom_cam_quan_dat, r.custom_cam_quan_dat, (v) => { r.custom_cam_quan_dat = v; }, khoa));
   o.appendChild(oChon('Kết luận tiếp nhận', lc.custom_ket_luan, r.custom_ket_luan, (v) => { r.custom_ket_luan = v; }, khoa));
   if (r.giay_to) o.appendChild(el('div', 'sx-xx-goiy', `Giấy tờ lô: ${esc(r.giay_to)}`));

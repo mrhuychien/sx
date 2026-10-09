@@ -109,6 +109,20 @@ kiem('lưu xong: mở lại phiếu với lời cảnh báo của luật trên �
   && m.body.chu.includes('Dòng 1 (SUA): Nhập khẩu — phải có COA')
   && TOAST.some(([s]) => s.startsWith('Đã lưu — xem cảnh báo')));
 
+console.log('\n-- W40: ô độ ẩm chỉ khi site đặt ngưỡng --');
+traVe = phieu({ do_am_toi_da: null });
+nut(api.container, 'KIỂM TIẾP NHẬN').bam();
+await cho();
+m = MO[MO.length - 1];
+kiem('không đặt ngưỡng (mặc định từ 09/10/2026): không có ô độ ẩm', !tim(m.body, (e) => e.classList.contains('sx-qc-oso-khung')).length
+  && !m.body.chu.includes('Độ ẩm'));
+traVe = phieu({ do_am_toi_da: null, dong: [{ ...phieu().dong[0], custom_do_am: 12.5 }] });
+nut(api.container, 'KIỂM TIẾP NHẬN').bam();
+await cho();
+m = MO[MO.length - 1];
+kiem('… dòng đã có số độ ẩm cũ thì vẫn hiện số đó', tim(m.body, (e) => e.classList.contains('sx-qc-oso-khung'))[0]
+  && tim(m.body, (e) => e.classList.contains('sx-qc-oso-khung'))[0].chu.startsWith('12.5'));
+
 console.log('\n-- phiếu đã duyệt / hoá đơn mua --');
 traVe = phieu({ docstatus: 1, sua: false, xe: { ...phieu().xe, ap_dung: false } });
 nut(api.container, 'KIỂM TIẾP NHẬN').bam();

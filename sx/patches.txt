@@ -24,3 +24,4 @@ sx.patches.d152_bu_ngay_xuat_xuong
 sx.patches.d152_chung_chi_dong_ho
 sx.patches.d159_xuat_xuong_lan_bh01
 sx.patches.d161_rang_240_280
+sx.patches.d162_bo_do_am

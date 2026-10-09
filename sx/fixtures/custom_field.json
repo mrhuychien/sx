@@ -224,7 +224,9 @@
   "module": "QC",
   "name": "Purchase Invoice Item-custom_do_am",
   "translatable": 0,
-  "precision": "1"
+  "precision": "1",
+  "hidden": 1,
+  "description": "Ẩn từ 09/10/2026 (W40): đỗ, lạc không đo độ ẩm khi nhận — độ ẩm vào kiểm nghiệm năm KH.KN.01."
  },
  {
   "doctype": "Custom Field",
@@ -730,7 +732,9 @@
   "module": "QC",
   "name": "Purchase Receipt Item-custom_do_am",
   "translatable": 0,
-  "precision": "1"
+  "precision": "1",
+  "hidden": 1,
+  "description": "Ẩn từ 09/10/2026 (W40): đỗ, lạc không đo độ ẩm khi nhận — độ ẩm vào kiểm nghiệm năm KH.KN.01."
  },
  {
   "doctype": "Custom Field",

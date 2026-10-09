@@ -14,6 +14,8 @@ phiếu thì ba lô chung một câu trả lời, và cái lô có vấn đề b
 Hai luật ÉP kết luận (không phải gợi ý — đây là cổng an toàn thực phẩm):
   · nhóm hàng bắt buộc có COA vi sinh mà COA = Không  → Cách ly
   · độ ẩm vượt ngưỡng                                  → Cách ly
+    W40 (D162): đỗ, lạc KHÔNG đo độ ẩm khi nhận (quyết định 09/10/2026), ô Độ ẩm ẩn, ngưỡng mặc định
+    trống = không kiểm. Luật giữ cho site tự bật lại với nhóm hàng khác.
 Ép chứ không chặn: hàng đã về tới sân rồi, chặn lưu hoá đơn không làm hàng biến
 mất — nó chỉ làm người ta bỏ trống ô QC cho xong việc.
 

@@ -218,9 +218,8 @@
    "fieldname": "do_am_toi_da",
    "fieldtype": "Float",
    "label": "Độ ẩm tối đa (%)",
-   "default": "13",
    "precision": "1",
-   "description": "Áp cho MỌI dòng có ghi độ ẩm, không chỉ đỗ xanh: đo được độ ẩm vượt ngưỡng trên thứ gì cũng là chuyện đáng ghi."
+   "description": "Để trống = không kiểm (09/10/2026: đỗ, lạc không đo độ ẩm khi nhận — độ ẩm vào kiểm nghiệm năm KH.KN.01; ô Độ ẩm trên phiếu nhập mua đang ẩn). Đặt số thì áp cho mọi dòng có ghi độ ẩm."
   },
   {
    "fieldname": "column_break_tn",

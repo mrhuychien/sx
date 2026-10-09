@@ -315,6 +315,18 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Bỏ đo độ ẩm khi nhận đỗ, lạc (D162 — W40)
+
+- Quyết định 09/10/2026: tiếp nhận đỗ xanh, đỗ đen, lạc **chỉ cảm quan** (khô, không mốc); không đo độ ẩm, không mua
+  máy đo ẩm — độ ẩm vào kiểm nghiệm năm (KH.KN.01).
+- Ô **Độ ẩm (%)** trên dòng phiếu nhập mua / hoá đơn mua **ẩn** (fixtures; số đã ghi trước đây giữ nguyên). Màn
+  *Tiếp nhận NL* của QC chỉ hiện ô độ ẩm khi site đặt ngưỡng, hoặc dòng đã có số cũ.
+- *SX QC Setting → Độ ẩm tối đa* không còn mặc định 13%: **trống = không kiểm**. Patch `d162_bo_do_am`: còn đúng 13%
+  thì để trống; site đã đặt số khác thì giữ. Luật "độ ẩm vượt ngưỡng → Cách ly" giữ lại cho site tự bật với nhóm hàng
+  khác (đặt ngưỡng + hiện lại ô bằng Customize Form).
+- Seed Thiết bị đo không có máy đo độ ẩm — không phải bỏ gì.
+- Cần `bench --site site1.local migrate` (fixtures ẩn ô, patch) rồi `bench restart`.
+
 ## Rang đỗ 240–280 °C, bỏ aflatoxin từng lô đỗ / lạc (D161 — W37)
 
 - Ngưỡng rang đỗ theo quyết định 09/10/2026: **≥ 240 °C** (dưới là sự cố oPRP-1 mức Cao), trần vận hành **280 °C**

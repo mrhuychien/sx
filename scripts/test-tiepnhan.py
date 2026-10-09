@@ -145,6 +145,12 @@ kl, _b = xet(dong(do_am=0, ket_luan="Đạt"))
 kiem("chưa đo (0) → không ép gì", kl is None)
 kl, _b = xet(dong(do_am=20.0, ket_luan="Không đạt"))
 kiem("đã Không đạt rồi thì KHÔNG hạ xuống Cách ly", kl == "Không đạt", str(kl))
+print("\n-- W40 (D162): không đo độ ẩm khi nhận đỗ, lạc — mặc định không kiểm --")
+kiem("mã không còn ngưỡng độ ẩm mặc định; site chưa đặt → nguong() trả None",
+     "do_am_toi_da" not in NG.MAC_DINH and NG.nguong()["do_am_toi_da"] is None)
+kl, bao = T.kiem_dong(dong(do_am=20.0, ket_luan="Đạt"), "Đỗ xanh", {"do_am_toi_da": None, "nhom_can_coa": []},
+                      lambda g: CAY_NHOM.get(g))
+kiem("ngưỡng trống → 20% cũng không ép Cách ly (luật chỉ chạy khi site tự đặt ngưỡng)", kl is None and not bao)
 
 # ═══ 3. COA vi sinh ══════════════════════════════════════════════════════
 print("\n-- COA vi sinh theo nhóm hàng --")
@@ -202,6 +208,13 @@ kiem("có báo ra màn hình", len(DA_BAO) == 1, str(DA_BAO))
 DA_BAO[:] = []
 T.validate(hoa_don(dong("DX-01", do_am=12.0, ket_luan="Đạt")))
 kiem("hoá đơn sạch thì KHÔNG hiện hộp thoại làm phiền", not DA_BAO)
+CAI_DAT.pop("do_am_toi_da")
+DA_BAO[:] = []
+hd = hoa_don(dong("DX-01", do_am=16.0, ket_luan="Đạt"))
+T.validate(hd)
+kiem("W40: SX QC Setting không đặt ngưỡng độ ẩm → lô đỗ ghi 16% vẫn giữ Đạt, không báo gì",
+     hd["items"][0]["custom_ket_luan"] == "Đạt" and not DA_BAO, str(DA_BAO))
+CAI_DAT["do_am_toi_da"] = 13.0
 
 try:
     T.validate(hoa_don(dong("DX-01", ket_luan="Đạt", cam_quan_dat="Không đạt")))

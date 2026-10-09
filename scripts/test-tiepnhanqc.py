@@ -290,7 +290,29 @@ F.bang("Purchase Receipt")["PR-1"]["docstatus"] = 2
 kiem("phiếu đã huỷ → không mở / không thêm ảnh", thu(lambda: A.xem_phieu("Purchase Receipt", "PR-1")) is not None
      and thu(lambda: A.them_anh("Purchase Receipt", "PR-1", json.dumps([PNG]))) is not None)
 
-# ═══ 5. Màn hình ═════════════════════════════════════════════════════════
+# ═══ 5. W40: không đo độ ẩm khi nhận đỗ, lạc ═════════════════════════════
+print("\n-- W40 (D162): bỏ đo độ ẩm khi nhận --")
+for dt in ("Purchase Receipt Item", "Purchase Invoice Item"):
+    kiem(f"{dt}: ô Độ ẩm ẨN (không còn trên form, lưới, bản in), không bắt buộc",
+         fx[(dt, "custom_do_am")].get("hidden") == 1 and not fx[(dt, "custom_do_am")].get("reqd"))
+kiem("site chưa đặt ngưỡng → màn QC không có ngưỡng độ ẩm (ô độ ẩm không hiện)",
+     A.xem_phieu("Purchase Invoice", "PI-1")["do_am_toi_da"] is None)
+P2 = F.nap("sx.patches.d162_bo_do_am", "sx/patches/d162_bo_do_am.py")
+F.CAI_DAT["do_am_toi_da"] = 13.0
+P2.execute()
+kiem("patch: ngưỡng còn đúng mặc định cũ 13% → để trống (không kiểm)", not F.CAI_DAT.get("do_am_toi_da"))
+F.CAI_DAT["do_am_toi_da"] = 14.0
+P2.execute()
+kiem("patch: site đã tự đặt số khác → giữ", F.CAI_DAT["do_am_toi_da"] == 14.0)
+kiem("… site đặt ngưỡng thì màn QC nhận ngưỡng (hiện ô độ ẩm)", A.xem_phieu("Purchase Invoice", "PI-1")["do_am_toi_da"] == 14.0)
+F.CAI_DAT.pop("do_am_toi_da")
+P2.execute()
+kiem("patch: trống → vẫn trống; có trong patches.txt", "do_am_toi_da" not in F.CAI_DAT or not F.CAI_DAT["do_am_toi_da"]
+     and "sx.patches.d162_bo_do_am" in open("sx/patches.txt", encoding="utf-8").read())
+st = {f["fieldname"]: f for f in json.load(open("sx/qc/doctype/sx_qc_setting/sx_qc_setting.json", encoding="utf-8"))["fields"]}
+kiem("SX QC Setting: ô Độ ẩm tối đa không còn mặc định 13", not st["do_am_toi_da"].get("default"))
+
+# ═══ 6. Màn hình ═════════════════════════════════════════════════════════
 print("\n-- màn hình --")
 js = open("sx/public/sx/views/qc_tiepnhan.js", encoding="utf-8").read()
 for m in sorted(set(re.findall(r"sx\.api\.qc_tiepnhan\.(\w+)", js))):
