@@ -22,7 +22,7 @@ export async function render({ container, call }) {
     return;
   }
   const ds = (nh && nh.ds) || [];
-  const hop = veNhac(ds, { tieu_de: `QC đang treo việc · ${ds.length} mục` });
+  const hop = veNhac(ds, { tieu_de: `QC đang treo ${ds.length} việc` });
   if (!hop) return;
   container.style.display = '';
   container.appendChild(hop);

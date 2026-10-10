@@ -509,22 +509,33 @@ export function khungTrong(text) {
   return el('div', 'sx-qc-trong-box', esc(text));
 }
 
-/** Hộp nhắc việc — dùng chung cho màn QC, màn Xem xét và card trên Quản lý.
+/** Hộp nhắc việc — dùng chung cho màn QC, màn Xem xét, màn Sổ và card trên Quản lý.
  *
- * Mức "cao" viền đỏ, mức thường viền vàng. Không có mục nào thì KHÔNG vẽ gì
- * cả: một hộp "không có việc gì" chiếm chỗ mỗi ngày sẽ dạy mắt bỏ qua đúng
- * vùng màn hình đó, và hôm có việc thật thì nó cũng bị bỏ qua nốt. */
+ * D186: GẬP sẵn thành một dòng — "🔔 8 việc cần chú ý · 2 mức cao" + việc quan trọng nhất; bấm mới mở danh
+ * sách (8 hộp chồng nhau đẩy lượt kiểm xuống cuối màn). <details> gốc: không cần JS, bàn phím hiểu sẵn.
+ * Có mục mức "cao" thì dòng gập viền đỏ, chữ đếm đỏ; trong danh sách mức "cao" viền đỏ, mức thường viền vàng.
+ * Không có mục nào thì KHÔNG vẽ gì cả: một hộp "không có việc gì" chiếm chỗ mỗi ngày sẽ dạy mắt bỏ qua đúng
+ * vùng màn hình đó, và hôm có việc thật thì nó cũng bị bỏ qua nốt.
+ * opts.tieu_de: chữ dòng gập thay cho "N việc cần chú ý"; opts.mo: mở sẵn. */
 export function veNhac(ds, opts = {}) {
   if (!ds || !ds.length) return null;
-  const box = el('div', 'sx-qc-nhac');
-  if (opts.tieu_de) box.appendChild(el('div', 'sx-qc-sc-ten', esc(opts.tieu_de)));
+  const cao = ds.filter((x) => x.muc_do === 'cao');
+  const dau = cao[0] || ds[0];
+  const box = el('details', `sx-qc-nhac sx-qc-nhac-gap sx-qc-nhac-gap-${cao.length ? 'cao' : 'thuong'}`);
+  if (opts.mo) box.open = true;
+  box.appendChild(el('summary', 'sx-qc-nhac-tom', `<span class="sx-qc-nhac-dem">🔔 ${esc(opts.tieu_de
+    || `${ds.length} việc cần chú ý`)}${cao.length ? ` · <b class="sx-qc-nhac-dem-cao">${cao.length} mức cao</b>` : ''}`
+    + `</span><span class="sx-qc-nhac-dau">${esc(dau.tieu_de)}${ds.length > 1 ? ` · và ${ds.length - 1} việc khác` : ''}`
+    + '</span>'));
+  const ds_ = el('div', 'sx-qc-nhac-ds');
   ds.forEach((x) => {
     const a = el('a', `sx-qc-nhac-o sx-qc-nhac-${x.muc_do === 'cao' ? 'cao' : 'thuong'}`);
     a.href = x.route || '#/qc';
     a.innerHTML = `<div class="sx-qc-nhac-ten">${esc(x.tieu_de)}</div>
       <div class="sx-qc-nhac-ct">${esc(x.chi_tiet)}</div>`;
-    box.appendChild(a);
+    ds_.appendChild(a);
   });
+  box.appendChild(ds_);
   return box;
 }
 

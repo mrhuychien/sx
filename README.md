@@ -320,6 +320,20 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## In tem QR trạm động vật gây hại ra giấy có QR; thông báo màn QC gập một dòng (D186)
+
+- **Lỗi**: in tem QR trạm (màn Động vật gây hại → 🖨 IN TEM QR TRẠM) thì giấy không có QR. QR vẽ bằng bảng ô có
+  **màu nền** đen; trình duyệt mặc định **không in màu nền** (ô "Đồ hoạ nền / Background graphics" tắt sẵn) — trên
+  màn hình thấy, in ra trắng trơn. Thẻ quét công nhân, thẻ đăng nhập dính cùng lỗi (chung hàm vẽ).
+- **Sửa** (`lib/inthe.js`): QR vẽ bằng hình **SVG** — là nội dung nên luôn in, nét ở mọi độ phân giải, không cần bật
+  gì. Thử trên Chromium (in mặc định): bản cũ không quét được mã nào, bản mới quét ra đúng URL từng trạm. Test
+  `test-inthe.mjs`: hình khớp đúng từng ô của mã, viền trắng 4 ô, ba loại tem / thẻ không còn dựa vào màu nền.
+- **Thông báo gập** (`components/qcui.js` → `veNhac`): hộp nhắc việc ở màn QC Hôm nay, Xem xét, Sổ và thẻ trên màn
+  Quản lý giờ là **một dòng**: "🔔 8 việc cần chú ý · 1 mức cao" + việc quan trọng nhất ("… · và 7 việc khác"). Bấm
+  mới mở danh sách (mỗi việc vẫn bấm sang màn của nó). Có việc mức cao thì dòng viền đỏ, chữ đếm đỏ. Không có việc
+  nào thì không hiện gì, như trước.
+- Build **sx-144**. Không đổi DocType: `git pull` → `bench restart`. In lại tem trạm sau khi cập nhật.
+
 ## Dòng "Phần mềm đang thử nghiệm — có dữ liệu mẫu" xuống chân trang, có ở mọi trang (D185)
 
 - Bỏ khung trên đầu tờ in. Dòng nhận biết giờ ở **chân trang**:

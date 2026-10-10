@@ -1,30 +1,33 @@
 // In thẻ QR cho công nhân (D63) — dựng HTML ngay trên máy rồi mở tab in.
 //
 // QR vẽ bằng vendor/qrcode.js (MIT), không phụ thuộc thư viện Python nào trên site
-// và chạy được cả khi mất mạng. Vẽ ra <table> ô đen/trắng thay vì ảnh: in nét ở
-// mọi độ phân giải, không lệ thuộc canvas hay data-URI.
+// và chạy được cả khi mất mạng. Vẽ ra SVG (hình vector) thay vì ảnh: in nét ở mọi độ
+// phân giải, không lệ thuộc canvas hay data-URI.
+//
+// D186: trước đây vẽ bằng <table> ô có MÀU NỀN đen — trình duyệt mặc định KHÔNG in màu
+// nền (ô "Đồ hoạ nền" tắt sẵn), nên trên màn hình thấy QR mà in ra tem trắng trơn. Hình
+// SVG là nội dung, in ra luôn, không cần bật gì.
 
 import qrcode from '/assets/sx/sx/vendor/qrcode.js';
 
 const VIEN = 4;   // vùng trắng quanh mã, chuẩn QR đòi tối thiểu 4 ô
 
-function veQR(text, oPx) {
+export function veQR(text, oPx) {
   // Mức sửa lỗi M: chịu được ~15% bẩn/xước — thẻ đeo trong xưởng bột thì cần.
   const qr = qrcode(0, 'M');
   qr.addData(String(text));
   qr.make();
   const n = qr.getModuleCount();
-  const canh = (n + VIEN * 2) * oPx;
-  let o = `<table class="qr" style="width:${canh}px;height:${canh}px"><tbody>`;
-  for (let y = -VIEN; y < n + VIEN; y++) {
-    o += '<tr>';
-    for (let x = -VIEN; x < n + VIEN; x++) {
-      const den = y >= 0 && y < n && x >= 0 && x < n && qr.isDark(y, x);
-      o += `<td class="${den ? 'd' : 's'}"></td>`;
+  const m = n + VIEN * 2;
+  let d = '';
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      if (qr.isDark(y, x)) d += `M${x + VIEN} ${y + VIEN}h1v1h-1z`;
     }
-    o += '</tr>';
   }
-  return `${o}</tbody></table>`;
+  return `<svg class="qr" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${m} ${m}" width="${m * oPx}" `
+    + `height="${m * oPx}" shape-rendering="crispEdges"><rect width="${m}" height="${m}" fill="#fff"/>`
+    + `<path d="${d}" fill="#000"/></svg>`;
 }
 
 const esc = (s) => String(s == null ? '' : s)
@@ -43,10 +46,7 @@ function moTrang(html) {
 const KHUNG = `
  body { font-family: Arial, sans-serif; margin: 8mm; }
  .luoi { display: flex; flex-wrap: wrap; gap: 5mm; }
- .qr { border-collapse: collapse; margin: 0 auto; table-layout: fixed; }
- .qr td { padding: 0; }
- .qr td.d { background: #000; }
- .qr td.s { background: #fff; }
+ .qr { display: block; margin: 0 auto; }
  .huongdan { margin-bottom: 5mm; font-size: 10pt; color: #444; }
  @media print { .huongdan { display: none } }`;
 

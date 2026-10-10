@@ -368,6 +368,12 @@ python3 scripts/test-dongvat.py > /tmp/sx-dongvat.log 2>&1 \
   && tail -1 /tmp/sx-dongvat.log \
   || { cat /tmp/sx-dongvat.log; loi=1; }
 
+# D186: QR của tem trạm / thẻ quét / thẻ đăng nhập vẽ bằng màu nền thì trình duyệt mặc định
+# không in — màn hình thấy QR, giấy trắng trơn. QR phải là hình SVG, khớp đúng từng ô.
+node scripts/test-inthe.mjs > /tmp/sx-inthe.log 2>&1 \
+  && tail -1 /tmp/sx-inthe.log \
+  || { cat /tmp/sx-inthe.log; loi=1; }
+
 # D141 (W20, W12): nhật ký cát rang + xem xét tháng theo ngày sản xuất. Số ngày cát không
 # tính lại khi ghi bù / xoá, đổi nguồn không nhắc kim loại nặng, tỷ lệ lượt chia cho ngày
 # lịch — đều im lặng.

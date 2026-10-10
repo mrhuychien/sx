@@ -308,6 +308,31 @@ button.sx-qc-tag-chon {
 .sx-qc-nhac-ct {
   font-size: var(--sx-f-xs); color: var(--sx-text-2); margin-top: 2px;
 }
+/* D186: hộp nhắc gập — một dòng tóm tắt (số việc, số mức cao, việc đầu), bấm mở danh sách */
+.sx-qc-nhac-gap {
+  display: block; background: var(--sx-surface); border: 1px solid var(--sx-line);
+  border-left-width: 4px; border-radius: var(--sx-radius-sm);
+}
+.sx-qc-nhac-gap-cao { border-left-color: var(--sx-danger); }
+.sx-qc-nhac-gap-thuong { border-left-color: var(--sx-warning); }
+.sx-qc-nhac-tom {
+  display: flex; flex-direction: column; gap: 2px; position: relative; cursor: pointer; list-style: none;
+  user-select: none; min-height: var(--sx-tap); padding: var(--sx-s3) 40px var(--sx-s3) var(--sx-s4);
+}
+.sx-qc-nhac-tom::-webkit-details-marker { display: none; }
+/* mũi chỉ hướng: gập ▸ / mở ▾ — hình dạng đổi, không chỉ đổi màu (như .sx-fold) */
+.sx-qc-nhac-tom::after {
+  content: "▸"; position: absolute; right: var(--sx-s4); top: 50%; transform: translateY(-50%);
+  color: var(--sx-text-3); font-size: var(--sx-f-lg); transition: transform var(--sx-t-fast);
+}
+.sx-qc-nhac-gap[open] .sx-qc-nhac-tom::after { transform: translateY(-50%) rotate(90deg); }
+.sx-qc-nhac-dem { font-weight: 700; font-size: var(--sx-f-sm); }
+.sx-qc-nhac-dem-cao { color: var(--sx-danger-text); }
+.sx-qc-nhac-dau {
+  font-size: var(--sx-f-xs); color: var(--sx-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sx-qc-nhac-gap[open] .sx-qc-nhac-dau { display: none; }
+.sx-qc-nhac-ds { display: flex; flex-direction: column; gap: var(--sx-s2); padding: 0 var(--sx-s2) var(--sx-s2); }
 
 /* Nút bật/tắt bột trong một lượt (D98) — ngay dưới đầu lượt, trước mục đầu tiên. */
 .sx-qc-bot-luot {

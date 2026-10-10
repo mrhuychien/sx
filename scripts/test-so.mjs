@@ -328,6 +328,28 @@ kiem('gửi A, B, C, D (chuỗi 1–4), không gửi RR / cấp độ — server
 
 console.log('\n-- W44: mục T4 lượt Tuần theo từng vật (components/qcui.js) --');
 const UI = await napView('components/qcui.js');
+
+console.log('\n-- D186: hộp nhắc gập một dòng, bấm mới mở (components/qcui.js veNhac) --');
+const NH = [
+  { muc_do: 'thuong', tieu_de: '2 ngày đi thiếu lượt', chi_tiet: 'a', route: '#/qc' },
+  { muc_do: 'cao', tieu_de: 'Có rang mà nhật ký cát không có cát đang dùng', chi_tiet: 'b', route: '#/qc/cat' },
+  { muc_do: 'cao', tieu_de: 'Lượt quá hạn', chi_tiet: 'c' }];
+const h1 = UI.veNhac(NH);
+const tom = tim(h1, (e) => e.tagName === 'SUMMARY')[0];
+kiem('gập sẵn: <details> chưa mở; dòng tóm tắt = số việc, số mức cao (chữ đỏ), việc mức cao đầu tiên + "và N việc '
+  + 'khác"; có mức cao thì viền đỏ',
+  h1.tagName === 'DETAILS' && !h1.open && h1.classList.contains('sx-qc-nhac-gap-cao') && !!tom
+  && tom.textContent.includes('🔔 3 việc cần chú ý') && tom.innerHTML.includes('<b class="sx-qc-nhac-dem-cao">2 mức cao</b>')
+  && tom.textContent.includes('Có rang mà nhật ký cát không có cát đang dùng · và 2 việc khác'), tom && tom.textContent);
+const lk = tim(h1, (e) => e.tagName === 'A');
+kiem('bấm mở: đủ mọi việc, mỗi việc một liên kết tới màn của nó (không có thì #/qc), mức cao viền đỏ',
+  lk.length === 3 && lk[1].href === '#/qc/cat' && lk[2].href === '#/qc'
+  && tim(h1, (e) => e.classList.contains('sx-qc-nhac-cao')).length === 2);
+const h2 = UI.veNhac([{ muc_do: 'thuong', tieu_de: 'Một việc', chi_tiet: '' }], { tieu_de: 'QC đang treo 1 việc', mo: true });
+kiem('không mức cao: viền vàng, không chữ "mức cao"; một việc thì không "và … việc khác"; tiêu đề riêng; mở sẵn khi cần',
+  h2.classList.contains('sx-qc-nhac-gap-thuong') && !h2.chu.includes('mức cao') && !h2.chu.includes('việc khác')
+  && h2.chu.includes('🔔 QC đang treo 1 việc') && h2.open === true, h2.chu);
+kiem('không có việc → không vẽ gì', UI.veNhac([]) === null && UI.veNhac(null) === null);
 kiem('t4TheoVat: có vật Không đạt → Không đạt; đủ Đạt → Đạt; còn vật trống / danh sách rỗng → chưa chấm',
   UI.t4TheoVat([{ ket_qua: 'Đạt' }, { ket_qua: 'Không đạt' }]) === 'Không đạt'
   && UI.t4TheoVat([{ ket_qua: 'Đạt' }]) === 'Đạt' && UI.t4TheoVat([{ ket_qua: 'Đạt' }, { ket_qua: '' }]) === ''
