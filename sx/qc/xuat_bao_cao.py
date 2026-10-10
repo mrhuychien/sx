@@ -79,6 +79,7 @@ def ten_tep(kieu, tu, den):
 # ── HTML tờ in → các khối (dòng chữ, bảng) ─────────────────────────────────────────────────────
 
 KHONG_DOC = {"style", "script", "title", "head"}
+BAN_THU_LOP = "sx-ban-thu"  # khối dòng "có dữ liệu mẫu" của đầu trang in chung — tệp xuất đặt chân trang riêng (D185)
 KHOI = {"div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "ul", "ol", "section", "header", "footer", "article",
         "blockquote", "pre", "dl", "dt", "dd", "form", "fieldset", "address", "center"}
 TIEU_DE = {"h1", "h2", "h3"}
@@ -110,6 +111,7 @@ class _Tach(HTMLParser):
         self.kieu = ""
         self.bo = 0
         self.bang = []
+        self.chan = 0       # đang trong khối .sx-ban-thu (dòng "có dữ liệu mẫu") — tệp xuất tự đặt chân trang (D185)
 
     def _xa(self):
         for d in gon(self.doan).split("\n"):
@@ -146,6 +148,9 @@ class _Tach(HTMLParser):
             return
         if self.bo:
             return
+        if self.chan or (tag == "div" and BAN_THU_LOP in str(dict(attrs).get("class") or "").split()):
+            self.chan += tag == "div"
+            return
         b = self.bang[-1] if self.bang else None
         if tag == "table":
             if b is None:
@@ -176,6 +181,9 @@ class _Tach(HTMLParser):
             return
         if self.bo:
             return
+        if self.chan:
+            self.chan -= tag == "div"
+            return
         b = self.bang[-1] if self.bang else None
         if tag == "table":
             if b is not None:
@@ -194,7 +202,7 @@ class _Tach(HTMLParser):
                 self.kieu = ""
 
     def handle_data(self, data):
-        if self.bo:
+        if self.bo or self.chan:
             return
         b = self.bang[-1] if self.bang else None
         if b is None:
@@ -294,7 +302,7 @@ def nhan_to(ma, ten_tep, mot_to):
 
 # ── khổ giấy của tờ in (PDF, thiết lập in của sheet) ──────────────────────────────────────────
 
-TRANG = re.compile(r"@page\s*\{([^}]*)\}", re.I)
+TRANG = re.compile(r"@page\s*\{(?!\s*@)([^}]*)\}", re.I)   # bỏ @page chỉ chứa ô lề (@bottom-center — D185)
 DO_DAI = re.compile(r"^\d+(\.\d+)?(mm|cm|in)$")
 
 
@@ -380,9 +388,18 @@ def _do_rong(chu):
     return max((len(d) for d in str(chu or "").split("\n")), default=0)
 
 
-def ve_sheet(opx, ws, tieu_de, khoi, kho=None):
+def chan_trang(ws, chan, r):
+    """Dòng chân trang (site có dữ liệu mẫu — D185): hàng cuối sheet + chân trang khi in Excel (mọi trang)."""
+    if not chan:
+        return
+    _ghi(ws, r, 1, chan)
+    ws.oddFooter.center.text = chan
+    ws.oddFooter.center.size = 8
+
+
+def ve_sheet(opx, ws, tieu_de, khoi, kho=None, chan=""):
     """Một tờ in → sheet: dòng tiêu đề, rồi lần lượt các khối (dòng chữ cột A; bảng có viền, ô gộp, <th> đậm nền
-    xám). Đặt hướng giấy theo tờ in, in vừa bề ngang trang."""
+    xám), `chan` ở cuối. Đặt hướng giấy theo tờ in, in vừa bề ngang trang."""
     st = opx.styles
     mong = st.Side(style="thin", color="000000")
     vien = st.Border(left=mong, right=mong, top=mong, bottom=mong)
@@ -417,6 +434,7 @@ def ve_sheet(opx, ws, tieu_de, khoi, kho=None):
             if o["rs"] == 1 and o["text"]:
                 o_bang.append((r0 + r, 1 + c, o["cs"], o["text"]))
         r0 += so_hang + 1
+    chan_trang(ws, chan, r0 + 1)
     for c, w in rong.items():
         rong[c] = max(6, min(50, w + 2))
         ws.column_dimensions[opx.utils.get_column_letter(c)].width = rong[c]
@@ -448,8 +466,9 @@ def khoi_cua(ten_tep, noi_dung):
 def dung_excel(opx, dau, bm):
     """Workbook: Mục lục + mỗi tờ một sheet → bytes.
 
-    `dau` = {tieu_de, dong: [chữ]} — đầu Mục lục (kỳ, người xuất, ghi chú). `bm` = [{ma, ten, to: [(tên tệp, nội
-    dung)], loi}] theo thứ tự chọn. Ghi `sheet` (tên sheet từng tờ) vào từng biểu mẫu."""
+    `dau` = {tieu_de, dong: [chữ], chan: chữ chân trang mọi sheet ("" = không)} — đầu Mục lục (kỳ, người xuất, ghi
+    chú). `bm` = [{ma, ten, to: [(tên tệp, nội dung)], loi}] theo thứ tự chọn. Ghi `sheet` (tên sheet từng tờ) vào
+    từng biểu mẫu."""
     wb = opx.Workbook()
     ml = wb.active
     ml.title = "Mục lục"
@@ -461,7 +480,7 @@ def dung_excel(opx, dau, bm):
             ten = ten_sheet(nhan_to(x["ma"], ten_tep, mot), da_co)
             ws = wb.create_sheet(ten)
             ve_sheet(opx, ws, f"{x['ma']} — {x['ten']}" + ("" if mot else f" · {str(ten_tep).rsplit('.', 1)[0]}"),
-                     khoi_cua(ten_tep, nd), kho_giay(nd if isinstance(nd, str) else ""))
+                     khoi_cua(ten_tep, nd), kho_giay(nd if isinstance(nd, str) else ""), dau.get("chan") or "")
             x["sheet"].append(ten)
     _ve_muc_luc(opx, ml, dau, bm)
     buf = io.BytesIO()
@@ -497,6 +516,7 @@ def _ve_muc_luc(opx, ws, dau, bm):
                 o.hyperlink.location, o.hyperlink.target = f"'{ten}'!A1", None   # liên kết TRONG tệp
                 o.font = st.Font(color="0563C1", underline="single")
             r += 1
+    chan_trang(ws, dau.get("chan") or "", r + 1)
     for c, w in zip("ABCDE", (6, 14, 46, 30, 40)):
         ws.column_dimensions[c].width = w
 
@@ -549,6 +569,8 @@ def dung_pdf(lam_pdf, moi_writer, dau, bm):
     `moi_writer()` → PdfWriter rỗng. Một biểu mẫu dựng hỏng thì ghi lỗi vào biểu mẫu đó (bìa nói rõ), các biểu mẫu
     khác vẫn vào tệp. Không biểu mẫu nào dựng được mà có lỗi → ném lỗi đầu tiên (máy chủ thiếu wkhtmltopdf…)."""
     phan, loi_dau = [], None
+    # chân trang mọi trang (site có dữ liệu mẫu — D185): wkhtmltopdf không đọc @page @bottom-center của tờ in
+    chan = {"footer-center": dau["chan"], "footer-font-size": "8", "footer-spacing": "3"} if dau.get("chan") else {}
     for x in bm:
         cac_to = [nd if isinstance(nd, str) else nd.decode("utf-8", "replace") for _t, nd in x.get("to") or []]
         if not cac_to or x.get("loi"):
@@ -556,7 +578,7 @@ def dung_pdf(lam_pdf, moi_writer, dau, bm):
         tam = moi_writer()              # dựng riêng: biểu mẫu hỏng giữa chừng không để lại trang dở trong tệp
         try:
             for kho, nhom in nhom_theo_kho(cac_to):
-                lam_pdf(ghep_html(nhom, f"{x['ma']} — {x['ten']}"), dict(kho), tam)
+                lam_pdf(ghep_html(nhom, f"{x['ma']} — {x['ten']}"), dict(kho, **chan), tam)
         except Exception as e:  # noqa: BLE001 — một biểu mẫu hỏng không chặn cả tệp
             x["loi"] = str(e) or type(e).__name__
             loi_dau = loi_dau or e
@@ -574,7 +596,7 @@ def dung_pdf(lam_pdf, moi_writer, dau, bm):
         bia = moi_writer()
         lam_pdf(bia_html(dau, bm, {m: t + so_bia + 1 for m, t in vi_tri.items()}),
                 {"page-size": "A4", "orientation": "Portrait", "margin-top": "12mm", "margin-right": "12mm",
-                 "margin-bottom": "12mm", "margin-left": "12mm"}, bia)
+                 "margin-bottom": "12mm", "margin-left": "12mm", **chan}, bia)
         if len(bia.pages) == so_bia:
             break
         so_bia = len(bia.pages)

@@ -305,8 +305,9 @@ kiem("chạy lại job (job trùng) / CHẠY NGAY khi đã xong: không dựng l
 kiem("trạng thái nhiều lần xuất một lượt (màn hỏi lại)", [y["trang_thai"] for y in API.trang_thai(json.dumps(
     [x["name"]]))] == [XB.XONG] and API.trang_thai("[]") == [])
 
-kiem("site thật (không cờ dữ liệu mẫu): không có dòng \"site thử\" ở Mục lục / tờ in",
-     not any(sys.modules["sx.qc.mau_in"].BAN_THU.upper() in v.upper() for v in chu.values()))
+kiem("site thật (không cờ dữ liệu mẫu): không có dòng \"có dữ liệu mẫu\" ở Mục lục / tờ in, không chân trang",
+     not any(sys.modules["sx.qc.mau_in"].BAN_THU.upper() in v.upper() for v in chu.values())
+     and not any(wb[sh].oddFooter.center.text for sh in wb.sheetnames))
 FR.conf = {"sx_du_lieu_mau": 1}           # D179: site thử có dữ liệu mẫu
 xt = API.xuat(json.dumps({"kieu": "Excel", "tu": "2026-09-01", "den": "2026-09-30", "bieu_mau": ["BM.08.03",
                                                                                                     "BM.08.02"]}))
@@ -314,11 +315,19 @@ API.chay(xt["name"])
 wbt = openpyxl.load_workbook(io.BytesIO(open(os.path.join(KHO, lan(xt["name"])["ten_tep"]), "rb").read()))
 cht = {sh: " ".join(str(o.value) for h in wbt[sh].iter_rows() for o in h if o.value is not None) for sh in wbt.sheetnames}
 MI = sys.modules["sx.qc.mau_in"]
-kiem("D179: site thử — Mục lục mở đầu bằng dòng \"PHẦN MỀM ĐANG THỬ NGHIỆM — CÓ DỮ LIỆU MẪU\" (cả tờ CSV sổ sự cố "
-     "không có đầu trang)",
-     cht["Mục lục"].startswith("HỒ SƠ THEO DÕI") and MI.BAN_THU.upper() in cht["Mục lục"]
-     and wbt["Mục lục"]["A2"].value == MI.BAN_THU.upper(), cht["Mục lục"][:200])
-kiem("D179: site thử — tờ in (BM.08.03) mang dòng đó trên đầu trang", MI.BAN_THU in cht["BM.08.03"], cht["BM.08.03"][:200])
+def cuoi(ws):
+    """Chữ ở hàng có chữ CUỐI cùng của sheet."""
+    return next((str(o.value) for h in reversed(list(ws.iter_rows())) for o in h if o.value is not None), "")
+
+
+kiem("D185: site thử — Mục lục: dòng \"Phần mềm đang thử nghiệm — có dữ liệu mẫu\" ở CUỐI (không còn trên đầu) + chân "
+     "trang khi in Excel", cht["Mục lục"].startswith("HỒ SƠ THEO DÕI") and wbt["Mục lục"]["A2"].value.startswith("Kỳ:")
+     and cuoi(wbt["Mục lục"]) == MI.BAN_THU and cht["Mục lục"].count(MI.BAN_THU) == 1
+     and wbt["Mục lục"].oddFooter.center.text == MI.BAN_THU, cht["Mục lục"][:200])
+kiem("D185: mỗi sheet (cả tờ CSV sổ sự cố BM.08.02 không có đầu trang in chung) — dòng đó ở hàng cuối, đúng một lần, "
+     "và ở chân trang khi in Excel; khối thanh đáy của tờ in không lọt vào sheet",
+     all(cuoi(wbt[sh]) == MI.BAN_THU and cht[sh].count(MI.BAN_THU) == 1 and wbt[sh].oddFooter.center.text == MI.BAN_THU
+         for sh in wbt.sheetnames) and len(wbt.sheetnames) >= 3, {sh: cuoi(wbt[sh])[:40] for sh in wbt.sheetnames})
 FR.conf = {}
 # D183: tắt cờ mà còn dữ liệu mẫu (còn tài khoản mẫu) → tệp xuất vẫn ghi "site thử"; xoá dữ liệu mẫu thì hết
 F.bang("User")[MI.TK_MAU[0]] = {"name": MI.TK_MAU[0], "doctype": "User"}
@@ -326,9 +335,9 @@ xm = API.xuat(json.dumps({"kieu": "Excel", "tu": "2026-09-01", "den": "2026-09-3
 API.chay(xm["name"])
 wbm = openpyxl.load_workbook(io.BytesIO(open(os.path.join(KHO, lan(xm["name"])["ten_tep"]), "rb").read()))
 F.bang("User").pop(MI.TK_MAU[0])
-kiem("D183: tắt cờ mà còn dữ liệu mẫu → tệp xuất vẫn mở đầu bằng dòng \"site thử\", tờ in cũng vậy",
-     wbm["Mục lục"]["A2"].value == MI.BAN_THU.upper()
-     and MI.BAN_THU in " ".join(str(o.value) for h in wbm["BM.08.03"].iter_rows() for o in h if o.value is not None))
+kiem("D183: tắt cờ mà còn dữ liệu mẫu → tệp xuất vẫn có dòng đó ở chân trang (Mục lục, từng sheet)",
+     cuoi(wbm["Mục lục"]) == MI.BAN_THU and cuoi(wbm["BM.08.03"]) == MI.BAN_THU
+     and wbm["BM.08.03"].oddFooter.center.text == MI.BAN_THU)
 kiem("…xoá dữ liệu mẫu (không còn tài khoản mẫu), không cờ → không còn dòng đó", not MI.in_ban_thu())
 
 print("\n-- một biểu mẫu in lỗi, cả lần xuất lỗi, CHẠY NGAY, làm lại, xoá --")
@@ -433,6 +442,24 @@ kiem("bìa: trang đầu tệp; mỗi biểu mẫu → trang bắt đầu (bìa 
 kiem("bookmark: Mục lục, rồi từng biểu mẫu đúng trang (đếm từ 0)", pdf["outline"] == [
     ["Mục lục", 0], ["BM.08.01 — Vòng kiểm hằng ngày", 1], ["BM.08.03 — Nhật ký cát rang", 2],
     ["BM.02.04 — Diễn tập truy xuất (phụ lục)", 4]], pdf["outline"])
+kiem("D185: site không có dữ liệu mẫu → PDF không có chân trang", not any("footer-center" in o for _h, o, _s in GOI_PDF))
+GOI_PDF.clear()
+FR.conf = {"sx_du_lieu_mau": 1}
+x6 = API.xuat(json.dumps({"kieu": "PDF", "tu": "2026-09-01", "den": "2026-09-30", "bieu_mau": ["BM.08.03", "BM.08.02"]}))
+API.chay(x6["name"])
+FR.conf = {}
+kiem("D185: site có dữ liệu mẫu → MỌI lượt dựng PDF (từng biểu mẫu, cả tờ CSV sổ sự cố, bìa) có chân trang mọi trang "
+     "đúng chữ (wkhtmltopdf footer-center); bìa không còn dòng trên đầu; khổ tờ in vẫn đúng (cát A4 ngang)",
+     len(GOI_PDF) >= 3 and all(o.get("footer-center") == MI.BAN_THU and o.get("footer-font-size") == "8"
+                               for _h, o, _s in GOI_PDF)
+     and not any(MI.BAN_THU in h for h, _o, _s in GOI_PDF if "Trang</th>" in h)
+     and any(o.get("orientation") == "Landscape" for h, o, _s in GOI_PDF if "BM.08.03 —" in h),
+     [(h[h.find("<title>") + 7:h.find("</title>")][:20], o.get("footer-center", "")[:12]) for h, o, _s in GOI_PDF])
+kiem("D185: khổ giấy đọc @page của tờ in, bỏ qua @page chỉ chứa ô lề chân trang đứng trước",
+     XB.kho_giay('<style>@page{@bottom-center{content:"x";font:8pt serif}}</style>'
+                 '<style>@page { size: A4 landscape; margin: 10mm 8mm; }</style>')
+     == {"page-size": "A4", "orientation": "Landscape", "margin-top": "10mm", "margin-right": "8mm",
+         "margin-bottom": "10mm", "margin-left": "8mm"})
 GOI_PDF.clear()
 CAT.in_bm0803 = (lambda goc_in: (lambda t: goc_in(t) + "LOI-PDF"))(CAT.in_bm0803)
 x5 = API.xuat(json.dumps({"kieu": "PDF", "tu": "2026-09-01", "den": "2026-10-09",

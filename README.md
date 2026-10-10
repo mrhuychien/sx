@@ -320,10 +320,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Dòng "Phần mềm đang thử nghiệm — có dữ liệu mẫu" xuống chân trang, có ở mọi trang (D185)
+
+- Bỏ khung trên đầu tờ in. Dòng nhận biết giờ ở **chân trang**:
+  - **In từ app / mở gói zip rồi in** (Chrome, Edge, Cốc Cốc bản từ cuối 2024): ô lề dưới của **mọi trang**
+    (`@page { @bottom-center }`), không đè lên bảng. Trình duyệt khác có thể không in kiểu chân trang này.
+  - **Trên màn hình** (cửa sổ in, tệp trong gói zip): thanh nhỏ dưới đáy cửa sổ; tự ẩn khi in để không in hai lần.
+  - **Xuất PDF** (wkhtmltopdf không đọc ô lề `@page`): chân trang mọi trang qua tuỳ chọn `footer-center` — cả bìa
+    mục lục, cả tờ CSV sổ sự cố.
+  - **Xuất Excel**: hàng cuối mỗi sheet (cả Mục lục) + chân trang khi in Excel; Mục lục không còn dòng đó trên đầu.
+- Trước đây dòng chỉ ở đầu trang 1 của mỗi tờ; giờ trang nào cũng có — tờ rời vẫn tự nói nó từ đâu ra.
+- Khi nào hiện: như D183 (cờ `sx_du_lieu_mau` bật, hoặc còn dữ liệu mẫu). Đầu trang in chung `sx/qc/_dau_trang.html`;
+  tệp xuất `sx/qc/xuat_bao_cao.py` (bỏ khối `.sx-ban-thu` khi đọc tờ in, khổ giấy bỏ qua `@page` chỉ có ô lề).
+- Không đổi DocType, không đổi JS: `git pull` → `bench restart`. Test: `test-dulieumau.py`, `test-xuatbc.py`.
+
 ## Dòng nhận biết trên tờ in: "Phần mềm đang thử nghiệm — có dữ liệu mẫu" (D184)
 
-- Dòng trên đầu mọi tờ in và đầu Mục lục tệp xuất Excel / PDF của site có dữ liệu mẫu đổi từ "Bản in từ site thử — có
-  dữ liệu mẫu, không phải hồ sơ chính thức" thành **"Phần mềm đang thử nghiệm — có dữ liệu mẫu"** (`MI.BAN_THU`).
+- Dòng trên đầu mọi tờ in và đầu Mục lục tệp xuất Excel / PDF (từ D185: chân trang) của site có dữ liệu mẫu đổi
+  từ "Bản in từ site thử — có dữ liệu mẫu, không phải hồ sơ chính thức" thành **"Phần mềm đang thử nghiệm — có dữ
+  liệu mẫu"** (`MI.BAN_THU`).
 - Giữ "có dữ liệu mẫu": chỉ ghi "Phần mềm đang thử nghiệm" thì hồ sơ máy sinh in ra đọc như hồ sơ thật ghi trong lúc
   chạy thử phần mềm — dòng này có đúng một việc là tách hai thứ đó ra.
 - Khi nào hiện: như D183 (cờ `sx_du_lieu_mau` bật, hoặc còn dữ liệu mẫu). Không đổi DocType, không đổi JS: `git pull` →

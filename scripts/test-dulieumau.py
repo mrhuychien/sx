@@ -529,9 +529,15 @@ _h0 = _tpl.render()
 FR.conf = {"sx_du_lieu_mau": 1}
 kiem("D184: dòng in đúng chữ \"Phần mềm đang thử nghiệm — có dữ liệu mẫu\" — vẫn nói rõ có dữ liệu mẫu",
      MI.BAN_THU == "Phần mềm đang thử nghiệm — có dữ liệu mẫu", MI.BAN_THU)
-kiem("D179: tờ in site thử (cờ bật) mang MỘT dòng \"Phần mềm đang thử nghiệm …\" trên đầu trang; D183: tắt cờ mà dữ liệu "
-     "mẫu còn → vẫn mang dòng đó (không tắt cờ để in hồ sơ mẫu thành hồ sơ sạch được)",
-     _h1.count(MI.BAN_THU) == 1 and _h0.count(MI.BAN_THU) == 1 and "sx-dau-trang" in _h0, _h1[:300])
+# D185: dòng ở CHÂN TRANG — in: ô lề dưới mọi trang (@page @bottom-center); màn hình: thanh đáy cửa sổ, ẩn khi in
+chan_ok = lambda h: (h.count(MI.BAN_THU) == 2 and '@page{@bottom-center{content:"' + MI.BAN_THU + '"' in h  # noqa: E731
+                     and '<div class="sx-ban-thu">' + MI.BAN_THU + "</div>" in h
+                     and "@media print{.sx-ban-thu{display:none}}" in h and "position:fixed" in h
+                     and "@media screen{body{padding-bottom:22px}}" in h
+                     and "bottom:0" in h and "margin:0 0 4px" not in h)
+kiem("D185: tờ in site thử (cờ bật) — dòng \"Phần mềm đang thử nghiệm — có dữ liệu mẫu\" ở CHÂN TRANG mọi trang khi in "
+     "(ô lề dưới), thanh đáy cửa sổ trên màn hình (ẩn khi in), không còn khung trên đầu; D183: tắt cờ mà dữ liệu mẫu "
+     "còn → vẫn mang dòng đó", chan_ok(_h1) and chan_ok(_h0) and "sx-dau-trang" in _h0, _h1[:400])
 _bm = sys.modules["sx.api.qc_cat"].in_bm0803("2026-09")
 kiem("D179: tờ in thật (BM.08.03 tháng 9) trên site thử có dòng đó, dữ liệu mẫu vẫn in đủ",
      MI.BAN_THU in _bm and "Tổ rang" in _bm, _bm[:200])
@@ -578,8 +584,9 @@ FR.conf = {}
 _h2 = _tpl.render()
 FR.conf = {"sx_du_lieu_mau": 1}
 _h3 = _tpl.render()
-kiem("D183: xoá hết dữ liệu mẫu + tắt cờ → tờ in sạch; còn bật cờ thì vẫn ghi \"site thử\"",
-     MI.BAN_THU not in _h2 and "sx-dau-trang" in _h2 and _h3.count(MI.BAN_THU) == 1)
+kiem("D183: xoá hết dữ liệu mẫu + tắt cờ → tờ in sạch (không chân trang, không thanh đáy); còn bật cờ thì vẫn có",
+     MI.BAN_THU not in _h2 and "sx-ban-thu" not in _h2 and "@bottom-center" not in _h2 and "sx-dau-trang" in _h2
+     and chan_ok(_h3))
 # tài khoản mẫu tạo trước D179: tên "… Mẫu (dữ liệu mẫu)", bị khoá, thiếu vai → chạy lại sửa cả ba
 B("User")[DL.QC_MAU] = {"name": DL.QC_MAU, "email": DL.QC_MAU, "first_name": "QC", "last_name": "Mẫu (dữ liệu mẫu)",
                         "enabled": 0, "roles": [{"role": "SX QC"}], "doctype": "User"}

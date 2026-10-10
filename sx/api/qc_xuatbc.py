@@ -153,12 +153,12 @@ def _dung(doc):
         except Exception as e:  # noqa: BLE001 — một tờ hỏng không chặn cả tệp
             x["loi"] = str(e) or type(e).__name__
         bm.append(x)
-    # D179: site thử có dữ liệu mẫu → dòng đầu Mục lục / bìa nói rõ (tờ CSV không có đầu trang in chung).
-    dong = [MI.BAN_THU.upper()] if MI.in_ban_thu() else []
-    dong += [f"Kỳ: {HS.ngay_vn(tu)} – {HS.ngay_vn(den)}",
-             f"Xuất lúc {now_datetime().strftime('%d/%m/%Y %H:%M')} · người xuất: {_ho_ten(doc.owner)}"]
+    dong = [f"Kỳ: {HS.ngay_vn(tu)} – {HS.ngay_vn(den)}",
+            f"Xuất lúc {now_datetime().strftime('%d/%m/%Y %H:%M')} · người xuất: {_ho_ten(doc.owner)}"]
+    # D179 → D185: site có dữ liệu mẫu → dòng nhận biết ở CHÂN TRANG mọi trang / mọi sheet (cả tờ CSV, bìa, Mục lục).
     dau = {"tieu_de": "HỒ SƠ THEO DÕI — XUẤT CHO ĐOÀN KIỂM TRA",
-           "dong": dong + ([f"Ghi chú: {doc.ghi_chu}"] if doc.ghi_chu else [])}
+           "dong": dong + ([f"Ghi chú: {doc.ghi_chu}"] if doc.ghi_chu else []),
+           "chan": MI.BAN_THU if MI.in_ban_thu() else ""}
     if doc.kieu == XB.EXCEL:
         import openpyxl
 
