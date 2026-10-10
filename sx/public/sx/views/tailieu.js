@@ -6,7 +6,8 @@
 //             xét; in BM.01.02, BM.01.03.
 //   Đề nghị   BM.01.01: lập → ký gửi → Ban ISO xem xét → Giám đốc duyệt; trả lại; hủy; in.
 //   Ban hành  (Trưởng Ban ISO) đợt = QĐ + Phụ lục 1: kéo đề nghị đã duyệt, tải PDF đã ký, QĐ scan, BAN HÀNH; tiến
-//             độ đọc; in BM.01.13. Nạp bộ tài liệu 21/9/2026 (một lần) ở #/tailieu/nap.
+//             độ đọc; in BM.01.13. Nạp bộ tài liệu 21/9/2026 (một lần) ở #/tailieu/nap — D180: danh mục đi kèm
+//             app (một nút), tệp PDF chọn thẳng tai_lieu_pdf.zip.
 //   Biên bản (W45, D174) #/tailieu/bienban[/<tên>] — màn views/qc_bienban.js nạp khi mở (không import tĩnh màn khác).
 // Luật ở sx/qc/tai_lieu.py, API sx/api/qc_tailieu.py. Tệp riêng tư mở qua tai_tep (GET, kiểm quyền).
 
@@ -14,6 +15,7 @@ import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
+import { docZip, tenGoc } from '/assets/sx/sx/lib/zip.js';
 
 const API = 'sx.api.qc_tailieu';
 export const st = { q: '', tt: 'Hiện hành', nguon: 'Nội bộ', scan: '', quyen: null, daMo: {} };
@@ -62,7 +64,8 @@ export async function render(api) {
     let dl = null;
     if (man === 'cuatoi' || man === 'tatca' || !st.quyen) {
       dl = await call(`${API}.ds`, { tat_ca: man === 'tatca' ? 1 : 0 });
-      st.quyen = { la_iso: dl.la_iso, duoc_de_nghi: dl.duoc_de_nghi, duoc_nap: dl.duoc_nap, bien_ban: dl.bien_ban };
+      st.quyen = { la_iso: dl.la_iso, duoc_de_nghi: dl.duoc_de_nghi, duoc_nap: dl.duoc_nap, nap_xong: dl.nap_xong,
+        bien_ban: dl.bien_ban };
     }
     wrap.appendChild(veTab(man, st.quyen));
     wrap.appendChild(than);
@@ -72,7 +75,7 @@ export async function render(api) {
     else if (man === 'denghi') await veDeNghi(ctx);
     else if (man === 'banhanh' && st.quyen.la_iso) await veBanHanh(ctx);
     else if (man === 'dot' && st.quyen.la_iso && tham_so) await veDot(ctx, tham_so);
-    else if (man === 'nap' && st.quyen.duoc_nap) veNap(ctx);
+    else if (man === 'nap' && st.quyen.duoc_nap) await veNap(ctx);
     else if (man === 'bienban') {
       const mod = await import(`/assets/sx/sx/views/qc_bienban.js?v=${encodeURIComponent(
         (api.ctx && api.ctx.assetVersion) || Date.now())}`);
@@ -324,7 +327,7 @@ export function veDanhSach(ctx, dl, tatCa) {
     tren.appendChild(nut('🖨 BM.01.02', null, () => inTheo(ctx, 'in_bm0102', {}, 'BM.01.02 — Danh mục tài liệu nội bộ')));
     tren.appendChild(nut('🖨 BM.01.03', null, () => inTheo(ctx, 'in_bm0103', {}, 'BM.01.03 — Danh mục tài liệu bên ngoài')));
     tren.appendChild(nut('+ TÀI LIỆU BÊN NGOÀI', null, () => moSuaTL(ctx, null, dl)));
-    if (dl.duoc_nap) {
+    if (dl.duoc_nap && !dl.nap_xong) {
       const n = el('a', 'sx-btn sx-btn-ghost', '📦 NẠP BỘ TÀI LIỆU');
       n.href = '#/tailieu/nap';
       tren.appendChild(n);
@@ -640,7 +643,7 @@ async function veBanHanh(ctx) {
       window.location.hash = `#/tailieu/dot/${encodeURIComponent(r.name)}`;
     } catch (er) { e.currentTarget.disabled = false; toastErr(er.message); }
   }));
-  if (st.quyen && st.quyen.duoc_nap) {
+  if (st.quyen && st.quyen.duoc_nap && !st.quyen.nap_xong) {
     const n = el('a', 'sx-btn sx-btn-ghost', '📦 NẠP BỘ TÀI LIỆU');
     n.href = '#/tailieu/nap';
     tren.appendChild(n);
@@ -837,94 +840,109 @@ function moDong(r, dl, xong) {
   }));
 }
 
-// ── Nạp bộ tài liệu (một lần) ────────────────────────────────────────────────────────────────
+// ── Nạp bộ tài liệu ban hành 21/9/2026 (một lần) ──────────────────────────────────────────────────
+// D180: danh mục (sổ đăng ký, BM.01.03, Phụ lục 3) ĐI KÈM APP — một nút NẠP DANH MỤC, không còn chọn 3 tệp .json; tệp
+// PDF chọn thẳng tai_lieu_pdf.zip (giải nén ngay trên máy — lib/zip.js) hoặc các tệp PDF, PNG như cũ. Mở màn là thấy
+// đã nạp tới đâu (tinh_trang_nap) — tải lại trang vẫn đúng chỗ dở; nạp đủ thì nút NẠP BỘ ở Ban hành / Tất cả ẩn đi.
 
-/** Nhận ra tệp seed theo nội dung: mảng = sổ đăng ký; có 'soat_xet' = BM.01.03; ds có 'noi_nhan' = Phụ lục 3. */
-export function loaiSeed(obj) {
-  if (Array.isArray(obj)) return 'tai_lieu';
-  if (obj && obj.soat_xet !== undefined) return 'ngoai';
-  if (obj && Array.isArray(obj.ds) && obj.ds.some((x) => x && x.noi_nhan)) return 'phan_phoi';
-  return null;
+const MB10 = 10 * 1024 * 1024;
+
+/** {tên tệp: {ten, co, lay}} từ các tệp đã chọn — tệp .zip mở ra từng tệp bên trong; khớp theo tên không thư mục. */
+export async function gomTep(files) {
+  const ra = {};
+  for (const f of Array.from(files || [])) {
+    if (/\.zip$/i.test(f.name)) {
+      (await docZip(f)).forEach((x) => { const t = tenGoc(x.ten); if (!ra[t]) ra[t] = x; });
+    } else if (!ra[f.name]) ra[f.name] = { ten: f.name, co: f.size, lay: async () => f };
+  }
+  return ra;
 }
 
-function veNap(ctx) {
+const soNap = (t) => `${t.tai_lieu[0]}/${t.tai_lieu[1]} tài liệu nội bộ · ${t.ngoai[0]}/${t.ngoai[1]} tài liệu bên ngoài · `
+  + `${t.noi_nhan[0]}/${t.noi_nhan[1]} nơi nhận${t.dot === null ? '' : ` · đợt ${ngayDu(t.ngay)} ${t.dot ? 'đã có' : 'chưa có'}`}`;
+
+async function veNap(ctx) {
   const c = ctx.container;
-  const seed = {};
-  let canTep = [];
-  c.appendChild(el('div', 'sx-qc-top', '<div class="sx-qc-ngay">Nạp bộ tài liệu (một lần)</div>'));
-  c.appendChild(el('div', 'sx-qc-goiy', 'Bước 1: chọn 3 tệp seed (seed_tai_lieu.json, seed_tai_lieu_ngoai.json, seed_phan_phoi.json) '
-    + '→ NẠP DANH MỤC. Bước 2: chọn các tệp PDF, PNG đã giải nén từ tai_lieu_pdf.zip → app khớp tên, tải lần lượt. '
-    + 'Chạy lại an toàn: cái đã có thì bỏ qua.'));
-  const ttSeed = el('div', 'sx-qc-goiy');
-  const inpJ = el('input');
-  inpJ.type = 'file';
-  inpJ.accept = '.json';
-  inpJ.multiple = true;
-  inpJ.addEventListener('change', async () => {
-    for (const f of Array.from(inpJ.files || [])) {
-      try {
-        const o = JSON.parse(await f.text());
-        const k = loaiSeed(o);
-        if (k) seed[k] = o; else toastErr(`${f.name}: không phải tệp seed thư viện`);
-      } catch (e) { toastErr(`${f.name}: JSON hỏng`); }
-    }
-    ttSeed.textContent = `Đã chọn: ${['tai_lieu', 'ngoai', 'phan_phoi'].filter((k) => seed[k]).join(', ') || '—'}`;
-  });
-  c.appendChild(inpJ);
-  c.appendChild(ttSeed);
-  let yeuCau = '0';
-  c.appendChild(segment([{ v: '0', ten: 'Đợt 21/9: không tạo yêu cầu đọc (đã phổ biến giấy 22/9)' },
-    { v: '1', ten: 'Tạo yêu cầu đọc' }], yeuCau, (v) => { yeuCau = v || '0'; }));
-  const kq = el('div', 'sx-qc-than');
-  const nap = nut('1. NẠP DANH MỤC', 'sx-btn-primary sx-btn-big', async () => {
-    if (!seed.tai_lieu) { toastErr('Chọn seed_tai_lieu.json trước.'); return; }
-    nap.disabled = true;
-    try {
-      const r = await ctx.call(`${API}.nap_bo`, { payload: JSON.stringify({ tai_lieu: seed.tai_lieu, ngoai: seed.ngoai || {},
-        phan_phoi: seed.phan_phoi || {}, tao_yeu_cau_doc: Number(yeuCau) }) });
-      canTep = r.can_tep;
-      kq.innerHTML = '';
-      const t = r.tao;
-      kq.appendChild(el('div', 'sx-qc-sc', `<div class="sx-qc-sc-ten">Đã nạp</div><div class="sx-qc-goiy">${t.tai_lieu} tài liệu nội bộ · `
-        + `${t.ngoai} tài liệu bên ngoài · ${t.noi_nhan} nơi nhận · ${t.phan_phoi} tài liệu được phân phối · `
-        + `${t.dot ? '1 đợt ban hành' : 'đợt đã có'} · ${t.ho_so} hồ sơ · ${t.yeu_cau_doc} yêu cầu đọc</div>`
-        + `<div class="sx-qc-goiy">Tệp: ${canTep.filter((x) => x.co).length}/${canTep.length} đã có trên app</div>`));
-      (r.loi || []).forEach((l) => kq.appendChild(el('div', 'sx-qc-goiy', `⚠ ${esc(l)}`)));
-    } catch (e) { toastErr(e.message); }
-    nap.disabled = false;
-  });
-  c.appendChild(nap);
+  c.appendChild(el('div', 'sx-qc-top', '<div class="sx-qc-ngay">Nạp bộ tài liệu ban hành 21/9/2026 (một lần)</div>'));
+  const than = el('div');
+  const kq = el('div', 'sx-qc-goiy');
+  c.appendChild(than);
   c.appendChild(kq);
-  const tienDo = el('div', 'sx-qc-goiy');
-  const inpF = el('input');
-  inpF.type = 'file';
-  inpF.accept = '.pdf,.png';
-  inpF.multiple = true;
-  const tai = nut('2. TẢI TỆP PDF, PNG ĐÃ CHỌN', 'sx-btn-primary sx-btn-big', async () => {
-    if (!canTep.length) { toastErr('Nạp danh mục (bước 1) trước.'); return; }
-    const theoTen = {};
-    Array.from(inpF.files || []).forEach((f) => { theoTen[f.name] = f; });
-    const viec = canTep.filter((x) => !x.co && theoTen[x.tep]);
-    const thieu = canTep.filter((x) => !x.co && !theoTen[x.tep]);
-    tai.disabled = true;
-    let xong = 0;
+  let tt = null;
+  let yeuCau = false;
+  const napDanhMuc = async () => {
+    const r = await ctx.call(`${API}.nap_bo`, { payload: JSON.stringify({ tao_yeu_cau_doc: yeuCau ? 1 : 0 }) });
+    (r.loi || []).forEach((l) => toastErr(l));
+  };
+  const taiTep = async (files) => {
+    let tep;
+    try { tep = await gomTep(files); } catch (e) { toastErr(e.message); return; }
+    if (!tt.danh_muc_xong) {               // chọn tệp trước khi nạp danh mục: nạp luôn, khỏi bắt bấm hai nút
+      try { await napDanhMuc(); tt = await ctx.call(`${API}.tinh_trang_nap`); } catch (e) { toastErr(e.message); return; }
+    }
+    const viec = tt.can_tep.filter((x) => !x.co && tep[x.tep]);
     const loi = [];
+    let xong = 0;
     for (const x of viec) {
-      const f = theoTen[x.tep];
-      tienDo.textContent = `Đang tải ${xong + 1}/${viec.length}: ${x.tep}`;
+      const y = tep[x.tep];
+      kq.textContent = `Đang tải ${xong + loi.length + 1}/${viec.length}: ${x.tep}`;
       try {
-        if (f.size > 10 * 1024 * 1024) throw new Error('quá 10 MB');
-        await ctx.call(`${API}.nap_tep`, { khoa: x.khoa, ten: x.tep, noi_dung: await docTep(f) });
-        x.co = true;
+        if (y.co > MB10) throw new Error('quá 10 MB');
+        const b = await y.lay();
+        await ctx.call(`${API}.nap_tep`, { khoa: x.khoa, ten: x.tep, noi_dung: await docTep(new File([b], x.tep)) });
         xong += 1;
       } catch (e) { loi.push(`${x.tep}: ${e.message}`); }
     }
-    tienDo.innerHTML = `Đã tải ${xong}/${viec.length} tệp.${thieu.length ? ` Còn ${thieu.length} tệp chưa chọn: `
-      + `${esc(thieu.slice(0, 5).map((x) => x.tep).join(', '))}${thieu.length > 5 ? '…' : ''}` : ''}`
+    kq.innerHTML = `Đã tải ${xong}/${viec.length} tệp.${!viec.length ? ' Không tệp nào khớp tên tệp còn thiếu.' : ''}`
       + `${loi.length ? `<br>⚠ ${loi.map(esc).join('<br>⚠ ')}` : ''}`;
-    tai.disabled = false;
-  });
-  c.appendChild(inpF);
-  c.appendChild(tai);
-  c.appendChild(tienDo);
+  };
+  const ve = async () => {
+    try { tt = await ctx.call(`${API}.tinh_trang_nap`); } catch (e) { toastErr(e.message); return; }
+    than.innerHTML = '';
+    const tong = tt.can_tep.length;
+    const thieu = tt.can_tep.filter((x) => !x.co);
+    if (tt.xong) {
+      if (st.quyen) st.quyen.nap_xong = true;
+      than.appendChild(el('div', 'sx-qc-sc', `<div class="sx-qc-sc-ten">✓ Đã nạp đủ bộ tài liệu</div><div class="sx-qc-goiy">`
+        + `${soNap(tt)} · ${tong}/${tong} tệp. Phân phối, bản scan: tab Tất cả; lần ban hành sau: tab Ban hành.</div>`));
+      return;
+    }
+    const b1 = el('div', 'sx-qc-sc', `<div class="sx-qc-sc-ten">${tt.danh_muc_xong ? '✓' : '①'} Danh mục</div>`
+      + `<div class="sx-qc-goiy">${soNap(tt)}</div>`);
+    if (!tt.danh_muc_xong) {
+      const hoi = el('label', 'sx-qc-goiy');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.checked = yeuCau;
+      cb.addEventListener('change', () => { yeuCau = !!cb.checked; });
+      hoi.appendChild(cb);
+      hoi.appendChild(el('span', null, ' Tạo yêu cầu "Đã đọc, hiểu" cho đợt này (thường không cần — đã phổ biến bản giấy 22/9)'));
+      b1.appendChild(hoi);
+      b1.appendChild(nut('NẠP DANH MỤC', 'sx-btn-primary sx-btn-big', async (e) => {
+        e.currentTarget.disabled = true;
+        try { await napDanhMuc(); } catch (er) { toastErr(er.message); }
+        await ve();
+      }));
+    }
+    than.appendChild(b1);
+    const b2 = el('div', 'sx-qc-sc', `<div class="sx-qc-sc-ten">② Tệp PDF, ảnh</div><div class="sx-qc-goiy">`
+      + `${tong - thieu.length}/${tong} tệp đã có trên app. Chọn tệp <b>tai_lieu_pdf.zip</b> — không cần giải nén (hoặc `
+      + 'chọn các tệp PDF, PNG). App tự khớp tên, tải lần lượt; tệp đã có thì bỏ qua.</div>');
+    const inp = el('input');
+    inp.type = 'file';
+    inp.accept = '.zip,.pdf,.png';
+    inp.multiple = true;
+    inp.addEventListener('change', async () => {
+      inp.disabled = true;
+      await taiTep(inp.files);
+      await ve();
+    });
+    b2.appendChild(inp);
+    if (tt.danh_muc_xong && thieu.length) {
+      b2.appendChild(el('div', 'sx-qc-goiy', `Còn thiếu ${thieu.length} tệp: ${esc(thieu.slice(0, 8).map((x) => x.tep)
+        .join(', '))}${thieu.length > 8 ? '…' : ''}`));
+    }
+    than.appendChild(b2);
+  };
+  await ve();
 }

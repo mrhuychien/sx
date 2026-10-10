@@ -11,7 +11,7 @@ Vì sao phải có bài này:
   · Đầu trang in chung lấy mã / lần BH từ thư viện, kể cả mã biểu mẫu nằm trong tài liệu khác (BM.08.05 → HD.08.02).
 
 Nạp sx/qc/tai_lieu.py, mau_in.py, controller, sx/api/qc_tailieu.py THẬT trên frappe giả; seed thật ở
-scripts/du_lieu/ (bản chép seed_tai_lieu*.json, seed_phan_phoi.json của gói giao việc 09/10/2026).
+sx/qc/seed/tai_lieu.json, tai_lieu_ngoai.json, phan_phoi.json (bộ của gói giao việc 09/10/2026 — từ D180 đi kèm app).
 Chạy: python3 scripts/test-tailieu.py   (verify.sh gọi sẵn)
 """
 
@@ -101,11 +101,10 @@ def la(u):
 
 
 def seed(f):
-    return json.load(open(f"scripts/du_lieu/{f}", encoding="utf-8"))
+    return json.load(open(f"sx/qc/seed/{f}", encoding="utf-8"))
 
 
-SEED = {"tai_lieu": seed("seed_tai_lieu.json"), "ngoai": seed("seed_tai_lieu_ngoai.json"),
-        "phan_phoi": seed("seed_phan_phoi.json")}
+SEED = {"tai_lieu": seed("tai_lieu.json"), "ngoai": seed("tai_lieu_ngoai.json"), "phan_phoi": seed("phan_phoi.json")}
 
 # ═══ 1. Hàm thuần ═════════════════════════════════════════════════════════
 print("\n-- chuẩn hoá sổ đăng ký, phân phối, quyền xem (hàm thuần) --")
@@ -162,9 +161,16 @@ kiem("đề nghị: gửi → chờ xem xét → chờ duyệt → đã duyệt;
 # ═══ 2. Nạp bộ tài liệu ═══════════════════════════════════════════════════
 print("\n-- nạp bộ tài liệu 21/9/2026: hai lần ra cùng kết quả --")
 la("qc@x")
-kiem("QC không nạp bộ được", "Nạp bộ" in (thu(lambda: A.nap_bo(json.dumps(SEED))) or ""))
+kiem("QC không nạp bộ được, không xem tình trạng nạp", "Nạp bộ" in (thu(lambda: A.nap_bo()) or "")
+     and "Nạp bộ" in (thu(A.tinh_trang_nap) or ""))
 la("iso@x")
-r1 = A.nap_bo(json.dumps(SEED))
+kiem("D180: bộ tài liệu đi kèm app (sx/qc/seed) — đúng ba tệp của gói giao việc", TL.seed_nap() == SEED)
+t0 = A.tinh_trang_nap()
+kiem("D180: chưa nạp — tình trạng 0/81 nội bộ, 0/21 bên ngoài, 0/10 nơi nhận, chưa có đợt 21/9; không ghi gì",
+     (t0["tai_lieu"], t0["ngoai"], t0["noi_nhan"], t0["dot"], t0["ngay"], t0["danh_muc_xong"], t0["xong"])
+     == ([0, 81], [0, 21], [0, 10], False, "2026-09-21", False, False) and not F.bang(TL.PT) and not F.bang(TL.PT_DOT), t0)
+kiem("D180: danh sách cho Ban ISO báo chưa nạp đủ (nút NẠP BỘ hiện)", A.ds(1)["nap_xong"] is False)
+r1 = A.nap_bo()
 dem = lambda dt: len(F.bang(dt))  # noqa: E731
 kiem("lần 1: 81 nội bộ + 21 bên ngoài, 10 nơi nhận, 1 đợt Đã ban hành, 4 hồ sơ đợt, 1 hồ sơ danh mục; mọi tài liệu "
      "được phân phối",
@@ -195,7 +201,7 @@ ten_qt06 = anh["QT.06"]["name"]
 la("iso@x")
 A.luu_tai_lieu(json.dumps({"name": ten_qt06, "phan_phoi": ["Ban ISO", "Cơ điện"]}))
 truoc = {dt: dem(dt) for dt in (TL.PT, TL.PT_NN, TL.PT_DOT, HS.PT, "SX Tai Lieu Tep", "SX Tai Lieu Noi Nhan")}
-r2 = A.nap_bo(json.dumps(SEED))
+r2 = A.nap_bo(json.dumps({"tao_yeu_cau_doc": 0}))
 kiem("lần 2: không tạo thêm gì, không đè phân phối Ban ISO đã sửa",
      {dt: dem(dt) for dt in truoc} == truoc and not any(r2["tao"][k] for k in ("tai_lieu", "ngoai", "noi_nhan", "dot"))
      and [r["noi_nhan"] for r in F.bang(TL.PT)[ten_qt06]["phan_phoi"]] == ["Ban ISO", "Cơ điện"], r2["tao"])
@@ -205,8 +211,20 @@ hd0801 = next(x for x in can if x["tep"].startswith("HD.08.01"))
 kiem("tải tệp: sai tên (tệp khác) → từ chối; sai chữ ký đầu tệp → từ chối",
      "không phải tệp" in (thu(lambda: A.nap_tep(hd0801["khoa"], "Khac.pdf", PDF)) or "")
      and "không khớp" in (thu(lambda: A.nap_tep(hd0801["khoa"], hd0801["tep"], PNG)) or ""))
-for x in can:
+t1 = A.tinh_trang_nap()
+kiem("D180: đã nạp danh mục, chưa tải tệp — 81/81, 21/21, 10/10, có đợt; 88 tệp chưa có; mở lại màn vẫn thấy đúng",
+     (t1["tai_lieu"], t1["ngoai"], t1["noi_nhan"], t1["dot"], t1["danh_muc_xong"], t1["xong"])
+     == ([81, 81], [21, 21], [10, 10], True, True, False) and len(t1["can_tep"]) == len(can)
+     and not any(x["co"] for x in t1["can_tep"]), {k: t1[k] for k in ("tai_lieu", "ngoai", "noi_nhan", "dot")})
+for x in can[:-1]:
     A.nap_tep(x["khoa"], x["tep"], PNG if x["tep"].endswith(".png") else PDF)
+kiem("D180: còn đúng một tệp thiếu → chưa xong", (lambda t: not t["xong"] and [x["tep"] for x in t["can_tep"]
+                                                                       if not x["co"]] == [can[-1]["tep"]])(
+    A.tinh_trang_nap()))
+x = can[-1]
+A.nap_tep(x["khoa"], x["tep"], PNG if x["tep"].endswith(".png") else PDF)
+kiem("D180: đủ tệp → tình trạng xong; danh sách cho Ban ISO báo đã nạp đủ (ẩn nút NẠP BỘ)",
+     A.tinh_trang_nap()["xong"] and A.ds(1)["nap_xong"] is True)
 r3 = A.nap_bo(json.dumps(SEED))
 kiem("đủ tệp: chạy lại báo mọi tệp đã có (chạy lại thì bỏ qua cái đã có)", all(x["co"] for x in r3["can_tep"])
      and len(r3["can_tep"]) == len(can))

@@ -208,6 +208,7 @@ def ds(tat_ca=0):
     return {"ds": ra, "can_doc": _can_doc(), "cho_ky": _cho_ky(roles), "bien_ban": _co_bien_ban(roles),
             "cua_toi": sorted(cua_toi), "la_iso": iso,
             "duoc_de_nghi": bool(_sieu(roles) or roles & LAP_DE_NGHI), "duoc_nap": iso or SM in roles,
+            "nap_xong": _nap_xong() if (iso or SM in roles) else True,
             "noi_nhan": [{"ten": x["ten"], "hinh_thuc": x.get("hinh_thuc") or "", "vai": x["vai"],
                           "moi_nguoi": cint(x.get("moi_nguoi"))} for x in nn] if iso else [],
             "loai": list(TL.LOAI), "user": frappe.session.user, "hom_nay": nowdate()}
@@ -965,16 +966,57 @@ def _tim_tl(x):
     return frappe.db.get_value(TL.PT, {"nguon": x["nguon"], "thu_tu": x["thu_tu"], "ma": ("is", "not set")}, "name")
 
 
-def _ke_hoach(payload):
-    p = json.loads(payload) if isinstance(payload, str) else dict(payload or {})
-    return p, TL.ke_hoach_nap(p.get("tai_lieu") or [], p.get("ngoai") or {}, p.get("phan_phoi") or {})
+def _ke_hoach(payload=None):
+    """(tham số, kế hoạch nạp). Bộ tài liệu lấy từ app (sx/qc/seed — D180); payload có `tai_lieu` thì dùng bộ đó
+    (bench / test nạp một bộ khác)."""
+    p = (json.loads(payload) if payload else {}) if isinstance(payload, str) else dict(payload or {})
+    s = p if p.get("tai_lieu") else TL.seed_nap()
+    return p, TL.ke_hoach_nap(s.get("tai_lieu") or [], s.get("ngoai") or {}, s.get("phan_phoi") or {})
+
+
+def _nap_xong():
+    """Bộ tài liệu đi kèm app đã nạp đủ chưa — có đợt nạp và không tài liệu nào còn thiếu tệp gốc (ẩn nút NẠP BỘ).
+    Nhanh, gần đúng (ảnh kèm / hồ sơ đợt xem ở màn Nạp bộ)."""
+    try:
+        return bool(frappe.db.exists(TL.PT_DOT, {"ma_nap": ("like", "nap:%")})) and not frappe.db.count(
+            TL.PT, {"tep_goc": ("is", "set"), "tep": ("is", "not set")})
+    except Exception:
+        return False
 
 
 @frappe.whitelist()
-def nap_bo(payload):
-    """Nạp sổ đăng ký 21/9/2026 (seed_tai_lieu), BM.01.03 (seed_tai_lieu_ngoai), Phụ lục 3 (seed_phan_phoi):
-    tạo cái CHƯA CÓ — chạy lại không nhân đôi, không đè chỗ Ban ISO đã sửa. Trả các tệp còn phải tải
-    (can_tep, khoá → nap_tep); tệp đã có thì `co`."""
+def tinh_trang_nap():
+    """Màn Nạp bộ (D180) — bộ tài liệu đi kèm app đã nạp tới đâu, KHÔNG ghi gì: danh mục [có, tổng] (nội bộ, bên
+    ngoài, nơi nhận, đợt 21/9), các tệp (khoá, tên, đã có chưa). Mở lại màn / tải lại trang vẫn thấy đúng chỗ
+    đang dở — trước D180 phải bấm lại bước 1 mới tải tiếp được tệp."""
+    _guard_nap()
+    _p, kh = _ke_hoach()
+    ten_tl = {}
+    for x in kh["tai_lieu"]:
+        n = _tim_tl(x)
+        if n:
+            ten_tl[TL.khoa_tl(x)] = n
+    noi = [x for x in kh["tai_lieu"] if x["nguon"] != TL.BEN_NGOAI]
+    ngoai = [x for x in kh["tai_lieu"] if x["nguon"] == TL.BEN_NGOAI]
+    dot_name = frappe.db.get_value(TL.PT_DOT, {"ma_nap": f"nap:{kh['dot']['ngay_ban_hanh']}"}, "name") \
+        if kh["dot"] else None
+    ra = {"tai_lieu": [sum(1 for x in noi if TL.khoa_tl(x) in ten_tl), len(noi)],
+          "ngoai": [sum(1 for x in ngoai if TL.khoa_tl(x) in ten_tl), len(ngoai)],
+          "noi_nhan": [sum(1 for x in kh["noi_nhan"] if frappe.db.exists(TL.PT_NN, x["ten"])), len(kh["noi_nhan"])],
+          "dot": bool(dot_name) if kh["dot"] else None,
+          "ngay": (kh["dot"] or {}).get("ngay_ban_hanh") or "",
+          "can_tep": _can_tep(kh, ten_tl, dot_name)}
+    ra["danh_muc_xong"] = (all(a == b for a, b in (ra["tai_lieu"], ra["ngoai"], ra["noi_nhan"]))
+                           and ra["dot"] is not False)
+    ra["xong"] = ra["danh_muc_xong"] and all(x["co"] for x in ra["can_tep"])
+    return ra
+
+
+@frappe.whitelist()
+def nap_bo(payload=None):
+    """Nạp bộ tài liệu đi kèm app — sổ đăng ký 21/9/2026, BM.01.03, Phụ lục 3 (sx/qc/seed, D180): tạo cái CHƯA CÓ —
+    chạy lại không nhân đôi, không đè chỗ Ban ISO đã sửa. Trả các tệp còn phải tải (can_tep, khoá → nap_tep); tệp đã
+    có thì `co`. `payload` (tuỳ chọn): {tao_yeu_cau_doc} — hoặc một bộ seed khác {tai_lieu, ngoai, phan_phoi}."""
     _guard_nap()
     p, kh = _ke_hoach(payload)
     tao = {"noi_nhan": 0, "tai_lieu": 0, "ngoai": 0, "dot": 0, "ho_so_dot": 0, "ho_so": 0, "phan_phoi": 0,

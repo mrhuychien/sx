@@ -87,7 +87,7 @@ export async function napView(rel) {
   const tep = (r) => join(tam, `${r.replace(/\//g, '__').replace(/\.js$/, '')}.mjs`);
   const doiDuong = (src) => src.replace(/from '\/assets\/sx\/sx\/([^']+)'/g,
     (_, r) => `from '${pathToFileURL(tep(r)).href}'`);
-  for (const r of ['lib/dom.js', 'lib/anh.js', 'components/qcui.js', rel]) {
+  for (const r of ['lib/dom.js', 'lib/anh.js', 'lib/zip.js', 'components/qcui.js', rel]) {
     writeFileSync(tep(r), doiDuong(readFileSync(GOC + r, 'utf8')));
   }
   writeFileSync(tep('components/modal.js'), 'export const openModal = (o) => globalThis.__gia.openModal(o);\n'

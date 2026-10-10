@@ -320,6 +320,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nạp bộ tài liệu lần đầu gọn lại: một nút danh mục, chọn thẳng tai_lieu_pdf.zip (D180)
+
+Màn 📦 NẠP BỘ TÀI LIỆU (Tài liệu → Ban hành, `#/tailieu/nap`) trước đây bắt Ban ISO tự tìm và chọn 3 tệp kỹ thuật
+`.json`, giải nén `tai_lieu_pdf.zip` rồi chọn cả 88 tệp, tải lại trang giữa chừng là mất chỗ dở (phải bấm lại bước 1
+mới tải tiếp được), nút NẠP BỘ thì nằm đó mãi kể cả khi đã nạp xong. Giờ:
+
+- **Danh mục đi kèm app** — sổ đăng ký 21/9/2026, BM.01.03, Phụ lục 3 chuyển từ `scripts/du_lieu/seed_*.json` vào
+  `sx/qc/seed/` (`tai_lieu.json`, `tai_lieu_ngoai.json`, `phan_phoi.json`). Bước ① chỉ còn một nút **NẠP DANH MỤC**,
+  không chọn tệp nào. Ô "Tạo yêu cầu Đã đọc, hiểu" mặc định tắt (đã phổ biến bản giấy 22/9).
+- Bước ② **chọn thẳng `tai_lieu_pdf.zip`, không cần giải nén** — app mở zip ngay trên máy (`lib/zip.js`, không thư
+  viện ngoài), khớp tên, tải lần lượt những tệp còn thiếu (≤ 10 MB/tệp, kiểm chữ ký đầu tệp như cũ). Vẫn chọn được các
+  tệp PDF, PNG rời. Chọn zip khi chưa nạp danh mục → app tự nạp danh mục luôn.
+- **Mở màn là thấy đã tới đâu** (`tinh_trang_nap`, chỉ đọc): x/y tài liệu nội bộ, bên ngoài, nơi nhận, đợt 21/9, x/y
+  tệp và tên các tệp còn thiếu. Tải lại trang, mở lại hôm sau vẫn đúng chỗ dở.
+- Nạp đủ → "✓ Đã nạp đủ bộ tài liệu", nút 📦 NẠP BỘ ở tab Ban hành / Tất cả **ẩn đi**.
+- Zip có mật khẩu, ZIP64, trình duyệt quá cũ → báo rõ; khi đó giải nén rồi chọn các tệp như trước.
+- `nap_bo(payload)` vẫn nhận một bộ seed khác `{tai_lieu, ngoai, phan_phoi}` (bench / test); bỏ trống = bộ đi kèm app.
+- Build **sx-141**. Không đổi DocType: `git pull` → `bench restart` (không cần migrate). Test: `test-tailieu.py`,
+  `test-tailieu.mjs` (zip thật: nén / không nén, thư mục, tệp lạ, tệp quá 10 MB, zip hỏng).
+
 ## Dữ liệu mẫu bỏ ghi chú từng bản ghi; tờ in site thử có một dòng nhận biết (D179)
 
 - Bản ghi do lệnh dữ liệu mẫu (D177) sinh ra **không còn** ghi chú "Dữ liệu mẫu (site thử)", tiền tố "[Dữ liệu mẫu]" ở
@@ -658,9 +678,9 @@ nhận giấy. Căn cứ QT.01 phần kiểm soát tài liệu; QĐ ban hành 21
 - **Quyền xem (C27)**: người thường thấy tài liệu Hiện hành phân phối cho nơi nhận của mình (theo role của nơi nhận;
   "Toàn bộ người lao động" = mọi tài khoản app → Chính sách ATTP); Ban ISO, siêu quyền thấy hết, cả bản cũ. Tệp là tệp
   riêng tư, tải qua `sx.api.qc_tailieu.tai_tep` (GET, kiểm quyền) — `mo` (POST) ghi giờ mở.
-- **Nạp bộ tài liệu (một lần)** — Tài liệu → Ban hành → 📦 NẠP BỘ: (1) chọn `seed_tai_lieu.json`,
-  `seed_tai_lieu_ngoai.json`, `seed_phan_phoi.json` → NẠP DANH MỤC; (2) chọn các PDF, PNG giải nén từ
-  `tai_lieu_pdf.zip` → TẢI TỆP (khớp tên, ≤ 10 MB, kiểm chữ ký đầu tệp, bỏ qua tệp đã có). Tạo 79 tài liệu sổ đăng ký
+- **Nạp bộ tài liệu (một lần)** — Tài liệu → Ban hành → 📦 NẠP BỘ: (1) NẠP DANH MỤC — bộ đi kèm app, `sx/qc/seed/`
+  (D180; trước đó phải chọn 3 tệp `seed_*.json`); (2) chọn `tai_lieu_pdf.zip` (không cần giải nén — D180) hoặc các PDF,
+  PNG → app khớp tên, tải (≤ 10 MB, kiểm chữ ký đầu tệp, bỏ qua tệp đã có). Tạo 79 tài liệu sổ đăng ký
   + PLK, BCSX ("Biểu mẫu trên phần mềm", C25) + 21 tài liệu bên ngoài (mã = số hiệu, nhóm A/B/C, soát xét 21/9/2026),
   10 nơi nhận theo Phụ lục 3, đợt 21/9/2026 "Đã ban hành" (không tạo yêu cầu đọc — đã phổ biến giấy 22/9; bật được),
   4 hồ sơ của đợt, hồ sơ vận hành trước audit 17/9 vào danh mục hồ sơ. Chạy lại không nhân đôi, không đè chỗ Ban ISO

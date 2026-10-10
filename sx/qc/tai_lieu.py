@@ -14,6 +14,8 @@ lực" — hai bên nối qua mã biểu mẫu.
 Hàm thuần không đọc DB (test gọi thẳng). `nhac(hom_nay)` đọc DB, lỗi / chưa migrate → {}.
 """
 
+import json
+import os
 import re
 from datetime import date, datetime, timedelta
 
@@ -134,6 +136,18 @@ def khoa_tl(x):
     if x.get("ma"):
         return x["ma"]
     return f"{'stt' if (x.get('nguon') or NOI_BO) == NOI_BO else 'ngoai'}:{x.get('thu_tu')}"
+
+
+def seed_nap():
+    """Bộ tài liệu ban hành 21/9/2026 ĐI KÈM APP (D180): sổ đăng ký, BM.01.03, Phụ lục 3 — sx/qc/seed/. Trước D180
+    Ban ISO phải tự tìm và chọn 3 tệp .json này trên máy; giờ màn Nạp bộ chỉ còn một nút."""
+    goc = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed")
+
+    def doc(ten):
+        with open(os.path.join(goc, ten), encoding="utf-8") as f:
+            return json.load(f)
+
+    return {"tai_lieu": doc("tai_lieu.json"), "ngoai": doc("tai_lieu_ngoai.json"), "phan_phoi": doc("phan_phoi.json")}
 
 
 def ke_hoach_nap(seed_tl, seed_ngoai=None, seed_pp=None):

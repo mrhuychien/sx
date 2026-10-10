@@ -1,6 +1,6 @@
 {
  "nguon": "QĐ ban hành, sửa đổi tài liệu 21/9/2026, Phụ lục 3 Danh sách phân phối tài liệu",
- "cach_doc": "tai_lieu: mã tài liệu hoặc mã biểu mẫu (tìm SX Tai Lieu có ma = mã, hoặc có mã trong ma_bieu_mau); 'stt:N' = dòng N của seed_tai_lieu.json (tài liệu không mã); '*' = toàn bộ. vai: role gợi ý cho nơi nhận (SX Co Dien, SX Hanh Chinh là role mới, C24; Purchase User, Sales User là role chuẩn ERPNext; '*' = mọi tài khoản). PRP cho Cơ điện chỉ gồm SSOP 1, 7, 8, 10, 11, 13 (ghi chú, vẫn phân phối cả tài liệu).",
+ "cach_doc": "tai_lieu: mã tài liệu hoặc mã biểu mẫu (tìm SX Tai Lieu có ma = mã, hoặc có mã trong ma_bieu_mau); 'stt:N' = dòng N của tai_lieu.json (tài liệu không mã); '*' = toàn bộ. vai: role gợi ý cho nơi nhận (SX Co Dien, SX Hanh Chinh là role mới, C24; Purchase User, Sales User là role chuẩn ERPNext; '*' = mọi tài khoản). PRP cho Cơ điện chỉ gồm SSOP 1, 7, 8, 10, 11, 13 (ghi chú, vẫn phân phối cả tài liệu).",
  "ds": [
   {
    "noi_nhan": "Giám đốc",

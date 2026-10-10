@@ -197,39 +197,108 @@ kiem('đã ban hành: không sửa; tiến độ đọc 2/6, người chưa đ�
   && a4.container.chu.includes('Tiến độ đọc: 2/6') && a4.container.chu.includes('Lê QC Gói')
   && !!nutCo(a4.container, 'IN BM.01.13') && !!nutCo(a4.container, 'THÊM HỒ SƠ'));
 
-console.log('\n-- Nạp bộ tài liệu --');
-kiem('nhận ra tệp seed theo nội dung', V.loaiSeed([{ stt: 1 }]) === 'tai_lieu' && V.loaiSeed({ soat_xet: '', ds: [] }) === 'ngoai'
-  && V.loaiSeed({ ds: [{ noi_nhan: 'QC' }] }) === 'phan_phoi' && V.loaiSeed({ ds: [] }) === null);
+console.log('\n-- Nạp bộ tài liệu (D180: danh mục đi kèm app, chọn thẳng tệp .zip) --');
+// FileReader giả: tệp giả có b64; tệp thật (File / Blob) → base64 của đúng nội dung.
+globalThis.FileReader = class {
+  readAsDataURL(f) {
+    if (f.b64 !== undefined) { this.result = `data:application/pdf;base64,${f.b64}`; this.onload(); return; }
+    f.arrayBuffer().then((b) => { this.result = `data:;base64,${Buffer.from(b).toString('base64')}`; this.onload(); });
+  }
+};
+const choDen = async (dk, n = 400) => { for (let i = 0; i < n && !dk(); i += 1) await cho(); };
+// tệp .zip THẬT: thư mục + PDF nén deflate + PDF lưu thẳng + tệp không cần
+const { execFileSync } = await import('node:child_process');
+const { mkdtempSync, readFileSync: docF } = await import('node:fs');
+const { tmpdir } = await import('node:os');
+const zipTep = `${mkdtempSync(`${tmpdir()}/sx-zip-`)}/tai_lieu_pdf.zip`;
+const ND = { 'HD.08.01.pdf': `%PDF-1.4 HD.08.01 ${'nội dung '.repeat(80)}`, 'CS.pdf': '%PDF-1.4 CS', 'la.pdf': '%PDF-1.4 la',
+  'BM.08.01.pdf': '%PDF-1.4 BM.08.01' };
+execFileSync('python3', ['-c', `import sys, zipfile
+z = zipfile.ZipFile(sys.argv[1], 'w')
+z.writestr('tai_lieu_pdf/', '')
+z.writestr(zipfile.ZipInfo('tai_lieu_pdf/HD.08.01.pdf'), sys.argv[2].encode(), zipfile.ZIP_DEFLATED)
+z.writestr(zipfile.ZipInfo('tai_lieu_pdf/CS.pdf'), sys.argv[3].encode(), zipfile.ZIP_STORED)
+z.writestr('tai_lieu_pdf/la.pdf', sys.argv[4].encode())
+z.writestr('tai_lieu_pdf/BM.08.01.pdf', sys.argv[5].encode())
+z.writestr(zipfile.ZipInfo('tai_lieu_pdf/QT.99.pdf'), b'%PDF' + b'a' * (11 * 1024 * 1024), zipfile.ZIP_DEFLATED)
+z.close()`, zipTep, ND['HD.08.01.pdf'], ND['CS.pdf'], ND['la.pdf'], ND['BM.08.01.pdf']]);
+const fZip = new File([docF(zipTep)], 'tai_lieu_pdf.zip');
+const b64 = (t) => Buffer.from(t).toString('base64');
+const ds = await V.gomTep([fZip]);
+kiem('đọc .zip trên máy: bỏ thư mục, khớp theo tên không đường dẫn, giải nén đúng nội dung (deflate + lưu thẳng)',
+  JSON.stringify(Object.keys(ds).sort()) === '["BM.08.01.pdf","CS.pdf","HD.08.01.pdf","QT.99.pdf","la.pdf"]'
+  && Buffer.from(await (await ds['HD.08.01.pdf'].lay()).arrayBuffer()).toString() === ND['HD.08.01.pdf']
+  && Buffer.from(await (await ds['CS.pdf'].lay()).arrayBuffer()).toString() === ND['CS.pdf']
+  && ds['HD.08.01.pdf'].co === Buffer.byteLength(ND['HD.08.01.pdf']), Object.keys(ds));
+let loiZip = '';
+try { await V.gomTep([new File(['không phải zip'], 'hong.zip')]); } catch (e) { loiZip = e.message; }
+kiem('tệp đuôi .zip mà không phải zip → báo rõ', loiZip.includes('không phải tệp .zip'), loiZip);
+
+const CHUA = { tai_lieu: [0, 81], ngoai: [0, 21], noi_nhan: [0, 10], dot: false, ngay: '2026-09-21', can_tep: [],
+  danh_muc_xong: false, xong: false };
+const CAN = [{ khoa: 'tl:TL-1', tep: 'HD.08.01.pdf', co: false }, { khoa: 'tl:TL-2', tep: 'BM.08.01.pdf', co: true },
+  { khoa: 'tl:TL-3', tep: 'CS.pdf', co: false }, { khoa: 'tl:TL-9', tep: 'QT.99.pdf', co: false }];
+const DA = { tai_lieu: [81, 81], ngoai: [21, 21], noi_nhan: [10, 10], dot: true, ngay: '2026-09-21', can_tep: CAN,
+  danh_muc_xong: true, xong: false };
+let tinh = CHUA;
+traVe = { tinh_trang_nap: () => tinh, nap_bo: () => { tinh = DA; return { tao: {}, can_tep: CAN, loi: [] }; },
+  nap_tep: (a) => { const x = CAN.find((y) => y.khoa === a.khoa); if (x) x.co = true; return {}; } };
 globalThis.window.location = { hash: '#/tailieu/nap' };
-traVe = { nap_bo: { tao: { tai_lieu: 81, ngoai: 21, noi_nhan: 10, phan_phoi: 102, dot: 1, ho_so: 1, yeu_cau_doc: 0 },
-  can_tep: [{ khoa: 'tl:TL-1', tep: 'HD.08.01.pdf', co: false }, { khoa: 'tl:TL-2', tep: 'BM.08.01.pdf', co: true },
-    { khoa: 'tl:TL-3', tep: 'CS.pdf', co: false }], loi: [] } };
-globalThis.FileReader = class { readAsDataURL(f) { this.result = `data:application/pdf;base64,${f.b64}`; this.onload(); } };
+V.st.quyen = { la_iso: true, duoc_de_nghi: true, duoc_nap: true, nap_xong: false };
 const a5 = api(DS);
 await V.render(a5);
-const c5 = a5.container;
-const [inJ, inF] = tim(c5, (e) => e.tagName === 'INPUT');
-inJ.files = [{ name: 'seed_tai_lieu.json', text: async () => '[{"stt":1}]' },
-  { name: 'seed_phan_phoi.json', text: async () => '{"ds":[{"noi_nhan":"QC"}]}' }];
-inJ.doi('');
-await cho();
-await cho();
+let c5 = a5.container;
+const inp5 = () => tim(c5, (e) => e.tagName === 'INPUT' && e.type === 'file');
+kiem('mở màn là thấy đã nạp tới đâu (0/81 …); một nút NẠP DANH MỤC — không còn ô chọn tệp .json',
+  c5.chu.includes('0/81 tài liệu nội bộ') && c5.chu.includes('0/10 nơi nhận') && !!nutCo(c5, 'NẠP DANH MỤC')
+  && inp5().length === 1 && inp5()[0].accept === '.zip,.pdf,.png' && !c5.chu.includes('.json'), c5.chu.slice(0, 300));
 nutCo(c5, 'NẠP DANH MỤC').bam();
-await cho();
+await choDen(() => c5.chu.includes('81/81'));
 const pn = JSON.parse(goi('nap_bo').pop()[1].payload);
-kiem('NẠP DANH MỤC: gửi seed theo loại, mặc định không tạo yêu cầu đọc (đợt 21/9 đã phổ biến giấy)',
-  pn.tai_lieu.length === 1 && pn.phan_phoi.ds[0].noi_nhan === 'QC' && pn.tao_yeu_cau_doc === 0
-  && c5.chu.includes('81 tài liệu nội bộ') && c5.chu.includes('1/3 đã có'), pn);
-inF.files = [{ name: 'HD.08.01.pdf', size: 1000, b64: 'JVBERg==' }, { name: 'BM.08.01.pdf', size: 1000, b64: 'JVBERg==' },
-  { name: 'la.pdf', size: 1000, b64: 'JVBERg==' }];
-nutCo(c5, 'TẢI TỆP').bam();
-await cho();
-await cho();
-await cho();
+kiem('NẠP DANH MỤC: không gửi tệp nào (danh mục đi kèm app), mặc định không tạo yêu cầu đọc; màn tự cập nhật',
+  !pn.tai_lieu && pn.tao_yeu_cau_doc === 0 && c5.chu.includes('✓ Danh mục') && !nutCo(c5, 'NẠP DANH MỤC')
+  && c5.chu.includes('1/4 tệp đã có') && c5.chu.includes('Còn thiếu 3 tệp: HD.08.01.pdf, CS.pdf, QT.99.pdf'), pn);
+inp5()[0].files = [fZip];
+inp5()[0].doi('');
+await choDen(() => c5.chu.includes('Đã tải'));
 const tai = goi('nap_tep');
-kiem('TẢI TỆP: chỉ tệp khớp tên và chưa có (HD.08.01), đúng khoá, nội dung base64; nói còn tệp chưa chọn',
-  tai.length === 1 && tai[0][1].khoa === 'tl:TL-1' && tai[0][1].ten === 'HD.08.01.pdf' && tai[0][1].noi_dung === 'JVBERg=='
-  && c5.chu.includes('Còn 1 tệp chưa chọn: CS.pdf'), tai);
+kiem('chọn tai_lieu_pdf.zip: tải đúng tệp còn thiếu (BM.08.01 đã có, tệp lạ bỏ qua), đúng khoá, đúng nội dung đã giải nén',
+  tai.length === 2 && tai[0][1].khoa === 'tl:TL-1' && tai[0][1].noi_dung === b64(ND['HD.08.01.pdf'])
+  && tai[1][1].khoa === 'tl:TL-3' && tai[1][1].noi_dung === b64(ND['CS.pdf']) && c5.chu.includes('Đã tải 2/3 tệp'),
+  tai.map((x) => x[1].ten));
+kiem('tệp trong zip quá 10 MB (sau giải nén) → không gửi, báo đúng tên', !tai.some((x) => x[1].ten === 'QT.99.pdf')
+  && c5.chu.includes('QT.99.pdf: quá 10 MB'), c5.chu.slice(-200));
+tinh = { ...DA, can_tep: CAN, xong: true };
+await V.render(a5);
+c5 = a5.container;
+kiem('nạp đủ: màn báo xong, không còn nút / ô chọn tệp; nút NẠP BỘ ở Ban hành ẩn đi',
+  c5.chu.includes('✓ Đã nạp đủ bộ tài liệu') && !inp5().length && V.st.quyen.nap_xong === true, c5.chu.slice(0, 200));
+// chọn tệp ngay khi chưa nạp danh mục → app nạp danh mục trước rồi tải; chọn thẳng các PDF (không zip) vẫn được
+CAN.forEach((x) => { x.co = x.khoa === 'tl:TL-2'; });
+tinh = CHUA;
+GOI.length = 0;
+const a7 = api(DS);
+await V.render(a7);
+const c7 = a7.container;
+const in7 = tim(c7, (e) => e.tagName === 'INPUT' && e.type === 'file')[0];
+in7.files = [new File([ND['CS.pdf']], 'CS.pdf')];
+in7.doi('');
+await choDen(() => goi('nap_tep').length >= 1);
+kiem('chọn tệp khi CHƯA nạp danh mục: app tự nạp danh mục trước (một thao tác), rồi tải tệp PDF chọn thẳng',
+  goi('nap_bo').length === 1 && goi('nap_tep').length === 1 && goi('nap_tep')[0][1].khoa === 'tl:TL-3'
+  && GOI.findIndex(([m]) => m.endsWith('.nap_bo')) < GOI.findIndex(([m]) => m.endsWith('.nap_tep')), GOI.map((x) => x[0]));
+// nút vào màn Nạp bộ: có khi chưa xong, ẩn khi đã xong
+traVe = { dot_ds: { ds: [], de_nghi_cho: [] } };
+globalThis.window.location = { hash: '#/tailieu/banhanh' };
+V.st.quyen = { la_iso: true, duoc_de_nghi: true, duoc_nap: true, nap_xong: false };
+const a8 = api(DS);
+await V.render(a8);
+const coNut = !!link(a8.container, 'NẠP BỘ TÀI LIỆU');
+V.st.quyen.nap_xong = true;
+const a9 = api(DS);
+await V.render(a9);
+kiem('Ban hành: nút NẠP BỘ TÀI LIỆU hiện khi chưa nạp đủ, ẩn khi đã nạp đủ', coNut && !link(a9.container, 'NẠP BỘ TÀI LIỆU'));
+traVe = {};
 
 console.log('\n-- bản scan bản gốc đã ký (D176) --');
 kiem('nên có bản scan: tài liệu nội bộ hiện hành; không: dự thảo, bên ngoài, biểu mẫu chỉ có trên phần mềm',
