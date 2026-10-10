@@ -94,7 +94,9 @@ def _chuc_danh(roles, viec=None):
     if viec == "xem_xet" and ISO in roles:
         return NHAN_ROLE[ISO]
     ten = [t for r, t in NHAN_ROLE.items() if r in roles and r != SM]
-    return ", ".join(ten) or ("Quản trị hệ thống" if SM in roles or "Administrator" in roles else "")
+    # nhiều vai quá thì cắt gọn: chức danh nằm trong ô Data ≤ 140 ký tự (yêu cầu đọc, ô ký) — D181
+    return TL.gon(", ".join(ten), tach=", ") or ("Quản trị hệ thống" if SM in roles or "Administrator" in roles
+                                                 else "")
 
 
 def _ho_ten(u=None):
@@ -1102,9 +1104,11 @@ def nap_bo(payload=None):
     for h in kh["ho_so"]:
         if frappe.db.exists("SX Ho So Danh Muc", {"ma": MA_NAP_HS}):
             continue
+        # tên ≤ 140 ký tự (ô Data); phần liệt kê sang Ghi chú — D181. Dòng "tệp …" giữ nguyên: nap_tep dò theo nó.
         frappe.get_doc({"doctype": "SX Ho So Danh Muc", "ma": MA_NAP_HS, "ten": h["ten"],
-                        "nhom": "Hệ thống quản lý", "nguon": "Tệp đính kèm",
-                        "ngay_ban_hanh": h.get("ngay"), "ghi_chu": f"Nạp từ bộ tài liệu — tệp {h['tep_goc']}",
+                        "nhom": "Hệ thống quản lý", "nguon": "Tệp đính kèm", "ngay_ban_hanh": h.get("ngay"),
+                        "ghi_chu": "\n".join(t for t in (h.get("chi_tiet"), f"Nạp từ bộ tài liệu — tệp {h['tep_goc']}")
+                                             if t),
                         "noi_luu": "Thư viện tài liệu (nạp bộ 21/9/2026)"}).insert(ignore_permissions=True)
         tao["ho_so"] += 1
     return {"tao": tao, "can_tep": _can_tep(kh, ten_tl, dot_name), "loi": kh["loi"]}

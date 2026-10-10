@@ -13,7 +13,10 @@ Dùng:
 """
 
 import copy
+import glob
 import importlib.util
+import json
+import os
 import sys
 import types
 from datetime import date, datetime, time, timedelta
@@ -178,7 +181,17 @@ def exists(dt, ten=None):
 
 
 def set_value(dt, ten, f, v=None, update_modified=True):
-    bang(dt)[ten].update(f if isinstance(f, dict) else {f: v})
+    dd = f if isinstance(f, dict) else {f: v}
+    _kiem_ghi(dt, ten, dd)
+    bang(dt)[ten].update(dd)
+
+
+def _kiem_ghi(dt, ten, dd):
+    """set_value / db_set: ô varchar quá dài → lỗi (frappe không kiểm nhưng MariaDB strict chặn)."""
+    m = meta(dt)
+    for k, v in dd.items():
+        if k in m:
+            kiem_do_dai(dt, m[k], v, ten)
 
 
 def count(dt, f=None):
@@ -209,6 +222,90 @@ def getdate(x=None):
     if isinstance(x, date):
         return x
     return date.fromisoformat(str(x)[:10]) if x else hom_nay()
+
+
+# ── Kiểm như Document._validate của frappe v16 (D181) ─────────────────────────────────────────────
+# Trước D181 bản giả lưu mọi giá trị — nạp bộ tài liệu chạy được trên test nhưng trên site frappe chặn: "Tên hồ sơ /
+# văn bản … will get truncated, as max characters allowed is 140". Giờ insert / save / submit kiểm theo DocType JSON
+# của app (sx/*/doctype): ô bắt buộc, ô Select đúng lựa chọn, ô varchar (Data, Link, Select… = 140 hoặc `length`)
+# không quá dài — cả dòng bảng con; set_value / db_set kiểm độ dài (MariaDB strict cũng chặn). DocType ngoài app
+# (User, Item…) không có JSON → không kiểm.
+VARCHAR = {"Data", "Link", "Dynamic Link", "Select", "Read Only", "Color", "Icon", "Phone", "Autocomplete"}
+BANG = {"Table", "Table MultiSelect"}
+META = {}
+
+
+class CharacterLengthExceededError(Loi):
+    pass
+
+
+class MandatoryError(Loi):
+    pass
+
+
+def meta(dt):
+    """{fieldname: field} của DocType trong app (đọc JSON một lần); không có → {}."""
+    if not META:
+        goc = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sx")
+        for p in glob.glob(os.path.join(goc, "*", "doctype", "*", "*.json")):
+            with open(p, encoding="utf-8") as f:
+                d = json.load(f)
+            if isinstance(d, dict) and d.get("doctype") == "DocType":
+                META[d["name"]] = {x["fieldname"]: x for x in d.get("fields") or [] if x.get("fieldname")}
+        META.setdefault("", {})
+    return META.get(dt) or {}
+
+
+def _lua_chon(f):
+    return [] if not f.get("options") else str(f["options"]).split("\n")
+
+
+def _co_mac_dinh(f):
+    """frappe đặt sẵn cho bản mới: `default`; Select chưa có default → lựa chọn đầu (có thể là rỗng)."""
+    return bool(f.get("default")) or (f["fieldtype"] == "Select" and bool(_lua_chon(f)) and bool(_lua_chon(f)[0]))
+
+
+def kiem_do_dai(dt, f, v, ten, dong=None):
+    if f["fieldtype"] not in VARCHAR or v is None:
+        return
+    toi_da = int(f.get("length") or 0) or 140
+    if len(str(v)) > toi_da:
+        noi = f"{dt}, Row {dong}" if dong else f"{dt} {ten}"
+        raise CharacterLengthExceededError(f"{noi}: '{f.get('label') or f['fieldname']}' ({v}) will get truncated, as "
+                                           f"max characters allowed is {toi_da}")
+
+
+def kiem_doc(dt, d, bo_bat_buoc=False):
+    """Như Document._validate: thiếu ô bắt buộc → MandatoryError; Select ngoài lựa chọn → lỗi; quá dài → lỗi.
+    Dòng bảng con kiểm đủ ba thứ."""
+    m = meta(dt)
+    if not m:
+        return
+    thieu = []
+    viec = [(dt, m, d, None)]
+    for k, f in m.items():
+        if f["fieldtype"] in BANG and f.get("options"):
+            viec += [(f["options"], meta(f["options"]), r, i) for i, r in enumerate(d.get(k) or [], 1)
+                     if isinstance(r, dict)]
+    for dt_x, m_x, x, dong in viec:
+        for k, f in m_x.items():
+            if not f.get("reqd") or f["fieldtype"] == "Check":
+                continue
+            v = x.get(k)
+            if (v in (None, [], "") or not str(v).strip()) and not (v is None and _co_mac_dinh(f)):
+                thieu.append(k if dong is None else f"{dt_x} dòng {dong}: {k}")
+    if thieu and not bo_bat_buoc:
+        raise MandatoryError(f"[{dt}, {d.get('name')}]: {', '.join(thieu)}")
+    for dt_x, m_x, x, dong in viec:
+        for k, f in m_x.items():
+            v = x.get(k)
+            if f["fieldtype"] == "Select" and k != "naming_series" and v and _lua_chon(f):
+                if str(v).strip() not in _lua_chon(f):
+                    cac = '", "'.join(_lua_chon(f))
+                    raise Loi(f"{f'Row #{dong}: ' if dong else ''}{f.get('label') or k} cannot be \"{v}\". It "
+                              f"should be one of \"{cac}\"")
+        for k, f in m_x.items():
+            kiem_do_dai(dt_x, f, x.get(k), d.get("name"), dong)
 
 
 def _dong_con(v):
@@ -262,6 +359,7 @@ class Document:
 
     def db_set(self, f, v=None, update_modified=True):
         dd = f if isinstance(f, dict) else {f: v}
+        _kiem_ghi(self._d["doctype"], self._d["name"], dd)
         self._d.update(dd)
         bang(self._d["doctype"])[self._d["name"]].update(dd)
 
@@ -284,6 +382,8 @@ class Document:
         self._d.setdefault("owner", NGUOI["u"])
         if self._d.get("docstatus") is None:      # frappe: bản mới là nháp (0), không phải NULL
             self._d["docstatus"] = 0
+        if k.get("ignore_mandatory"):
+            self.flags.ignore_mandatory = True
         return self._luu()
 
     def save(self, ignore_permissions=False, **k):
@@ -292,6 +392,7 @@ class Document:
     def _luu(self):
         self._goi("validate")
         dt = self._d["doctype"]
+        kiem_doc(dt, self._d, getattr(self.flags, "ignore_mandatory", False))
         _dat_ten_con(dt, self._d)
         bang(dt)[self._d["name"]] = copy.deepcopy(self._d)
         _chep_con(dt, self._d)
@@ -308,6 +409,7 @@ class Document:
         self._d["docstatus"] = 1
         self._goi("validate")
         self._goi("before_submit")
+        kiem_doc(self._d["doctype"], self._d, getattr(self.flags, "ignore_mandatory", False))
         bang(self._d["doctype"])[self._d["name"]] = copy.deepcopy(self._d)
         self._goi("on_submit")
         return self
@@ -328,6 +430,7 @@ class DocThuong(Doc):
         SO["n"] += 1
         self["name"] = self.get("name") or f"{''.join(w[0] for w in dt.split())}-{len(bang(dt)) + 1:04d}"
         self.setdefault("creation", f"{hom_nay().isoformat()} 09:00:00")
+        kiem_doc(dt, self, k.get("ignore_mandatory"))
         bang(dt)[self["name"]] = dict(self)
         return self
 
@@ -335,6 +438,7 @@ class DocThuong(Doc):
 
     def db_set(self, f, v=None, update_modified=True):
         dd = f if isinstance(f, dict) else {f: v}
+        _kiem_ghi(self["doctype"], self["name"], dd)
         self.update(dd)
         bang(self["doctype"])[self["name"]].update(dd)
 
@@ -405,6 +509,8 @@ def cai():
     frappe.PermissionError = type("PermissionError", (Loi,), {})
     frappe.DoesNotExistError = type("DoesNotExistError", (Loi,), {})
     frappe.ValidationError = Loi
+    frappe.CharacterLengthExceededError = CharacterLengthExceededError
+    frappe.MandatoryError = MandatoryError
 
     class _Phien:
         user = property(lambda s: NGUOI["u"])

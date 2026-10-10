@@ -110,6 +110,7 @@ NGUOI_LAM_CAT = "Tổ rang"
 CAT_NHAP_KG, CAT_DUA_KG, CAT_BO_SUNG_KG = 300, 120, (8, 15)
 CAT_BO_SUNG_SAU = 6                    # bổ sung cát sau mỗi chừng này ngày có rang
 CAT_VE_SINH_THU = 5                    # vệ sinh thùng, khay cát thứ Bảy
+CAT_CAM_QUAN = "Đạt"                   # ô Select (Đạt / Không đạt) — không ghi chữ tự do (D181)
 VAI_MAU = (("V01-A", "01"), ("V01-B", "01"), ("V02-A", "02"), ("V02-B", "02"))
 VAI_THU_MAC_DINH = 5                   # giặt vải ủ thứ Bảy khi SX QC Setting chưa đặt ngày giặt
 NGAY_XEM_THANG = 3                     # Ban ISO xem sổ vải tháng trước ngày 3 tháng sau
@@ -360,12 +361,12 @@ def _ke_hoach_cat(tu, den, ngay_ds, hat, chu_nhat):
             if ncc:
                 viec.append({"viec": CAT.NHAP, "ncc_cat": ncc.name, "khoi_luong": CAT_NHAP_KG})
             viec.append({"viec": CAT.RANG_KHO, "khoi_luong": CAT_DUA_KG, "thung": "Thùng 1",
-                         "cam_quan": "Cát khô, sạch, không vón, không mùi lạ"})
+                         "cam_quan": CAT_CAM_QUAN})
             dem = 0
         elif toi_da and dem >= toi_da:
             viec.append({"viec": CAT.LOAI, "ly_do_loai": f"Đủ số ngày dùng ({dem} ngày)"})
             viec.append({"viec": CAT.RANG_KHO, "khoi_luong": CAT_DUA_KG, "thung": "Thùng 1",
-                         "cam_quan": "Cát khô, sạch, không vón, không mùi lạ"})
+                         "cam_quan": CAT_CAM_QUAN})
             dem = 0
         if str(d) in rang:
             dem += 1

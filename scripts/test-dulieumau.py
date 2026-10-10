@@ -418,6 +418,10 @@ kiem("6 dòng cát mẫu đúng kế hoạch, QC mẫu ghi, người làm Tổ r
      [f'{x["ngay"]} {x["viec"]}' for x in CM] == kq["cat"]["ke_hoach"] and kq["cat"]["tao"] == 6
      and all(x["nguoi_ghi"] == DL.QC_MAU and not x.get("ghi_chu") and x["nguoi_lam"] == "Tổ rang" for x in CM),
      [x["viec"] for x in CM])
+kiem("D181: rang khô đưa dùng — cảm quan là lựa chọn của ô (Đạt), không ghi chữ tự do (site chặn: Select chỉ nhận "
+     "Đạt / Không đạt)", [x.get("cam_quan") for x in CM if x["viec"] == CAT.RANG_KHO] == ["Đạt"]
+     and all(not x.get("cam_quan") for x in CM if x["viec"] != CAT.RANG_KHO),
+     [(x["viec"], x.get("cam_quan")) for x in CM])
 bs = [x for x in CM if x["viec"] == CAT.BO_SUNG]
 kiem("bổ sung: app tự đếm số ngày đã dùng (ngày có rang kể cả lượt thật 24/9): 6 rồi 12",
      [x["so_ngay_dung"] for x in bs] == [6, 12], [x["so_ngay_dung"] for x in bs])

@@ -320,6 +320,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sửa lỗi NẠP DANH MỤC "max characters allowed is 140"; test kiểm ô như frappe (D181)
+
+- **Lỗi**: bấm NẠP DANH MỤC báo `SX Ho So Danh Muc …: 'Tên hồ sơ / văn bản' (Hồ sơ vận hành trước audit 17/9: Kế
+  hoạch kiểm nghiệm …) will get truncated, as max characters allowed is 140`. Dòng hồ sơ vận hành trong sổ đăng ký có
+  tên dài 190 ký tự, ô Tên hồ sơ (Data) chỉ nhận 140 — frappe chặn, cả lần nạp quay lui, **không ghi gì**.
+- **Sửa**: tên hồ sơ lấy phần trước dấu ":" — "Hồ sơ vận hành trước audit 17/9"; phần liệt kê sang **Ghi chú**
+  ("Gồm: Kế hoạch kiểm nghiệm (KH.KN.01); BM.06.01 …"), dòng "Nạp từ bộ tài liệu — tệp …" giữ nguyên (bước tải tệp dò
+  theo nó). Hàm chung `TL.gon` / `TL.ten_va_chi_tiet` (`sx/qc/tai_lieu.py`).
+- **Rà cùng loại**, sửa luôn hai chỗ:
+  - Chức danh ghép từ nhiều vai (tài khoản có cả chục vai) có thể quá 140 ký tự → hỏng lúc tạo yêu cầu "Đã đọc,
+    hiểu", ký đề nghị BM.01.01, ký biên bản. Giờ cắt gọn ở ranh giới chức danh + "…".
+  - Lệnh dữ liệu mẫu (D177): dòng cát "Rang khô đưa dùng" ghi chữ tự do vào ô chọn **Cảm quan khi nhận** (chỉ nhận
+    Đạt / Không đạt) — site thử sẽ báo lỗi phần nhật ký cát. Giờ ghi "Đạt".
+- **Vì sao test không bắt được**: frappe giả (`scripts/fakefrappe.py`) trước đây lưu mọi giá trị. Giờ insert / save /
+  submit kiểm như `Document._validate` của frappe v16 theo DocType JSON của app: ô bắt buộc, ô Select đúng lựa chọn,
+  độ dài ô varchar (Data, Link, Select… = 140 hoặc `length`), cả dòng bảng con; `set_value` / `db_set` kiểm độ dài.
+  Chạy lại cả 23 bài test dùng frappe giả: chỉ lộ ra đúng các lỗi trên.
+- Không đổi DocType, không đổi JS (build vẫn **sx-142**): `git pull` → `bench restart`. Rồi Tài liệu → Ban hành →
+  📦 NẠP BỘ TÀI LIỆU → **NẠP DANH MỤC** lại.
+
 ## Nạp bộ tài liệu lần đầu gọn lại: một nút danh mục, chọn thẳng tai_lieu_pdf.zip (D180)
 
 Màn 📦 NẠP BỘ TÀI LIỆU (Tài liệu → Ban hành, `#/tailieu/nap`) trước đây bắt Ban ISO tự tìm và chọn 3 tệp kỹ thuật

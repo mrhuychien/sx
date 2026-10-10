@@ -195,6 +195,40 @@ kiem("tài liệu của đợt trỏ về đợt; tài liệu 'Giữ nguyên' (0
 hs = [x for x in F.bang(HS.PT).values() if x["ma"] == A.MA_NAP_HS]
 kiem("hồ sơ vận hành trước audit 17/9 → danh mục hồ sơ (tệp đính kèm, Hệ thống quản lý)",
      len(hs) == 1 and hs[0]["nguon"] == HS.TEP and hs[0]["nhom"] == "Hệ thống quản lý")
+goc_hs = next(x["ten"] for x in SEED["tai_lieu"] if x.get("kieu_nap") == "ho_so")
+kiem("D181: tên hồ sơ trong sổ dài quá 140 ký tự (site báo 'Tên hồ sơ / văn bản … max 140') → tên gọn phần trước "
+     "dấu ':', phần liệt kê sang Ghi chú; dòng 'tệp …' giữ cho nap_tep",
+     len(goc_hs) > 140 and hs[0]["ten"] == "Hồ sơ vận hành trước audit 17/9"
+     and hs[0]["ghi_chu"].split("\n") == [f"Gồm: {goc_hs.split(': ', 1)[1]}",
+                                          f"Nạp từ bộ tài liệu — tệp {next(x['tep'] for x in SEED['tai_lieu'] if x.get('kieu_nap') == 'ho_so')}"],
+     hs[0]["ghi_chu"])
+print("\n-- D181: frappe giả kiểm như frappe — ô Data ≤ 140, Select đúng lựa chọn, ô bắt buộc --")
+hs_moi = lambda **k: FR.get_doc(dict({"doctype": HS.PT, "ma": "THU.181", "ten": "Hồ sơ thử", "nhom": "Khác",  # noqa: E731
+                                      "nguon": HS.TEP}, **k))
+kiem("insert ô Data 141 ký tự → lỗi đúng như site ('… max characters allowed is 140'), không lưu gì",
+     "'Tên hồ sơ / văn bản' (" in (thu(lambda: hs_moi(ten="x" * 141).insert()) or "")
+     and "max characters allowed is 140" in (thu(lambda: hs_moi(ten="x" * 141).insert()) or "")
+     and not any(x["ma"] == "THU.181" for x in F.bang(HS.PT).values()))
+kiem("đúng 140 ký tự thì được; Select ngoài lựa chọn, thiếu ô bắt buộc, dòng bảng con quá dài, set_value quá dài → lỗi",
+     thu(lambda: F.kiem_doc(HS.PT, {"ma": "M", "ten": "x" * 140, "nhom": "Khác", "nguon": HS.TEP})) is None
+     and "cannot be" in (thu(lambda: F.kiem_doc(HS.PT, {"ma": "M", "ten": "T", "nhom": "Linh tinh"})) or "")
+     and ": ten" in (thu(lambda: F.kiem_doc(HS.PT, {"ma": "M", "ten": " ", "nhom": "Khác"})) or "")
+     and "SX Tai Lieu Tep, Row 1" in (thu(lambda: F.kiem_doc(TL.PT_DOT, {"ho_so": [{"mo_ta": "x" * 141}]},
+                                                             bo_bat_buoc=True)) or "")
+     and "max characters" in (thu(lambda: FR.db.set_value(HS.PT, hs[0]["name"], "ten", "x" * 141)) or "")
+     and F.bang(HS.PT)[hs[0]["name"]]["ten"] == "Hồ sơ vận hành trước audit 17/9")
+kiem("gon / ten_va_chi_tiet: vừa thì giữ; quá thì cắt ở ranh giới từ + '…' (≤ 140); không tách được ở ':' thì ghi "
+     "cả câu gốc vào chi tiết",
+     TL.gon("x" * 140) == "x" * 140 and TL.gon("x" * 141) == "x" * 139 + "…"
+     and (lambda g: len(g) <= 140 and g.endswith("ab…"))(TL.gon("ab " * 60))
+     and TL.ten_va_chi_tiet("  Sổ   ngắn ") == ("Sổ ngắn", "")
+     and TL.ten_va_chi_tiet("ab " * 60) == (TL.gon("ab " * 60), "Tên đầy đủ: " + " ".join(["ab"] * 60))
+     and TL.ten_va_chi_tiet("x" * 150 + ": y") == ("x" * 139 + "…", "Tên đầy đủ: " + "x" * 150 + ": y"))
+cd_het = A._chuc_danh(set(R.NHAN_ROLE))
+kiem("tài khoản nhiều vai: chức danh ghép cắt gọn ≤ 140 ký tự ở ranh giới chức danh — tạo yêu cầu đọc, ô ký không hỏng",
+     len(", ".join(t for r, t in R.NHAN_ROLE.items() if r != A.SM)) > 140 and len(cd_het) <= 140
+     and cd_het.endswith("…") and all(t in R.NHAN_ROLE.values() for t in cd_het[:-1].split(", "))
+     and A._chuc_danh({R.QC, R.QC_GOI}) == "QC chế biến, QC đóng gói", cd_het)
 can = r1["can_tep"]
 kiem("cần 85 tệp (81 PDF tài liệu + 3 ảnh + QĐ + 4 hồ sơ đợt + 1 hồ sơ … trừ PLK / BCSX không tệp), chưa tệp nào có",
      len(can) == 79 + 3 + 1 + 4 + 1 and not any(x["co"] for x in can), len(can))

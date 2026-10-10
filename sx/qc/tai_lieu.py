@@ -138,6 +138,31 @@ def khoa_tl(x):
     return f"{'stt' if (x.get('nguon') or NOI_BO) == NOI_BO else 'ngoai'}:{x.get('thu_tu')}"
 
 
+DAI_O = 140   # ô Data / Link / Select của frappe là varchar(140): dài hơn thì frappe chặn khi lưu (D181)
+
+
+def gon(s, toi_da=DAI_O, tach=" "):
+    """Chuỗi ≤ toi_da ký tự cho ô Data: quá thì cắt ở dấu tách cuối cùng còn vừa, thêm '…'."""
+    s = " ".join(str(s or "").split())
+    if len(s) <= toi_da:
+        return s
+    cat = s[:toi_da - 1]
+    i = cat.rfind(tach)
+    return (cat[:i] if i > 0 else cat).rstrip(" ,;:–-") + "…"
+
+
+def ten_va_chi_tiet(s, toi_da=DAI_O):
+    """Tên trong seed → (tên ≤ toi_da cho ô Data, câu chi tiết cho ô Ghi chú — '' nếu tên vừa). "Tên: liệt kê…"
+    tách ở ': ' đầu tiên (D181 — "Hồ sơ vận hành trước audit 17/9: Kế hoạch kiểm nghiệm …" dài 190 ký tự)."""
+    s = " ".join(str(s or "").split())
+    if len(s) <= toi_da:
+        return s, ""
+    dau, _x, sau = s.partition(": ")
+    if sau and dau and len(dau) <= toi_da:
+        return dau, f"Gồm: {sau}"
+    return gon(s, toi_da), f"Tên đầy đủ: {s}"
+
+
 def seed_nap():
     """Bộ tài liệu ban hành 21/9/2026 ĐI KÈM APP (D180): sổ đăng ký, BM.01.03, Phụ lục 3 — sx/qc/seed/. Trước D180
     Ban ISO phải tự tìm và chọn 3 tệp .json này trên máy; giờ màn Nạp bộ chỉ còn một nút."""
@@ -179,7 +204,8 @@ def ke_hoach_nap(seed_tl, seed_ngoai=None, seed_pp=None):
         elif k == "ho_so_dot":
             ho_so_dot.append({"tep_goc": x.get("tep") or "", "mo_ta": " ".join(str(x.get("ten") or "").split())})
         elif k == "ho_so":
-            ho_so.append({"ten": " ".join(str(x.get("ten") or "").split()), "tep_goc": x.get("tep") or "",
+            ten, chi_tiet = ten_va_chi_tiet(x.get("ten"))
+            ho_so.append({"ten": ten, "chi_tiet": chi_tiet, "tep_goc": x.get("tep") or "",
                           "ngay": ngay_seed(x.get("ngay_ban_hanh"))})
         else:
             loi.append(f"Dòng {x.get('stt')}: kiểu nạp lạ '{k}' — bỏ qua")
