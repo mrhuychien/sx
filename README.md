@@ -322,7 +322,7 @@ không thành `…-2`.
 
 ## Màn ISO riêng, xuất báo cáo Excel / PDF cho đoàn, bản scan tài liệu (D176)
 
-**Chỉ ở nhánh — đi cùng đợt D171–D174 (C22: deploy sau đợt Orion kiểm tra lại).** Có DocType mới, ô mới → phải
+**Lên main 10/10/2026 cùng đợt D171–D176.** Có DocType mới, ô mới → phải
 `bench --site site1.local migrate`.
 
 - **Màn ISO** (tab dưới 🛡️ ISO, `#/iso`) — Trưởng Ban ISO mở app là vào đây; quản lý cũng thấy. Tab: Tổng quan ·
@@ -349,7 +349,7 @@ không thành `…-2`.
   ≤ 10 MB). Trưởng Ban ISO gắn / thay / bỏ ở chi tiết tài liệu (ghi người + giờ gắn); ai xem được tài liệu thì mở được bản
   scan. Tab Tất cả: đếm bản scan "đã có / cần có", lọc **Chưa có bản scan**, thẻ ghi có / chưa có. Ban hành bản mới thì
   bản scan cũ vào lịch sử cùng bản cũ (Ban ISO mở được), bản mới chờ scan mới; lịch sử không sửa tay được.
-- Build **sx-139**. Deploy (cùng đợt D171–D174): `git pull` → `bench --site site1.local migrate` → `bench restart`.
+- Build **sx-139**. Deploy (cùng đợt D171–D176): `git pull` → `bench --site site1.local migrate` → `bench restart`.
 - Test: `test-xuatbc.py` (Excel thật bằng openpyxl — máy test thiếu thì `pip install --user openpyxl`; PDF giả lập),
   `test-iso.mjs`, phần bản scan trong `test-tailieu.py` / `test-tailieu.mjs`.
 
@@ -374,7 +374,7 @@ không thành `…-2`.
 
 ## Khung Biên bản — họp Ban ISO, xem xét lãnh đạo, đánh giá nội bộ, thẩm tra, HACCP, thu hồi, diễn tập (D174 — W45)
 
-**Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).** Có DocType mới → phải `bench --site site1.local migrate`.
+**Lên main 10/10/2026 cùng đợt D171–D176** (C22 định để sau đợt Orion kiểm tra lại; đưa lên sớm theo yêu cầu). Có DocType mới → phải `bench --site site1.local migrate`.
 
 - **18 phiếu giấy là dữ liệu, không phải 18 màn**: `SX Mau Bien Ban` (phần + ô ký + vai lập / xem), seed
   `sx/qc/seed/bien_ban.json` (soạn từ `seed_bieu_mau_giay.json`), patch `d174_bien_ban` tạo mẫu còn thiếu (mẫu Ban ISO
@@ -420,7 +420,7 @@ không thành `…-2`.
 
 ## Danh mục có hạn, T4 theo vật, BM.01.04, đánh giá nhà cung cấp BM.07.01 (D173 — W44)
 
-**Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).**
+**Lên main 10/10/2026 cùng đợt D171–D176** (C22 định để sau đợt Orion kiểm tra lại; đưa lên sớm theo yêu cầu).
 
 - **5 danh mục trên khung Sổ** (`sx/qc/seed/so.json`, patch `d173_danh_muc_ncc` tạo sổ còn thiếu):
 
@@ -472,11 +472,11 @@ không thành `…-2`.
   BM.05.02 thêm cột "loại" (hoạt động / bối cảnh bên ngoài / nội bộ); phân loại BM.07.01 gợi ý từ loại NCC (nguyên
   liệu, phụ gia, bao bì tiếp xúc, cát rang → loại 1); "Mã NCC trên phần mềm" = mã Supplier (NCC phải có trên hệ thống,
   chưa tích Đã duyệt, trước khi đánh giá); lô Cách ly không tính là không đạt khi gợi ý điểm I (ghi riêng trong gợi ý).
-- Build **sx-137**. Deploy (sau Orion): `git pull` → `bench --site site1.local migrate` → `bench restart`.
+- Build **sx-137**. Deploy: `git pull` → `bench --site site1.local migrate` → `bench restart`.
 
 ## Sổ ghi theo dòng: BM.06.05, BM.PRP.06, BM.03.01, BM.03.02, BM.03.03 (D172 — W43)
 
-**Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).** Một khung chung cho các sổ giấy "mỗi lần một dòng" —
+**Lên main 10/10/2026 cùng đợt D171–D176** (C22 định để sau đợt Orion kiểm tra lại; đưa lên sớm theo yêu cầu). Một khung chung cho các sổ giấy "mỗi lần một dòng" —
 thêm sổ mới chỉ khai định nghĩa (Desk → `SX So`), không sửa code màn hình.
 
 - **Định nghĩa sổ** `SX So` (`field:ma`): mã, tên, kiểu **Ghi theo dòng** (sổ sự kiện) / **Danh mục** (mỗi dòng một
@@ -535,11 +535,11 @@ thêm sổ mới chỉ khai định nghĩa (Desk → `SX So`), không sửa code
 - **Giấy chưa có** (Ban ISO bổ sung mẫu khi sửa đổi): BM.03.01, BM.03.03 cột Ngày kiểm gần nhất, Hạn kiểm / nạp tiếp,
   Số tem / giấy kiểm định; BM.06.05 ghi rõ thiết bị đo phải kiểm lại (giấy chỉ ghi số BM). Mẫu BM.06.05 ghi người xem xét
   cuối tháng là Trưởng bộ phận Cơ điện, Lịch biểu mẫu ghi QLSX — app cho cả hai (bỏ bớt ở "Vai xem xét cuối tháng").
-- Build **sx-136**. Deploy (sau Orion): `git pull` → `bench --site site1.local migrate` → `bench restart`.
+- Build **sx-136**. Deploy: `git pull` → `bench --site site1.local migrate` → `bench restart`.
 
 ## Thư viện tài liệu: đề nghị BM.01.01, đợt ban hành, xác nhận đã đọc, BM.01.02 / 01.03 / 01.13 (D171 — W42)
 
-**Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).** Thay sổ đăng ký Excel, thư mục bản mềm, phát bản giấy, ký
+**Lên main 10/10/2026 cùng đợt D171–D176** (C22 định để sau đợt Orion kiểm tra lại; đưa lên sớm theo yêu cầu). Thay sổ đăng ký Excel, thư mục bản mềm, phát bản giấy, ký
 nhận giấy. Căn cứ QT.01 phần kiểm soát tài liệu; QĐ ban hành 21/9/2026 (Phụ lục 1, Phụ lục 3).
 
 - **Màn `#/tailieu`** (tab 📚 Tài liệu, cuối thanh dưới; lối vào thêm ở tab Xem xét của QC). Mọi vai có tài khoản app
@@ -587,7 +587,7 @@ nhận giấy. Căn cứ QT.01 phần kiểm soát tài liệu; QĐ ban hành 21
   "Cần đọc" của từng người ở đầu màn Tài liệu. Không gửi email / Zalo (C29).
 - Danh mục hồ sơ: thêm BM.01.02, BM.01.03, BM.01.13 (`BIEU_MAU` + Select; patch `d171_thu_vien_tai_lieu` thêm 3 dòng
   app lập) — gói zip có danh mục lúc tải và BM.01.13 của các đợt trong kỳ.
-- Build **sx-135**. Deploy (sau Orion): `git pull` → `bench --site site1.local migrate` → `bench restart`; rồi Ban ISO
+- Build **sx-135**. Deploy: `git pull` → `bench --site site1.local migrate` → `bench restart`; rồi Ban ISO
   nạp bộ tài liệu.
 
 ## Báo cáo tháng là BM.01.12 "Báo cáo phân tích dữ liệu tháng" (D170 — W41)
