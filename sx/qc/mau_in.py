@@ -16,9 +16,11 @@ from sx.qc import tai_lieu as TL
 CONG_TY = "CÔNG TY CỔ PHẦN HOÀNG GIANG"
 # Site THỬ có dữ liệu mẫu (cờ `sx_du_lieu_mau` trong site_config — D177). Bản ghi mẫu không mang ghi chú riêng (D179),
 # nên mọi tờ in / tệp xuất của site đó mang dòng này trên đầu trang: tờ giấy rời khỏi máy vẫn tự nói nó từ đâu ra.
-# Site thật không bật cờ → không bao giờ hiện.
+# D183: còn dữ liệu mẫu (còn tài khoản mẫu) thì vẫn in dòng này dù đã tắt cờ — muốn tờ in sạch thì xoá dữ liệu mẫu
+# (du_lieu_mau.xoa). Site không cờ, không dữ liệu mẫu → không bao giờ hiện.
 BAN_THU = "Bản in từ site thử — có dữ liệu mẫu, không phải hồ sơ chính thức"
 CO_DU_LIEU_MAU = "sx_du_lieu_mau"
+TK_MAU = ("qc.mau@sx.local", "iso.mau@sx.local")     # hai tài khoản ghi mọi bản ghi mẫu (sx/seed/du_lieu_mau.py)
 TRUONG = ["name", "ma", "ten", "lan_ban_hanh", "ngay_ban_hanh"]
 
 
@@ -30,12 +32,22 @@ def ten_cong_ty():
 
 
 def co_du_lieu_mau():
-    """Site này có bật cờ dữ liệu mẫu không (chỉ site thử — lệnh sinh dữ liệu mẫu tự chặn site thật)."""
+    """Site này có bật cờ dữ liệu mẫu không — bật cờ là xác nhận đây là site thử (lệnh sinh dữ liệu mẫu đòi cờ này)."""
     try:
         v = (frappe.conf or {}).get(CO_DU_LIEU_MAU)
     except Exception:
         return False
     return str(v if v is not None else "").strip().lower() in ("1", "true", "yes", "y", "co", "có")
+
+
+def in_ban_thu():
+    """Tờ in / tệp xuất mang dòng BAN_THU: site bật cờ dữ liệu mẫu, HOẶC còn dữ liệu mẫu (còn tài khoản mẫu) — D183."""
+    if co_du_lieu_mau():
+        return True
+    try:
+        return any(frappe.db.exists("User", u) for u in TK_MAU)
+    except Exception:
+        return False
 
 
 def _ngay(x):
@@ -45,9 +57,10 @@ def _ngay(x):
 
 def sx_dau_trang(ma, ten=None):
     """{ma, ten, lan_ban_hanh, ngay_ban_hanh, kem, cong_ty, site_thu} — `kem` = mã tài liệu chứa biểu mẫu khi tìm
-    qua bảng biểu mẫu kèm (HD.08.02 chứa BM.08.05); `site_thu` = dòng BAN_THU trên site thử, "" trên site thật."""
+    qua bảng biểu mẫu kèm (HD.08.02 chứa BM.08.05); `site_thu` = dòng BAN_THU khi site có / còn dữ liệu mẫu, "" nếu
+    không (in_ban_thu)."""
     ra = {"ma": ma or "", "ten": ten or "", "lan_ban_hanh": "", "ngay_ban_hanh": "", "kem": "",
-          "cong_ty": ten_cong_ty(), "site_thu": BAN_THU if co_du_lieu_mau() else ""}
+          "cong_ty": ten_cong_ty(), "site_thu": BAN_THU if in_ban_thu() else ""}
     if not ma:
         return ra
     try:

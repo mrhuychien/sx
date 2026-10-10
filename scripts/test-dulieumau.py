@@ -1,8 +1,9 @@
 """D177 — lệnh sinh dữ liệu QC MẪU cho site thử (sx/seed/du_lieu_mau.py).
 
 Vì sao phải có bài này:
-  · Lệnh lọt lên site thật = hồ sơ ISO giả nằm cạnh hồ sơ thật — chốt site1.local + cờ site_config phải chặn được,
-    kể cả khi chỉ xem trước, kể cả lệnh xoá.
+  · Lệnh lọt lên site thật = hồ sơ ISO giả nằm cạnh hồ sơ thật — cờ site_config phải chặn được, kể cả khi chỉ xem
+    trước, kể cả lệnh xoá (D183: không chặn theo tên — site1.local dùng làm site thử thì chạy khi đã bật cờ); còn dữ
+    liệu mẫu thì tờ in còn dòng "site thử", kể cả khi đã tắt cờ.
   · "Ngày nào điền rồi thì thôi": ngày đã có lượt, sổ cát từ dòng thật đầu tiên, tuần đã giặt vải, lô đã có phiếu —
     ghi đè / ghi xen là làm bẩn số liệu thật.
   · Dữ liệu mẫu phải đi qua đúng luật của màn QC (lượt đủ mục mới hoàn tất, số trong ngưỡng không tự ra sự cố) và giờ
@@ -226,19 +227,31 @@ def luc(v):
 
 
 # ═══ 1. Chốt site ═══════════════════════════════════════════════════════════
-print("\n-- chốt site: không bao giờ chạy trên site thật --")
+print("\n-- chốt site: chỉ chạy trên site đã bật cờ dữ liệu mẫu (site thử) --")
 truoc = copy.deepcopy(F.DB)
 FR.local.site = "site1.local"
+FR.conf = {}
 for ten, f in (("xem trước", lambda: DL.chay()), ("ghi", lambda: DL.chay(dry_run=0)),
                ("xoá", lambda: DL.don(dry_run=0)), ("lệnh bench tao", lambda: DL.tao(dry_run=0))):
     loi = thu(f)
-    kiem(f"site1.local + cờ bật → {ten} bị chặn, nói rõ site THẬT", loi and "site THẬT" in loi, loi)
+    kiem(f"site1.local chưa bật cờ → {ten} bị chặn, chỉ lệnh set-config, báo trước dòng \"site thử\" trên tờ in",
+         loi and "bench --site site1.local set-config sx_du_lieu_mau 1" in loi and DL.MI.BAN_THU in loi, loi)
 FR.local.site = "sx-thu.local"
 for co in ({}, {"sx_du_lieu_mau": 0}, {"sx_du_lieu_mau": "khong"}):
     FR.conf = co
     loi = thu(lambda: DL.chay(dry_run=0))
     kiem(f"site thử chưa bật cờ ({co}) → chặn, chỉ lệnh set-config", loi and "set-config sx_du_lieu_mau 1" in loi, loi)
 kiem("bị chặn thì DB không đổi gì (không tạo cả tài khoản mẫu)", F.DB == truoc)
+FR.local.site = "site1.local"
+FR.conf = {"sx_du_lieu_mau": 1}
+co_ban = lambda db: {k: v for k, v in db.items() if v}  # noqa: E731 — bỏ bảng rỗng (đọc bảng chưa có thì bản giả tạo rỗng)
+k_s1 = DL.chay()
+kiem("D183: site1.local dùng làm site thử, đã bật cờ → chạy được (xem trước, không ghi gì); báo cáo nói rõ tờ in, tệp "
+     "xuất mang dòng \"site thử\" tới khi xoá dữ liệu mẫu",
+     k_s1["xem_truoc"] and k_s1["site"] == "site1.local" and co_ban(F.DB) == co_ban(truoc)
+     and f"Tờ in, tệp xuất của site site1.local mang dòng \"{DL.MI.BAN_THU}\"" in DL.bao_cao(k_s1)
+     and "bench --site site1.local execute sx.seed.du_lieu_mau.tao" in DL.bao_cao(k_s1), DL.bao_cao(k_s1)[:300])
+FR.local.site = "sx-thu.local"
 FR.conf = {"sx_du_lieu_mau": "1"}
 kiem("cờ ghi dạng chữ '1' (bench set-config) vẫn nhận", thu(lambda: DL.chay()) is None, thu(lambda: DL.chay()))
 FR.conf = {"sx_du_lieu_mau": 1}
@@ -514,8 +527,9 @@ _h1 = _tpl.render()
 FR.conf = {}
 _h0 = _tpl.render()
 FR.conf = {"sx_du_lieu_mau": 1}
-kiem("D179: tờ in site thử (cờ bật) mang MỘT dòng \"Bản in từ site thử …\" trên đầu trang; site không cờ thì không",
-     _h1.count(MI.BAN_THU) == 1 and MI.BAN_THU not in _h0 and "sx-dau-trang" in _h0, _h1[:300])
+kiem("D179: tờ in site thử (cờ bật) mang MỘT dòng \"Bản in từ site thử …\" trên đầu trang; D183: tắt cờ mà dữ liệu "
+     "mẫu còn → vẫn mang dòng đó (không tắt cờ để in hồ sơ mẫu thành hồ sơ sạch được)",
+     _h1.count(MI.BAN_THU) == 1 and _h0.count(MI.BAN_THU) == 1 and "sx-dau-trang" in _h0, _h1[:300])
 _bm = sys.modules["sx.api.qc_cat"].in_bm0803("2026-09")
 kiem("D179: tờ in thật (BM.08.03 tháng 9) trên site thử có dòng đó, dữ liệu mẫu vẫn in đủ",
      MI.BAN_THU in _bm and "Tổ rang" in _bm, _bm[:200])
@@ -558,6 +572,12 @@ kiem("…kể cả dòng con (log từng ô, vật T4, mục phiếu xuất xư�
 kiem("bản ghi thật còn nguyên", all(THAT[dt] <= set(B(dt)) for dt in THAT)
      and B("SX QC Round")["QCR-THAT"]["qc_user"] == "qc@x")
 kiem("tài khoản mẫu đã xoá", not any(u in B("User") for u in DL.NGUOI_MAU) and not x1["khoa"])
+FR.conf = {}
+_h2 = _tpl.render()
+FR.conf = {"sx_du_lieu_mau": 1}
+_h3 = _tpl.render()
+kiem("D183: xoá hết dữ liệu mẫu + tắt cờ → tờ in sạch; còn bật cờ thì vẫn ghi \"site thử\"",
+     MI.BAN_THU not in _h2 and "sx-dau-trang" in _h2 and _h3.count(MI.BAN_THU) == 1)
 # tài khoản mẫu tạo trước D179: tên "… Mẫu (dữ liệu mẫu)", bị khoá, thiếu vai → chạy lại sửa cả ba
 B("User")[DL.QC_MAU] = {"name": DL.QC_MAU, "email": DL.QC_MAU, "first_name": "QC", "last_name": "Mẫu (dữ liệu mẫu)",
                         "enabled": 0, "roles": [{"role": "SX QC"}], "doctype": "User"}

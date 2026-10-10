@@ -320,6 +320,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Dữ liệu mẫu chạy được trên site1.local khi dùng làm site thử (D183)
+
+- Lệnh dữ liệu mẫu (D177) **không còn chặn theo tên site** — trước đây `site1.local` luôn bị coi là site thật. Chốt
+  duy nhất là cờ `sx_du_lieu_mau` trong site_config: bật cờ là xác nhận site đó là site thử.
+- Trên site1.local (site thử):
+
+  ```bash
+  bench --site site1.local set-config sx_du_lieu_mau 1
+  bench --site site1.local execute sx.seed.du_lieu_mau.tao                              # XEM TRƯỚC
+  bench --site site1.local execute sx.seed.du_lieu_mau.tao --kwargs "{'dry_run': 0}"    # GHI
+  bench --site site1.local execute sx.seed.du_lieu_mau.xoa --kwargs "{'dry_run': 0}"    # XOÁ khi xong
+  ```
+
+  Lệnh không gửi thư (tắt thư trong lúc chạy); ngày đã có số liệu thì bỏ qua, như D177.
+- Dòng "Bản in từ site thử — có dữ liệu mẫu, không phải hồ sơ chính thức" trên đầu mọi tờ in / tệp xuất (D179) giờ
+  còn **chừng nào còn dữ liệu mẫu** (còn hai tài khoản mẫu `qc.mau@sx.local`, `iso.mau@sx.local`), kể cả khi đã tắt
+  cờ — tắt cờ không biến hồ sơ mẫu thành tờ in "sạch". Muốn tờ in sạch: chạy `xoa` (xoá dữ liệu mẫu + hai tài khoản)
+  rồi tắt cờ. Báo cáo của lệnh `tao` nói rõ điều này.
+- Không đổi DocType, không đổi JS: `git pull` → `bench restart`. Test: `test-dulieumau.py`, `test-xuatbc.py`.
+
 ## Nạp bộ nhận bản đã ký số, tên tệp tự đặt — khớp theo mã / tên, xem lại trước khi tải (D182)
 
 - **Lỗi**: chọn tệp zip tài liệu **đã ký số** (tên tệp tự đặt) → app chỉ nhận tên y hệt sổ đăng ký
@@ -395,7 +415,8 @@ mới tải tiếp được), nút NẠP BỘ thì nằm đó mãi kể cả khi
   khoản mẫu tên gọn **QC Mẫu**, **Ban ISO Mẫu** (tài khoản tạo trước D179 tự đổi tên khi chạy lại `tao`).
 - Thay vào đó, **site bật cờ `sx_du_lieu_mau`** (chỉ site thử) in **một dòng** trên đầu mọi tờ in — "Bản in từ site thử —
   có dữ liệu mẫu, không phải hồ sơ chính thức" — và ở đầu Mục lục / bìa của tệp xuất Excel / PDF. Tờ giấy rời khỏi máy
-  vẫn tự nói nó từ site thử. Site thật không có cờ → không bao giờ hiện (`sx/qc/mau_in.py`, macro đầu trang chung).
+  vẫn tự nói nó từ site thử. Site không cờ, không còn dữ liệu mẫu → không bao giờ hiện (`sx/qc/mau_in.py`, macro
+  đầu trang chung; D183: còn dữ liệu mẫu thì vẫn hiện dù đã tắt cờ).
 - Site thử đã chạy lệnh trước D179: xoá rồi sinh lại — cùng hạt nên ra đúng số cũ, chỉ bỏ ghi chú:
   `… execute sx.seed.du_lieu_mau.xoa --kwargs "{'dry_run': 0}"` rồi `… execute sx.seed.du_lieu_mau.tao --kwargs "{'dry_run': 0}"`.
 - Không đổi DocType, không đổi JS. Test: `test-dulieumau.py`, phần site thử trong `test-xuatbc.py`.
@@ -422,9 +443,10 @@ Hồ sơ một lô (thẻ Truy xuất ở màn Quản lý, màn ISO) và phụ l
 
 ## Dữ liệu QC mẫu 22/9 → nay cho site THỬ (D177)
 
-Để tập huấn QC / Ban ISO, xem màn ISO, thử xuất báo cáo Excel / PDF với số liệu đủ một tháng. **Không bao giờ chạy trên
-site thật**: hồ sơ do máy sinh nằm cạnh hồ sơ thật là hồ sơ giả — tờ in ra không khác tờ QC ghi. Lệnh tự dừng nếu
-site là `site1.local`, hoặc site chưa bật cờ `sx_du_lieu_mau` trong site_config (cả xem trước lẫn xoá).
+Để tập huấn QC / Ban ISO, xem màn ISO, thử xuất báo cáo Excel / PDF với số liệu đủ một tháng. **Chỉ chạy trên site
+thử**: hồ sơ do máy sinh nằm cạnh hồ sơ thật là hồ sơ giả — tờ in ra không khác tờ QC ghi. Lệnh tự dừng nếu site chưa
+bật cờ `sx_du_lieu_mau` trong site_config (cả xem trước lẫn xoá). Từ D183 không chặn theo tên site: **site1.local dùng
+làm site thử** thì bật cờ rồi chạy thẳng (`bench --site site1.local set-config sx_du_lieu_mau 1`), khỏi dựng site riêng.
 
 **Dựng site thử từ bản sao lưu** (trong `~/frappe-bench`; site thật vẫn chạy bình thường):
 

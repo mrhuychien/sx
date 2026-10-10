@@ -1,14 +1,14 @@
 """Dữ liệu QC MẪU cho site THỬ (D177) — từ 22/9/2026 tới nay, để tập huấn, xem màn ISO, thử xuất báo cáo (D176).
 
-KHÔNG BAO GIỜ CHẠY TRÊN SITE THẬT. Hồ sơ ISO do máy sinh ra mà nằm cạnh hồ sơ thật là hồ sơ giả: tờ in ra không khác
-tờ QC ghi, đoàn kiểm tra không phân biệt được. Nên lệnh tự chặn ở hai chốt, chốt nào cũng đủ dừng:
-  · site tên site1.local (site thật) → dừng;
-  · site_config chưa bật `sx_du_lieu_mau` (`bench --site <site thử> set-config sx_du_lieu_mau 1`) → dừng — site chép từ
-    bản sao lưu mà chưa ai bật cờ này cũng không chạy.
+CHỈ CHẠY TRÊN SITE THỬ. Hồ sơ ISO do máy sinh ra mà nằm cạnh hồ sơ thật là hồ sơ giả: tờ in ra không khác tờ QC ghi.
+Nên site nào cũng phải bật cờ `sx_du_lieu_mau` trong site_config (`bench --site <site> set-config sx_du_lieu_mau 1`)
+— bật cờ là xác nhận đây là site thử; chưa bật (kể cả site chép từ bản sao lưu) thì lệnh dừng, cả xem trước lẫn xoá.
+D183: không còn chặn theo tên site — site1.local dùng làm site thử thì chạy được khi đã bật cờ.
 Mọi bản ghi mẫu do hai tài khoản mẫu ghi (qc.mau@sx.local, iso.mau@sx.local — không mật khẩu, tên "QC Mẫu", "Ban ISO
 Mẫu"); xoa() xoá sạch theo hai tài khoản đó. Bản ghi không mang ghi chú "dữ liệu mẫu" riêng (D179 — rối mắt khi tập
-huấn); thay vào đó mọi tờ in / tệp xuất của site có cờ mang một dòng "Bản in từ site thử…" trên đầu trang
-(sx/qc/mau_in.py) — tờ giấy rời khỏi máy vẫn tự nói nó từ site thử.
+huấn); thay vào đó mọi tờ in / tệp xuất của site mang một dòng "Bản in từ site thử…" trên đầu trang
+(sx/qc/mau_in.py) — tờ giấy rời khỏi máy vẫn tự nói nó từ site thử. Dòng này còn chừng nào còn dữ liệu mẫu, kể cả khi
+đã tắt cờ (D183); muốn tờ in sạch thì chạy xoa().
 
 Sinh gì (ngày làm việc thứ Hai → thứ Bảy, Chủ nhật nghỉ trừ khi chu_nhat=1):
   BM.08.01  ba lượt mỗi ngày (thứ Hai lượt Tuần thay Đầu sáng), ghi MỌI mục áp dụng, số trong ngưỡng (SX QC Setting);
@@ -36,10 +36,11 @@ theo đồng hồ máy chủ lúc chạy lệnh, nên sau đó giờ bắt đầ
 chỉnh về đúng ngày, trong khung giờ của lượt; cờ ghi muộn tính lại bằng chính luật của lượt. Số ngẫu nhiên theo hạt
 (`hat`) + ngày: xoá đi chạy lại ra đúng số cũ.
 
-    bench --site sx-thu.local execute sx.seed.du_lieu_mau.tao                              # XEM TRƯỚC
-    bench --site sx-thu.local execute sx.seed.du_lieu_mau.tao --kwargs "{'dry_run': 0}"    # GHI
-    bench --site sx-thu.local execute sx.seed.du_lieu_mau.xoa --kwargs "{'dry_run': 0}"    # XOÁ dữ liệu mẫu
-Cách dựng site thử từ bản sao lưu: README, mục D177.
+    bench --site site1.local set-config sx_du_lieu_mau 1                                   # site thử: bật cờ
+    bench --site site1.local execute sx.seed.du_lieu_mau.tao                              # XEM TRƯỚC
+    bench --site site1.local execute sx.seed.du_lieu_mau.tao --kwargs "{'dry_run': 0}"    # GHI
+    bench --site site1.local execute sx.seed.du_lieu_mau.xoa --kwargs "{'dry_run': 0}"    # XOÁ dữ liệu mẫu
+Cách dựng site thử riêng từ bản sao lưu: README, mục D177.
 """
 
 import json
@@ -63,12 +64,10 @@ from sx.qc import xuat_xuong as XX
 from sx.qc.nguong import nguong
 from sx.seed import _dry
 
-SITE_THAT = ("site1.local",)
 CO_CHO_PHEP = MI.CO_DU_LIEU_MAU         # khoá site_config bật trên site thử (tờ in của site đó mang dòng "site thử")
 TU = "2026-09-22"
 
-QC_MAU = "qc.mau@sx.local"
-ISO_MAU = "iso.mau@sx.local"
+QC_MAU, ISO_MAU = MI.TK_MAU             # tờ in còn dòng "site thử" chừng nào còn hai tài khoản này (D183)
 HO_MAU = "Mẫu"
 # tài khoản: (tên, vai) — QC ghi cả mục đóng gói; Ban ISO xem xét, đóng sự cố, duyệt xuất xưởng (không tự duyệt)
 NGUOI_MAU = {QC_MAU: ("QC", ("SX QC", "SX QC Packing")), ISO_MAU: ("Ban ISO", ("ISO Manager",))}
@@ -124,14 +123,13 @@ class BoQua(Exception):
 # ═══════════════════════════════════════ chốt site ═══════════════════════════════════════
 
 def chot_site():
-    """Dừng nếu đây là site thật, hoặc site chưa bật cờ dữ liệu mẫu. Trả tên site."""
+    """Dừng nếu site chưa bật cờ dữ liệu mẫu (bật cờ = xác nhận site thử; không chặn theo tên site — D183). Trả tên
+    site."""
     site = str(getattr(frappe.local, "site", None) or "")
-    if site in SITE_THAT:
-        frappe.throw(_("{0} là site THẬT — lệnh dữ liệu mẫu không bao giờ chạy ở đây (hồ sơ máy sinh nằm cạnh hồ sơ "
-                       "thật là hồ sơ giả). Dựng site thử từ bản sao lưu: README, mục D177.").format(site))
     if not MI.co_du_lieu_mau():
-        frappe.throw(_("Site {0} chưa bật cờ dữ liệu mẫu. CHỈ trên site thử: bench --site {0} set-config {1} 1")
-                     .format(site or "?", CO_CHO_PHEP))
+        frappe.throw(_("Site {0} chưa bật cờ dữ liệu mẫu. CHỈ trên site thử: bench --site {0} set-config {1} 1 — từ đó "
+                       "mọi tờ in, tệp xuất của site mang dòng \"{2}\" cho tới khi xoá dữ liệu mẫu.")
+                     .format(site or "?", CO_CHO_PHEP, MI.BAN_THU))
     return site
 
 
@@ -740,7 +738,9 @@ def bao_cao(kq):
     xem = kq["xem_truoc"]
     l, s, c, v, x = kq["luot"], kq["su_co"], kq["cat"], kq["vai"], kq["xuat"]
     ra = [f"DỮ LIỆU QC MẪU — site {kq['site']} — " + ("XEM TRƯỚC (chưa ghi gì)" if xem else "ĐÃ GHI"),
-          f"Kỳ {kq['tu']} → {kq['den']} · tài khoản mẫu: {QC_MAU}, {ISO_MAU}"]
+          f"Kỳ {kq['tu']} → {kq['den']} · tài khoản mẫu: {QC_MAU}, {ISO_MAU}",
+          f"Tờ in, tệp xuất của site {kq['site']} mang dòng \"{MI.BAN_THU}\" cho tới khi xoá dữ liệu mẫu "
+          f"(sx.seed.du_lieu_mau.xoa)."]
     if "luot" in kq["phan"]:
         ra.append(f"{TEN_PHAN['luot']}: {len(l['ngay'])} ngày, {l['so_luot']} lượt (có bột {l['ngay_bot']} ngày)"
                   + ("" if xem else f" — đã ghi {l['tao']} lượt"))

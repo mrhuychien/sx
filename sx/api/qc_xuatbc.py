@@ -154,7 +154,7 @@ def _dung(doc):
             x["loi"] = str(e) or type(e).__name__
         bm.append(x)
     # D179: site thử có dữ liệu mẫu → dòng đầu Mục lục / bìa nói rõ (tờ CSV không có đầu trang in chung).
-    dong = [MI.BAN_THU.upper()] if MI.co_du_lieu_mau() else []
+    dong = [MI.BAN_THU.upper()] if MI.in_ban_thu() else []
     dong += [f"Kỳ: {HS.ngay_vn(tu)} – {HS.ngay_vn(den)}",
              f"Xuất lúc {now_datetime().strftime('%d/%m/%Y %H:%M')} · người xuất: {_ho_ten(doc.owner)}"]
     dau = {"tieu_de": "HỒ SƠ THEO DÕI — XUẤT CHO ĐOÀN KIỂM TRA",

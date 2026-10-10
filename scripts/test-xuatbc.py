@@ -319,6 +319,16 @@ kiem("D179: site thử — Mục lục mở đầu bằng dòng \"BẢN IN TỪ 
      and wbt["Mục lục"]["A2"].value == MI.BAN_THU.upper(), cht["Mục lục"][:200])
 kiem("D179: site thử — tờ in (BM.08.03) mang dòng đó trên đầu trang", MI.BAN_THU in cht["BM.08.03"], cht["BM.08.03"][:200])
 FR.conf = {}
+# D183: tắt cờ mà còn dữ liệu mẫu (còn tài khoản mẫu) → tệp xuất vẫn ghi "site thử"; xoá dữ liệu mẫu thì hết
+F.bang("User")[MI.TK_MAU[0]] = {"name": MI.TK_MAU[0], "doctype": "User"}
+xm = API.xuat(json.dumps({"kieu": "Excel", "tu": "2026-09-01", "den": "2026-09-30", "bieu_mau": ["BM.08.03"]}))
+API.chay(xm["name"])
+wbm = openpyxl.load_workbook(io.BytesIO(open(os.path.join(KHO, lan(xm["name"])["ten_tep"]), "rb").read()))
+F.bang("User").pop(MI.TK_MAU[0])
+kiem("D183: tắt cờ mà còn dữ liệu mẫu → tệp xuất vẫn mở đầu bằng dòng \"site thử\", tờ in cũng vậy",
+     wbm["Mục lục"]["A2"].value == MI.BAN_THU.upper()
+     and MI.BAN_THU in " ".join(str(o.value) for h in wbm["BM.08.03"].iter_rows() for o in h if o.value is not None))
+kiem("…xoá dữ liệu mẫu (không còn tài khoản mẫu), không cờ → không còn dòng đó", not MI.in_ban_thu())
 
 print("\n-- một biểu mẫu in lỗi, cả lần xuất lỗi, CHẠY NGAY, làm lại, xoá --")
 goc = Q.month_sheets
