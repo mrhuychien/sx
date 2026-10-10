@@ -16,9 +16,11 @@ from sx.qc import tai_lieu as TL
 CONG_TY = "CÔNG TY CỔ PHẦN HOÀNG GIANG"
 # Site THỬ có dữ liệu mẫu (cờ `sx_du_lieu_mau` trong site_config — D177). Bản ghi mẫu không mang ghi chú riêng (D179),
 # nên mọi tờ in / tệp xuất của site đó mang dòng này trên đầu trang: tờ giấy rời khỏi máy vẫn tự nói nó từ đâu ra.
+# D184: chữ gọn "Phần mềm đang thử nghiệm" theo yêu cầu, GIỮ "có dữ liệu mẫu" — chỉ ghi "đang thử nghiệm" thì hồ sơ
+# máy sinh in ra đọc như hồ sơ thật ghi trong lúc chạy thử; dòng này có mỗi việc là không để chuyện đó xảy ra.
 # D183: còn dữ liệu mẫu (còn tài khoản mẫu) thì vẫn in dòng này dù đã tắt cờ — muốn tờ in sạch thì xoá dữ liệu mẫu
 # (du_lieu_mau.xoa). Site không cờ, không dữ liệu mẫu → không bao giờ hiện.
-BAN_THU = "Bản in từ site thử — có dữ liệu mẫu, không phải hồ sơ chính thức"
+BAN_THU = "Phần mềm đang thử nghiệm — có dữ liệu mẫu"
 CO_DU_LIEU_MAU = "sx_du_lieu_mau"
 TK_MAU = ("qc.mau@sx.local", "iso.mau@sx.local")     # hai tài khoản ghi mọi bản ghi mẫu (sx/seed/du_lieu_mau.py)
 TRUONG = ["name", "ma", "ten", "lan_ban_hanh", "ngay_ban_hanh"]

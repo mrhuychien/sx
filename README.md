@@ -320,6 +320,15 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Dòng nhận biết trên tờ in: "Phần mềm đang thử nghiệm — có dữ liệu mẫu" (D184)
+
+- Dòng trên đầu mọi tờ in và đầu Mục lục tệp xuất Excel / PDF của site có dữ liệu mẫu đổi từ "Bản in từ site thử — có
+  dữ liệu mẫu, không phải hồ sơ chính thức" thành **"Phần mềm đang thử nghiệm — có dữ liệu mẫu"** (`MI.BAN_THU`).
+- Giữ "có dữ liệu mẫu": chỉ ghi "Phần mềm đang thử nghiệm" thì hồ sơ máy sinh in ra đọc như hồ sơ thật ghi trong lúc
+  chạy thử phần mềm — dòng này có đúng một việc là tách hai thứ đó ra.
+- Khi nào hiện: như D183 (cờ `sx_du_lieu_mau` bật, hoặc còn dữ liệu mẫu). Không đổi DocType, không đổi JS: `git pull` →
+  `bench restart`. Test: `test-dulieumau.py`, `test-xuatbc.py`.
+
 ## Dữ liệu mẫu chạy được trên site1.local khi dùng làm site thử (D183)
 
 - Lệnh dữ liệu mẫu (D177) **không còn chặn theo tên site** — trước đây `site1.local` luôn bị coi là site thật. Chốt
@@ -334,7 +343,7 @@ không thành `…-2`.
   ```
 
   Lệnh không gửi thư (tắt thư trong lúc chạy); ngày đã có số liệu thì bỏ qua, như D177.
-- Dòng "Bản in từ site thử — có dữ liệu mẫu, không phải hồ sơ chính thức" trên đầu mọi tờ in / tệp xuất (D179) giờ
+- Dòng nhận biết trên đầu mọi tờ in / tệp xuất (D179; chữ từ D184: "Phần mềm đang thử nghiệm — có dữ liệu mẫu") giờ
   còn **chừng nào còn dữ liệu mẫu** (còn hai tài khoản mẫu `qc.mau@sx.local`, `iso.mau@sx.local`), kể cả khi đã tắt
   cờ — tắt cờ không biến hồ sơ mẫu thành tờ in "sạch". Muốn tờ in sạch: chạy `xoa` (xoá dữ liệu mẫu + hai tài khoản)
   rồi tắt cờ. Báo cáo của lệnh `tao` nói rõ điều này.
@@ -413,8 +422,9 @@ mới tải tiếp được), nút NẠP BỘ thì nằm đó mãi kể cả khi
 - Bản ghi do lệnh dữ liệu mẫu (D177) sinh ra **không còn** ghi chú "Dữ liệu mẫu (site thử)", tiền tố "[Dữ liệu mẫu]" ở
   phiếu sự cố, chữ "(mẫu)" ở tên người làm / chỗ phơi / vị trí tủ mẫu — màn hình tập huấn trông như ghi thật. Hai tài
   khoản mẫu tên gọn **QC Mẫu**, **Ban ISO Mẫu** (tài khoản tạo trước D179 tự đổi tên khi chạy lại `tao`).
-- Thay vào đó, **site bật cờ `sx_du_lieu_mau`** (chỉ site thử) in **một dòng** trên đầu mọi tờ in — "Bản in từ site thử —
-  có dữ liệu mẫu, không phải hồ sơ chính thức" — và ở đầu Mục lục / bìa của tệp xuất Excel / PDF. Tờ giấy rời khỏi máy
+- Thay vào đó, **site bật cờ `sx_du_lieu_mau`** (chỉ site thử) in **một dòng** trên đầu mọi tờ in — "Bản in từ site
+  thử — có dữ liệu mẫu, không phải hồ sơ chính thức" (D184 đổi thành "Phần mềm đang thử nghiệm — có dữ liệu mẫu") — và ở
+  đầu Mục lục / bìa của tệp xuất Excel / PDF. Tờ giấy rời khỏi máy
   vẫn tự nói nó từ site thử. Site không cờ, không còn dữ liệu mẫu → không bao giờ hiện (`sx/qc/mau_in.py`, macro
   đầu trang chung; D183: còn dữ liệu mẫu thì vẫn hiện dù đã tắt cờ).
 - Site thử đã chạy lệnh trước D179: xoá rồi sinh lại — cùng hạt nên ra đúng số cũ, chỉ bỏ ghi chú:

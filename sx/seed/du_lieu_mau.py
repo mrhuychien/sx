@@ -6,9 +6,9 @@ Nên site nào cũng phải bật cờ `sx_du_lieu_mau` trong site_config (`benc
 D183: không còn chặn theo tên site — site1.local dùng làm site thử thì chạy được khi đã bật cờ.
 Mọi bản ghi mẫu do hai tài khoản mẫu ghi (qc.mau@sx.local, iso.mau@sx.local — không mật khẩu, tên "QC Mẫu", "Ban ISO
 Mẫu"); xoa() xoá sạch theo hai tài khoản đó. Bản ghi không mang ghi chú "dữ liệu mẫu" riêng (D179 — rối mắt khi tập
-huấn); thay vào đó mọi tờ in / tệp xuất của site mang một dòng "Bản in từ site thử…" trên đầu trang
-(sx/qc/mau_in.py) — tờ giấy rời khỏi máy vẫn tự nói nó từ site thử. Dòng này còn chừng nào còn dữ liệu mẫu, kể cả khi
-đã tắt cờ (D183); muốn tờ in sạch thì chạy xoa().
+huấn); thay vào đó mọi tờ in / tệp xuất của site mang một dòng "Phần mềm đang thử nghiệm — có dữ liệu mẫu" trên
+đầu trang (sx/qc/mau_in.py) — tờ giấy rời khỏi máy vẫn tự nói nó từ site thử. Dòng này còn chừng nào còn dữ liệu mẫu,
+kể cả khi đã tắt cờ (D183); muốn tờ in sạch thì chạy xoa().
 
 Sinh gì (ngày làm việc thứ Hai → thứ Bảy, Chủ nhật nghỉ trừ khi chu_nhat=1):
   BM.08.01  ba lượt mỗi ngày (thứ Hai lượt Tuần thay Đầu sáng), ghi MỌI mục áp dụng, số trong ngưỡng (SX QC Setting);

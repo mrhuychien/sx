@@ -306,7 +306,7 @@ kiem("trạng thái nhiều lần xuất một lượt (màn hỏi lại)", [y["
     [x["name"]]))] == [XB.XONG] and API.trang_thai("[]") == [])
 
 kiem("site thật (không cờ dữ liệu mẫu): không có dòng \"site thử\" ở Mục lục / tờ in",
-     not any("SITE THỬ" in v.upper() for v in chu.values()))
+     not any(sys.modules["sx.qc.mau_in"].BAN_THU.upper() in v.upper() for v in chu.values()))
 FR.conf = {"sx_du_lieu_mau": 1}           # D179: site thử có dữ liệu mẫu
 xt = API.xuat(json.dumps({"kieu": "Excel", "tu": "2026-09-01", "den": "2026-09-30", "bieu_mau": ["BM.08.03",
                                                                                                     "BM.08.02"]}))
@@ -314,7 +314,8 @@ API.chay(xt["name"])
 wbt = openpyxl.load_workbook(io.BytesIO(open(os.path.join(KHO, lan(xt["name"])["ten_tep"]), "rb").read()))
 cht = {sh: " ".join(str(o.value) for h in wbt[sh].iter_rows() for o in h if o.value is not None) for sh in wbt.sheetnames}
 MI = sys.modules["sx.qc.mau_in"]
-kiem("D179: site thử — Mục lục mở đầu bằng dòng \"BẢN IN TỪ SITE THỬ …\" (cả tờ CSV sổ sự cố không có đầu trang)",
+kiem("D179: site thử — Mục lục mở đầu bằng dòng \"PHẦN MỀM ĐANG THỬ NGHIỆM — CÓ DỮ LIỆU MẪU\" (cả tờ CSV sổ sự cố "
+     "không có đầu trang)",
      cht["Mục lục"].startswith("HỒ SƠ THEO DÕI") and MI.BAN_THU.upper() in cht["Mục lục"]
      and wbt["Mục lục"]["A2"].value == MI.BAN_THU.upper(), cht["Mục lục"][:200])
 kiem("D179: site thử — tờ in (BM.08.03) mang dòng đó trên đầu trang", MI.BAN_THU in cht["BM.08.03"], cht["BM.08.03"][:200])

@@ -527,7 +527,9 @@ _h1 = _tpl.render()
 FR.conf = {}
 _h0 = _tpl.render()
 FR.conf = {"sx_du_lieu_mau": 1}
-kiem("D179: tờ in site thử (cờ bật) mang MỘT dòng \"Bản in từ site thử …\" trên đầu trang; D183: tắt cờ mà dữ liệu "
+kiem("D184: dòng in đúng chữ \"Phần mềm đang thử nghiệm — có dữ liệu mẫu\" — vẫn nói rõ có dữ liệu mẫu",
+     MI.BAN_THU == "Phần mềm đang thử nghiệm — có dữ liệu mẫu", MI.BAN_THU)
+kiem("D179: tờ in site thử (cờ bật) mang MỘT dòng \"Phần mềm đang thử nghiệm …\" trên đầu trang; D183: tắt cờ mà dữ liệu "
      "mẫu còn → vẫn mang dòng đó (không tắt cờ để in hồ sơ mẫu thành hồ sơ sạch được)",
      _h1.count(MI.BAN_THU) == 1 and _h0.count(MI.BAN_THU) == 1 and "sx-dau-trang" in _h0, _h1[:300])
 _bm = sys.modules["sx.api.qc_cat"].in_bm0803("2026-09")
