@@ -8,7 +8,9 @@ qua batch_no trên SLE, có trả lại), và kiểm:
   · tìm lô bằng (sản phẩm, HSD) / mã vạch / mã lô, HSD lệch thì gợi ý gần đúng;
   · ngược tới tận NCC + kết luận tiếp nhận, nước (không lô) không làm gãy cây;
   · vào hộp khớp theo ngày đúng cửa sổ, công nhật gộp, mã khác không lẫn vào;
-  · QC Không đạt hiện ra theo NHÃN; bán / trả lại / xuất khác / tồn đúng dấu;
+  · QC lệch hiện ra theo đúng luật sự cố (D178: cả lệch SỐ — nhiệt độ rang, thùng bột quá hạn —
+    không chỉ ô Không đạt); ngày rang có cát trong máy + lần giặt vải ủ; lô TP có phiếu BM.08.04;
+  · bán / trả lại / xuất khác / tồn đúng dấu;
   · xuôi từ lô đỗ tới MỌI lô TP (kể cả lô trừ bù nợ BOM) và gộp khách.
 
 Nạp sx/api/truyxuat.py + sx/config/roles.py THẬT; frappe là giả.
@@ -118,6 +120,12 @@ BANG = {
     "SX QC Round": [
         D(name="QC-5", ngay="2026-10-05", docstatus=1, luot="Đầu sáng", a1_ve_sinh="Không đạt",
           b2_kin="Đạt", reviewed_by="iso@x", started_at=1),
+        # D178: ngày rang 02/10 — lệch SỐ (không có ô nào ghi chữ "Không đạt") phải hiện là lệch
+        D(name="QC-2", ngay="2026-10-02", docstatus=1, luot="Trưa", rang_nhiet_do=235, started_at=1),
+        D(name="QC-2C", ngay="2026-10-02", docstatus=1, luot="Cuối chiều", rang_nhiet_do=252,
+          thung_bot_qua_han=1, started_at=2),
+        D(name="QC-30", ngay="2026-09-30", docstatus=1, luot="Trưa", rang_nhiet_do=255, started_at=1),
+        D(name="QC-1", ngay="2026-10-01", docstatus=1, luot="Trưa", rang_nhiet_do=258, started_at=1),
         D(name="QC-3", ngay="2026-10-03", docstatus=0, luot="Trưa", a1_ve_sinh="Đạt", started_at=1),
         D(name="QC-H", ngay="2026-10-05", docstatus=2, luot="Trưa", a1_ve_sinh="Không đạt", started_at=2),
     ],
@@ -130,6 +138,32 @@ BANG = {
         D(name="LM-3", san_pham="TP-SEN", lo="", ngay_lay="2026-09-20"),
         D(name="LM-4", san_pham="TP-KHAC", lo="SEN-061026", ngay_lay="2026-10-05"),
     ],
+    # D178: cát nhập (đổi nguồn, kim loại nặng Đạt) 29/09, đưa vào máy 30/09 → ngày rang 02/10 đã dùng 3 ngày
+    "SX Nhat Ky Cat": [
+        D(name="CAT-1", ngay="2026-09-29", viec="Nhập cát", ncc_cat="NCC-CAT", ten_ncc="Cát sông Lô", doi_nguon=1,
+          kln="Đạt", so_cu=0, creation="2026-09-29 07:30:00"),
+        D(name="CAT-2", ngay="2026-09-30", viec="Rang khô đưa dùng", ncc_cat="NCC-CAT", ten_ncc="Cát sông Lô",
+          so_cu=0, so_ngay_dau=0, creation="2026-09-30 13:30:00")],
+    # D178: vải ủ — lần giặt định kỳ mới nhất ĐỨNG TRƯỚC (frappe giả không sắp theo order_by)
+    "SX Vai U": [D(name="V01-A", trang_thai="Đang dùng")],
+    "SX Giat Vai": [
+        D(name="GV-2", ngay="2026-09-26", viec="Giặt định kỳ", qc_ky_luc="2026-09-27 07:40:00",
+          gio_soi_lai="15:00:00", gio_vot="15:12:00"),
+        D(name="GV-1", ngay="2026-09-19", viec="Giặt định kỳ", qc_ky_luc="2026-09-20 07:40:00",
+          gio_soi_lai="15:00:00", gio_vot="15:11:00")],
+    # D178: lô SEN-061026 (TP-SEN, HSD 04/04/27) — giữ lại rồi kiểm lại, cho xuất
+    "SX Kiem Tra Xuat Xuong": [
+        D(name="XX-0", san_pham="TP-SEN", hsd="2027-04-04", trang_thai="Đã duyệt", ket_luan="Giữ lại chờ xử lý",
+          qc_kiem="qc@x", kiem_luc="2026-10-06 08:10:00", nguoi_duyet="iso@x", duyet_luc="2026-10-06 08:30:00",
+          su_co="SC-7", creation=1),
+        D(name="XX-1", san_pham="TP-SEN", hsd="2027-04-04", trang_thai="Đã duyệt", ket_luan="Cho xuất xưởng",
+          qc_kiem="qc@x", kiem_luc="2026-10-06 10:00:00", nguoi_duyet="iso@x", duyet_luc="2026-10-06 10:20:00",
+          creation=2)],
+    "SX Kiem Tra Xuat Xuong Muc": [
+        D(parent="XX-0", parenttype="SX Kiem Tra Xuat Xuong", ma="B3", noi_dung="Bao gói, mối hàn",
+          ket_qua="Không đạt"),
+        D(parent="XX-1", parenttype="SX Kiem Tra Xuat Xuong", ma="B3", noi_dung="Bao gói, mối hàn", ket_qua="Đạt")],
+    "User": [D(name="iso@x", full_name="Trưởng Ban ISO")],
     "Purchase Invoice Item": [
         D(parent="PI-1", item_code="DAU-XANH", batch_no="DX-NCC0", custom_ncc_lo="AP-0901",
           custom_ket_luan="Cách ly"),
@@ -177,6 +211,10 @@ def _khop(h, f):
             if op == "between" and not (x and y[0] <= str(x) <= y[1]):
                 return False
             if op == "<" and not (x or 0) < y:
+                return False
+            if op == "<=" and not (x is not None and str(x) <= str(y)):
+                return False
+            if op == "!=" and str(x if x is not None else "") == str(y):
                 return False
         elif x != v:
             return False
@@ -241,7 +279,7 @@ frappe.get_all = get_all
 frappe.get_meta = lambda d: Meta()
 frappe.get_cached_value = lambda d, n, f=None: NHOM.get(n) if f == "custom_sx_nhom" else None
 frappe.db = types.SimpleNamespace(
-    get_value=get_value, sql=sql,
+    get_value=get_value, sql=sql, count=lambda d, f=None: len(get_all(d, f)),
     exists=lambda d, n=None: any(x.get("name") == n for x in BANG.get(d, [])))
 frappe.__dict__["_"] = lambda s: s
 
@@ -298,6 +336,8 @@ def nap(ten, p):
 
 
 nap("sx.config.roles", "sx/config/roles.py")
+for _m in ("muc", "nguong", "su_co", "cat", "vai_u", "xuat_xuong"):      # D178: module QC THẬT
+    nap(f"sx.qc.{_m}", f"sx/qc/{_m}.py")
 T = nap("sx.api.truyxuat", "sx/api/truyxuat.py")
 
 hong = 0
@@ -389,12 +429,46 @@ kiem("vào hộp gộp theo người, công nhật riêng, mã khác không lẫ
      vh == {"Lan": 300, "Công nhật": 50}, vh)
 kiem("bảng của phiếu ngày đã huỷ không tính", sum(vh.values()) == 350)
 qc5 = ng["2026-10-05"]["qc"]
-kiem("QC Không đạt hiện theo NHÃN, lượt đã huỷ bỏ qua",
-     len(qc5) == 1 and qc5[0]["khong_dat"] == ["Vệ sinh nhà xưởng"] and qc5[0]["duyet"], qc5)
+kiem("QC Không đạt hiện theo câu của luật sự cố (số mục + nhãn), lượt đã huỷ bỏ qua",
+     len(qc5) == 1 and qc5[0]["khong_dat"] == ["Mục 1a Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô: Không đạt"]
+     and qc5[0]["duyet"] and not qc5[0]["cao"], qc5)
+qc2 = {v["name"]: v for v in ng["2026-10-02"]["qc"]}
+kiem("D178: lượt rang 235 °C (không ô nào ghi chữ Không đạt) → LỆCH mức Cao, không còn \"đạt hết\"",
+     qc2["QC-2"]["khong_dat"] == ["Rang: nhiệt độ 235 °C < 240 °C"] and qc2["QC-2"]["cao"], qc2.get("QC-2"))
+kiem("D178: thùng bột quá hạn (ô đếm) → lệch mức thường",
+     qc2["QC-2C"]["khong_dat"] == ["Kho bột: 1 thùng quá 2 ngày / hở nắp"] and not qc2["QC-2C"]["cao"],
+     qc2.get("QC-2C"))
+c2 = ng["2026-10-02"].get("cat")
+kiem("D178: ngày rang có cát trong máy — đã dùng 3 ngày (ngày có rang từ lần đưa vào), nguồn, KLN khi đổi nguồn",
+     c2 == {"so_ngay": 3, "ncc": "Cát sông Lô", "toi_da": 0, "qua_han": False, "doi_nguon": "2026-09-29",
+            "kln": "Đạt"}, c2)
+v2 = ng["2026-10-02"].get("vai")
+kiem("D178: ngày rang có lần giặt vải ủ gần nhất — 26/09, 6 ngày trước, đun 12 phút, đã ký, chưa quá chu kỳ",
+     v2 and (v2["ngay"], v2["so_ngay"], v2["so_phut"], v2["da_ky"], v2["qua_han"]) == ("2026-09-26", 6, 12, True,
+                                                                                         False), v2)
+kiem("D178: ngày không rang không kèm cát / vải", "cat" not in ng["2026-10-05"] and "vai" not in ng["2026-10-05"])
+kiem("D178: vải quá chu kỳ 7 ngày → đánh dấu", T._vai_ngay("2026-10-05")["qua_han"])
+kiem("D178: sổ cát có dòng mà ngày đó chưa có cát đang dùng → nói rõ (so_ngay None), không im lặng",
+     (T._cat_ngay("2026-09-28") or {}).get("so_ngay", "x") is None, T._cat_ngay("2026-09-28"))
+_cat, BANG["SX Nhat Ky Cat"] = BANG["SX Nhat Ky Cat"], []
+_vai, BANG["SX Vai U"] = BANG["SX Vai U"], []
+kiem("D178: xưởng chưa dùng sổ cát / chưa khai vải → không báo gì (không báo động giả)",
+     T._cat_ngay("2026-10-02") is None and T._vai_ngay("2026-10-02") is None)
+BANG["SX Nhat Ky Cat"], BANG["SX Vai U"] = _cat, _vai
+xx = d["xuat_xuong"]
+kiem("D178: lô TP hiện phiếu BM.08.04 cũ trước — giữ lại (mục Không đạt, phiếu sự cố) rồi cho xuất; tên người duyệt",
+     [(x["name"], x["ket_luan"], x["cho_xuat"]) for x in xx] == [("XX-0", "Giữ lại chờ xử lý", False),
+                                                                  ("XX-1", "Cho xuất xưởng", True)]
+     and xx[0]["khong_dat"] == ["B3 Bao gói, mối hàn"] and xx[0]["su_co"] == "SC-7"
+     and xx[1]["khong_dat"] == [] and xx[1]["nguoi_duyet"] == "Trưởng Ban ISO" and xx[1]["qc_kiem"] == "qc@x"
+     and xx[1]["duyet_luc"] == "2026-10-06 10:20", xx)
 kiem("QC ngày làm bột hiện ra, đạt hết", ng["2026-10-03"]["qc"][0]["khong_dat"] == [])
 kiem("sự cố ngày làm bột", [s["name"] for s in ng["2026-10-03"]["su_co"]] == ["SC-1"])
 kiem("ghi chú nói rõ vào hộp khớp THEO NGÀY + cửa sổ",
      any("04/10/2026" in g and "06/10/2026" in g for g in d["ghi_chu"]), d["ghi_chu"])
+
+kiem("D178: lô TP chưa có phiếu xuất xưởng → [] (màn ghi \"chưa có phiếu\"); lô không phải TP → None",
+     T.lo("SEN-071026")["xuat_xuong"] == [] and T.lo("DX-NCC1")["xuat_xuong"] is None)
 
 print("\n-- xuôi: bán cho ai --")
 b = d["ban"]
@@ -537,8 +611,9 @@ kiem("ghi bảng cân bằng theo số đếm thực tế (140 + 5 + 250 = 395 /
      (dd["ton_thuc_te"], dd["can_bang_pt"], dd["dat"]))
 kiem("đếm khách, lô nguyên liệu NCC truy được", dd["so_khach"] >= 1 and dd["so_ncc"] >= 1,
      (dd["so_khach"], dd["so_ncc"]))
-kiem("ảnh chụp kết quả lưu lại (in lại tháng sau vẫn đúng)",
-     json.loads(dd["ket_qua"])["lo"]["batch"] == "SEN-061026")
+kiem("ảnh chụp kết quả lưu lại (in lại tháng sau vẫn đúng) — có cả phiếu BM.08.04 (D178)",
+     json.loads(dd["ket_qua"])["lo"]["batch"] == "SEN-061026"
+     and [x["name"] for x in json.loads(dd["ket_qua"])["xuat_xuong"]] == ["XX-0", "XX-1"])
 _, loi = thu(lambda: T.dien_tap_ket_thuc(r["name"], "SEN-061026"))
 kiem("kết thúc lần hai → chặn (giữ đúng giờ lần đầu)", loi is not None)
 _, loi = thu(lambda: T.dien_tap_huy(r["name"]))
@@ -561,7 +636,21 @@ html = jinja2.Environment(loader=jinja2.FileSystemLoader("."), autoescape=True).
                          formatdate=lambda x, f=None: str(x), format_datetime=lambda x, f=None: str(x))))
 kiem("mẫu in A4 dựng được: phụ lục BM.02.04, cân bằng, kết luận, khách",
      "Phụ lục BM.02.04" in html and "Cân bằng lô" in html and "ĐẠT" in html and "Đại lý Hà" in html)
+kiem("D178: phụ lục in lệch theo luật sự cố, cát / vải ngày rang, mục BM.08.04, truy xuôi thành mục 5",
+     "(lệch: Rang: nhiệt độ 235 °C &lt; 240 °C)" in html and "Cát rang: đã dùng 3 ngày, nguồn Cát sông Lô, KLN Đạt" in html
+     and "Vải ủ: giặt 2026-09-26 (6 ngày trước)" in html and "4. Kiểm tra xuất xưởng BM.08.04" in html
+     and "Giữ lại chờ xử lý" in html and "Không đạt: B3 Bao gói, mối hàn" in html and "5. Truy xuôi" in html, html[:0])
+_cu = dict(json.loads(dd["ket_qua"]))
+_cu.pop("xuat_xuong")
+html = jinja2.Environment(loader=jinja2.FileSystemLoader("."), autoescape=True).get_template(
+    T.MAU_IN).render(d=D(dd), kq=_cu, nguong=98.0, frappe=types.SimpleNamespace(utils=types.SimpleNamespace(
+        formatdate=lambda x, f=None: str(x), format_datetime=lambda x, f=None: str(x))))
+kiem("D178: ảnh chụp diễn tập CŨ (trước D178, không có BM.08.04) vẫn in như cũ — truy xuôi mục 4",
+     "Kiểm tra xuất xưởng" not in html and "4. Truy xuôi" in html)
 tx = open("sx/public/sx/cards/truyxuat.js", encoding="utf-8").read()
+kiem("D178: thẻ hiện lệch (mức CAO), cát, vải ủ ngày rang, khối BM.08.04",
+     "Lệch mức CAO" in tx and "dongCat(g.cat)" in tx and "dongVai(g.vai)" in tx
+     and "Kiểm tra xuất xưởng BM.08.04" in tx and "d.xuat_xuong.map(dongXuatXuong)" in tx)
 kiem("thẻ truy xuất: nút diễn tập, đồng hồ, kết thúc ở lô, in phụ lục",
      "DIỄN TẬP TRUY XUẤT" in tx and "dien_tap_ket_thuc" in tx and "in_dien_tap" in tx
      and "data-ketthuc" in tx)

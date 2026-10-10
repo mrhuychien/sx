@@ -69,13 +69,26 @@
   <table><tr><th style="width:14%">Ngày</th><th>Việc</th><th>QC</th><th>Sự cố</th></tr>
     {% for g in kq.get("qua_trinh") %}
     <tr><td>{{ frappe.utils.formatdate(g.ngay, "dd/MM/yyyy") }}</td>
-        <td>{{ (g.get("viec") or [])|join(", ") }}{% if g.get("vao_hop") %} — vào hộp: {% for v in g.vao_hop %}{{ v.ten }} {{ v.so_hop }}{{ ", " if not loop.last }}{% endfor %}{% endif %}</td>
-        <td>{% for v in g.get("qc") or [] %}{{ v.get("luot") }}{% if v.get("khong_dat") %} (KĐ: {{ v.khong_dat|join(", ") }}){% endif %}{{ "; " if not loop.last }}{% endfor %}</td>
+        <td>{{ (g.get("viec") or [])|join(", ") }}{% if g.get("vao_hop") %} — vào hộp: {% for v in g.vao_hop %}{{ v.ten }} {{ v.so_hop }}{{ ", " if not loop.last }}{% endfor %}{% endif %}
+          {%- set c = g.get("cat") %}{% if c %}<br>Cát rang: {{ ("đã dùng " ~ c.so_ngay ~ " ngày") if c.get("so_ngay") is not none else "không có cát đang dùng" }}{% if c.get("ncc") %}, nguồn {{ c.ncc }}{% endif %}{% if c.get("doi_nguon") %}, KLN {{ c.get("kln") or "chưa có kết quả" }}{% endif %}{% endif %}
+          {%- set vu = g.get("vai") %}{% if vu %}<br>Vải ủ: {{ ("giặt " ~ frappe.utils.formatdate(vu.ngay, "dd/MM/yyyy") ~ " (" ~ vu.so_ngay ~ " ngày trước)") if vu.get("ngay") else "chưa có lần giặt" }}{% if vu.get("qua_han") %}, quá chu kỳ{% endif %}{% endif %}</td>
+        <td>{% for v in g.get("qc") or [] %}{{ v.get("luot") }}{% if v.get("khong_dat") %} (lệch: {{ v.khong_dat|join("; ") }}){% endif %}{{ "; " if not loop.last }}{% endfor %}</td>
         <td>{% for sc in g.get("su_co") or [] %}{{ sc.name }}{{ ", " if not loop.last }}{% endfor %}</td></tr>
     {% endfor %}</table>
   {% else %}<div>—</div>{% endif %}
 
-  <h2>4. Truy xuôi — khách đã nhận</h2>
+  {%- if kq.get("xuat_xuong") is not none %}
+  <h2>4. Kiểm tra xuất xưởng BM.08.04</h2>
+  {% if kq.get("xuat_xuong") %}
+  <table><tr><th>Phiếu</th><th>Trạng thái · kết luận</th><th>QC kiểm</th><th>Người duyệt</th></tr>
+    {% for x in kq.get("xuat_xuong") %}
+    <tr><td>{{ x.name }}</td><td>{{ x.get("trang_thai") }}{% if x.get("ket_luan") %} · {{ x.ket_luan }}{% endif %}{% if x.get("khong_dat") %}<br>Không đạt: {{ x.khong_dat|join("; ") }}{% endif %}</td>
+        <td>{{ x.get("qc_kiem") or "" }} {{ x.get("kiem_luc") or "" }}</td><td>{{ x.get("nguoi_duyet") or "" }} {{ x.get("duyet_luc") or "" }}</td></tr>
+    {% endfor %}</table>
+  {% else %}<div>Lô chưa có phiếu kiểm tra xuất xưởng.</div>{% endif %}
+  {%- endif %}
+
+  <h2>{{ 5 if kq.get("xuat_xuong") is not none else 4 }}. Truy xuôi — khách đã nhận</h2>
   {% if kq.get("khach") %}
   <table><tr><th>Khách hàng</th><th>Lô</th><th>Lần cuối</th><th>Số lượng</th></tr>
     {% for k in kq.get("khach") %}

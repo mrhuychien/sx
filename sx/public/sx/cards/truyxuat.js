@@ -336,6 +336,9 @@ export function veLo(box, d, { quayLai, mo, ketThuc, thuHoi }) {
     ${d.ncc ? khoi('🏭 Nhà cung cấp', dongNcc(d.ncc), true) : ''}
     ${(d.nguon || []).length ? khoi('⬅ Nguồn gốc nguyên liệu', cay(d.nguon), true) : ''}
     ${(d.qua_trinh || []).length ? khoi('🏭 Quá trình sản xuất', d.qua_trinh.map(ngay).join(''), true) : ''}
+    ${d.xuat_xuong ? khoi('🧾 Kiểm tra xuất xưởng BM.08.04', d.xuat_xuong.length
+    ? d.xuat_xuong.map(dongXuatXuong).join('')
+    : '<div class="sx-muted">Lô chưa có phiếu kiểm tra xuất xưởng.</div>', true) : ''}
     ${l.la_tp ? khoi('➡ Đi đâu', diDau(b, l.dvt), true) : ''}
     ${d.xuoi ? khoi(l.la_tp ? `➡ Hàng đã chuyển sang ${demTp(d.xuoi)} lô theo HSD (kiểm kê)`
     : `➡ Đã đi vào ${demTp(d.xuoi)} lô thành phẩm`, d.xuoi.length
@@ -422,19 +425,59 @@ function cay(ds) {
   }).join('')}</ul>`;
 }
 
+// D178: "lệch" theo đúng luật sinh sự cố của vòng kiểm (nhiệt độ rang dưới ngưỡng, mạt kim loại, thử lạc dương
+// tính… — không chỉ ô Không đạt); ảnh chụp diễn tập cũ chỉ có nhãn mục Không đạt, vẫn hiện như cũ.
 function ngay(g) {
   const qc = g.qc.length
     ? g.qc.map((v) => `<div class="sx-tx-qc">QC ${esc(v.luot || '')} · ${v.nop ? 'đã nộp' : 'nháp'}${
       v.duyet ? ' · đã xem xét' : ''}${v.khong_dat.length
-      ? ` · <b class="sx-tx-kl-loi">Không đạt: ${esc(v.khong_dat.join(', '))}</b>` : ' · ✓ đạt hết'}</div>`).join('')
+      ? ` · <b class="sx-tx-kl-loi">${v.cao ? 'Lệch mức CAO' : 'Lệch'}: ${esc(v.khong_dat.join('; '))}</b>`
+      : ' · ✓ đạt hết'}</div>`).join('')
     : '<div class="sx-muted">Không có lượt kiểm QC ngày này.</div>';
   const vh = g.vao_hop.length
     ? `<div class="sx-tx-vh">📦 Vào hộp: ${g.vao_hop.map((v) => `${esc(v.ten)} ${formatNumber(v.so_hop)}`).join(' · ')}</div>`
     : '';
   return `<div class="sx-tx-ngay"><div class="sx-tx-ngay-dau"><b>${esc(ngayNgan(g.ngay))}</b>
       <span>${esc(g.viec.join(' · '))}</span></div>
-    ${vh}${qc}${g.su_co.map(dongSuCo).join('')}</div>`;
+    ${vh}${qc}${dongCat(g.cat)}${dongVai(g.vai)}${g.su_co.map(dongSuCo).join('')}</div>`;
 }
+
+// Ngày rang (D178): cát trong máy rang hôm đó — BM.08.03.
+function dongCat(c) {
+  if (!c) return '';
+  const so = c.so_ngay === null || c.so_ngay === undefined
+    ? '<b class="sx-tx-kl-loi">sổ cát không có cát đang dùng hôm này</b>'
+    : `đã dùng ${esc(c.so_ngay)} ngày${c.qua_han ? ` <b class="sx-tx-kl-loi">(quá ${esc(c.toi_da)} ngày tối đa)</b>` : ''}`;
+  const kln = c.doi_nguon
+    ? ` · kim loại nặng khi đổi nguồn ${esc(ngayNgan(c.doi_nguon))}: ${c.kln === 'Đạt' ? 'Đạt'
+      : `<b class="sx-tx-kl-loi">${esc(c.kln || 'chưa có kết quả')}</b>`}` : '';
+  return `<div class="sx-tx-qc">🔥 Cát rang: ${so}${c.ncc ? ` · nguồn ${esc(c.ncc)}` : ''}${kln}</div>`;
+}
+
+// Ngày rang (D178): đỗ vừa rang vào thùng ủ phủ vải — lần giặt vải ủ gần nhất, BM.08.05.
+function dongVai(v) {
+  if (!v) return '';
+  if (!v.ngay) return '<div class="sx-tx-qc">🧺 Vải ủ: <b class="sx-tx-kl-loi">sổ giặt chưa có lần giặt nào</b></div>';
+  return `<div class="sx-tx-qc">🧺 Vải ủ: giặt ${esc(ngayNgan(v.ngay))} (${esc(v.so_ngay)} ngày trước${
+    v.so_phut ? `, đun sôi ${esc(v.so_phut)} phút` : ''})${v.da_ky ? '' : ' · <b class="sx-tx-kl-loi">chưa QC ký</b>'}${
+    v.qua_han ? ` · <b class="sx-tx-kl-loi">quá chu kỳ ${esc(v.chu_ky)} ngày</b>` : ''}</div>`;
+}
+
+// Phiếu kiểm tra xuất xưởng BM.08.04 của lô (D178): ai kiểm, ai duyệt, kết luận.
+function dongXuatXuong(x) {
+  const kl = x.ket_luan
+    ? `<span class="sx-tx-kl ${x.cho_xuat ? 'sx-tx-kl-ok' : 'sx-tx-kl-loi'}">${esc(x.ket_luan)}</span>` : '';
+  return `<div class="sx-vh-row"><div class="sx-vh-who"><div class="sx-vh-name">${esc(x.name)} · ${
+    esc(x.trang_thai)} ${kl}</div>
+    <div class="sx-vh-meta">${x.qc_kiem ? `QC kiểm ${esc(x.qc_kiem)}${x.kiem_luc ? ` ${esc(ngayGio(x.kiem_luc))}` : ''}` : ''}${
+      x.nguoi_duyet ? ` · duyệt ${esc(x.nguoi_duyet)}${x.duyet_luc ? ` ${esc(ngayGio(x.duyet_luc))}` : ''}` : ''}${
+      x.su_co ? ` · sự cố ${esc(x.su_co)}` : ''}</div>
+    ${x.khong_dat.length ? `<div class="sx-vh-meta"><b class="sx-tx-kl-loi">Không đạt: ${
+      esc(x.khong_dat.join('; '))}</b></div>` : ''}${x.y_kien ? `<div class="sx-vh-meta">Ý kiến duyệt: ${
+      esc(x.y_kien)}</div>` : ''}</div></div>`;
+}
+
+const ngayGio = (s) => `${ngayNgan(String(s).slice(0, 10))} ${String(s).slice(11, 16)}`;
 
 function dongKhieuNai(k) {
   return `<div class="sx-tx-suco">📣 ${esc(k.name)} · ${esc(k.trang_thai)}${

@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-139';
+const BUILD = 'sx-140';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 

@@ -320,6 +320,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Truy xuất: lượt lệch theo luật sự cố, cát / vải ủ ngày rang, phiếu BM.08.04 của lô (D178)
+
+Hồ sơ một lô (thẻ Truy xuất ở màn Quản lý, màn ISO) và phụ lục diễn tập BM.02.04:
+
+- **Lượt QC "đạt hết" phải là đạt hết thật.** Trước đây màn chỉ dò chữ "Không đạt" — lượt rang 235 °C, nam châm bắt
+  mạt kim loại, thùng bột quá hạn, dị vật trên rây, thử nhanh lạc dương tính vẫn hiện "✓ đạt hết" (phiếu sự cố nằm
+  riêng bên dưới). Giờ chỗ lệch tính bằng **đúng luật sinh sự cố** của vòng kiểm (`sx/qc/su_co.phat_hien`) — hiện
+  "Lệch: …" bằng câu đọc được, lệch mức Cao ghi "Lệch mức CAO". Lượt nháp: tính trên những gì đã ghi.
+- **Ngày rang** có thêm hai dòng PRP của công đoạn rang – ủ:
+  - 🔥 **Cát rang** (BM.08.03): cát trong máy đã dùng bao nhiêu ngày tới hôm đó, nguồn cát, kết quả kim loại nặng của
+    lần đổi sang nguồn đó; quá số ngày tối đa (Setting) / sổ không có cát đang dùng hôm đó thì báo đỏ. Xưởng chưa dùng
+    sổ cát thì không hiện gì.
+  - 🧺 **Vải ủ** (BM.08.05): lần giặt gần nhất tới hôm đó (theo luật chu kỳ của sổ), cách mấy ngày, đun sôi mấy phút,
+    QC đã ký chưa, quá chu kỳ chưa. Chưa khai vải thì không hiện gì.
+- **Khối 🧾 Kiểm tra xuất xưởng BM.08.04** của lô thành phẩm: mọi phiếu theo (sản phẩm, HSD), cũ trước — trạng thái,
+  kết luận, QC kiểm / người duyệt và giờ, mục Không đạt, phiếu sự cố, ý kiến duyệt. Lô chưa có phiếu: ghi rõ.
+- **Diễn tập BM.02.04**: ảnh chụp lúc kết thúc lưu thêm phiếu BM.08.04; phụ lục in "lệch: …", cát / vải ngày rang và
+  mục "4. Kiểm tra xuất xưởng" (truy xuôi thành mục 5). Ảnh chụp diễn tập cũ in như trước.
+- Build **sx-140**. Không đổi DocType: `git pull` → `bench restart` (không cần migrate). Test: `test-truyxuat.py`.
+
 ## Dữ liệu QC mẫu 22/9 → nay cho site THỬ (D177)
 
 Để tập huấn QC / Ban ISO, xem màn ISO, thử xuất báo cáo Excel / PDF với số liệu đủ một tháng. **Không bao giờ chạy trên

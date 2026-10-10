@@ -18,6 +18,9 @@ Lô bột có ngày sản xuất thật (Batch.custom_ngay_sx). Lô TP thì KHÔ
 vào kho theo phiếu nhập, không gắn bảng vào hộp nào (D62). Nên phần vào hộp khớp
 THEO NGÀY: các ngày vào hộp mã đó từ lần nhập kho trước tới ngày nhập lô này. Màn
 hình nói rõ đó là khớp theo ngày, không phải theo lô.
+Mỗi ngày: lượt QC + chỗ LỆCH theo đúng luật sinh sự cố (D178), sự cố trong ngày; ngày
+rang có thêm cát trong máy (BM.08.03) và lần giặt vải ủ gần nhất (BM.08.05). Lô thành
+phẩm có phiếu kiểm tra xuất xưởng BM.08.04 (D178).
 
 ═══ TRUY XUÔI — đi đâu, bán cho ai ═══
 Sổ cái kho của lô (Stock Ledger Entry + Serial and Batch Bundle): phiếu giao / hoá
@@ -34,6 +37,11 @@ from frappe import _
 from frappe.utils import add_days, cint, flt, get_datetime, getdate, now_datetime, nowdate
 
 from sx.config.roles import guard_card
+from sx.qc import cat as CAT
+from sx.qc import muc as M
+from sx.qc import vai_u as VU
+from sx.qc import xuat_xuong as XX
+from sx.qc.su_co import phat_hien
 from sx.utils import items_tp, la_lo_hsd
 
 SAU_TOI_DA = 8          # tầng đệ quy — chuỗi thật sâu nhất ~5 (TP→bột bánh→bột nền→vỡ→ủ→đỗ)
@@ -218,6 +226,7 @@ def lo(batch):
         "khach": khach,
         "can_bang": can_bang,
         "luu_mau": _luu_mau(goc, cua_so),
+        "xuat_xuong": _xuat_xuong(goc),
         "su_co_lo": _su_co_theo_lo(batch),
         "khieu_nai_lo": _khieu_nai_theo_lo(batch),
         "thu_hoi": _thu_hoi(batch),
@@ -650,7 +659,7 @@ def dien_tap_ket_thuc(name, batch, ton_thuc_te=None, ghi_chu=None):
         "so_ngay_sx": len(kq.get("qua_trinh") or []),
         "ghi_chu": (ghi_chu or "").strip() or d.ghi_chu,
         "ket_qua": json.dumps({k: kq.get(k) for k in ("lo", "nhap_kho", "nguon", "qua_trinh",
-                                                      "khach", "ghi_chu", "can_bang")},
+                                                      "khach", "ghi_chu", "can_bang", "xuat_xuong")},
                               ensure_ascii=False, default=str),
     })
     d.save(ignore_permissions=True)
@@ -749,18 +758,27 @@ def _qua_trinh(goc, nhap, nguoc):
             viec(d, _("Vào hộp"))
             ngay_cua(d)["vao_hop"] = ds
 
+    rang = set()
+
     def di(ds):
         for n in ds or []:
             if n.get("ngay_sx"):
                 viec(n["ngay_sx"], _("Làm {0}").format(n["ten"]))
             if n.get("rang"):
                 viec(n["rang"]["ngay"], _("Rang {0}").format(n["rang"]["loai_dau"] or ""))
+                rang.add(n["rang"]["ngay"])
             di(n.get("con"))
     if goc.get("ngay_sx"):
         viec(goc["ngay_sx"], _("Làm {0}").format(goc["ten"]))
     if goc.get("rang"):
         viec(goc["rang"]["ngay"], _("Rang {0}").format(goc["rang"]["loai_dau"] or ""))
+        rang.add(goc["rang"]["ngay"])
     di(nguoc)
+    for d in sorted(x for x in rang if x):
+        # Ngày rang (D178): cát trong máy rang hôm đó, vải phủ thùng ủ đỗ vừa rang — hai PRP của công đoạn 3–5
+        # mà trước D178 hồ sơ lô không nói gì.
+        ngay_cua(d)["cat"] = _cat_ngay(d)
+        ngay_cua(d)["vai"] = _vai_ngay(d)
 
     if ngay:
         ds = sorted(ngay)
@@ -811,22 +829,105 @@ KHONG_DAT = "Không đạt"
 
 
 def _qc_cac_ngay(ds):
-    """Lượt kiểm QC của các ngày + những mục Không đạt (nhãn đọc được)."""
+    """Lượt kiểm QC của các ngày + chỗ LỆCH của từng lượt (câu đọc được).
+
+    Lệch theo ĐÚNG luật sinh sự cố của vòng kiểm (sx/qc/su_co.phat_hien, D178): mục Không đạt, nhiệt độ rang dưới
+    ngưỡng, vòng quay ngoài khoảng, thùng bột quá hạn, mạt kim loại ở nam châm, dị vật trên rây, thử nhanh lạc dương
+    tính… Trước D178 chỉ dò chữ "Không đạt" — lượt rang 235 °C hay nam châm bắt mạt kim loại hiện "đạt hết" trên hồ
+    sơ lô, phiếu sự cố nằm riêng bên dưới. Lượt nháp: lệch tính trên những gì đã ghi.
+    `khong_dat` giữ tên cũ (ảnh chụp diễn tập BM.02.04 đã lưu đọc ô này); `cao` = có lệch mức Cao."""
     try:
         vong = frappe.get_all("SX QC Round",
                               filters={"ngay": ("in", ds), "docstatus": ("<", 2)},
                               fields=["*"], order_by="ngay, started_at")
-        meta = frappe.get_meta("SX QC Round")
     except Exception:
         return []   # site chưa cài module QC
     ra = []
     for v in vong:
-        hong = [meta.get_label(k) or k for k, x in v.items()
-                if x == KHONG_DAT and not k.startswith("_")]
+        try:
+            lech = phat_hien(v)
+        except Exception:      # luật không chạy được (site thiếu ô…) — vẫn hiện lượt, dò chữ Không đạt như trước
+            lech = [(k, "", "", "", f'{(M.THEO_F.get(k) or {}).get("nhan") or k}: {KHONG_DAT}')
+                    for k, x in v.items() if x == KHONG_DAT and not k.startswith("_")]
         ra.append({"ngay": _d(v.ngay), "name": v.name, "luot": v.luot,
                    "nop": v.docstatus == 1, "duyet": bool(v.get("reviewed_by")),
-                   "khong_dat": hong})
+                   "khong_dat": [x[4] for x in lech], "cao": any(x[3] == "Cao" for x in lech)})
     return ra
+
+
+def _cat_ngay(d):
+    """Cát trong máy rang ngày `d` (BM.08.03, W20/W32): số ngày đã dùng tới hôm đó, nguồn cát, kim loại nặng của lần
+    đổi sang nguồn đó. Sổ có dòng mà hôm đó không có cát đang dùng (chưa ghi lần đưa cát vào máy) → so_ngay None.
+    Sổ cát chưa dùng bao giờ / chưa cài → None (không báo động giả)."""
+    try:
+        ds = CAT.dong_tu_moc(d)
+        if not ds and not frappe.db.count(CAT.PT):
+            return None
+        so = CAT.dem_ngay(ds, CAT.ngay_rang(min(getdate(x.ngay) for x in ds), d), d) if ds else None
+        ncc, ten = CAT.nguon_dang_dung(ds, d)
+        doi = frappe.get_all(CAT.PT, filters={"doi_nguon": 1, "ncc_cat": ncc, "ngay": ("<=", str(getdate(d)))},
+                             fields=["ngay", "kln"], order_by="ngay desc", limit=1) if ncc else []
+        toi_da = CAT.toi_da()
+    except Exception:
+        return None
+    return {"so_ngay": so, "ncc": ten or ncc or "", "toi_da": toi_da,
+            "qua_han": bool(toi_da and so is not None and so > toi_da),
+            # Kim loại nặng chỉ bắt khi ĐỔI nguồn (HD.08.03); nguồn chưa từng đổi thì không có dòng này.
+            "doi_nguon": _d(doi[0].ngay) if doi else "",
+            "kln": (doi[0].kln or "") if doi else ""}
+
+
+def _vai_ngay(d):
+    """Vải ủ (BM.08.05, W29): lần giặt gần nhất tới hết ngày `d` theo luật chu kỳ của sổ (giặt định kỳ; đang giặt sau
+    mỗi lần dùng thì mọi lần giặt) — ngày, đã QC ký chưa, số phút đun sôi, cách bao nhiêu ngày, quá chu kỳ chưa.
+    Danh mục vải trống / chưa cài → None."""
+    try:
+        if not frappe.db.count(VU.VAI):
+            return None
+        cd = VU.cai_dat()
+        giat = VU.GIAT if cd["giat_moi_lan"] else (VU.DINH_KY,)
+        x = frappe.get_all(VU.PT, filters={"viec": ("in", list(giat)), "ngay": ("<=", str(getdate(d)))},
+                           fields=["name", "ngay", "viec", "qc_ky_luc", "gio_soi_lai", "gio_vot"],
+                           order_by="ngay desc", limit=1)
+    except Exception:
+        return None
+    chu_ky = VU.CHU_KY_MOI_LAN if cd["giat_moi_lan"] else VU.CHU_KY
+    if not x:
+        return {"ngay": "", "chu_ky": chu_ky, "qua_han": True}
+    x = x[0]
+    so = (getdate(d) - getdate(x.ngay)).days
+    return {"ngay": _d(x.ngay), "viec": x.viec, "da_ky": bool(x.qc_ky_luc), "so_ngay": so, "chu_ky": chu_ky,
+            "so_phut": VU.so_phut(x.gio_soi_lai, x.gio_vot), "qua_han": so > chu_ky}
+
+
+def _xuat_xuong(goc):
+    """Phiếu kiểm tra xuất xưởng BM.08.04 của lô thành phẩm (W08) — theo (sản phẩm, HSD), cũ trước: trạng thái, kết
+    luận, QC kiểm / người duyệt và giờ, mục Không đạt, phiếu sự cố. [] = lô chưa có phiếu; None = không phải lô
+    thành phẩm có HSD, hoặc site chưa cài phiếu xuất xưởng."""
+    if not goc.get("la_tp") or not goc.get("hsd"):
+        return None
+    try:
+        ds = frappe.get_all(XX.PT, filters={"san_pham": goc["item"], "hsd": goc["hsd"]},
+                            fields=["name", "trang_thai", "ket_luan", "qc_kiem", "kiem_luc", "nguoi_duyet",
+                                    "duyet_luc", "y_kien_duyet", "su_co", "creation"],
+                            order_by="creation asc")
+        hong = frappe.get_all(f"{XX.PT} Muc", filters={"parenttype": XX.PT, "ket_qua": XX.KHONG_DAT,
+                                                       "parent": ("in", [x.name for x in ds])},
+                              fields=["parent", "ma", "noi_dung"], order_by="idx asc") if ds else []
+    except Exception:
+        return None
+    ten = {}
+
+    def ho_ten(u):
+        if u and u not in ten:
+            ten[u] = frappe.db.get_value("User", u, "full_name") or u
+        return ten.get(u) or ""
+
+    return [{"name": x.name, "trang_thai": x.trang_thai or "", "ket_luan": XX.kl(x.ket_luan) or "",
+             "cho_xuat": XX.da_duyet(x), "qc_kiem": ho_ten(x.qc_kiem), "kiem_luc": str(x.kiem_luc or "")[:16],
+             "nguoi_duyet": ho_ten(x.nguoi_duyet), "duyet_luc": str(x.duyet_luc or "")[:16],
+             "y_kien": x.y_kien_duyet or "", "su_co": x.su_co or "",
+             "khong_dat": [f"{r.ma} {r.noi_dung or ''}"[:90] for r in hong if r.parent == x.name]} for x in ds]
 
 
 def _luu_mau(goc, cua_so):
