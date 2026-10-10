@@ -23,13 +23,17 @@ os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import fakefrappe as F  # noqa: E402
 
 frappe = F.cai()
-DOI_TEN = []
+DOI_TEN, DOI_TEN_CO = [], {}
 
 
-def _doi_ten(dt, cu, moi, **k):
-    DOI_TEN.append((dt, cu, moi))
-    b = F.bang(dt)
-    b[moi] = dict(b.pop(cu), name=moi, ten=moi)
+def _doi_ten(doctype, old, new, force=False, merge=False, *, ignore_if_exists=False, show_alert=True,
+             rebuild_search=True):
+    """Đúng chữ ký `frappe.rename_doc` công khai v15 / v16: tham số lạ (ignore_permissions) là TypeError
+    như trên site — bản giả cũ nhận `**k` nên lỗi lọt qua, migrate dừng ở d161 (D175)."""
+    DOI_TEN.append((doctype, old, new))
+    DOI_TEN_CO.update(force=force, merge=merge, show_alert=show_alert, rebuild_search=rebuild_search)
+    b = F.bang(doctype)
+    b[new] = dict(b.pop(old), name=new, ten=new)
 
 
 frappe.rename_doc = _doi_ten
@@ -94,9 +98,14 @@ kiem("chạy lại vô hại", len(F.bang("SX QC Nhom COA")) == 2)
 print("\n-- patch D161: công đoạn 9 --")
 CD = "SX QC Cong Doan"
 F.bang(CD).update({"9 Trộn": {"name": "9 Trộn", "ten": "9 Trộn", "ma": "9"}})
-P.execute()
+loi = F.thu(P.execute)
+kiem("gọi frappe.rename_doc đúng chữ ký v16 — không truyền ignore_permissions (migrate dừng ở d161, D175)",
+     loi is None, loi)
 kiem("bản tạo sẵn '9 Trộn' → Rename '9 Nấu đường, trộn' (tên QT.08 / KH.HACCP.01)",
      DOI_TEN == [(CD, "9 Trộn", "9 Nấu đường, trộn")] and "9 Nấu đường, trộn" in F.bang(CD))
+kiem("… Rename force (không phụ thuộc cờ allow_rename), không gộp, không thông báo, không đẩy việc dựng "
+     "lại tìm kiếm vào hàng đợi giữa lúc migrate",
+     DOI_TEN_CO == {"force": True, "merge": False, "show_alert": False, "rebuild_search": False}, DOI_TEN_CO)
 P.execute()
 kiem("chạy lại vô hại (không đổi tên lần hai)", len(DOI_TEN) == 1)
 F.bang(CD).clear()

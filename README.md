@@ -320,6 +320,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sửa lỗi migrate ở patch d161 (D175)
+
+- Patch `d161_rang_240_280` đổi công đoạn "9 Trộn" → "9 Nấu đường, trộn" bằng
+  `frappe.rename_doc(..., ignore_permissions=True)`. Hàm `frappe.rename_doc` công khai của Frappe (v15, v16)
+  **không có** tham số `ignore_permissions` (chỉ hàm bên trong `frappe.model.rename_doc` có), nên `bench migrate`
+  **dừng ở patch d161** với `TypeError: rename_doc() got an unexpected keyword argument 'ignore_permissions'`.
+  Đã bỏ tham số đó — migrate chạy bằng Administrator nên không cần; `force=True` giữ nguyên; tắt thông báo và việc
+  dựng lại tìm kiếm (không đẩy việc vào hàng đợi giữa lúc migrate).
+- Bài test cũ thay `frappe.rename_doc` bằng hàm giả nhận mọi tham số (`**k`) nên lỗi lọt qua. Hàm giả giờ có
+  **đúng chữ ký v16** — truyền tham số lạ là test đỏ như trên site. Đã rà mọi lời gọi hàm Frappe / ERPNext trong app
+  với chữ ký bản v16: chỉ có chỗ này sai.
+- Lần migrate hỏng đã rollback patch d161 (Frappe chỉ ghi Patch Log khi patch chạy xong; patch chạy lại vô hại) nên
+  chỉ cần: `git pull` → `bench --site site1.local migrate` → `bench restart`. Lần này chạy lại d161 rồi d162 … d169,
+  đồng bộ fixtures và các hook sau migrate.
+- Kiểm sau migrate (`bench --site site1.local console`):
+  `frappe.db.exists("Patch Log", {"patch": "sx.patches.d169_bo_thau_rua_be"})` có;
+  `frappe.db.exists("SX QC Cong Doan", "9 Nấu đường, trộn")` có (trừ khi site đã tự đặt tên khác cho công đoạn 9);
+  `frappe.db.get_single_value("SX QC Setting", "rang_nhiet_min")` là 240 (hoặc số site đã tự chỉnh).
+
 ## Khung Biên bản — họp Ban ISO, xem xét lãnh đạo, đánh giá nội bộ, thẩm tra, HACCP, thu hồi, diễn tập (D174 — W45)
 
 **Chỉ ở nhánh — deploy SAU đợt Orion kiểm tra lại (C22).** Có DocType mới → phải `bench --site site1.local migrate`.
