@@ -6,6 +6,7 @@
 {%- set d = sx_dau_trang(ma, ten) if sx_dau_trang is defined else {"ma": ma, "ten": ten, "lan_ban_hanh": "",
     "ngay_ban_hanh": "", "kem": "", "cong_ty": ""} -%}
 {%- set kem_in = d.kem or kem -%}
+{%- if d.site_thu %}<div class="sx-ban-thu" style="border:1px dashed #000;padding:1px 6px;margin:0 0 4px;text-align:center;font-size:10px;font-weight:bold">{{ d.site_thu }}</div>{% endif %}
 <table class="sx-dau-trang" style="width:100%;border-collapse:collapse;margin:0 0 6px">
   <tr>
     <td style="width:22%;border:1px solid #000;padding:3px 5px;text-align:center;vertical-align:middle;font-weight:bold;font-size:10.5px">{{ d.cong_ty }}</td>

@@ -20,6 +20,7 @@ from frappe.utils import getdate, now_datetime, nowdate
 from sx.api import qc as Q
 from sx.api import qc_hoso
 from sx.qc import ho_so as HS
+from sx.qc import mau_in as MI
 from sx.qc import xuat_bao_cao as XB
 
 TRUONG = ["name", "kieu", "tu", "den", "ghi_chu", "trang_thai", "so_bieu_mau", "so_to", "kich_thuoc", "bat_dau_luc",
@@ -152,10 +153,12 @@ def _dung(doc):
         except Exception as e:  # noqa: BLE001 — một tờ hỏng không chặn cả tệp
             x["loi"] = str(e) or type(e).__name__
         bm.append(x)
+    # D179: site thử có dữ liệu mẫu → dòng đầu Mục lục / bìa nói rõ (tờ CSV không có đầu trang in chung).
+    dong = [MI.BAN_THU.upper()] if MI.co_du_lieu_mau() else []
+    dong += [f"Kỳ: {HS.ngay_vn(tu)} – {HS.ngay_vn(den)}",
+             f"Xuất lúc {now_datetime().strftime('%d/%m/%Y %H:%M')} · người xuất: {_ho_ten(doc.owner)}"]
     dau = {"tieu_de": "HỒ SƠ THEO DÕI — XUẤT CHO ĐOÀN KIỂM TRA",
-           "dong": [f"Kỳ: {HS.ngay_vn(tu)} – {HS.ngay_vn(den)}",
-                    f"Xuất lúc {now_datetime().strftime('%d/%m/%Y %H:%M')} · người xuất: {_ho_ten(doc.owner)}"]
-           + ([f"Ghi chú: {doc.ghi_chu}"] if doc.ghi_chu else [])}
+           "dong": dong + ([f"Ghi chú: {doc.ghi_chu}"] if doc.ghi_chu else [])}
     if doc.kieu == XB.EXCEL:
         import openpyxl
 

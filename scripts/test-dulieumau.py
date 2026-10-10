@@ -305,8 +305,10 @@ kiem("xong trả lại Administrator", F.NGUOI["u"] == "Administrator")
 kiem("không gửi thư khi chạy (mute_emails bật trong lúc ghi rồi trả lại)",
      THU_TAT == [True, True] and not getattr(FR.flags, "mute_emails", None), THU_TAT)
 U_ = B("User")
-kiem("hai tài khoản mẫu: tên ghi rõ dữ liệu mẫu, đủ vai, không mật khẩu, không thư chào",
-     U_[DL.QC_MAU]["last_name"] == "Mẫu (dữ liệu mẫu)" and {r["role"] for r in U_[DL.QC_MAU]["roles"]}
+kiem("hai tài khoản mẫu: tên gọn QC Mẫu / Ban ISO Mẫu, đủ vai, không mật khẩu, không thư chào",
+     (U_[DL.QC_MAU]["first_name"], U_[DL.QC_MAU]["last_name"]) == ("QC", "Mẫu")
+     and (U_[DL.ISO_MAU]["first_name"], U_[DL.ISO_MAU]["last_name"]) == ("Ban ISO", "Mẫu")
+     and {r["role"] for r in U_[DL.QC_MAU]["roles"]}
      == {"SX QC", "SX QC Packing"} and [r["role"] for r in U_[DL.ISO_MAU]["roles"]] == ["ISO Manager"]
      and not any("new_password" in U_[u] for u in U_) and U_[DL.QC_MAU]["send_welcome_email"] == 0)
 LU = mau("SX QC Round")
@@ -319,8 +321,8 @@ theo = {(str(x["ngay"]), x["luot"]): x for x in LU.values()}
 kiem("thứ Hai: lượt Tuần thay Đầu sáng", ("2026-09-28", M.TUAN) in theo and ("2026-09-28", M.DAU_SANG) not in theo
      and ("2026-10-05", M.TUAN) in theo)
 kiem("hôm nay (thứ Bảy 10/10, 10:00): chỉ lượt Đầu sáng", [lt for (d, lt) in theo if d == "2026-10-10"] == [M.DAU_SANG])
-kiem("ghi chú mọi lượt: Dữ liệu mẫu (site thử) — nhìn tờ in là biết",
-     all(x["ghi_chu"] == DL.GHI_CHU for x in LU.values()))
+kiem("D179: lượt mẫu không mang ghi chú riêng (ô ghi chú trống như lượt ghi đủ mục)",
+     all(not x.get("ghi_chu") for x in LU.values()))
 
 KH = DL._khoang(sys.modules["sx.qc.nguong"].nguong())
 sai, gio_sai, du, la = [], [], [], []
@@ -397,9 +399,9 @@ kiem("2 phiếu sự cố từ lượt Trưa đã cài, nguồn Vòng kiểm QC,
      and sorted(str(x["ngay"]) for x in SCM.values()) == ["2026-09-28", "2026-10-03"]
      and all(x["nguon"] == "Vòng kiểm QC" and B("SX QC Round")[x["qc_round"]]["luot"] == M.TRUA for x in SCM.values())
      and kq["su_co"]["tao"] == sorted(SCM, key=lambda n: str(SCM[n]["ngay"])), kq["su_co"])
-kiem("QC mẫu ghi xử lý (đánh dấu dữ liệu mẫu), Ban ISO mẫu đóng sáng hôm sau, có quyết định sản phẩm",
+kiem("QC mẫu ghi xử lý (chữ trơn, không tiền tố), Ban ISO mẫu đóng sáng hôm sau, có quyết định sản phẩm",
      all(x["trang_thai"] == "Đóng" and x["dong_boi"] == DL.ISO_MAU and x["nguoi_xu_ly"] == DL.QC_MAU
-         and x["xu_ly_ngay"].startswith("[Dữ liệu mẫu (site thử)]") and x["quyet_dinh_sp"]
+         and x["xu_ly_ngay"] in {h["xu_ly_ngay"] for h in DL.HONG} and x["quyet_dinh_sp"]
          and luc(x["dong_ngay"]).date() > F.getdate(x["ngay"]) and luc(x["creation"]).date() == F.getdate(x["ngay"])
          for x in SCM.values()) and kq["su_co"]["dong"] == 2, list(SCM.values())[:1])
 xx = [x for x in LU.values() if x.get("reviewed_on")]
@@ -412,9 +414,10 @@ kiem("Ban ISO mẫu xem xét các tuần đã qua (thứ Hai tuần sau, 16 gi�
 
 print("\n-- nhật ký cát BM.08.03 --")
 CM = sorted(mau(CAT.PT).values(), key=lambda x: (str(x["ngay"]), str(x["creation"])))
-kiem("6 dòng cát mẫu đúng kế hoạch, QC mẫu ghi, ghi chú dữ liệu mẫu",
+kiem("6 dòng cát mẫu đúng kế hoạch, QC mẫu ghi, người làm Tổ rang, không ghi chú riêng",
      [f'{x["ngay"]} {x["viec"]}' for x in CM] == kq["cat"]["ke_hoach"] and kq["cat"]["tao"] == 6
-     and all(x["nguoi_ghi"] == DL.QC_MAU and x["ghi_chu"] == DL.GHI_CHU for x in CM), [x["viec"] for x in CM])
+     and all(x["nguoi_ghi"] == DL.QC_MAU and not x.get("ghi_chu") and x["nguoi_lam"] == "Tổ rang" for x in CM),
+     [x["viec"] for x in CM])
 bs = [x for x in CM if x["viec"] == CAT.BO_SUNG]
 kiem("bổ sung: app tự đếm số ngày đã dùng (ngày có rang kể cả lượt thật 24/9): 6 rồi 12",
      [x["so_ngay_dung"] for x in bs] == [6, 12], [x["so_ngay_dung"] for x in bs])
@@ -428,9 +431,9 @@ kiem("dòng cát thật 6/10 để nguyên; Ban ISO mẫu xem dòng mẫu tuần
 
 print("\n-- sổ giặt vải ủ BM.08.05 --")
 VM = mau(VU.VAI)
-kiem("danh mục vải trống → Ban ISO mẫu khai 4 vải Đang dùng, ghi chú dữ liệu mẫu",
+kiem("danh mục vải trống → Ban ISO mẫu khai 4 vải Đang dùng (không ghi chú riêng)",
      sorted(VM) == ["V01-A", "V01-B", "V02-A", "V02-B"]
-     and all(x["trang_thai"] == VU.DANG_DUNG and x["ghi_chu"] == DL.GHI_CHU for x in VM.values()))
+     and all(x["trang_thai"] == VU.DANG_DUNG and not x.get("ghi_chu") for x in VM.values()))
 GM = sorted(mau(VU.PT).values(), key=lambda x: str(x["ngay"]))
 kiem("giặt định kỳ thứ Sáu 25/9, 9/10 (tuần có giặt thật bỏ qua), đủ 4 vải",
      [str(x["ngay"]) for x in GM] == ["2026-09-25", "2026-10-09"] and all(
@@ -468,7 +471,8 @@ LMM = mau("SX QC Luu Mau")
 kiem("sổ lưu mẫu: lấy mẫu cho lô chưa có (đúng HSD lô, lấy trước khi kiểm, ngày nhập kho); TP-BOT có mẫu thật → thôi",
      [(x["san_pham"], x["lo"], str(x["ngay_lay"])) for x in LMM.values()] == [("TP-BANH", "HSD 25/03/2027",
                                                                                "2026-09-28")]
-     and kq["xuat"]["mau_luu"] == 1 and all(x["ghi_chu"] == DL.GHI_CHU for x in LMM.values())
+     and kq["xuat"]["mau_luu"] == 1
+     and all(not x.get("ghi_chu") and x["vi_tri"] == "Tủ mẫu lưu" for x in LMM.values())
      and {r["ma"]: r["ket_qua"] for r in next(x for x in XM.values() if x["san_pham"] == "TP-BOT")["ds_muc"]}["A5"]
      == XX.DAT, [(x["san_pham"], x["lo"], x["ngay_lay"]) for x in LMM.values()])
 kiem("lô có sự cố THẬT chưa quyết định (A2 gợi ý Không đạt) → bỏ, cuộn lại cả mẫu lưu đã lấy",
@@ -479,6 +483,38 @@ kiem("lô lỗi giữa chừng → ghi LỖI, cuộn lại lô đó, các lô kh
          x["san_pham"] == "TP-HONG" for x in list(XM.values()) + list(LMM.values())))
 kiem("phiếu xuất xưởng thật của TP-DA để nguyên", B(XX.PT)["XX-THAT"]["owner"] == "qc@x" and len(
     [x for x in B(XX.PT).values() if x["san_pham"] == "TP-DA"]) == 1)
+
+
+def _chu(v):
+    if isinstance(v, dict):
+        return " ".join(_chu(x) for x in v.values())
+    if isinstance(v, (list, tuple)):
+        return " ".join(_chu(x) for x in v)
+    return str(v if v is not None else "")
+
+
+_cha = {k for dt in DL.XOA for k in mau(dt)}
+_con = ("SX QC Round Log", "SX QC Round Vat", "SX QC Round Incident", "SX Giat Vai Ma", "SX Kiem Tra Xuat Xuong Muc")
+_xet = [(dt, v) for dt in DL.XOA for v in mau(dt).values()] + [
+    (dt, v) for dt in _con for v in B(dt).values() if v.get("parent") in _cha]
+_ban = [(dt, v.get("name")) for dt, v in _xet if "dữ liệu mẫu" in _chu(v).lower() or "(mẫu)" in _chu(v).lower()]
+kiem("D179: không bản ghi mẫu nào (kể cả dòng con) còn chữ \"dữ liệu mẫu\" / \"(mẫu)\"",
+     not _ban and len(_xet) > 500, (_ban[:3], len(_xet)))
+import jinja2  # noqa: E402
+
+MI = sys.modules["sx.qc.mau_in"]
+_env = jinja2.Environment(loader=jinja2.FileSystemLoader("."))
+_env.globals["sx_dau_trang"] = F.sx_dau_trang
+_tpl = _env.from_string('{% from "sx/qc/_dau_trang.html" import dau_trang %}{{ dau_trang("BM.08.03", "Nhật ký") }}')
+_h1 = _tpl.render()
+FR.conf = {}
+_h0 = _tpl.render()
+FR.conf = {"sx_du_lieu_mau": 1}
+kiem("D179: tờ in site thử (cờ bật) mang MỘT dòng \"Bản in từ site thử …\" trên đầu trang; site không cờ thì không",
+     _h1.count(MI.BAN_THU) == 1 and MI.BAN_THU not in _h0 and "sx-dau-trang" in _h0, _h1[:300])
+_bm = sys.modules["sx.api.qc_cat"].in_bm0803("2026-09")
+kiem("D179: tờ in thật (BM.08.03 tháng 9) trên site thử có dòng đó, dữ liệu mẫu vẫn in đủ",
+     MI.BAN_THU in _bm and "Tổ rang" in _bm, _bm[:200])
 bc = DL.bao_cao(kq)
 kiem("báo cáo ghi: ĐÃ GHI, số lượt, sự cố đóng, lô bỏ kèm lý do",
      "ĐÃ GHI" in bc and "đã ghi 46 lượt" in bc and "Ban ISO đóng 2" in bc and "bỏ lô TP-SUCO" in bc, bc)
@@ -518,7 +554,13 @@ kiem("…kể cả dòng con (log từng ô, vật T4, mục phiếu xuất xư�
 kiem("bản ghi thật còn nguyên", all(THAT[dt] <= set(B(dt)) for dt in THAT)
      and B("SX QC Round")["QCR-THAT"]["qc_user"] == "qc@x")
 kiem("tài khoản mẫu đã xoá", not any(u in B("User") for u in DL.NGUOI_MAU) and not x1["khoa"])
+# tài khoản mẫu tạo trước D179: tên "… Mẫu (dữ liệu mẫu)", bị khoá, thiếu vai → chạy lại sửa cả ba
+B("User")[DL.QC_MAU] = {"name": DL.QC_MAU, "email": DL.QC_MAU, "first_name": "QC", "last_name": "Mẫu (dữ liệu mẫu)",
+                        "enabled": 0, "roles": [{"role": "SX QC"}], "doctype": "User"}
 k3 = DL.chay(dry_run=0)
+_u = B("User")[DL.QC_MAU]
+kiem("D179: tài khoản mẫu cũ → tên gọn \"Mẫu\", mở khoá, đủ vai (một lần lưu, không ghi đè lẫn nhau)",
+     (_u["last_name"], _u["enabled"], {r["role"] for r in _u["roles"]}) == ("Mẫu", 1, {"SX QC", "SX QC Packing"}), _u)
 moi = {(str(x["ngay"]), x["luot"]): (x["rang_nhiet_do"], str(x["started_at"]), x["so_may_rang"])
        for x in mau("SX QC Round").values()}
 kiem("xoá rồi sinh lại: cùng hạt → đúng số cũ (nhiệt độ rang, giờ bắt đầu, số máy từng lượt)",

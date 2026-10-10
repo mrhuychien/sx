@@ -5,8 +5,10 @@ tờ QC ghi, đoàn kiểm tra không phân biệt được. Nên lệnh tự ch
   · site tên site1.local (site thật) → dừng;
   · site_config chưa bật `sx_du_lieu_mau` (`bench --site <site thử> set-config sx_du_lieu_mau 1`) → dừng — site chép từ
     bản sao lưu mà chưa ai bật cờ này cũng không chạy.
-Mọi bản ghi mẫu do hai tài khoản mẫu ghi (qc.mau@sx.local, iso.mau@sx.local — không mật khẩu, tên hiện "… Mẫu (dữ
-liệu mẫu)"), ô ghi chú / xử lý ghi "Dữ liệu mẫu (site thử)" — nhìn tờ in là biết; xoa() xoá sạch theo hai tài khoản đó.
+Mọi bản ghi mẫu do hai tài khoản mẫu ghi (qc.mau@sx.local, iso.mau@sx.local — không mật khẩu, tên "QC Mẫu", "Ban ISO
+Mẫu"); xoa() xoá sạch theo hai tài khoản đó. Bản ghi không mang ghi chú "dữ liệu mẫu" riêng (D179 — rối mắt khi tập
+huấn); thay vào đó mọi tờ in / tệp xuất của site có cờ mang một dòng "Bản in từ site thử…" trên đầu trang
+(sx/qc/mau_in.py) — tờ giấy rời khỏi máy vẫn tự nói nó từ site thử.
 
 Sinh gì (ngày làm việc thứ Hai → thứ Bảy, Chủ nhật nghỉ trừ khi chu_nhat=1):
   BM.08.01  ba lượt mỗi ngày (thứ Hai lượt Tuần thay Đầu sáng), ghi MỌI mục áp dụng, số trong ngưỡng (SX QC Setting);
@@ -53,6 +55,7 @@ from sx.api import qc as Q
 from sx.api import qc_cat as QCAT
 from sx.api import qc_vaiu as QVAI
 from sx.qc import cat as CAT
+from sx.qc import mau_in as MI
 from sx.qc import muc as M
 from sx.qc import so as SO
 from sx.qc import vai_u as VU
@@ -61,15 +64,14 @@ from sx.qc.nguong import nguong
 from sx.seed import _dry
 
 SITE_THAT = ("site1.local",)
-CO_CHO_PHEP = "sx_du_lieu_mau"         # khoá site_config bật trên site thử
+CO_CHO_PHEP = MI.CO_DU_LIEU_MAU         # khoá site_config bật trên site thử (tờ in của site đó mang dòng "site thử")
 TU = "2026-09-22"
 
 QC_MAU = "qc.mau@sx.local"
 ISO_MAU = "iso.mau@sx.local"
-HO_MAU = "Mẫu (dữ liệu mẫu)"
+HO_MAU = "Mẫu"
 # tài khoản: (tên, vai) — QC ghi cả mục đóng gói; Ban ISO xem xét, đóng sự cố, duyệt xuất xưởng (không tự duyệt)
 NGUOI_MAU = {QC_MAU: ("QC", ("SX QC", "SX QC Packing")), ISO_MAU: ("Ban ISO", ("ISO Manager",))}
-GHI_CHU = "Dữ liệu mẫu (site thử)"
 
 PHAN = ("luot", "su_co", "cat", "vai", "xuat")
 TEN_PHAN = {"luot": "BM.08.01 vòng kiểm", "su_co": "BM.08.02 sự cố", "cat": "BM.08.03 nhật ký cát",
@@ -104,7 +106,7 @@ HONG = (
      "quyet_dinh_sp": "Loại bỏ"},
 )
 
-NGUOI_LAM_CAT = "Tổ rang (mẫu)"
+NGUOI_LAM_CAT = "Tổ rang"
 CAT_NHAP_KG, CAT_DUA_KG, CAT_BO_SUNG_KG = 300, 120, (8, 15)
 CAT_BO_SUNG_SAU = 6                    # bổ sung cát sau mỗi chừng này ngày có rang
 CAT_VE_SINH_THU = 5                    # vệ sinh thùng, khay cát thứ Bảy
@@ -120,17 +122,13 @@ class BoQua(Exception):
 
 # ═══════════════════════════════════════ chốt site ═══════════════════════════════════════
 
-def _co_bat(v):
-    return str(v if v is not None else "").strip().lower() in ("1", "true", "yes", "y", "co", "có")
-
-
 def chot_site():
     """Dừng nếu đây là site thật, hoặc site chưa bật cờ dữ liệu mẫu. Trả tên site."""
     site = str(getattr(frappe.local, "site", None) or "")
     if site in SITE_THAT:
         frappe.throw(_("{0} là site THẬT — lệnh dữ liệu mẫu không bao giờ chạy ở đây (hồ sơ máy sinh nằm cạnh hồ sơ "
                        "thật là hồ sơ giả). Dựng site thử từ bản sao lưu: README, mục D177.").format(site))
-    if not _co_bat((frappe.conf or {}).get(CO_CHO_PHEP)):
+    if not MI.co_du_lieu_mau():
         frappe.throw(_("Site {0} chưa bật cờ dữ liệu mẫu. CHỈ trên site thử: bench --site {0} set-config {1} 1")
                      .format(site or "?", CO_CHO_PHEP))
     return site
@@ -144,13 +142,17 @@ def _nguoi_mau():
     """Tạo (nếu chưa có) hai tài khoản mẫu đủ vai. Không đặt mật khẩu: không ai đăng nhập bằng chúng được."""
     for u, (ten, vai) in NGUOI_MAU.items():
         if frappe.db.exists("User", u):
+            # Đổi trên CÙNG một doc rồi lưu một lần (set_value xen giữa thì lần save sau ghi đè / lệch giờ sửa).
             doc = frappe.get_doc("User", u)
+            doi = not cint(doc.get("enabled")) or (doc.get("first_name"), doc.get("last_name")) != (ten, HO_MAU)
+            if doi:
+                # Bị khoá (xoa() không xoá được thì khoá), hoặc tạo trước D179 với tên "… Mẫu (dữ liệu mẫu)".
+                doc.enabled, doc.first_name, doc.last_name = 1, ten, HO_MAU
+                doc.save(ignore_permissions=True)
             co = {r.get("role") for r in doc.get("roles") or []}
             thieu = [r for r in vai if r not in co]
             if thieu:
-                doc.add_roles(*thieu)
-            if not cint(doc.get("enabled")):
-                frappe.db.set_value("User", u, "enabled", 1)
+                doc.add_roles(*thieu)          # tự lưu
             continue
         frappe.get_doc({"doctype": "User", "email": u, "first_name": ten, "last_name": HO_MAU, "enabled": 1,
                         "user_type": "System User", "send_welcome_email": 0,
@@ -439,7 +441,7 @@ def _mot_luot(ngay, luot, bd, kt, kh, hong=None):
     if pb != M.PHIEN_BAN:
         # Bộ mục của NGÀY ĐÓ (D129): before_insert gắn bản hiện hành; đặt lại trước khi ghi mục nào.
         frappe.db.set_value("SX QC Round", name, "phien_ban", pb, update_modified=False)
-    dau = dict(ngay["may"], ghi_chu=GHI_CHU)
+    dau = dict(ngay["may"])
     vi = ngay["vi"] if luot == ngay["luot"][0][0] else ngay["vi_sau"]
     if ngay["bot"] and vi:
         dau["san_pham_bot"] = "\n".join(vi)
@@ -475,8 +477,8 @@ def _mot_luot(ngay, luot, bd, kt, kh, hong=None):
 def _xu_ly_su_co(ten, hong, kt, bay_gio):
     """QC ghi xử lý ngay; Ban ISO đóng (quyết định sản phẩm) sáng ngày làm việc kế tiếp nếu đã tới giờ đó."""
     _la(QC_MAU)
-    Q.update_incident(ten, json.dumps({k: f"[{GHI_CHU}] {hong[k]}" for k in
-                                       ("xu_ly_ngay", "nguyen_nhan", "hanh_dong_khac_phuc")}, ensure_ascii=False))
+    Q.update_incident(ten, json.dumps({k: hong[k] for k in ("xu_ly_ngay", "nguyen_nhan", "hanh_dong_khac_phuc")},
+                                      ensure_ascii=False))
     _dat_gio("SX Su Co", ten, kt, kt + timedelta(minutes=25))
     d = getdate(kt) + timedelta(days=1)
     while d.weekday() == CHU_NHAT:
@@ -539,7 +541,7 @@ def _ghi_cat(kh_cat, bay_gio, kq):
     _la(QC_MAU)
     stt = {}
     for x in kh_cat:
-        p = dict(x, nguoi_lam=NGUOI_LAM_CAT, ghi_chu=GHI_CHU)
+        p = dict(x, nguoi_lam=NGUOI_LAM_CAT)
         r = QCAT.ghi(json.dumps(p, ensure_ascii=False))
         i = stt[x["ngay"]] = stt.get(x["ngay"], -1) + 1
         t = _luc(x["ngay"], time(7, 30) if x["viec"] == CAT.NHAP else time(13, 30)) + timedelta(minutes=5 * i)
@@ -553,7 +555,7 @@ def _ghi_vai(kh_vai, giat, tu, bay_gio, hat, kq):
         _la(ISO_MAU)                     # khai danh mục vải: QLSX / Ban ISO
         for ma, thung in VAI_MAU:
             QVAI.luu_vai(json.dumps({"ma": ma, "thung": thung, "trang_thai": VU.DANG_DUNG, "moi": 1,
-                                     "ngay_nhap": str(tu), "ghi_chu": GHI_CHU}, ensure_ascii=False))
+                                     "ngay_nhap": str(tu)}, ensure_ascii=False))
             kq["vai"]["vai_tao"] += 1
         frappe.db.commit()
     cd = VU.cai_dat()
@@ -567,8 +569,8 @@ def _ghi_vai(kh_vai, giat, tu, bay_gio, hat, kq):
         if cat >= bay_gio:
             cat = datetime.combine(d, time(17, 45))
         r = QVAI.ghi(json.dumps({"ngay": ngay, "viec": VU.DINH_KY, "vai": kh_vai["vai"],
-                                 "nguoi_lam": cd.get("nguoi_giat") or "Tổ vệ sinh (mẫu)",
-                                 "phoi_tai": cd.get("noi_giat") or "Giàn phơi khu sơ chế (mẫu)",
+                                 "nguoi_lam": cd.get("nguoi_giat") or "Tổ vệ sinh",
+                                 "phoi_tai": cd.get("noi_giat") or "Giàn phơi khu sơ chế",
                                  "gio_soi_lai": soi.strftime("%H:%M"), "gio_vot": vot.strftime("%H:%M"),
                                  "cat_luc": cat.strftime("%Y-%m-%d %H:%M"), "ky": 1}, ensure_ascii=False))
         _dat_gio(VU.PT, r["name"], vot + timedelta(minutes=10), cat + timedelta(minutes=5),
@@ -582,7 +584,7 @@ def _ghi_vai(kh_vai, giat, tu, bay_gio, hat, kq):
         t = _luc(dau_sau.replace(day=NGAY_XEM_THANG), time(9, 0), random.Random(f"{hat}|xemvai|{dau_sau}"), 30)
         if t < bay_gio:
             frappe.db.set_value(VU.PT, x.name, {"xem_boi": ISO_MAU, "xem_luc": t,
-                                                "xem_nhan_xet": f"Đã xem ({GHI_CHU})"}, update_modified=False)
+                                                "xem_nhan_xet": "Đã xem"}, update_modified=False)
     frappe.db.commit()
 
 
@@ -618,8 +620,8 @@ def _mot_lo(lo, hat, bay_gio):
                            order_by="creation asc", limit=1)
         lm = Q.tao_luu_mau(json.dumps({"san_pham": lo["item"], "batch": b[0] if b else "",
                                        "lo": f"HSD {hsd.strftime('%d/%m/%Y')}", "so_luong": SO_MAU_LUU,
-                                       "dvt": lo["dvt"] or "hộp", "vi_tri": "Tủ mẫu lưu (mẫu)",
-                                       "ngay_lay": str(lay_luc.date()), "ghi_chu": GHI_CHU}, ensure_ascii=False))
+                                       "dvt": lo["dvt"] or "hộp", "vi_tri": "Tủ mẫu lưu",
+                                       "ngay_lay": str(lay_luc.date())}, ensure_ascii=False))
         _dat_gio("SX QC Luu Mau", lm["name"], lay_luc)
         lay = 1
     p = XXA.lap_phieu(lo["item"], str(hsd), lo["so_luong"], lo["dvt"] or None)
@@ -638,10 +640,9 @@ def _mot_lo(lo, hat, bay_gio):
                        "mau": [f"{kl + rd.uniform(0.3, 2.5):.1f}" for _i in range(XX.SO_MAU)]})
         elif ma in XX.MA_B:
             ds.append({"ma": ma, "ket_qua": XX.DAT, "mau": [XX.D] * XX.SO_MAU})
-    XXA.gui_duyet(p["name"], json.dumps({"ds_muc": ds, "ket_luan": XX.CHO_XUAT, "ghi_chu": GHI_CHU},
-                                        ensure_ascii=False))
+    XXA.gui_duyet(p["name"], json.dumps({"ds_muc": ds, "ket_luan": XX.CHO_XUAT}, ensure_ascii=False))
     _la(ISO_MAU)
-    XXA.duyet_phieu(p["name"], 1, f"Đồng ý cho xuất xưởng ({GHI_CHU})")
+    XXA.duyet_phieu(p["name"], 1, "Đồng ý cho xuất xưởng")
     _la(QC_MAU)
     _dat_gio(XX.PT, p["name"], lay_luc + timedelta(minutes=5), duyet, {"kiem_luc": kiem, "duyet_luc": duyet})
     return lay

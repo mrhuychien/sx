@@ -51,6 +51,7 @@ CT_HS = F.nap("hs_ctl", "sx/qc/doctype/sx_ho_so_danh_muc/sx_ho_so_danh_muc.py")
 F.dang_ky(HS.PT, CT_HS.SXHoSoDanhMuc)
 P149 = F.nap("sx.patches.d149_ho_so", "sx/patches/d149_ho_so.py")
 FR.local = types.SimpleNamespace(response=F.Doc())
+FR.conf = {}            # site_config của site thật: không có cờ dữ liệu mẫu (D179)
 JOB, LOG = [], []
 FR.enqueue = lambda method, **k: JOB.append((method, k))
 FR.log_error = lambda **k: LOG.append(k)
@@ -303,6 +304,21 @@ kiem("chạy lại job (job trùng) / CHẠY NGAY khi đã xong: không dựng l
      and "không còn" in (thu(lambda: API.chay_ngay(x["name"])) or "") and so_tep(x["name"]) == 1)
 kiem("trạng thái nhiều lần xuất một lượt (màn hỏi lại)", [y["trang_thai"] for y in API.trang_thai(json.dumps(
     [x["name"]]))] == [XB.XONG] and API.trang_thai("[]") == [])
+
+kiem("site thật (không cờ dữ liệu mẫu): không có dòng \"site thử\" ở Mục lục / tờ in",
+     not any("SITE THỬ" in v.upper() for v in chu.values()))
+FR.conf = {"sx_du_lieu_mau": 1}           # D179: site thử có dữ liệu mẫu
+xt = API.xuat(json.dumps({"kieu": "Excel", "tu": "2026-09-01", "den": "2026-09-30", "bieu_mau": ["BM.08.03",
+                                                                                                    "BM.08.02"]}))
+API.chay(xt["name"])
+wbt = openpyxl.load_workbook(io.BytesIO(open(os.path.join(KHO, lan(xt["name"])["ten_tep"]), "rb").read()))
+cht = {sh: " ".join(str(o.value) for h in wbt[sh].iter_rows() for o in h if o.value is not None) for sh in wbt.sheetnames}
+MI = sys.modules["sx.qc.mau_in"]
+kiem("D179: site thử — Mục lục mở đầu bằng dòng \"BẢN IN TỪ SITE THỬ …\" (cả tờ CSV sổ sự cố không có đầu trang)",
+     cht["Mục lục"].startswith("HỒ SƠ THEO DÕI") and MI.BAN_THU.upper() in cht["Mục lục"]
+     and wbt["Mục lục"]["A2"].value == MI.BAN_THU.upper(), cht["Mục lục"][:200])
+kiem("D179: site thử — tờ in (BM.08.03) mang dòng đó trên đầu trang", MI.BAN_THU in cht["BM.08.03"], cht["BM.08.03"][:200])
+FR.conf = {}
 
 print("\n-- một biểu mẫu in lỗi, cả lần xuất lỗi, CHẠY NGAY, làm lại, xoá --")
 goc = Q.month_sheets

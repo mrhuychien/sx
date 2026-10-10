@@ -320,6 +320,18 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Dữ liệu mẫu bỏ ghi chú từng bản ghi; tờ in site thử có một dòng nhận biết (D179)
+
+- Bản ghi do lệnh dữ liệu mẫu (D177) sinh ra **không còn** ghi chú "Dữ liệu mẫu (site thử)", tiền tố "[Dữ liệu mẫu]" ở
+  phiếu sự cố, chữ "(mẫu)" ở tên người làm / chỗ phơi / vị trí tủ mẫu — màn hình tập huấn trông như ghi thật. Hai tài
+  khoản mẫu tên gọn **QC Mẫu**, **Ban ISO Mẫu** (tài khoản tạo trước D179 tự đổi tên khi chạy lại `tao`).
+- Thay vào đó, **site bật cờ `sx_du_lieu_mau`** (chỉ site thử) in **một dòng** trên đầu mọi tờ in — "Bản in từ site thử —
+  có dữ liệu mẫu, không phải hồ sơ chính thức" — và ở đầu Mục lục / bìa của tệp xuất Excel / PDF. Tờ giấy rời khỏi máy
+  vẫn tự nói nó từ site thử. Site thật không có cờ → không bao giờ hiện (`sx/qc/mau_in.py`, macro đầu trang chung).
+- Site thử đã chạy lệnh trước D179: xoá rồi sinh lại — cùng hạt nên ra đúng số cũ, chỉ bỏ ghi chú:
+  `… execute sx.seed.du_lieu_mau.xoa --kwargs "{'dry_run': 0}"` rồi `… execute sx.seed.du_lieu_mau.tao --kwargs "{'dry_run': 0}"`.
+- Không đổi DocType, không đổi JS. Test: `test-dulieumau.py`, phần site thử trong `test-xuatbc.py`.
+
 ## Truy xuất: lượt lệch theo luật sự cố, cát / vải ủ ngày rang, phiếu BM.08.04 của lô (D178)
 
 Hồ sơ một lô (thẻ Truy xuất ở màn Quản lý, màn ISO) và phụ lục diễn tập BM.02.04:
@@ -392,8 +404,8 @@ Tham số: `tu` (mặc định `'2026-09-22'`), `den` (mặc định hôm nay), 
   bị đo (hạn đầu 31/10/2026), động vật gây hại, sổ ghi theo dòng, biên bản, kiểm nghiệm.
 - Ghi qua đúng API của màn QC (dữ liệu mẫu qua mọi luật như QC bấm thật), rồi chỉnh giờ (bắt đầu / hoàn tất lượt, giờ
   từng ô, ký, duyệt) về đúng ngày, trong khung lượt. Mọi bản ghi của hai tài khoản mẫu `qc.mau@sx.local`,
-  `iso.mau@sx.local` (không mật khẩu, tên "… Mẫu (dữ liệu mẫu)"), ghi chú "Dữ liệu mẫu (site thử)" — `xoa` xoá đúng
-  theo hai tài khoản đó, kể cả dòng con, rồi xoá hai tài khoản.
+  `iso.mau@sx.local` (không mật khẩu, tên "QC Mẫu", "Ban ISO Mẫu") — `xoa` xoá đúng theo hai tài khoản đó, kể cả dòng
+  con, rồi xoá hai tài khoản. Từ D179 bản ghi không mang ghi chú "dữ liệu mẫu" (xem mục D179).
 - Code: `sx/seed/du_lieu_mau.py` (không whitelist — chỉ chạy bằng `bench execute`). Không đổi DocType, không đổi JS:
   site thật **không cần** migrate / build gì. Test: `test-dulieumau.py`.
 
