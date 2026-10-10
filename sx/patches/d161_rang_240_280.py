@@ -7,6 +7,9 @@
   ví dụ "lạc, đỗ" của W10), nên chỉ bỏ đúng các nhóm đó; nhóm khác site đã khai thì để nguyên.
 · Công đoạn 9 mang tên đúng QT.08 / KH.HACCP.01: "9 Nấu đường, trộn" (bản tạo sẵn D130 là "9 Trộn"). Đổi
   bằng Rename như Ban ISO làm trên Desk (phiếu sự cố cũ trỏ theo). Site đã tự đặt tên khác thì giữ.
+  `frappe.rename_doc` công khai (v15, v16) KHÔNG nhận `ignore_permissions` — truyền vào là TypeError làm
+  migrate dừng (D175). Không cần: migrate chạy bằng Administrator, `force` bỏ qua cờ allow_rename. Tắt
+  thông báo và dựng lại tìm kiếm (không đẩy việc vào hàng đợi giữa lúc migrate).
 Chạy lại vô hại.
 """
 
@@ -31,7 +34,7 @@ def execute():
         if cint(v) == cu:
             frappe.db.set_single_value(ST, f, moi)
     if frappe.db.table_exists(CD) and frappe.db.exists(CD, CD_CU) and not frappe.db.exists(CD, CD_MOI):
-        frappe.rename_doc(CD, CD_CU, CD_MOI, force=True, ignore_permissions=True)
+        frappe.rename_doc(CD, CD_CU, CD_MOI, force=True, show_alert=False, rebuild_search=False)
     try:
         ds = frappe.get_all("SX QC Nhom COA", filters={"parenttype": ST, "parent": ST,
                                                        "parentfield": "nhom_can_aflatoxin"},
