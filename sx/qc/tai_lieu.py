@@ -60,8 +60,11 @@ HD_CUA_YC = {SOAN_MOI: BH_MOI, SUA_DOI: BH_SUA, HUY_BO: BH_HUY, AP_DUNG: BH_MOI}
 
 # Bản hiện hành chỉ đổi qua API ban hành (cờ frappe.flags.sx_ban_hanh) — không sửa tay, kể cả trên Desk.
 KHOA = ("lan_ban_hanh", "ngay_ban_hanh", "ngay_hieu_luc", "tep", "trang_thai", "dot_ban_hanh")
-COT_LICH_SU = ("lan_ban_hanh", "ngay_ban_hanh", "ngay_hieu_luc", "het_hieu_luc_tu", "tep", "dot_ban_hanh",
+COT_LICH_SU = ("lan_ban_hanh", "ngay_ban_hanh", "ngay_hieu_luc", "het_hieu_luc_tu", "tep", "ban_scan", "dot_ban_hanh",
                "tom_tat_thay_doi")
+# D176: bản scan (bản gốc đã ký, đóng dấu) của bản HIỆN HÀNH — Trưởng Ban ISO gắn / thay bất cứ lúc nào (không thuộc
+# KHOA); ra bản mới thì bản scan cũ theo bản cũ vào lịch sử, bản mới chờ scan mới.
+SCAN = ("ban_scan", "scan_luc", "scan_boi")
 
 NGAY_NHAC_DOC = 7       # đợt ban hành quá chừng này ngày mà còn người chưa xác nhận đọc
 NGAY_NHAC_DN = 7        # đề nghị chờ xem xét / duyệt quá chừng này ngày
@@ -319,7 +322,8 @@ def ban_moi(tl, muc, dot):
 
     Ra bản mới (mới / sửa đổi / ban hành lại): bản đang hiện hành (nếu có) vào lịch sử, hết hiệu lực từ ngày
     hiệu lực của đợt; bản mới lấy lần BH, PDF của dòng, ngày của đợt. Hủy bỏ: bản đang có vào lịch sử, tài liệu
-    Hết hiệu lực (giữ thông tin bản cuối để tra). Giữ nguyên: không đổi gì."""
+    Hết hiệu lực (giữ thông tin bản cuối để tra). Giữ nguyên: không đổi gì.
+    Bản scan (D176) đi theo BẢN của nó: vào lịch sử cùng bản cũ; bản mới để trống chờ scan bản mới đã ký."""
     hd = _lay(muc, "hanh_dong")
     if hd == BH_GIU:
         return None, {}
@@ -329,13 +333,14 @@ def ban_moi(tl, muc, dot):
     if co_ban and _lay(tl, "trang_thai") == HIEN_HANH:
         ls = {"lan_ban_hanh": _lay(tl, "lan_ban_hanh") or "", "ngay_ban_hanh": _lay(tl, "ngay_ban_hanh"),
               "ngay_hieu_luc": _lay(tl, "ngay_hieu_luc"), "het_hieu_luc_tu": het_tu, "tep": _lay(tl, "tep") or "",
-              "dot_ban_hanh": _lay(tl, "dot_ban_hanh") or None,
+              "ban_scan": _lay(tl, "ban_scan") or "", "dot_ban_hanh": _lay(tl, "dot_ban_hanh") or None,
               "tom_tat_thay_doi": " ".join(str(_lay(muc, "tom_tat") or hd).split())}
     if hd == BH_HUY:
         return ls, {"trang_thai": HET, "dot_ban_hanh": _lay(dot, "name")}
     return ls, {"lan_ban_hanh": _lay(muc, "lan_ban_hanh_moi") or "", "ngay_ban_hanh": _lay(dot, "ngay_ban_hanh"),
                 "ngay_hieu_luc": _lay(dot, "ngay_hieu_luc") or _lay(dot, "ngay_ban_hanh"),
-                "tep": _lay(muc, "tep_moi") or "", "trang_thai": HIEN_HANH, "dot_ban_hanh": _lay(dot, "name")}
+                "tep": _lay(muc, "tep_moi") or "", "trang_thai": HIEN_HANH, "dot_ban_hanh": _lay(dot, "name"),
+                "ban_scan": "", "scan_luc": None, "scan_boi": ""}
 
 
 def thieu_ban_hanh(dot, ds, nguon_cua=None):

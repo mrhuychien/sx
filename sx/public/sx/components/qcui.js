@@ -484,13 +484,22 @@ export function tabLo(dang) {
  *  (W25, D151) ↔ Hồ sơ cho đoàn đánh giá (W27, D149). Tab trên thanh QC đã đủ sáu với người duyệt —
  *  thêm tab thứ bảy là chữ gãy dòng trên điện thoại. */
 export function tabXemXet(dang) {
-  const box = el('div', 'sx-qc-seg sx-sc-tab');
+  // D176: đang đứng trong màn ISO (#/iso) → thanh tab của màn ISO (thêm Xuất báo cáo, Truy xuất). Đường cũ #/qc/…
+  // (người không có màn ISO mở từ hộp nhắc, trang đã đánh dấu) → thanh Xem xét cũ.
+  const iso = String((window.location && window.location.hash) || '').startsWith('#/iso');
+  const box = el('div', `sx-qc-seg sx-sc-tab${iso ? ' sx-iso-tab' : ''}`);
   // W42 (D171): "Tài liệu" sang thư viện tài liệu (#/tailieu, tab Ban hành / Đề nghị cho Ban ISO).
   // W45 (D174): "Biên bản" — họp Ban ISO, xem xét lãnh đạo, đánh giá nội bộ, thẩm tra… (#/qc/bienban).
-  [['attp', 'Tổng quan'], ['review', 'Xem xét tháng'], ['baocao', 'Báo cáo'], ['bienban', 'Biên bản'],
-    ['hoso', 'Hồ sơ đánh giá'], ['tailieu', 'Tài liệu']].forEach(([ma, ten]) => {
+  const tabs = iso
+    ? [['attp', 'Tổng quan'], ['review', 'Xem xét tháng'], ['baocao', 'Báo cáo'], ['xuat', 'Xuất báo cáo'],
+      ['hoso', 'Hồ sơ đánh giá'], ['bienban', 'Biên bản'], ['truyxuat', 'Truy xuất'], ['tailieu', 'Tài liệu']]
+    : [['attp', 'Tổng quan'], ['review', 'Xem xét tháng'], ['baocao', 'Báo cáo'], ['bienban', 'Biên bản'],
+      ['hoso', 'Hồ sơ đánh giá'], ['tailieu', 'Tài liệu']];
+  tabs.forEach(([ma, ten]) => {
     const a = el('a', `sx-qc-tab${ma === dang ? ' sx-qc-seg-on' : ''}`, esc(ten));
-    a.href = ma === 'tailieu' ? '#/tailieu/tatca' : `#/qc/${ma}`;
+    if (ma === 'tailieu') a.href = '#/tailieu/tatca';
+    else if (iso) a.href = ma === 'attp' ? '#/iso' : `#/iso/${ma}`;
+    else a.href = `#/qc/${ma}`;
     box.appendChild(a);
   });
   return box;

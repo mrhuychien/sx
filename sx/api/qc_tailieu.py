@@ -29,10 +29,12 @@ SM = "System Manager"
 # Ai lập được đề nghị BM.01.01 (md W42: SX Quan Ly, ISO, QLSX, QC, QC đóng gói, Cơ điện, Hành chính — C24).
 LAP_DE_NGHI = {QUAN_LY, ISO, "Production Manager", "SX QC", "SX QC Packing", "SX Co Dien", "SX Hanh Chinh"}
 TEP_TOI_DA = 10 * 1024 * 1024
+DUOI_SCAN = ("pdf", "jpg", "jpeg", "png")
 DAU_TEP = {"pdf": b"%PDF", "png": b"\x89PNG", "jpg": b"\xff\xd8", "jpeg": b"\xff\xd8", "docx": b"PK\x03\x04",
            "doc": b"\xd0\xcf\x11\xe0"}
 TRUONG = ["name", "ma", "ten", "loai", "nguon", "trang_thai", "nhom_thu_muc", "thu_muc", "thu_tu", "thuoc",
-          "lan_ban_hanh", "ngay_ban_hanh", "ngay_hieu_luc", "dot_ban_hanh", "tep", "can_xac_nhan",
+          "lan_ban_hanh", "ngay_ban_hanh", "ngay_hieu_luc", "dot_ban_hanh", "tep", "ban_scan", "scan_luc", "scan_boi",
+          "can_xac_nhan",
           "so_hieu_co_quan", "noi_dung_ap_dung", "dan_chieu", "bo_phan_quan_ly", "ngay_soat_xet", "ghi_chu"]
 TRUONG_DN = ["name", "loai_yeu_cau", "tai_lieu", "ma_de_xuat", "ten_de_xuat", "lan_ban_hanh", "ngay_hieu_luc",
              "trang_thai", "nguoi_de_nghi", "ho_ten_de_nghi", "chuc_danh_de_nghi", "bo_phan", "ngay_de_nghi",
@@ -128,14 +130,15 @@ def _con(dt, f=None):
 
 
 def _dong(x, pp, bm, iso):
-    """Một tài liệu cho màn hình — không đưa đường dẫn tệp riêng tư ra ngoài."""
-    d = {f: x.get(f) for f in TRUONG if f != "tep"}
+    """Một tài liệu cho màn hình — không đưa đường dẫn tệp riêng tư ra ngoài (PDF, bản scan: chỉ có / không)."""
+    d = {f: x.get(f) for f in TRUONG if f not in ("tep", "ban_scan")}
     d.update(ngay_ban_hanh=_ngay(x.ngay_ban_hanh), ngay_hieu_luc=_ngay(x.ngay_hieu_luc),
-             ngay_soat_xet=_ngay(x.ngay_soat_xet), co_tep=bool(x.tep), phan_phoi=pp.get(x.name, []),
+             ngay_soat_xet=_ngay(x.ngay_soat_xet), co_tep=bool(x.tep), co_scan=bool(x.get("ban_scan")),
+             scan_luc=_luc(x.get("scan_luc")), phan_phoi=pp.get(x.name, []),
              ma_bieu_mau=[{"ma": b.ma, "ten": b.ten or "", "man_app": b.man_app or ""} for b in bm.get(x.name, [])])
     d["man_app"] = TL.man_app(d)
     if not iso:
-        for f in ("ghi_chu", "thu_muc"):
+        for f in ("ghi_chu", "thu_muc", "scan_luc", "scan_boi"):
             d.pop(f, None)
     return d
 
@@ -225,7 +228,8 @@ def xem(name):
     d["lich_su"] = [{"lan_ban_hanh": r.lan_ban_hanh or "", "ngay_ban_hanh": _ngay(r.ngay_ban_hanh),
                      "ngay_hieu_luc": _ngay(r.ngay_hieu_luc), "het_hieu_luc_tu": _ngay(r.het_hieu_luc_tu),
                      "dot_ban_hanh": r.dot_ban_hanh or "", "tom_tat_thay_doi": r.tom_tat_thay_doi or "",
-                     "co_tep": bool(r.tep)} for r in (tl.get("lich_su") or [])] if iso else []
+                     "co_tep": bool(r.tep), "co_scan": bool(r.get("ban_scan"))}
+                    for r in (tl.get("lich_su") or [])] if iso else []
     doc = frappe.get_all(TL.PT_DOC, filters={"tai_lieu": name, "user": frappe.session.user,
                                              "lan_ban_hanh": tl.lan_ban_hanh or ""},
                          fields=["name", "mo_luc", "doc_luc"], limit=1)
@@ -270,15 +274,26 @@ def _doc_tep(url):
 
 
 @frappe.whitelist()
-def tai_tep(name, kem=None, lan=None):
+def tai_tep(name, kem=None, lan=None, scan=None):
     """Tải / xem tệp (GET, trình duyệt mở thẳng): kiểm quyền xem tài liệu rồi trả nội dung tệp riêng tư.
-    `kem` = số thứ tự tệp kèm; `lan` = lần ban hành cũ (chỉ Trưởng Ban ISO, siêu quyền)."""
+    `kem` = số thứ tự tệp kèm; `lan` = lần ban hành cũ (chỉ Trưởng Ban ISO, siêu quyền); `scan` = bản scan (bản gốc
+    đã ký, D176) — của bản hiện hành, hoặc của lần `lan`."""
     roles = _guard_tai_lieu()
     tl = frappe.get_doc(TL.PT, name)
     if not _xem_duoc(tl, roles):
         frappe.throw(_("Tài liệu này không phân phối cho bạn."), frappe.PermissionError)
-    url = tl.tep
-    if kem not in (None, ""):
+    url = tl.get("ban_scan") if cint(scan) else tl.tep
+    if cint(scan) and lan:
+        if not _la_iso(roles):
+            frappe.throw(_("Bản cũ: chỉ Trưởng Ban ISO xem."), frappe.PermissionError)
+        url = next((r.get("ban_scan") for r in reversed(tl.get("lich_su") or []) if (r.lan_ban_hanh or "") == lan),
+                   None)
+        if not url:
+            frappe.throw(_("Lần ban hành {0} chưa có bản scan.").format(lan))
+    elif cint(scan):
+        if not url:
+            frappe.throw(_("Tài liệu chưa có bản scan."))
+    elif kem not in (None, ""):
         kem_ds = tl.get("tep_kem") or []
         url = kem_ds[cint(kem)].tep if 0 <= cint(kem) < len(kem_ds) else None
     elif lan:
@@ -292,6 +307,32 @@ def tai_tep(name, kem=None, lan=None):
     frappe.local.response.filecontent = nd
     frappe.local.response.type = "download"
     frappe.local.response.display_content_as = "inline"
+
+
+@frappe.whitelist()
+def scan_gan(name, ten, noi_dung):
+    """Gắn / thay bản scan bản gốc đã ký của bản HIỆN HÀNH (Trưởng Ban ISO; PDF / ảnh ≤ 10 MB). Ghi người + giờ
+    gắn. Không đụng PDF, lần BH, ngày (các ô đó chỉ đổi qua Ban hành)."""
+    _guard_iso()
+    tl = frappe.get_doc(TL.PT, name)
+    if tl.trang_thai == TL.HET:
+        frappe.throw(_("Tài liệu đã hết hiệu lực — bản scan của các lần trước nằm ở lịch sử."))
+    b = _tep_b64(ten, noi_dung, DUOI_SCAN)
+    duoi = str(ten).rsplit(".", 1)[-1].lower()
+    goc = "".join(c if c.isalnum() or c in ".-_" else "-" for c in (tl.ma or name)).strip("-.") or name
+    url = _luu_tep(TL.PT, name, f"{goc}-scan.{duoi}", b)
+    frappe.db.set_value(TL.PT, name, {"ban_scan": url, "scan_luc": now_datetime(), "scan_boi": _ho_ten()})
+    return {"name": name, "co_scan": True}
+
+
+@frappe.whitelist()
+def scan_bo(name):
+    """Bỏ bản scan của bản hiện hành (gắn nhầm tệp) — tệp vẫn còn trong File, chỉ không gắn vào tài liệu nữa."""
+    _guard_iso()
+    if not frappe.db.exists(TL.PT, name):
+        frappe.throw(_("Không có tài liệu {0}.").format(name))
+    frappe.db.set_value(TL.PT, name, {"ban_scan": None, "scan_luc": None, "scan_boi": None})
+    return {"name": name, "co_scan": False}
 
 
 @frappe.whitelist()

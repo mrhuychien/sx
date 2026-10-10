@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-138';
+const BUILD = 'sx-139';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -23,6 +23,8 @@ const VIEW_PATHS = {
   tet: '/assets/sx/sx/views/tet.js',
   quanly: '/assets/sx/sx/views/quanly.js',
   qc: '/assets/sx/sx/views/qc.js',
+  // D176: màn riêng của Trưởng Ban ISO (tổng quan, xem xét, báo cáo, xuất cho đoàn, hồ sơ, biên bản, truy xuất).
+  iso: '/assets/sx/sx/views/iso.js',
   // W43 (D172): sổ ghi theo dòng — mọi vai vào được (thấy sổ mình có quyền), ngay trước Tài liệu.
   so: '/assets/sx/sx/views/so.js',
   // W42 (D171): thư viện tài liệu — mọi vai vào được, tab cuối.
@@ -59,13 +61,14 @@ const VIEW_META = {
   tet: { label: 'Vào hộp Tết', icon: '🧧' },
   quanly: { label: 'Quản lý', icon: '📊' },
   qc: { label: 'QC', icon: '🧪' },
+  iso: { label: 'ISO', icon: '🛡️' },
   so: { label: 'Sổ', icon: '📒' },
   tailieu: { label: 'Tài liệu', icon: '📚' },
 };
 
 // Màn hình tự dựng nhiều màn con (#/qc/round/:name…) và tự lo thanh ngày của
 // mình. Shell giấu thanh ngày chung để không có HAI ô ngày trên một màn.
-const VIEW_TU_LO_NGAY = new Set(['qc', 'so', 'tailieu']);
+const VIEW_TU_LO_NGAY = new Set(['qc', 'iso', 'so', 'tailieu']);
 
 const views = (CTX.views && CTX.views.length) ? CTX.views : ['ghiso'];
 const landing = CTX.landing || views[0];
@@ -404,6 +407,8 @@ Object.keys(VIEW_PATHS).forEach((v) => {
 // Màn con của QC: '#/qc/incidents', '#/qc/round/QC-…'. Cùng một view lo hết,
 // nó tự đọc hash — xem sx/public/sx/views/qc.js.
 router.registerPrefix('#/qc/', async (container) => renderView('qc', container));
+// Màn ISO (D176): '#/iso/xuat', '#/iso/bienban/BB-…' — view iso tự đọc hash.
+router.registerPrefix('#/iso/', async (container) => renderView('iso', container));
 // Thư viện tài liệu (W42): '#/tailieu/denghi', '#/tailieu/dot/DBH-…' — view tailieu tự đọc hash.
 router.registerPrefix('#/tailieu/', async (container) => renderView('tailieu', container));
 // Sổ ghi theo dòng (W43): '#/so/BM.06.05' — view so tự đọc hash.

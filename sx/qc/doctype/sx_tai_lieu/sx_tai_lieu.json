@@ -4,7 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "links": [],
- "modified": "2026-10-09 22:30:00.000000",
+ "modified": "2026-10-10 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "QC",
  "owner": "Administrator",
@@ -65,6 +65,9 @@
   "column_break_2",
   "tep",
   "tep_soan",
+  "ban_scan",
+  "scan_luc",
+  "scan_boi",
   "can_xac_nhan",
   "tep_goc",
   "section_pp",
@@ -195,6 +198,25 @@
    "fieldname": "tep_soan",
    "fieldtype": "Attach",
    "label": "Tệp soạn (.docx, tùy chọn)"
+  },
+  {
+   "fieldname": "ban_scan",
+   "fieldtype": "Attach",
+   "label": "Bản scan (bản gốc đã ký, đóng dấu)",
+   "read_only": 1,
+   "description": "Gắn / thay ở màn Tài liệu (Trưởng Ban ISO) — D176. Ra bản mới thì bản scan cũ vào lịch sử."
+  },
+  {
+   "fieldname": "scan_luc",
+   "fieldtype": "Datetime",
+   "label": "Gắn bản scan lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "scan_boi",
+   "fieldtype": "Data",
+   "label": "Người gắn bản scan",
+   "read_only": 1
   },
   {
    "fieldname": "can_xac_nhan",

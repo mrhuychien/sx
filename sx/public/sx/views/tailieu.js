@@ -16,7 +16,7 @@ import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
 
 const API = 'sx.api.qc_tailieu';
-export const st = { q: '', tt: 'Hiện hành', nguon: 'Nội bộ', quyen: null, daMo: {} };
+export const st = { q: '', tt: 'Hiện hành', nguon: 'Nội bộ', scan: '', quyen: null, daMo: {} };
 export const ngayDu = (s) => (s ? `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}` : '');
 const KIEU_DN = { 'Nháp': '', 'Chờ xem xét': 'oprp', 'Chờ duyệt': 'oprp', 'Đã duyệt': 'dong', 'Trả lại': 'cao', 'Hủy': '' };
 const KIEU_TT = { 'Hiện hành': 'dong', 'Dự thảo': 'oprp', 'Hết hiệu lực': 'cao' };
@@ -105,6 +105,17 @@ export function nutMo(api, name, chu = '📄 MỞ', opts = {}) {
     api.call(`${API}.mo`, args).then(() => { st.daMo[name] = true; if (opts.xong) opts.xong(); })
       .catch((e) => toastErr(e.message));
   });
+  return a;
+}
+
+/** Mở bản scan bản gốc đã ký (D176): GET tai_tep?scan=1 — kiểm quyền như PDF; không tính là "đã mở đọc". */
+export function nutScan(name, chu = '📎 BẢN SCAN', lan = '') {
+  const a = el('a', 'sx-btn sx-btn-ghost sx-tl-mo', esc(chu));
+  const q = new URLSearchParams({ name, scan: 1 });
+  if (lan) q.set('lan', lan);
+  a.href = `/api/method/${API}.tai_tep?${q}`;
+  a.target = '_blank';
+  a.rel = 'noopener';
   return a;
 }
 
@@ -262,9 +273,12 @@ function veDong(ctx, x, dl, tatCa) {
   if (x.nguon === 'Bên ngoài') meta.appendChild(el('span', null, esc(x.so_hieu_co_quan || '')));
   if (x.loai === 'Biểu mẫu trên phần mềm') meta.appendChild(chip('trên phần mềm'));
   if (tatCa) meta.appendChild(el('span', null, `${(x.phan_phoi || []).length} nơi nhận`));
+  if (x.co_scan) meta.appendChild(chip('có bản scan', 'dong'));
+  else if (tatCa && canScan(x)) meta.appendChild(chip('chưa có bản scan', 'oprp'));
   the.appendChild(meta);
   const nutDs = [];
   if (x.co_tep) nutDs.push(nutMo(ctx, x.name, '📄 MỞ'));
+  if (x.co_scan) nutDs.push(nutScan(x.name));
   if (x.man_app) {
     const g = el('a', 'sx-btn sx-btn-ghost', '✍ GHI TRÊN APP');
     g.href = x.man_app;
@@ -276,6 +290,11 @@ function veDong(ctx, x, dl, tatCa) {
     the.appendChild(hang);
   }
   return the;
+}
+
+/** Tài liệu nên có bản scan bản gốc đã ký (D176): nội bộ, đang hiện hành, không phải biểu mẫu chỉ có trên phần mềm. */
+export function canScan(x) {
+  return x.trang_thai === 'Hiện hành' && x.nguon === 'Nội bộ' && x.loai !== 'Biểu mẫu trên phần mềm';
 }
 
 /** "Chờ tôi ký" (W45): biên bản đang tới lượt mình ký — bấm sang #/tailieu/bienban/<tên>. */
@@ -313,13 +332,20 @@ export function veDanhSach(ctx, dl, tatCa) {
     c.appendChild(tren);
     c.appendChild(segment(['Hiện hành', 'Dự thảo', 'Hết hiệu lực', 'Tất cả'], st.tt, (v) => { st.tt = v || 'Hiện hành'; ctx.lai(); }));
     c.appendChild(segment(['Nội bộ', 'Bên ngoài'], st.nguon, (v) => { st.nguon = v || 'Nội bộ'; ctx.lai(); }));
+    // D176: bản scan bản gốc đã ký — đếm đã có / cần có, lọc ra những tài liệu còn thiếu để đi scan.
+    const can = (dl.ds || []).filter(canScan);
+    c.appendChild(el('div', 'sx-qc-goiy', `Bản scan bản gốc đã ký: <b>${can.filter((x) => x.co_scan).length} / ${can.length}</b> `
+      + 'tài liệu nội bộ hiện hành.'));
+    c.appendChild(segment([{ v: '', ten: 'Mọi tài liệu' }, { v: 'thieu', ten: 'Chưa có bản scan' }], st.scan,
+      (v) => { st.scan = v || ''; ctx.lai(); }));
   }
   const tim = el('input', 'sx-textarea sx-tl-tim');
   tim.type = 'search';
   tim.placeholder = 'Tìm mã, tên tài liệu, mã biểu mẫu…';
   tim.value = st.q;
   c.appendChild(tim);
-  const ds = (dl.ds || []).filter((x) => !tatCa || ((st.tt === 'Tất cả' || x.trang_thai === st.tt) && x.nguon === st.nguon));
+  const ds = (dl.ds || []).filter((x) => !tatCa || ((st.tt === 'Tất cả' || x.trang_thai === st.tt) && x.nguon === st.nguon
+    && (st.scan !== 'thieu' || (canScan(x) && !x.co_scan))));
   const vung = el('div', 'sx-qc-than');
   c.appendChild(vung);
   const ve = () => {
@@ -375,6 +401,7 @@ async function moChiTiet(ctx, name, dl) {
   (x.tep_kem || []).filter((t) => t.co_tep).forEach((t) => hang.appendChild(
     nutMo(ctx, x.name, `🖼 ${t.mo_ta || `tệp kèm ${t.i + 1}`}`, { kem: t.i, kieu: 'sx-btn-ghost' })));
   b.appendChild(hang);
+  b.appendChild(veScan(ctx, x, dl, m));
   if ((x.ma_bieu_mau || []).length) {
     b.appendChild(el('div', 'sx-qc-goiy', 'Biểu mẫu trong tệp:'));
     const bm = el('div', 'sx-qc-chips sx-tb-nut');
@@ -402,10 +429,52 @@ async function moChiTiet(ctx, name, dl) {
       r.appendChild(el('span', 'sx-qc-goiy', `Lần ${esc(l.lan_ban_hanh || '—')} · ${esc(ngayDu(l.ngay_ban_hanh))} → hết `
         + `${esc(ngayDu(l.het_hieu_luc_tu))}${l.tom_tat_thay_doi ? ` · ${esc(l.tom_tat_thay_doi)}` : ''}`));
       if (l.co_tep && l.lan_ban_hanh) r.appendChild(nutMo(ctx, x.name, '📄 bản cũ', { lan: l.lan_ban_hanh, kieu: 'sx-btn-ghost' }));
+      if (l.co_scan && l.lan_ban_hanh) r.appendChild(nutScan(x.name, '📎 scan bản cũ', l.lan_ban_hanh));
       b.appendChild(r);
     });
   }
   b.appendChild(nut('SỬA (TÊN, PHÂN PHỐI, BIỂU MẪU KÈM)', 'sx-btn-ghost sx-btn-big', () => { m.close(); moSuaTL(ctx, x, dl); }));
+}
+
+/** Bản scan bản gốc đã ký, đóng dấu (D176): ai xem được tài liệu thì mở được; Trưởng Ban ISO gắn / thay / bỏ (PDF,
+ *  ảnh ≤ 10 MB). Bản scan đi theo bản hiện hành — ra bản mới thì bản cũ cùng bản scan của nó vào lịch sử. */
+export function veScan(ctx, x, dl, m) {
+  const box = el('div', 'sx-tl-scan');
+  box.appendChild(el('div', 'sx-qc-sc-ten', 'Bản scan (bản gốc đã ký, đóng dấu)'));
+  if (x.co_scan) {
+    const h = el('div', 'sx-qc-chips sx-tb-nut');
+    h.appendChild(nutScan(x.name, '📎 MỞ BẢN SCAN'));
+    box.appendChild(h);
+    if (dl.la_iso && x.scan_luc) {
+      box.appendChild(el('div', 'sx-qc-goiy', `Gắn ${esc(ngayDu(x.scan_luc))} ${esc(String(x.scan_luc).slice(11, 16))}`
+        + `${x.scan_boi ? ` · ${esc(x.scan_boi)}` : ''}`));
+    }
+  } else box.appendChild(el('div', 'sx-qc-goiy', 'Chưa có bản scan.'));
+  if (dl.la_iso && x.trang_thai !== 'Hết hiệu lực') {
+    const h = el('div', 'sx-qc-chips sx-tb-nut');
+    h.appendChild(nutTaiTep(x.co_scan ? '📎 THAY BẢN SCAN' : '📎 GẮN BẢN SCAN', '.pdf,.jpg,.jpeg,.png', async (f, b64) => {
+      await ctx.call(`${API}.scan_gan`, { name: x.name, ten: f.name, noi_dung: b64 });
+      toast('Đã gắn bản scan');
+      if (m) m.close();
+      ctx.lai();
+    }));
+    if (x.co_scan) {
+      h.appendChild(nut('BỎ BẢN SCAN', null, () => confirm2Step({
+        title: `Bỏ bản scan của ${x.ma || x.ten}?`,
+        message: 'Chỉ bỏ khi gắn nhầm tệp. Tài liệu sẽ thành "chưa có bản scan".',
+        confirmLabel: 'BỎ BẢN SCAN',
+        onConfirm: async () => {
+          await ctx.call(`${API}.scan_bo`, { name: x.name });
+          toast('Đã bỏ bản scan');
+          if (m) m.close();
+          ctx.lai();
+        },
+      })));
+    }
+    box.appendChild(h);
+    box.appendChild(el('div', 'sx-qc-goiy', 'PDF hoặc ảnh, tối đa 10 MB — nhiều trang thì scan thành một PDF.'));
+  }
+  return box;
 }
 
 function moSuaTL(ctx, x, dl) {

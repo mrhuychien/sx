@@ -111,8 +111,12 @@ def vai_tro_hien(roles=None):
 # liệu phân phối cho mình, C27), luôn là tab CUỐI (allowed_views) nên màn mở đầu của mỗi vai không đổi.
 # "so" (W43, D172): sổ ghi theo dòng (bảo dưỡng, khách vào xưởng, PCCC…) — mọi vai vào được, thấy sổ mình có quyền
 # theo định nghĩa sổ; tab đứng ngay trước Tài liệu. Người chưa được giao sổ nào thì không hiện tab (co_so=False).
+# "iso" (D176): màn riêng của Trưởng Ban ISO — tổng quan ATTP, xem xét tháng, báo cáo, xuất báo cáo cho đoàn, hồ sơ
+# đánh giá, biên bản, diễn tập truy xuất. Trước đây là tab Xem xét / Truy xuất trong màn QC; màn QC giờ là màn nhập
+# liệu của QC. Đứng ĐẦU danh sách của Ban ISO: mở app là vào màn của mình.
 TAI_LIEU = "tailieu"
 SO = "so"
+ISO_VIEW = "iso"
 ROLE_VIEWS = {
     GHI_SO: ["ghiso", SO, TAI_LIEU],
     VAO_HOP: ["vaohop", "nhapkho", SO, TAI_LIEU],
@@ -121,7 +125,7 @@ ROLE_VIEWS = {
     QUAN_LY: ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly", SO, TAI_LIEU],
     QC: ["qc", SO, TAI_LIEU],
     QC_GOI: ["qc", SO, TAI_LIEU],
-    ISO: ["qc", SO, TAI_LIEU],
+    ISO: [ISO_VIEW, "qc", SO, TAI_LIEU],
     QLSX: ["qc", SO, TAI_LIEU],
     KHO_NL: [SO, TAI_LIEU],
     CO_DIEN: [SO, TAI_LIEU],
@@ -131,7 +135,7 @@ ROLE_VIEWS = {
     KINH_DOANH: [SO, TAI_LIEU],
 }
 
-MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "tet", "qc", "quanly", SO, TAI_LIEU]
+MOI_VIEW = ["ghiso", "vaohop", "nhapkho", "tet", "qc", ISO_VIEW, "quanly", SO, TAI_LIEU]
 
 # view lắp từ những card nào (thứ tự hiển thị).
 # D33: hai màn NHẬP LIỆU chỉ giữ việc phải gõ. Chốt ngày (hành động chốt sổ) và lưu đồ
@@ -153,6 +157,8 @@ VIEW_CARDS = {
     # Màn QC là view standalone: nó tự dựng cả 5 màn con (#/qc, /round/:name,
     # /incidents, /history, /review) và tự chốt quyền trong sx/api/qc.py.
     "qc": [],
+    # Màn ISO (D176) cũng standalone: tự dựng các màn con #/iso/<màn>, quyền chốt ở từng API (_guard_manager…).
+    ISO_VIEW: [],
     # qcnhac đứng ĐẦU: việc QC đang treo phải đập vào mắt trước cả nút chốt ngày.
     # nogia (D99): sổ nợ đơn giá vào hộp — lương khoán đang 0 đồng chờ khai giá.
     # phieuluong (D110): xem nhanh phiếu lương tháng — gập sẵn, sau thẻ chốt ngày.

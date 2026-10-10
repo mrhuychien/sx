@@ -320,6 +320,39 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Màn ISO riêng, xuất báo cáo Excel / PDF cho đoàn, bản scan tài liệu (D176)
+
+**Chỉ ở nhánh — đi cùng đợt D171–D174 (C22: deploy sau đợt Orion kiểm tra lại).** Có DocType mới, ô mới → phải
+`bench --site site1.local migrate`.
+
+- **Màn ISO** (tab dưới 🛡️ ISO, `#/iso`) — Trưởng Ban ISO mở app là vào đây; quản lý cũng thấy. Tab: Tổng quan ·
+  Xem xét tháng · Báo cáo · **Xuất báo cáo** · Hồ sơ đánh giá · Biên bản · Truy xuất · Tài liệu (sang thư viện). Các màn
+  con dùng lại đúng màn cũ (một chỗ code, `sx/public/sx/views/iso.js`).
+- **Màn QC giữ việc nhập liệu**: người có màn ISO không còn tab Xem xét / Truy xuất ở QC. Đường cũ `#/qc/attp`,
+  `#/qc/review`, `#/qc/bienban/<x>`… (hộp nhắc, thẻ Tổng quan, trang đã đánh dấu) tự chuyển sang `#/iso/…`; người không
+  có màn ISO (QLSX, QC mở biên bản phải ký) vẫn xem trong QC như cũ.
+- **Xuất báo cáo cho đoàn kiểm tra** (`#/iso/xuat`): chọn biểu mẫu (theo nhóm của danh mục hồ sơ BM.01.04, ô tìm, chọn
+  cả nhóm; mỗi biểu mẫu ghi sẽ ra tờ nào) + kỳ (chọn nhanh tháng / quý / năm, tối đa 24 tháng) + ghi chú đoàn → **Excel**
+  hoặc **PDF**. Nội dung là chính bản in của từng biểu mẫu — cùng tờ trong gói zip (`qc_hoso._in`), không có bản số liệu
+  thứ hai để lệch với giấy.
+  - Excel: sheet **Mục lục** (kỳ, người xuất, ghi chú; mỗi biểu mẫu → các tờ, bấm sang sheet; kỳ trống / in lỗi ghi rõ)
+    + mỗi tờ in một sheet dựng lại đúng bảng: ô gộp, tiêu đề đậm, ô chắc là số thì thành số; chữ "=…" giữ là chữ (không
+    thành công thức trong Excel của đoàn); thiết lập in A4 ngang / dọc theo tờ.
+  - PDF: một tệp — bìa mục lục có số trang + bookmark từng biểu mẫu; mỗi biểu mẫu dựng đúng khổ tờ in (A4 ngang / dọc,
+    lề theo `@page`), bảng rộng thu nhỏ cho vừa. Dùng wkhtmltopdf của Frappe (như in PDF trên Desk) — máy chủ thiếu thì
+    lần xuất PDF báo Lỗi kèm lý do, Excel vẫn xuất được.
+  - Dựng **nền** (job hàng `long`): lần xuất hiện ngay ở "Các lần xuất" — Đang chờ / Đang tạo → Xong (**TẢI VỀ**) / Lỗi
+    (lý do, LÀM LẠI). Hàng đợi máy chủ không chạy thì sau 20 giây có **CHẠY NGAY**. Một biểu mẫu in lỗi không làm hỏng cả
+    tệp. Mỗi lần xuất được giữ lại (DocType `SX Xuat Bao Cao`): ai, lúc nào, kỳ, biểu mẫu, cho đoàn nào; xoá được (cả tệp).
+  - Luật dựng ở `sx/qc/xuat_bao_cao.py` (hàm thuần), API `sx/api/qc_xuatbc.py` (Trưởng Ban ISO, quản lý).
+- **Bản scan tài liệu** (thư viện `#/tailieu`): mỗi tài liệu có ô **bản scan bản gốc đã ký, đóng dấu** (PDF / ảnh
+  ≤ 10 MB). Trưởng Ban ISO gắn / thay / bỏ ở chi tiết tài liệu (ghi người + giờ gắn); ai xem được tài liệu thì mở được bản
+  scan. Tab Tất cả: đếm bản scan "đã có / cần có", lọc **Chưa có bản scan**, thẻ ghi có / chưa có. Ban hành bản mới thì
+  bản scan cũ vào lịch sử cùng bản cũ (Ban ISO mở được), bản mới chờ scan mới; lịch sử không sửa tay được.
+- Build **sx-139**. Deploy (cùng đợt D171–D174): `git pull` → `bench --site site1.local migrate` → `bench restart`.
+- Test: `test-xuatbc.py` (Excel thật bằng openpyxl — máy test thiếu thì `pip install --user openpyxl`; PDF giả lập),
+  `test-iso.mjs`, phần bản scan trong `test-tailieu.py` / `test-tailieu.mjs`.
+
 ## Sửa lỗi migrate ở patch d161 (D175)
 
 - Patch `d161_rang_240_280` đổi công đoạn "9 Trộn" → "9 Nấu đường, trộn" bằng

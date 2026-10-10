@@ -159,13 +159,19 @@ print("\n-- module QC: 4 vai, và chỗ khác nhau giữa chúng --")
 for vai, ten in [(R.QC, "QC chế biến"), (R.QC_GOI, "QC đóng gói"),
                  (R.ISO, "Ban ISO"), (R.QLSX, "QLSX")]:
     nhu_la(vai)
-    kiem(f"{ten}: thấy đúng màn QC (+ Sổ W43, Tài liệu W42)", R.allowed_views() == ["qc", "so", "tailieu"],
-         str(R.allowed_views()))
+    # D176: Ban ISO có màn riêng #/iso ĐỨNG ĐẦU (mở app là vào màn của mình); màn QC vẫn còn (nhập liệu).
+    man = ["iso", "qc", "so", "tailieu"] if vai == R.ISO else ["qc", "so", "tailieu"]
+    kiem(f"{ten}: thấy đúng {'màn ISO, ' if vai == R.ISO else ''}màn QC (+ Sổ W43, Tài liệu W42)",
+         R.allowed_views() == man and R.landing_view() == man[0], str(R.allowed_views()))
     kiem(f"{ten}: không vào được màn nhập liệu cũ",
          not any(goi_duoc(c) for c in ["vaohop", "nhapkhotp", "chotngay",
                                        "nguoidung", "baome"]))
     kiem(f"{ten}: không phải super role", not R.is_super())
 
+nhu_la(R.QUAN_LY)
+kiem("D176: quản lý thấy màn ISO (ngay sau QC), vẫn mở app vào Quản lý", R.MOI_VIEW.index("iso") == R.MOI_VIEW.index("qc") + 1
+     and "iso" in R.allowed_views() and R.landing_view() == "quanly" and R.view_cards()["iso"] == [])
+kiem("D176: chỉ Ban ISO (và siêu quyền) có màn ISO", [r for r, v in R.ROLE_VIEWS.items() if "iso" in v] == [R.ISO])
 nhu_la()
 kiem("không role nào: không vào được màn nào", R.allowed_views() == [])
 kiem("không role nào: không gọi được gì", not any(

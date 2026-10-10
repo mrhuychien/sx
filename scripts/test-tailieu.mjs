@@ -231,4 +231,54 @@ kiem('TẢI TỆP: chỉ tệp khớp tên và chưa có (HD.08.01), đúng kho�
   tai.length === 1 && tai[0][1].khoa === 'tl:TL-1' && tai[0][1].ten === 'HD.08.01.pdf' && tai[0][1].noi_dung === 'JVBERg=='
   && c5.chu.includes('Còn 1 tệp chưa chọn: CS.pdf'), tai);
 
+console.log('\n-- bản scan bản gốc đã ký (D176) --');
+kiem('nên có bản scan: tài liệu nội bộ hiện hành; không: dự thảo, bên ngoài, biểu mẫu chỉ có trên phần mềm',
+  V.canScan(tl()) && !V.canScan(tl({ trang_thai: 'Dự thảo' })) && !V.canScan(tl({ nguon: 'Bên ngoài' }))
+  && !V.canScan(tl({ loai: 'Biểu mẫu trên phần mềm' })));
+const DS_ISO = { ...DS, la_iso: true, can_doc: [], ds: [tl({ co_scan: true }), tl({ name: 'TL-5', ma: 'QT.08', ten: 'Quy trình SX' }),
+  tl({ name: 'TL-4', ma: 'PLK', ten: 'Phiếu theo dõi sản lượng', loai: 'Biểu mẫu trên phần mềm', co_tep: false })] };
+globalThis.window.location = { hash: '#/tailieu/tatca' };
+V.st.quyen = null;
+V.st.tt = 'Hiện hành';
+V.st.nguon = 'Nội bộ';
+V.st.scan = '';
+const a6 = api(DS_ISO);
+await V.render(a6);
+let c6 = a6.container;
+const the6 = tim(c6, (e) => e.classList.contains('sx-tl-the'));
+kiem('Tất cả (Ban ISO): đếm bản scan đã có / cần có (biểu mẫu phần mềm không tính)',
+  c6.chu.includes('Bản scan bản gốc đã ký: 1 / 2'), c6.chu.slice(0, 300));
+kiem('… thẻ có scan: chip "có bản scan" + nút mở bản scan (GET tai_tep?scan=1); thiếu: chip "chưa có bản scan"',
+  the6[0].chu.includes('có bản scan') && link(the6[0], 'BẢN SCAN').href === '/api/method/sx.api.qc_tailieu.tai_tep?name=TL-1&scan=1'
+  && link(the6[0], 'BẢN SCAN').target === '_blank' && the6[1].chu.includes('chưa có bản scan') && !link(the6[1], 'BẢN SCAN')
+  && !the6[2].chu.includes('chưa có bản scan'));
+tim(c6, (e) => e.tagName === 'BUTTON' && e.textContent === 'Chưa có bản scan')[0].bam();
+await cho();
+c6 = a6.container;
+const con = tim(c6, (e) => e.classList.contains('sx-tl-the')).map((e) => tim(e, (k) => k.classList.contains('sx-tl-ma'))
+  .map((k) => k.textContent).join() || e.chu);
+kiem('lọc "Chưa có bản scan" → chỉ tài liệu còn thiếu (đi scan cho đủ)', V.st.scan === 'thieu'
+  && con.length === 1 && con[0].includes('QT.08'), con);
+V.st.scan = '';
+const mo = { close() { mo.dong = true; } };
+const XEM = tl({ co_scan: true, scan_luc: '2026-10-10 09:05', scan_boi: 'Nguyễn Huy Chiến' });
+let sc = V.veScan({ ...api(DS_ISO), lai: () => {} }, XEM, { la_iso: true }, mo);
+kiem('chi tiết (Ban ISO, có scan): MỞ BẢN SCAN, người + giờ gắn, THAY / BỎ bản scan; nhận PDF / ảnh',
+  link(sc, 'MỞ BẢN SCAN').href.endsWith('tai_tep?name=TL-1&scan=1') && sc.chu.includes('Gắn 10/10/2026 09:05 · Nguyễn Huy Chiến')
+  && !!nutCo(sc, 'THAY BẢN SCAN') && !!nutCo(sc, 'BỎ BẢN SCAN')
+  && tim(sc, (e) => e.tagName === 'INPUT')[0].accept === '.pdf,.jpg,.jpeg,.png');
+nutCo(sc, 'BỎ BẢN SCAN').bam();
+const x6 = XAC[XAC.length - 1];
+await x6.onConfirm();
+kiem('BỎ BẢN SCAN hỏi xác nhận rồi gọi scan_bo, đóng chi tiết', x6.title.includes('HD.08.01') && goi('scan_bo').pop()[1].name === 'TL-1'
+  && mo.dong);
+sc = V.veScan(api(DS_ISO), tl(), { la_iso: true }, mo);
+kiem('chi tiết (Ban ISO, chưa có): "Chưa có bản scan" + GẮN BẢN SCAN', sc.chu.includes('Chưa có bản scan')
+  && !!nutCo(sc, 'GẮN BẢN SCAN') && !nutCo(sc, 'BỎ BẢN SCAN'));
+sc = V.veScan(api(DS), XEM, { la_iso: false }, mo);
+kiem('người thường: chỉ MỞ BẢN SCAN — không gắn / thay / bỏ, không thấy ai gắn', !!link(sc, 'MỞ BẢN SCAN')
+  && !nutCo(sc, 'BẢN SCAN') && !sc.chu.includes('Nguyễn Huy Chiến'));
+sc = V.veScan(api(DS_ISO), tl({ trang_thai: 'Hết hiệu lực' }), { la_iso: true }, mo);
+kiem('tài liệu Hết hiệu lực: không gắn bản scan mới', !nutCo(sc, 'GẮN BẢN SCAN'));
+
 ketThuc('TAILIEU-JS');

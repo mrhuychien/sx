@@ -524,4 +524,14 @@ node scripts/test-bienban.mjs > /tmp/sx-bienban-js.log 2>&1 \
   && tail -1 /tmp/sx-bienban-js.log \
   || { cat /tmp/sx-bienban-js.log; loi=1; }
 
+# D176: màn ISO riêng + xuất báo cáo cho đoàn. Tệp Excel phải là đúng tờ in (ô gộp, số, chữ "=…" không thành công
+# thức), PDF đúng khổ từng tờ, bìa đúng số trang; một biểu mẫu in lỗi không làm hỏng cả tệp; người có màn ISO mở
+# đường cũ #/qc/attp… phải sang #/iso, màn QC của họ chỉ còn tab nhập liệu.
+python3 scripts/test-xuatbc.py > /tmp/sx-xuatbc.log 2>&1 \
+  && tail -1 /tmp/sx-xuatbc.log \
+  || { cat /tmp/sx-xuatbc.log; loi=1; }
+node scripts/test-iso.mjs > /tmp/sx-iso-js.log 2>&1 \
+  && tail -1 /tmp/sx-iso-js.log \
+  || { cat /tmp/sx-iso-js.log; loi=1; }
+
 exit $loi

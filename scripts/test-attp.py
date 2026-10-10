@@ -325,7 +325,7 @@ js = open("sx/public/sx/views/qc_attp.js", encoding="utf-8").read()
 rv = open("sx/public/sx/views/qc_review.js", encoding="utf-8").read()
 kiem("màn tổng quan gọi qc_attp.tong_quan, hai nút Tổng quan / Xem xét tháng ở cả hai màn",
      "sx.api.qc_attp.tong_quan" in js and "tabXemXet('attp')" in js and "tabXemXet('review')" in rv)
-kiem("card QC trên màn Quản lý có nút sang Tổng quan ATTP", "#/qc/attp" in open(
-    "sx/public/sx/cards/qcnhac.js", encoding="utf-8").read())
+kiem("card QC trên màn Quản lý có nút sang Tổng quan ATTP — D176: trang đầu màn ISO (#/iso)", "['#/iso', 'TỔNG QUAN ATTP']"
+     in open("sx/public/sx/cards/qcnhac.js", encoding="utf-8").read())
 
 F.ket_thuc("ATTP")

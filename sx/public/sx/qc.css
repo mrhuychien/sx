@@ -642,3 +642,24 @@ button.sx-qc-tag-chon {
 .sx-bb-muc-tb span { color: var(--sx-warning); font-weight: 700; }
 .sx-bb-nut { padding: var(--sx-s3) 0; flex-wrap: wrap; }
 .sx-bb-ghichu { white-space: pre-wrap; }
+
+/* ── Màn ISO #/iso (D176) — thanh tab nhiều mục gãy dòng thay vì ép chữ; tiền tố sx-iso-, sx-xbc- ────── */
+.sx-iso-tab { flex-wrap: wrap; }
+.sx-iso-tab .sx-qc-tab { flex: 1 0 auto; min-width: 7.5em; }
+.sx-xbc-nut { flex-wrap: wrap; }
+.sx-xbc-nut .sx-btn { flex: 1 1 12em; }
+.sx-xbc-chonky .sx-textarea, .sx-xbc-tim { box-sizing: border-box; width: 100%; }
+.sx-xbc-chonky .sx-qc-chips { flex-wrap: wrap; margin-bottom: var(--sx-s2); }
+.sx-xbc-ds { display: flex; flex-direction: column; gap: var(--sx-s2); margin-top: var(--sx-s2); }
+.sx-xbc-nhom { display: flex; flex-direction: column; gap: 2px; }
+.sx-xbc-nhom-ten, .sx-xbc-o {
+  display: flex; align-items: flex-start; gap: var(--sx-s2); width: 100%; box-sizing: border-box; text-align: left;
+  border: 0; background: transparent; color: var(--sx-text); cursor: pointer;
+  font: 400 var(--sx-f-sm)/1.3 var(--sx-font); padding: var(--sx-s2); border-radius: var(--sx-radius-sm);
+  min-height: var(--sx-tap);
+}
+.sx-xbc-nhom-ten { font-weight: 700; background: var(--sx-surface-2); }
+.sx-xbc-o.sx-xbc-on { background: var(--sx-primary-soft); }
+.sx-xbc-hop { font-size: var(--sx-f-md); line-height: 1.1; }
+.sx-xbc-ky { display: block; color: var(--sx-text-3); font-size: var(--sx-f-xs); }
+.sx-xbc-lan .sx-tb-nut { flex-wrap: wrap; }

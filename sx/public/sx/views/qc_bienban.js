@@ -7,6 +7,8 @@
 //                           bản chụp lúc lập, KÉO LẠI khi còn Nháp), LƯU / GỬI KÝ, KÝ / TRẢ LẠI theo thứ tự ô ký, tải
 //                           bản ký tay, tệp kèm, IN.
 //   #/tailieu/bienban[/<tên>]  cùng màn trong thư viện tài liệu — mọi vai (biên bản mình lập / phải ký).
+//   #/iso/bienban[/<tên>]      cùng màn trong màn ISO (D176) — Trưởng Ban ISO; #/qc/bienban của người có màn ISO
+//                              được views/qc.js chuyển sang đây.
 // Luật ở sx/qc/bien_ban.py, API sx/api/qc_bienban.py. Thêm phiếu mới = khai mẫu (SX Mau Bien Ban), không sửa JS.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
@@ -22,9 +24,11 @@ const KIEU_TT = { 'Nháp': '', 'Chờ ký': 'oprp', 'Đã ký đủ': 'dong', 'T
 const KPH = ['KPH', 'Không', 'Không đạt', 'cần điều chỉnh'];
 const DGNB_CON = ['BM.01.06', 'BM.01.08', 'BM.01.09'];
 
-/** Gốc đường dẫn theo nơi đang đứng: trong QC hay trong thư viện tài liệu. */
+/** Gốc đường dẫn theo nơi đang đứng: màn ISO (D176), thư viện tài liệu, hay QC (đường cũ). */
 export function goc() {
-  return String(window.location.hash || '').startsWith('#/tailieu') ? '#/tailieu/bienban' : '#/qc/bienban';
+  const h = String(window.location.hash || '');
+  if (h.startsWith('#/iso')) return '#/iso/bienban';
+  return h.startsWith('#/tailieu') ? '#/tailieu/bienban' : '#/qc/bienban';
 }
 
 function nut(chu, kieu, onClick) {

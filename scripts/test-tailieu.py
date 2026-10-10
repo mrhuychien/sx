@@ -355,6 +355,52 @@ if F.jinja2:
          and "Ký trên phần mềm: Nguyễn Huy Chiến" in h and "Ký trên phần mềm: Giám Đốc" in h, h[:400])
 
 # ═══ 7. Đợt ban hành ══════════════════════════════════════════════════════
+# ═══ 6b. Bản scan bản gốc đã ký (D176) ═════════════════════════════════════
+print("\n-- bản scan bản gốc đã ký, đóng dấu (D176) --")
+SCAN = base64.b64encode(b"%PDF-1.4 ban scan co dau do").decode()
+hd = anh["HD.08.01"]["name"]
+tep_hd = F.bang(TL.PT)[hd]["tep"]
+la("qc@x")
+kiem("QC không gắn / bỏ bản scan", all("Trưởng Ban ISO" in (thu(f) or "") for f in (
+    lambda: A.scan_gan(hd, "scan.pdf", SCAN), lambda: A.scan_bo(hd))))
+la("iso@x")
+kiem("chỉ nhận PDF / ảnh; nội dung phải khớp đuôi", "Chỉ nhận" in (thu(lambda: A.scan_gan(hd, "scan.docx", SCAN)) or "")
+     and "không khớp" in (thu(lambda: A.scan_gan(hd, "scan.pdf", PNG)) or ""))
+r = A.scan_gan(hd, "HD 08 01 da ky.PDF", SCAN)
+x = F.bang(TL.PT)[hd]
+kiem("gắn: tệp riêng tư gắn tài liệu, tên theo mã; ghi người + giờ gắn; PDF, lần BH, trạng thái không đổi",
+     r["co_scan"] and x["ban_scan"].startswith("/private/files/") and x["ban_scan"].endswith("HD.08.01-scan.pdf")
+     and x["scan_boi"] == "Nguyễn Huy Chiến" and x["scan_luc"] and x["tep"] == tep_hd and x["lan_ban_hanh"] == "01"
+     and x["trang_thai"] == TL.HIEN_HANH, {k: x.get(k) for k in ("ban_scan", "scan_boi", "scan_luc", "lan_ban_hanh")})
+dong_iso = next(y for y in A.ds(tat_ca=1)["ds"] if y["name"] == hd)
+kiem("Ban ISO: danh sách có cờ có bản scan + giờ gắn; không lộ đường dẫn tệp", dong_iso["co_scan"]
+     and dong_iso["scan_luc"] and "ban_scan" not in dong_iso and "tep" not in dong_iso, dong_iso)
+xx = A.xem(hd)
+kiem("xem: có bản scan, người + giờ gắn (Ban ISO)", xx["co_scan"] and xx["scan_boi"] == "Nguyễn Huy Chiến"
+     and xx["scan_luc"] and "ban_scan" not in xx)
+la("qc@x")
+dong_qc = next(y for y in A.ds()["ds"] if y["name"] == hd)
+kiem("QC (thuộc nơi nhận): thấy có bản scan; không thấy người / giờ gắn, không lộ đường dẫn", dong_qc["co_scan"]
+     and "scan_luc" not in dong_qc and "scan_boi" not in dong_qc and "ban_scan" not in dong_qc, dong_qc)
+FR.local.response = types.SimpleNamespace()
+A.tai_tep(hd, scan=1)
+kiem("QC mở bản scan: đúng tệp scan (không phải PDF bản mềm), mở trong trình duyệt",
+     FR.local.response.filecontent == b"%PDF-1.4 ban scan co dau do" and FR.local.response.display_content_as == "inline")
+la("gs@x")
+kiem("người không thuộc nơi nhận: không mở được bản scan", "không phân phối" in (thu(lambda: A.tai_tep(hd, scan=1)) or ""))
+la("iso@x")
+doc = FR.get_doc(TL.PT, hd)
+doc.ten = "Hướng dẫn thực hiện Vòng kiểm QC"
+kiem("có bản scan rồi vẫn sửa tên / ghi chú bình thường (bản scan không thuộc ô khoá)", thu(doc.save) is None)
+A.scan_bo(hd)
+x = F.bang(TL.PT)[hd]
+kiem("bỏ bản scan (gắn nhầm) → hết cờ; mở bản scan báo chưa có", not x["ban_scan"] and not x["scan_luc"]
+     and not A.xem(hd)["co_scan"] and "chưa có bản scan" in (thu(lambda: A.tai_tep(hd, scan=1)) or ""))
+A.scan_gan(hd, "anh_scan.jpg", base64.b64encode(b"\xff\xd8 anh jpg").decode())
+A.scan_gan(hd, "HD.08.01 lan 01 da ky.pdf", SCAN)
+scan_01 = F.bang(TL.PT)[hd]["ban_scan"]
+kiem("gắn lại (ảnh JPG, rồi PDF) → thay bản đang gắn", scan_01.endswith(".pdf"))
+
 print("\n-- đợt ban hành: kéo đề nghị, PDF, ban hành, lịch sử, yêu cầu đọc --")
 la("qc@x")
 kiem("QC không lập đợt", "Ban hành" in (thu(lambda: A.dot_luu("{}")) or ""))
@@ -392,10 +438,25 @@ kiem("ban hành: HD.08.01 lần 02, hiệu lực 12/10, đợt mới; bản cũ 
      sau["lan_ban_hanh"] == "02" and str(sau["ngay_hieu_luc"]) == "2026-10-12" and sau["dot_ban_hanh"] == dot
      and sau["lich_su"][-1]["lan_ban_hanh"] == "01" and sau["lich_su"][-1]["tep"] == truoc["tep"]
      and str(sau["lich_su"][-1]["het_hieu_luc_tu"]) == "2026-10-12" and sau["tep"] != truoc["tep"], sau["lich_su"])
+kiem("D176: bản scan đi theo bản của nó — scan lần 01 vào lịch sử cùng bản cũ; lần 02 chờ scan mới (trống, không người"
+     " / giờ gắn)", sau["lich_su"][-1]["ban_scan"] == scan_01 and not sau.get("ban_scan") and not sau.get("scan_luc")
+     and not sau.get("scan_boi"), {k: sau.get(k) for k in ("ban_scan", "scan_luc", "scan_boi")})
+FR.local.response = types.SimpleNamespace()
+A.tai_tep(hd, lan="01", scan=1)
+kiem("… Ban ISO mở bản scan lần 01 từ lịch sử; xem() đánh dấu lần nào có scan", FR.local.response.filecontent
+     == b"%PDF-1.4 ban scan co dau do" and [l["co_scan"] for l in A.xem(hd)["lich_su"]][-1] is True)
+la("qc@x")
+kiem("… QC không mở bản scan bản cũ", "chỉ Trưởng Ban ISO" in (thu(lambda: A.tai_tep(hd, lan="01", scan=1)) or ""))
+la("iso@x")
+d_ = FR.get_doc(TL.PT, hd)
+d_.lich_su[-1].ban_scan = "/private/files/khac.pdf"
+kiem("… đổi bản scan trong lịch sử bằng tay → chặn (lịch sử chỉ đổi qua Ban hành)", "chỉ đổi qua Ban hành" in (thu(d_.save) or ""))
 huy = F.bang(TL.PT)[anh["BM.06.05"]["name"]]
 kiem("Hủy bỏ → Hết hiệu lực (giữ bản cuối để tra; bản cuối vào lịch sử)",
      huy["trang_thai"] == TL.HET and huy["lan_ban_hanh"] == "01" and huy["lich_su"][-1]["het_hieu_luc_tu"]
      and huy["dot_ban_hanh"] == dot)
+kiem("D176: tài liệu Hết hiệu lực không gắn bản scan mới (bản scan cũ nằm ở lịch sử)",
+     "hết hiệu lực" in (thu(lambda: A.scan_gan(huy["name"], "x.pdf", SCAN)) or ""))
 moi = next(x for x in F.bang(TL.PT).values() if x.get("ma") == "QĐ.02")
 kiem("Ban hành mới: tạo tài liệu QĐ.02 Hiện hành, loại, nơi nhận theo dòng (bỏ tên không có), phải xác nhận đọc",
      moi["trang_thai"] == TL.HIEN_HANH and moi["loai"] == "Quy định" and moi["can_xac_nhan"] == 1

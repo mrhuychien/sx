@@ -56,6 +56,24 @@ const MAN = {
 const SO_HOM_NAY = ['tiepnhan', 'kiemxe', 'dvgh', 'cat', 'vaiu', 'thietbi', 'kiemnghiem', 'rework', 'lichviec'];
 // Màn con của tab "Xem xét": tổng quan ATTP (W22), xem xét tháng, báo cáo (W25), hồ sơ đánh giá (W27), biên bản (W45).
 const XEM_XET = ['attp', 'review', 'baocao', 'hoso', 'bienban'];
+// D176: các màn xem xét + truy xuất có màn riêng #/iso (Trưởng Ban ISO, quản lý). Người có màn ISO mở đường cũ
+// #/qc/… (hộp nhắc, thẻ Tổng quan, trang đã đánh dấu) thì chuyển sang #/iso/…; màn QC của họ không còn tab Xem xét /
+// Truy xuất — màn QC là màn nhập liệu. Người không có màn ISO (QLSX, QC mở biên bản phải ký) vẫn xem trong QC.
+const SANG_ISO = [...XEM_XET, 'truyxuat'];
+
+export function coManIso(api) {
+  const v = (api.ctx && api.ctx.views) || (api.boot && api.boot.views) || [];
+  return v.includes('iso');
+}
+
+/** '#/qc/review?x=1' → '#/iso/review?x=1'; '#/qc/attp' → '#/iso'; màn không chuyển → null. */
+export function duongIso(hash) {
+  const [h, q] = String(hash || '').split('?');
+  const phan = h.replace('#/qc', '').split('/').filter(Boolean);
+  if (!phan.length || !SANG_ISO.includes(phan[0])) return null;
+  const dich = phan[0] === 'attp' ? '#/iso' : `#/iso/${phan.join('/')}`;
+  return q ? `${dich}?${q}` : dich;
+}
 
 // Ngày đang xem của riêng màn QC (thanh ngày chung của shell bị giấu ở màn này).
 // null = hôm nay. Giữ ngoài hàm render để đổi tab không mất ngày đang xem.
@@ -74,6 +92,12 @@ export async function render(api) {
   const { container, call } = api;
   container.innerHTML = '';
   const { man, tham_so } = tachRoute();
+  const dich = coManIso(api) ? duongIso(window.location.hash) : null;
+  if (dich) {
+    // replace: nút Quay lại không đưa người dùng về đường cũ để rồi bị chuyển tiếp lần nữa.
+    if (window.location.replace) window.location.replace(dich); else window.location.hash = dich;
+    return;
+  }
   const wrap = el('div', 'sx-qc');
   container.appendChild(wrap);
 
@@ -106,7 +130,8 @@ function veTab(dang, api) {
   // `la_iso` (D132): Trưởng Ban ISO hoặc quản lý — trước đây chỉ quản lý thấy tab
   // này, Ban ISO (người xem xét thật) phải tự gõ địa chỉ.
   // W22 (D148): tab Xem xét mở vào Tổng quan ATTP; Xem xét tháng là nút thứ hai bên trong.
-  if (api.boot && (api.boot.la_iso || api.boot.is_quan_ly)) {
+  // D176: ai có màn ISO thì xem xét / truy xuất ở màn đó — không còn hai tab này ở đây.
+  if (api.boot && (api.boot.la_iso || api.boot.is_quan_ly) && !coManIso(api)) {
     tabs.push(['attp', 'Xem xét']);
     tabs.push(['truyxuat', 'Truy xuất']);
   }

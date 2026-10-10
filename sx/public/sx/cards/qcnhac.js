@@ -26,9 +26,9 @@ export async function render({ container, call }) {
   if (!hop) return;
   container.style.display = '';
   container.appendChild(hop);
-  // W22 (D148): Giám đốc xem đèn từng mảng hồ sơ ở Tổng quan ATTP (tab Xem xét của màn QC).
+  // W22 (D148): Giám đốc xem đèn từng mảng hồ sơ ở Tổng quan ATTP — D176: trang đầu của màn ISO.
   const nut = el('div');
-  [['#/qc/attp', 'TỔNG QUAN ATTP'], ['#/qc', 'MỞ MÀN QC']].forEach(([href, ten]) => {
+  [['#/iso', 'TỔNG QUAN ATTP'], ['#/qc', 'MỞ MÀN QC']].forEach(([href, ten]) => {
     const a = el('a', 'sx-btn sx-btn-ghost', ten);
     a.href = href;
     a.style.cssText = 'flex:1;text-align:center;text-decoration:none';

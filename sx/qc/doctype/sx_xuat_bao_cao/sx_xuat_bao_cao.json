@@ -1,0 +1,178 @@
+{
+ "actions": [],
+ "creation": "2026-10-10 15:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "links": [],
+ "modified": "2026-10-10 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "QC",
+ "owner": "Administrator",
+ "autoname": "XBC-.YYYY.-.####",
+ "name": "SX Xuat Bao Cao",
+ "description": "Một lần xuất hồ sơ theo dõi cho đoàn kiểm tra (D176) — màn ISO → Xuất báo cáo. Tệp dựng nền.",
+ "field_order": [
+  "kieu",
+  "tu",
+  "den",
+  "ghi_chu",
+  "column_break_1",
+  "trang_thai",
+  "so_bieu_mau",
+  "so_to",
+  "kich_thuoc",
+  "bat_dau_luc",
+  "xong_luc",
+  "section_kq",
+  "bieu_mau",
+  "ket_qua",
+  "loi",
+  "tep",
+  "ten_tep"
+ ],
+ "fields": [
+  {
+   "fieldname": "kieu",
+   "fieldtype": "Select",
+   "label": "Kiểu tệp",
+   "options": "Excel\nPDF",
+   "default": "Excel",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tu",
+   "fieldtype": "Date",
+   "label": "Từ ngày",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "den",
+   "fieldtype": "Date",
+   "label": "Đến ngày",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "ghi_chu",
+   "fieldtype": "Data",
+   "label": "Ghi chú (đoàn kiểm tra, mục đích)"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trang_thai",
+   "fieldtype": "Select",
+   "label": "Trạng thái",
+   "options": "Đang chờ\nĐang tạo\nXong\nLỗi",
+   "default": "Đang chờ",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "so_bieu_mau",
+   "fieldtype": "Int",
+   "label": "Số biểu mẫu",
+   "read_only": 1
+  },
+  {
+   "fieldname": "so_to",
+   "fieldtype": "Int",
+   "label": "Số tờ (sheet / phần PDF)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "kich_thuoc",
+   "fieldtype": "Int",
+   "label": "Dung lượng (byte)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "bat_dau_luc",
+   "fieldtype": "Datetime",
+   "label": "Bắt đầu dựng lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "xong_luc",
+   "fieldtype": "Datetime",
+   "label": "Xong lúc",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_kq",
+   "fieldtype": "Section Break",
+   "label": "Biểu mẫu, kết quả"
+  },
+  {
+   "fieldname": "bieu_mau",
+   "fieldtype": "Small Text",
+   "label": "Biểu mẫu đã chọn (JSON)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ket_qua",
+   "fieldtype": "Long Text",
+   "label": "Kết quả từng biểu mẫu (JSON)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "loi",
+   "fieldtype": "Small Text",
+   "label": "Lỗi",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tep",
+   "fieldtype": "Attach",
+   "label": "Tệp đã xuất",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ten_tep",
+   "fieldtype": "Data",
+   "label": "Tên tệp",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "ISO Manager",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  },
+  {
+   "role": "SX Quan Ly",
+   "read": 1,
+   "report": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "title_field": "ghi_chu",
+ "track_changes": 0
+}
