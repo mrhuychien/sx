@@ -899,7 +899,7 @@ async function veNap(ctx) {
   const ve = async () => {
     try { tt = await ctx.call(`${API}.tinh_trang_nap`); } catch (e) { toastErr(e.message); return; }
     than.innerHTML = '';
-    const tong = tt.can_tep.length;
+    const tong = tt.tong_tep || tt.can_tep.length;
     const thieu = tt.can_tep.filter((x) => !x.co);
     if (tt.xong) {
       if (st.quyen) st.quyen.nap_xong = true;
@@ -926,17 +926,23 @@ async function veNap(ctx) {
     }
     than.appendChild(b1);
     const b2 = el('div', 'sx-qc-sc', `<div class="sx-qc-sc-ten">② Tệp PDF, ảnh</div><div class="sx-qc-goiy">`
-      + `${tong - thieu.length}/${tong} tệp đã có trên app. Chọn tệp <b>tai_lieu_pdf.zip</b> — không cần giải nén (hoặc `
-      + 'chọn các tệp PDF, PNG). App tự khớp tên, tải lần lượt; tệp đã có thì bỏ qua.</div>');
+      + `${tt.can_tep.length - thieu.length}/${tong} tệp đã có trên app. Chọn tệp <b>tai_lieu_pdf.zip</b> — không cần `
+      + 'giải nén (hoặc chọn các tệp PDF, PNG). App tự khớp tên, tải lần lượt; tệp đã có thì bỏ qua.</div>');
     const inp = el('input');
     inp.type = 'file';
     inp.accept = '.zip,.pdf,.png';
     inp.multiple = true;
+    inp.style.display = 'none';
+    // nút của app thay ô chọn tệp của trình duyệt ("Choose Files"); chưa nạp danh mục thì nút phụ — chọn vẫn được
+    const chon = nut('📦 CHỌN TỆP tai_lieu_pdf.zip', tt.danh_muc_xong ? 'sx-btn-primary sx-btn-big' : '',
+      () => inp.click());
     inp.addEventListener('change', async () => {
-      inp.disabled = true;
+      if (!inp.files || !inp.files.length) return;
+      chon.disabled = true;
       await taiTep(inp.files);
       await ve();
     });
+    b2.appendChild(chon);
     b2.appendChild(inp);
     if (tt.danh_muc_xong && thieu.length) {
       b2.appendChild(el('div', 'sx-qc-goiy', `Còn thiếu ${thieu.length} tệp: ${esc(thieu.slice(0, 8).map((x) => x.tep)

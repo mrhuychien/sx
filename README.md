@@ -329,16 +329,19 @@ mới tải tiếp được), nút NẠP BỘ thì nằm đó mãi kể cả khi
 - **Danh mục đi kèm app** — sổ đăng ký 21/9/2026, BM.01.03, Phụ lục 3 chuyển từ `scripts/du_lieu/seed_*.json` vào
   `sx/qc/seed/` (`tai_lieu.json`, `tai_lieu_ngoai.json`, `phan_phoi.json`). Bước ① chỉ còn một nút **NẠP DANH MỤC**,
   không chọn tệp nào. Ô "Tạo yêu cầu Đã đọc, hiểu" mặc định tắt (đã phổ biến bản giấy 22/9).
-- Bước ② **chọn thẳng `tai_lieu_pdf.zip`, không cần giải nén** — app mở zip ngay trên máy (`lib/zip.js`, không thư
-  viện ngoài), khớp tên, tải lần lượt những tệp còn thiếu (≤ 10 MB/tệp, kiểm chữ ký đầu tệp như cũ). Vẫn chọn được các
-  tệp PDF, PNG rời. Chọn zip khi chưa nạp danh mục → app tự nạp danh mục luôn.
-- **Mở màn là thấy đã tới đâu** (`tinh_trang_nap`, chỉ đọc): x/y tài liệu nội bộ, bên ngoài, nơi nhận, đợt 21/9, x/y
-  tệp và tên các tệp còn thiếu. Tải lại trang, mở lại hôm sau vẫn đúng chỗ dở.
+- Bước ② nút **📦 CHỌN TỆP tai_lieu_pdf.zip** (nút của app, không còn ô "Choose Files" của trình duyệt) — **chọn thẳng
+  tệp zip, không cần giải nén**: app mở zip ngay trên máy (`lib/zip.js`, không thư viện ngoài), khớp tên, tải lần lượt
+  những tệp còn thiếu (≤ 10 MB/tệp, kiểm chữ ký đầu tệp như cũ). Vẫn chọn được các tệp PDF, PNG rời. Chọn zip khi chưa
+  nạp danh mục → app tự nạp danh mục luôn.
+- **Mở màn là thấy đã tới đâu** (`tinh_trang_nap`, chỉ đọc): x/y tài liệu nội bộ, bên ngoài, nơi nhận, đợt 21/9, x/88
+  tệp (chưa nạp danh mục cũng ghi 0/88, không 0/0) và tên các tệp còn thiếu. Tải lại trang, mở lại hôm sau vẫn đúng
+  chỗ dở.
 - Nạp đủ → "✓ Đã nạp đủ bộ tài liệu", nút 📦 NẠP BỘ ở tab Ban hành / Tất cả **ẩn đi**.
 - Zip có mật khẩu, ZIP64, trình duyệt quá cũ → báo rõ; khi đó giải nén rồi chọn các tệp như trước.
 - `nap_bo(payload)` vẫn nhận một bộ seed khác `{tai_lieu, ngoai, phan_phoi}` (bench / test); bỏ trống = bộ đi kèm app.
-- Build **sx-141**. Không đổi DocType: `git pull` → `bench restart` (không cần migrate). Test: `test-tailieu.py`,
-  `test-tailieu.mjs` (zip thật: nén / không nén, thư mục, tệp lạ, tệp quá 10 MB, zip hỏng).
+- Build **sx-141**, **sx-142** (D180b: nút CHỌN TỆP, 0/88). Không đổi DocType: `git pull` → `bench restart` (không cần
+  migrate). Test: `test-tailieu.py`, `test-tailieu.mjs` (zip thật: nén / không nén, thư mục, tệp lạ, tệp quá 10 MB, zip
+  hỏng).
 
 ## Dữ liệu mẫu bỏ ghi chú từng bản ghi; tờ in site thử có một dòng nhận biết (D179)
 

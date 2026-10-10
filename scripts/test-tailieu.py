@@ -169,6 +169,8 @@ t0 = A.tinh_trang_nap()
 kiem("D180: chưa nạp — tình trạng 0/81 nội bộ, 0/21 bên ngoài, 0/10 nơi nhận, chưa có đợt 21/9; không ghi gì",
      (t0["tai_lieu"], t0["ngoai"], t0["noi_nhan"], t0["dot"], t0["ngay"], t0["danh_muc_xong"], t0["xong"])
      == ([0, 81], [0, 21], [0, 10], False, "2026-09-21", False, False) and not F.bang(TL.PT) and not F.bang(TL.PT_DOT), t0)
+kiem("D180b: chưa nạp danh mục vẫn biết cả bộ 88 tệp (màn hiện 0/88, không 0/0)",
+     t0["tong_tep"] == 79 + 3 + 1 + 4 + 1 and t0["can_tep"] == [], t0["tong_tep"])
 kiem("D180: danh sách cho Ban ISO báo chưa nạp đủ (nút NẠP BỘ hiện)", A.ds(1)["nap_xong"] is False)
 r1 = A.nap_bo()
 dem = lambda dt: len(F.bang(dt))  # noqa: E731
@@ -214,7 +216,7 @@ kiem("tải tệp: sai tên (tệp khác) → từ chối; sai chữ ký đầu 
 t1 = A.tinh_trang_nap()
 kiem("D180: đã nạp danh mục, chưa tải tệp — 81/81, 21/21, 10/10, có đợt; 88 tệp chưa có; mở lại màn vẫn thấy đúng",
      (t1["tai_lieu"], t1["ngoai"], t1["noi_nhan"], t1["dot"], t1["danh_muc_xong"], t1["xong"])
-     == ([81, 81], [21, 21], [10, 10], True, True, False) and len(t1["can_tep"]) == len(can)
+     == ([81, 81], [21, 21], [10, 10], True, True, False) and len(t1["can_tep"]) == len(can) == t1["tong_tep"]
      and not any(x["co"] for x in t1["can_tep"]), {k: t1[k] for k in ("tai_lieu", "ngoai", "noi_nhan", "dot")})
 for x in can[:-1]:
     A.nap_tep(x["khoa"], x["tep"], PNG if x["tep"].endswith(".png") else PDF)

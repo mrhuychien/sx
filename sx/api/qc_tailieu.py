@@ -1005,7 +1005,7 @@ def tinh_trang_nap():
           "noi_nhan": [sum(1 for x in kh["noi_nhan"] if frappe.db.exists(TL.PT_NN, x["ten"])), len(kh["noi_nhan"])],
           "dot": bool(dot_name) if kh["dot"] else None,
           "ngay": (kh["dot"] or {}).get("ngay_ban_hanh") or "",
-          "can_tep": _can_tep(kh, ten_tl, dot_name)}
+          "can_tep": _can_tep(kh, ten_tl, dot_name), "tong_tep": _so_tep(kh)}
     ra["danh_muc_xong"] = (all(a == b for a, b in (ra["tai_lieu"], ra["ngoai"], ra["noi_nhan"]))
                            and ra["dot"] is not False)
     ra["xong"] = ra["danh_muc_xong"] and all(x["co"] for x in ra["can_tep"])
@@ -1108,6 +1108,12 @@ def nap_bo(payload=None):
                         "noi_luu": "Thư viện tài liệu (nạp bộ 21/9/2026)"}).insert(ignore_permissions=True)
         tao["ho_so"] += 1
     return {"tao": tao, "can_tep": _can_tep(kh, ten_tl, dot_name), "loi": kh["loi"]}
+
+
+def _so_tep(kh):
+    """Số tệp của cả bộ theo kế hoạch (như _can_tep khi đủ danh mục) — chưa nạp danh mục vẫn hiện 0/88 tệp, không 0/0."""
+    return (sum(1 for x in kh["tai_lieu"] if x.get("tep_goc")) + len(kh["anh"]) + len(kh["ho_so"])
+            + ((1 if kh["dot"]["tep_goc"] else 0) + len(kh["ho_so_dot"]) if kh["dot"] else 0))
 
 
 def _can_tep(kh, ten_tl, dot_name):

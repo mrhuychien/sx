@@ -235,11 +235,11 @@ try { await V.gomTep([new File(['không phải zip'], 'hong.zip')]); } catch (e)
 kiem('tệp đuôi .zip mà không phải zip → báo rõ', loiZip.includes('không phải tệp .zip'), loiZip);
 
 const CHUA = { tai_lieu: [0, 81], ngoai: [0, 21], noi_nhan: [0, 10], dot: false, ngay: '2026-09-21', can_tep: [],
-  danh_muc_xong: false, xong: false };
+  tong_tep: 4, danh_muc_xong: false, xong: false };
 const CAN = [{ khoa: 'tl:TL-1', tep: 'HD.08.01.pdf', co: false }, { khoa: 'tl:TL-2', tep: 'BM.08.01.pdf', co: true },
   { khoa: 'tl:TL-3', tep: 'CS.pdf', co: false }, { khoa: 'tl:TL-9', tep: 'QT.99.pdf', co: false }];
 const DA = { tai_lieu: [81, 81], ngoai: [21, 21], noi_nhan: [10, 10], dot: true, ngay: '2026-09-21', can_tep: CAN,
-  danh_muc_xong: true, xong: false };
+  tong_tep: 4, danh_muc_xong: true, xong: false };
 let tinh = CHUA;
 traVe = { tinh_trang_nap: () => tinh, nap_bo: () => { tinh = DA; return { tao: {}, can_tep: CAN, loi: [] }; },
   nap_tep: (a) => { const x = CAN.find((y) => y.khoa === a.khoa); if (x) x.co = true; return {}; } };
@@ -249,15 +249,25 @@ const a5 = api(DS);
 await V.render(a5);
 let c5 = a5.container;
 const inp5 = () => tim(c5, (e) => e.tagName === 'INPUT' && e.type === 'file');
-kiem('mở màn là thấy đã nạp tới đâu (0/81 …); một nút NẠP DANH MỤC — không còn ô chọn tệp .json',
+kiem('mở màn là thấy đã nạp tới đâu (0/81 …, 0/4 tệp — chưa nạp danh mục vẫn biết cả bộ bao nhiêu tệp); một nút '
+  + 'NẠP DANH MỤC — không còn ô chọn tệp .json',
   c5.chu.includes('0/81 tài liệu nội bộ') && c5.chu.includes('0/10 nơi nhận') && !!nutCo(c5, 'NẠP DANH MỤC')
-  && inp5().length === 1 && inp5()[0].accept === '.zip,.pdf,.png' && !c5.chu.includes('.json'), c5.chu.slice(0, 300));
+  && c5.chu.includes('0/4 tệp đã có') && inp5().length === 1 && inp5()[0].accept === '.zip,.pdf,.png'
+  && inp5()[0].multiple === true && !c5.chu.includes('.json'), c5.chu.slice(0, 300));
+let moChon = 0;
+inp5()[0].click = () => { moChon += 1; };
+const chon5 = () => nutCo(c5, 'CHỌN TỆP tai_lieu_pdf.zip');
+const phu = !!chon5() && chon5().className.includes('sx-btn-ghost') && !chon5().className.includes('sx-btn-primary');
+chon5().bam();
+kiem('nút CHỌN TỆP của app (ô chọn tệp trình duyệt ẩn đi) — bấm là mở hộp chọn; chưa nạp danh mục thì là nút phụ',
+  inp5()[0].style.display === 'none' && moChon === 1 && phu, chon5() && chon5().className);
 nutCo(c5, 'NẠP DANH MỤC').bam();
 await choDen(() => c5.chu.includes('81/81'));
 const pn = JSON.parse(goi('nap_bo').pop()[1].payload);
 kiem('NẠP DANH MỤC: không gửi tệp nào (danh mục đi kèm app), mặc định không tạo yêu cầu đọc; màn tự cập nhật',
   !pn.tai_lieu && pn.tao_yeu_cau_doc === 0 && c5.chu.includes('✓ Danh mục') && !nutCo(c5, 'NẠP DANH MỤC')
-  && c5.chu.includes('1/4 tệp đã có') && c5.chu.includes('Còn thiếu 3 tệp: HD.08.01.pdf, CS.pdf, QT.99.pdf'), pn);
+  && c5.chu.includes('1/4 tệp đã có') && c5.chu.includes('Còn thiếu 3 tệp: HD.08.01.pdf, CS.pdf, QT.99.pdf')
+  && chon5().className.includes('sx-btn-primary'), pn);
 inp5()[0].files = [fZip];
 inp5()[0].doi('');
 await choDen(() => c5.chu.includes('Đã tải'));
