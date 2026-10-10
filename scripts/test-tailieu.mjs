@@ -210,7 +210,9 @@ const choDen = async (dk, n = 400) => { for (let i = 0; i < n && !dk(); i += 1) 
 const { execFileSync } = await import('node:child_process');
 const { mkdtempSync, readFileSync: docF } = await import('node:fs');
 const { tmpdir } = await import('node:os');
-const zipTep = `${mkdtempSync(`${tmpdir()}/sx-zip-`)}/tai_lieu_pdf.zip`;
+const TAM = [];
+const tamDir = (t) => { const d = mkdtempSync(`${tmpdir()}/${t}`); TAM.push(d); return d; };
+const zipTep = `${tamDir('sx-zip-')}/tai_lieu_pdf.zip`;
 const ND = { 'HD.08.01.pdf': `%PDF-1.4 HD.08.01 ${'nội dung '.repeat(80)}`, 'CS.pdf': '%PDF-1.4 CS', 'la.pdf': '%PDF-1.4 la',
   'BM.08.01.pdf': '%PDF-1.4 BM.08.01' };
 execFileSync('python3', ['-c', `import sys, zipfile
@@ -234,12 +236,121 @@ let loiZip = '';
 try { await V.gomTep([new File(['không phải zip'], 'hong.zip')]); } catch (e) { loiZip = e.message; }
 kiem('tệp đuôi .zip mà không phải zip → báo rõ', loiZip.includes('không phải tệp .zip'), loiZip);
 
+// zip khó (D182): tên có dấu (UTF-8), tên theo bảng mã Windows (không cờ UTF-8), tệp rác máy Mac, ZIP64, dữ liệu chèn trước
+const zipKho = (ten, ma) => {
+  const p2 = `${tamDir('sx-zip-')}/${ten}`;
+  execFileSync('python3', ['-c', ma, p2]);
+  return new File([docF(p2)], ten);
+};
+const fWin = zipKho('win.zip', `import sys, zipfile, unicodedata
+z = zipfile.ZipFile(sys.argv[1], 'w')
+z.writestr('Quy triXnh QT.99.pdf', b'%PDF win')
+z.writestr(unicodedata.normalize('NFD', 'Tài liệu/Hướng dẫn HD.08.01.pdf'), b'%PDF utf8')   # tên kiểu máy Mac (NFD)
+z.writestr('__MACOSX/Tài liệu/._Hướng dẫn HD.08.01.pdf', b'rac')
+z.writestr('Tài liệu/.DS_Store', b'rac')
+z.close()
+import unicodedata
+b = open(sys.argv[1], 'rb').read().replace(b'triXnh', unicodedata.normalize('NFD', 'trình').encode('cp1258'))
+open(sys.argv[1], 'wb').write(b)`);
+const gWin = await V.gomTep([fWin]);
+kiem('zip Windows: tên không cờ UTF-8 đọc theo bảng mã tiếng Việt; tên UTF-8 có dấu; bỏ __MACOSX/, .DS_Store',
+  JSON.stringify(Object.keys(gWin).sort()) === JSON.stringify(['Hướng dẫn HD.08.01.pdf', 'Quy trình QT.99.pdf'])
+  && Buffer.from(await (await gWin['Quy trình QT.99.pdf'].lay()).arrayBuffer()).toString() === '%PDF win',
+  Object.keys(gWin));
+const f64 = zipKho('z64.zip', `import sys, zipfile, struct
+zipfile.ZIP64_LIMIT = 1                     # buộc ghi ZIP64: cỡ, vị trí ở trường phụ 0x0001
+z = zipfile.ZipFile(sys.argv[1], 'w', allowZip64=True)
+z.writestr(zipfile.ZipInfo('a/CS.pdf'), b'%PDF cs ' * 50, zipfile.ZIP_DEFLATED)
+z.writestr('a/HD.08.01.pdf', b'%PDF hd')
+z.close()
+b = bytearray(open(sys.argv[1], 'rb').read())
+i = b.rfind(b'PK\\x05\\x06')
+b[i + 10:i + 12] = b'\\xff\\xff'; b[i + 16:i + 20] = b'\\xff\\xff\\xff\\xff'   # khối cuối thường "bão hoà" → phải đọc ZIP64
+open(sys.argv[1], 'wb').write(bytes(b))`);
+const g64 = await V.gomTep([f64]);
+kiem('zip ZIP64 (khối cuối ZIP64, cỡ / vị trí tệp ở trường phụ) đọc đúng',
+  JSON.stringify(Object.keys(g64).sort()) === '["CS.pdf","HD.08.01.pdf"]'
+  && Buffer.from(await (await g64['CS.pdf'].lay()).arrayBuffer()).toString() === '%PDF cs '.repeat(50)
+  && Buffer.from(await (await g64['HD.08.01.pdf'].lay()).arrayBuffer()).toString() === '%PDF hd', Object.keys(g64));
+const fTruoc = new File([Buffer.concat([Buffer.from('MZ dữ liệu chèn trước '.repeat(10)), docF(zipTep)])], 'sfx.zip');
+const gTruoc = await V.gomTep([fTruoc]);
+kiem('zip có dữ liệu chèn trước (tự giải nén / zip ghép) → vẫn đọc đúng vị trí',
+  Object.keys(gTruoc).length === 5
+  && Buffer.from(await (await gTruoc['HD.08.01.pdf'].lay()).arrayBuffer()).toString() === ND['HD.08.01.pdf']);
+
+// bộ khớp tệp (D182) với danh mục THẬT (sx/qc/seed/tai_lieu.json, 88 tệp)
+const { writeFileSync: ghiF, rmSync: xoaF } = await import('node:fs');
+const tamG = `${tamDir('sx-ghep-')}/ghep.mjs`;
+ghiF(tamG, docF('sx/public/sx/lib/ghep.js', 'utf8'));
+const G = await import(`file://${tamG}`);
+xoaF(tamG);
+const SEED = JSON.parse(docF('sx/qc/seed/tai_lieu.json', 'utf8'));
+const CAN88 = SEED.map((x) => ({ khoa: `${{ tai_lieu: 'tl', anh: 'kem', dot: 'qd', ho_so_dot: 'hsdot', ho_so: 'hs' }[x.kieu_nap]}:${x.stt}`,
+  tep: x.tep, co: false, ma: x.kieu_nap === 'tai_lieu' ? (x.ma_chuan || '').trim() : '', ten: x.ten }));
+const maCua = (k) => (CAN88.find((x) => x.khoa === k) || {}).ma;
+const tenCua = (k) => (CAN88.find((x) => x.khoa === k) || {}).ten || '';
+const g88 = G.ghepTep(CAN88, SEED.map((x) => x.tep));
+const g88k = G.ghepTep(CAN88, SEED.map((x, i) => x.tep.replace(/\.(pdf|png)$/, i % 2 ? '_signed.$1' : ' (đã ký số).$1')));
+kiem('khớp: 88 tệp đúng tên sổ đăng ký → 88 "khớp tên"; thêm đuôi _signed / (đã ký số) của phần mềm ký số → vẫn 88',
+  g88.dong.every((d, i) => d.cach === 'ten' && d.khoa) && new Set(g88.dong.map((d) => d.khoa)).size === 88
+  && g88k.dong.every((d) => d.cach === 'ten') && new Set(g88k.dong.map((d) => d.khoa)).size === 88);
+const TU_DAT = {
+  'QT.01 - Quản lý chung hệ thống ATTP (đã ký).pdf': ['ma', 'QT.01'],
+  'BM.01.01 Phiếu yêu cầu sửa đổi tài liệu.pdf': ['ten', 'BM.01.01'],
+  'Sổ tay an toàn thực phẩm.pdf': ['ten', 'ST.ATTP'],
+  'KH.HACCP.01-PL So do qua trinh banh dau xanh.pdf': ['ma', 'KH.HACCP.01-PL'],
+  'KH.HACCP.01 Ke hoach HACCP banh dau xanh_signed.pdf': ['ma', 'KH.HACCP.01'],
+  'PRP Hệ thống quy phạm vệ sinh.pdf': ['ma', 'PRP'],
+  'BM.PRP.04 Danh mục hóa chất.pdf': ['ma', 'BM.PRP.04'],
+  'QT 8 quy trinh quan ly san xuat.pdf': ['ma', 'QT.08'],
+  'qt-02_thu_hoi.pdf': ['ma', 'QT.02'],
+  'KH.CĐS.01 Kế hoạch chuyển đổi số.pdf': ['ma', 'KH.CĐS.01'],
+  'SĐ.02 Sơ đồ thiết bị loại trừ vật lạ.pdf': ['ma', 'SĐ.02'],
+  'TTr-01 To trinh may do kim loai.pdf': ['ma', 'TTr-01'],
+  'BM.08.01 + BM.08.02 Vong kiem QC.pdf': ['ma', 'BM.08.01'],
+  'QT.01 ban 2.pdf': ['trung', undefined],
+  'QT.01.02 Lạ.pdf': ['', undefined],
+  'Bien ban hop giao ban thang 9.pdf': ['', undefined],
+  'So do.pdf': ['', undefined],
+  'Ke hoach.pdf': ['', undefined],
+  'Rework.pdf': ['', undefined],
+  'Tai lieu khac.docx': ['', undefined],
+};
+const gTu = G.ghepTep(CAN88, [...Object.keys(TU_DAT), 'So do to chuc (ky so).pdf', 'SĐ.02 ảnh sơ đồ.png',
+  'Quyết định ban hành sửa đổi tài liệu hệ thống ATTP.pdf']);
+const saiTu = gTu.dong.filter((d) => TU_DAT[d.ten] && (d.cach !== TU_DAT[d.ten][0] || maCua(d.khoa) !== TU_DAT[d.ten][1]));
+const goiY = (t) => gTu.dong.find((d) => d.ten === t);
+kiem('khớp tên tự đặt: mã trong tên (QT.01, "QT 8", "qt-02", KH.CĐS.01, SĐ.02, TTr-01, BM.PRP.04 chứ không PRP, '
+  + 'KH.HACCP.01-PL chứ không KH.HACCP.01); trùng tài liệu → "trùng"; mã lạ / ảnh không chắc / .docx → để chọn tay',
+  !saiTu.length, saiTu.map((d) => `${d.ten} → ${d.cach} ${maCua(d.khoa)}`));
+kiem('gợi ý khi mọi từ của tên tệp có trong tên một tài liệu (Sơ đồ tổ chức, QĐ ban hành, ảnh sơ đồ SĐ.02) — đánh dấu '
+  + '"gần đúng"; "Biên bản họp giao ban tháng 9" KHÔNG gợi ý sang "Biên bản họp Ban ISO" (giao ban, tháng 9 không có)',
+  goiY('So do to chuc (ky so).pdf').cach === 'gan' && tenCua(goiY('So do to chuc (ky so).pdf').khoa).startsWith('Sơ đồ tổ chức')
+  && goiY('SĐ.02 ảnh sơ đồ.png').cach === 'gan'
+  && (CAN88.find((x) => x.khoa === goiY('SĐ.02 ảnh sơ đồ.png').khoa) || {}).tep === 'SD.02_so_do_thiet_bi_loai_tru_vat_la.png'
+  && goiY('Quyết định ban hành sửa đổi tài liệu hệ thống ATTP.pdf').cach === 'gan'
+  && goiY('Quyết định ban hành sửa đổi tài liệu hệ thống ATTP.pdf').khoa.startsWith('qd:'));
+const CAN88b = CAN88.map((x) => ({ ...x, co: x.ma === 'QT.01' }));
+const gCo = G.ghepTep(CAN88b, ['QT.01 Quản lý chung (đã ký).pdf', 'QT_01_Quan_ly_chung_he_thong_an_toan_thuc_pham.pdf']);
+kiem('tệp của tài liệu đã có trên app (theo mã hoặc đúng tên) → "đã có", không tải lại', gCo.dong.every((d) => d.cach === 'da_co' && !d.khoa)
+  && gCo.thieu.length === 87);
+kiem('đuôi "đã ký" chỉ bỏ ở cuối; Đ → d; mã một từ chỉ tính ở đầu tên; số ngay sau mã thì không khớp',
+  JSON.stringify(G.boDuoiKy(G.tu('Ke hoach dinh ky (da ky so)_signed'))) === '["ke","hoach","dinh"]'
+  && JSON.stringify(G.tu('SĐ.02 Đồ_KH.CĐS.01')) === '["sd","2","do","kh","cds","1"]'
+  && G.viTriMa(G.tu('BM.PRP.04 Danh muc'), G.tu('PRP')) === -1 && G.viTriMa(G.tu('PRP Danh muc'), G.tu('PRP')) === 0
+  && G.viTriMa(G.tu('Danh muc PRP ve sinh'), G.tu('PRP')) === -1 && G.viTriMa(G.tu('So SLM'), G.tu('SLM')) === -1
+  && G.viTriMa(G.tu('Quy trinh QT.08 lan 2'), G.tu('QT.08')) === 2 && G.viTriMa(G.tu('QT.08.01 x'), G.tu('QT.08')) === -1);
+
 const CHUA = { tai_lieu: [0, 81], ngoai: [0, 21], noi_nhan: [0, 10], dot: false, ngay: '2026-09-21', can_tep: [],
-  tong_tep: 4, danh_muc_xong: false, xong: false };
-const CAN = [{ khoa: 'tl:TL-1', tep: 'HD.08.01.pdf', co: false }, { khoa: 'tl:TL-2', tep: 'BM.08.01.pdf', co: true },
-  { khoa: 'tl:TL-3', tep: 'CS.pdf', co: false }, { khoa: 'tl:TL-9', tep: 'QT.99.pdf', co: false }];
+  tong_tep: 5, danh_muc_xong: false, xong: false };
+const CAN = [
+  { khoa: 'tl:TL-1', tep: 'HD.08.01.pdf', co: false, ma: 'HD.08.01', ten: 'Hướng dẫn thực hiện Vòng kiểm QC' },
+  { khoa: 'tl:TL-2', tep: 'BM.08.01.pdf', co: true, ma: 'BM.08.01', ten: 'Vòng kiểm QC' },
+  { khoa: 'tl:TL-3', tep: 'CS.pdf', co: false, ma: 'CS.ATTP', ten: 'Chính sách an toàn thực phẩm' },
+  { khoa: 'tl:TL-9', tep: 'QT.99.pdf', co: false, ma: 'QT.99', ten: 'Quy trình thử' },
+  { khoa: 'kem:TL-7', tep: 'SD.03_so_do.png', co: false, ma: '', ten: 'Sơ đồ trạm bẫy – ảnh' }];
 const DA = { tai_lieu: [81, 81], ngoai: [21, 21], noi_nhan: [10, 10], dot: true, ngay: '2026-09-21', can_tep: CAN,
-  tong_tep: 4, danh_muc_xong: true, xong: false };
+  tong_tep: 5, danh_muc_xong: true, xong: false };
 let tinh = CHUA;
 traVe = { tinh_trang_nap: () => tinh, nap_bo: () => { tinh = DA; return { tao: {}, can_tep: CAN, loi: [] }; },
   nap_tep: (a) => { const x = CAN.find((y) => y.khoa === a.khoa); if (x) x.co = true; return {}; } };
@@ -249,14 +360,14 @@ const a5 = api(DS);
 await V.render(a5);
 let c5 = a5.container;
 const inp5 = () => tim(c5, (e) => e.tagName === 'INPUT' && e.type === 'file');
-kiem('mở màn là thấy đã nạp tới đâu (0/81 …, 0/4 tệp — chưa nạp danh mục vẫn biết cả bộ bao nhiêu tệp); một nút '
+kiem('mở màn là thấy đã nạp tới đâu (0/81 …, 0/5 tệp — chưa nạp danh mục vẫn biết cả bộ bao nhiêu tệp); một nút '
   + 'NẠP DANH MỤC — không còn ô chọn tệp .json',
   c5.chu.includes('0/81 tài liệu nội bộ') && c5.chu.includes('0/10 nơi nhận') && !!nutCo(c5, 'NẠP DANH MỤC')
-  && c5.chu.includes('0/4 tệp đã có') && inp5().length === 1 && inp5()[0].accept === '.zip,.pdf,.png'
+  && c5.chu.includes('0/5 tệp đã có') && inp5().length === 1 && inp5()[0].accept === '.zip,.pdf,.png'
   && inp5()[0].multiple === true && !c5.chu.includes('.json'), c5.chu.slice(0, 300));
 let moChon = 0;
 inp5()[0].click = () => { moChon += 1; };
-const chon5 = () => nutCo(c5, 'CHỌN TỆP tai_lieu_pdf.zip');
+const chon5 = () => nutCo(c5, 'CHỌN TỆP ZIP / PDF');
 const phu = !!chon5() && chon5().className.includes('sx-btn-ghost') && !chon5().className.includes('sx-btn-primary');
 chon5().bam();
 kiem('nút CHỌN TỆP của app (ô chọn tệp trình duyệt ẩn đi) — bấm là mở hộp chọn; chưa nạp danh mục thì là nút phụ',
@@ -264,26 +375,110 @@ kiem('nút CHỌN TỆP của app (ô chọn tệp trình duyệt ẩn đi) — 
 nutCo(c5, 'NẠP DANH MỤC').bam();
 await choDen(() => c5.chu.includes('81/81'));
 const pn = JSON.parse(goi('nap_bo').pop()[1].payload);
-kiem('NẠP DANH MỤC: không gửi tệp nào (danh mục đi kèm app), mặc định không tạo yêu cầu đọc; màn tự cập nhật',
+kiem('NẠP DANH MỤC: không gửi tệp nào (danh mục đi kèm app), mặc định không tạo yêu cầu đọc; màn tự cập nhật; còn '
+  + 'thiếu ghi theo mã + tên tài liệu (tệp người dùng tự đặt tên)',
   !pn.tai_lieu && pn.tao_yeu_cau_doc === 0 && c5.chu.includes('✓ Danh mục') && !nutCo(c5, 'NẠP DANH MỤC')
-  && c5.chu.includes('1/4 tệp đã có') && c5.chu.includes('Còn thiếu 3 tệp: HD.08.01.pdf, CS.pdf, QT.99.pdf')
-  && chon5().className.includes('sx-btn-primary'), pn);
+  && c5.chu.includes('1/5 tệp đã có') && c5.chu.includes('Còn thiếu 4 tệp: HD.08.01 · Hướng dẫn thực hiện Vòng kiểm '
+    + 'QC; CS.ATTP · Chính sách an toàn thực phẩm; QT.99 · Quy trình thử; Ảnh · Sơ đồ trạm bẫy – ảnh')
+  && chon5().className.includes('sx-btn-primary'), c5.chu.slice(-260));
+// 1. tai_lieu_pdf.zip có một tệp lạ (la.pdf): khớp tên phần lớn, tệp lạ → bảng xem lại trước khi tải
 inp5()[0].files = [fZip];
 inp5()[0].doi('');
+await choDen(() => !!nutCo(c5, 'TỆP LÊN'));
+const sel5 = () => tim(c5, (e) => e.tagName === 'SELECT');
+kiem('có tệp không khớp đúng tên → CHƯA tải gì, hiện bảng xem lại: đếm từng loại, tệp lạ "chưa khớp" để trống, nút '
+  + 'TẢI 3 TỆP (tệp đã có trên app không tải lại)',
+  !goi('nap_tep').length && c5.chu.includes('Đã đọc 5 tệp PDF, PNG: 3 khớp tên · 0 theo mã tài liệu · 0 gần đúng · '
+    + '1 chưa khớp · 1 đã có trên app') && !!nutCo(c5, 'TẢI 3 TỆP LÊN')
+  && sel5().some((s) => s.textContent.includes('Không tải tệp này')) && c5.chu.includes('📄 la.pdf'),
+  c5.chu.slice(-400));
+nutCo(c5, 'TẢI 3 TỆP LÊN').bam();
 await choDen(() => c5.chu.includes('Đã tải'));
 const tai = goi('nap_tep');
-kiem('chọn tai_lieu_pdf.zip: tải đúng tệp còn thiếu (BM.08.01 đã có, tệp lạ bỏ qua), đúng khoá, đúng nội dung đã giải nén',
-  tai.length === 2 && tai[0][1].khoa === 'tl:TL-1' && tai[0][1].noi_dung === b64(ND['HD.08.01.pdf'])
-  && tai[1][1].khoa === 'tl:TL-3' && tai[1][1].noi_dung === b64(ND['CS.pdf']) && c5.chu.includes('Đã tải 2/3 tệp'),
+const tai1 = (k) => (tai.find((x) => x[1].khoa === k) || [])[1] || {};
+kiem('TẢI LÊN: đúng tệp còn thiếu (BM.08.01 đã có, tệp lạ bỏ qua), đúng khoá, đúng nội dung đã giải nén',
+  tai.length === 2 && tai1('tl:TL-1').noi_dung === b64(ND['HD.08.01.pdf'])
+  && tai1('tl:TL-3').noi_dung === b64(ND['CS.pdf']) && c5.chu.includes('Đã tải 2/3 tệp'),
   tai.map((x) => x[1].ten));
 kiem('tệp trong zip quá 10 MB (sau giải nén) → không gửi, báo đúng tên', !tai.some((x) => x[1].ten === 'QT.99.pdf')
   && c5.chu.includes('QT.99.pdf: quá 10 MB'), c5.chu.slice(-200));
+// 2. bản ĐÃ KÝ SỐ, tên tự đặt (D182): khớp theo mã, gần đúng, chọn tay; một tài liệu chỉ nhận một tệp
+CAN.forEach((x) => { x.co = x.khoa === 'tl:TL-2'; });
+GOI.length = 0;
+const ND2 = { hd: '%PDF HD đã ký', cs: '%PDF CS đã ký', qt: '%PDF QT đã ký', png: '\x89PNG tram bay' };
+const fKy = zipKho('ban_ky_so.zip', `import sys, zipfile
+z = zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_DEFLATED)
+z.writestr('Tài liệu đã ký/HD.08.01 Hướng dẫn vòng kiểm QC (đã ký).pdf', ${JSON.stringify(ND2.hd)}.encode())
+z.writestr('Tài liệu đã ký/Chinh sach ATTP_signed.pdf', ${JSON.stringify(ND2.cs)}.encode())
+z.writestr('Tài liệu đã ký/QT.99 Quy trinh thu.pdf', ${JSON.stringify(ND2.qt)}.encode())
+z.writestr('Tài liệu đã ký/BM.08.01 Vong kiem QC.pdf', b'%PDF da co')
+z.writestr('Tài liệu đã ký/So do tram bay.png', ${JSON.stringify(ND2.png)}.encode('latin-1'))
+z.writestr('Tài liệu đã ký/Ghi chu.docx', b'PK docx')
+z.writestr('__MACOSX/Tài liệu đã ký/._QT.99 Quy trinh thu.pdf', b'rac')
+z.close()`);
+await V.render(a5);
+c5 = a5.container;
+inp5()[0].files = [fKy];
+inp5()[0].doi('');
+await choDen(() => !!nutCo(c5, 'TỆP LÊN'));
+const dongCua = (ten) => tim(c5, (e) => e.tagName === 'DIV' && e.className.includes('sx-tl-ghep')
+  && e.kids.some((k) => (k.textContent || '').includes(ten)))[0];
+const selCua = (ten) => tim(dongCua(ten), (e) => e.tagName === 'SELECT')[0];
+kiem('bản đã ký, tên tự đặt: mã trong tên (HD.08.01, QT.99) → đúng tài liệu; ảnh tên gần giống → gợi ý; tên lạ → chờ chọn '
+  + 'tay; tệp của tài liệu đã có, tệp .docx, tệp rác máy Mac → bỏ qua; chưa tải gì',
+  !goi('nap_tep').length && c5.chu.includes('Đã đọc 5 tệp PDF, PNG: 0 khớp tên · 2 theo mã tài liệu · 1 gần đúng · '
+    + '1 chưa khớp · 1 đã có trên app · bỏ qua 1 tệp không phải PDF, PNG')
+  && selCua('HD.08.01 Hướng dẫn vòng kiểm QC (đã ký).pdf').value === 'tl:TL-1'
+  && selCua('QT.99 Quy trinh thu.pdf').value === 'tl:TL-9' && selCua('So do tram bay.png').value === 'kem:TL-7'
+  && selCua('Chinh sach ATTP_signed.pdf').value === '' && !c5.chu.includes('._QT.99')
+  && !selCua('So do tram bay.png').innerHTML.includes('tl:TL-1') && !!nutCo(c5, 'TẢI 3 TỆP LÊN'), c5.chu.slice(-500));
+selCua('QT.99 Quy trinh thu.pdf').doi('tl:TL-3');
+const tranh = selCua('QT.99 Quy trinh thu.pdf').value === 'tl:TL-3';
+selCua('Chinh sach ATTP_signed.pdf').doi('tl:TL-3');
+kiem('chọn tay: một tài liệu chỉ một tệp — chọn trùng thì tệp kia thôi nhận; nút đếm lại số tệp sẽ tải',
+  tranh && selCua('Chinh sach ATTP_signed.pdf').value === 'tl:TL-3' && selCua('QT.99 Quy trinh thu.pdf').value === ''
+  && c5.chu.includes('chọn tay') && !!nutCo(c5, 'TẢI 3 TỆP LÊN'));
+selCua('QT.99 Quy trinh thu.pdf').doi('tl:TL-9');
+nutCo(c5, 'TẢI 4 TỆP LÊN').bam();
+await choDen(() => c5.chu.includes('Đã tải'));
+const tai2 = goi('nap_tep').map((x) => x[1]);
+const theo = (k) => tai2.find((x) => x.khoa === k) || {};
+kiem('TẢI 4 TỆP: mỗi tệp vào đúng tài liệu, gửi dưới tên trong sổ đăng ký (server kiểm tên), nội dung là bản đã ký',
+  tai2.length === 4 && theo('tl:TL-1').ten === 'HD.08.01.pdf' && theo('tl:TL-1').noi_dung === b64(ND2.hd)
+  && theo('tl:TL-3').ten === 'CS.pdf' && theo('tl:TL-3').noi_dung === b64(ND2.cs)
+  && theo('tl:TL-9').ten === 'QT.99.pdf' && theo('tl:TL-9').noi_dung === b64(ND2.qt)
+  && theo('kem:TL-7').ten === 'SD.03_so_do.png'
+  && theo('kem:TL-7').noi_dung === Buffer.from(ND2.png, 'latin1').toString('base64')
+  && c5.chu.includes('Đã tải 4/4 tệp') && !nutCo(c5, 'TỆP LÊN'), tai2.map((x) => `${x.khoa} ${x.ten}`));
+// 3. CHỌN TỆP KHÁC: bỏ bảng xem lại, không tải gì
+CAN.forEach((x) => { x.co = x.khoa === 'tl:TL-2'; });
+GOI.length = 0;
+await V.render(a5);
+c5 = a5.container;
+inp5()[0].files = [fKy];
+inp5()[0].doi('');
+await choDen(() => !!nutCo(c5, 'CHỌN TỆP KHÁC'));
+nutCo(c5, 'CHỌN TỆP KHÁC').bam();
+await choDen(() => !!chon5());
+kiem('CHỌN TỆP KHÁC: bỏ bảng xem lại, về nút chọn tệp, không tải gì', !goi('nap_tep').length && !nutCo(c5, 'TỆP LÊN')
+  && !!chon5());
+// 4. chỉ có tệp không phải PDF / PNG → báo rõ, không tải
+inp5()[0].files = [new File(['x'], 'Ke hoach.docx')];
+inp5()[0].doi('');
+await choDen(() => c5.chu.includes('Không có tệp PDF, PNG'));
+kiem('chọn toàn tệp không phải PDF, PNG → báo rõ, không gửi gì', !goi('nap_tep').length
+  && c5.chu.includes('⚠ Không có tệp PDF, PNG nào trong 1 tệp đã chọn'));
+// 5. tệp .zip hỏng → báo lỗi ngay trên màn (không chỉ thông báo chớp qua)
+inp5()[0].files = [new File(['không phải zip'], 'hong.zip')];
+inp5()[0].doi('');
+await choDen(() => c5.chu.includes('không phải tệp .zip'));
+kiem('zip hỏng → dòng báo lỗi nằm lại trên màn', c5.chu.includes('⚠ hong.zip không phải tệp .zip'));
 tinh = { ...DA, can_tep: CAN, xong: true };
 await V.render(a5);
 c5 = a5.container;
 kiem('nạp đủ: màn báo xong, không còn nút / ô chọn tệp; nút NẠP BỘ ở Ban hành ẩn đi',
   c5.chu.includes('✓ Đã nạp đủ bộ tài liệu') && !inp5().length && V.st.quyen.nap_xong === true, c5.chu.slice(0, 200));
-// chọn tệp ngay khi chưa nạp danh mục → app nạp danh mục trước rồi tải; chọn thẳng các PDF (không zip) vẫn được
+// chọn tệp ngay khi chưa nạp danh mục → app nạp danh mục trước rồi tải; chọn thẳng PDF đúng tên → tải luôn, không hỏi
 CAN.forEach((x) => { x.co = x.khoa === 'tl:TL-2'; });
 tinh = CHUA;
 GOI.length = 0;
@@ -294,7 +489,7 @@ const in7 = tim(c7, (e) => e.tagName === 'INPUT' && e.type === 'file')[0];
 in7.files = [new File([ND['CS.pdf']], 'CS.pdf')];
 in7.doi('');
 await choDen(() => goi('nap_tep').length >= 1);
-kiem('chọn tệp khi CHƯA nạp danh mục: app tự nạp danh mục trước (một thao tác), rồi tải tệp PDF chọn thẳng',
+kiem('chọn tệp khi CHƯA nạp danh mục: app tự nạp danh mục trước (một thao tác), rồi tải luôn tệp khớp đúng tên',
   goi('nap_bo').length === 1 && goi('nap_tep').length === 1 && goi('nap_tep')[0][1].khoa === 'tl:TL-3'
   && GOI.findIndex(([m]) => m.endsWith('.nap_bo')) < GOI.findIndex(([m]) => m.endsWith('.nap_tep')), GOI.map((x) => x[0]));
 // nút vào màn Nạp bộ: có khi chưa xong, ẩn khi đã xong
@@ -309,6 +504,7 @@ const a9 = api(DS);
 await V.render(a9);
 kiem('Ban hành: nút NẠP BỘ TÀI LIỆU hiện khi chưa nạp đủ, ẩn khi đã nạp đủ', coNut && !link(a9.container, 'NẠP BỘ TÀI LIỆU'));
 traVe = {};
+TAM.forEach((d) => xoaF(d, { recursive: true, force: true }));
 
 console.log('\n-- bản scan bản gốc đã ký (D176) --');
 kiem('nên có bản scan: tài liệu nội bộ hiện hành; không: dự thảo, bên ngoài, biểu mẫu chỉ có trên phần mềm',

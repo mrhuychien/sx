@@ -320,6 +320,30 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nạp bộ nhận bản đã ký số, tên tệp tự đặt — khớp theo mã / tên, xem lại trước khi tải (D182)
+
+- **Lỗi**: chọn tệp zip tài liệu **đã ký số** (tên tệp tự đặt) → app chỉ nhận tên y hệt sổ đăng ký
+  (`QT_01_Quan_ly_chung_he_thong_an_toan_thuc_pham.pdf`), nên không nhận tệp nào.
+- **Giờ** (`lib/ghep.js`) khớp lần lượt: đúng tên → cùng tên khi bỏ dấu, hoa / thường, dấu câu, đuôi `_signed`,
+  "(đã ký)", "ký số" → **mã tài liệu trong tên tệp** (QT.01, BM.PRP.04, SĐ.02, KH.HACCP.01-PL…; viết "QT 01", "qt-1"
+  cũng được; mã đứng trước, mã dài được ưu tiên; mã một chữ như PRP, SLM chỉ tính ở đầu tên) → tên gần giống, chỉ là
+  **gợi ý**: ít nhất 80 % số chữ của tên tệp có trong tên tài liệu, và hơn hẳn ứng viên khác ("Biên bản họp giao ban
+  tháng 9" không bị gợi ý sang "Biên bản họp Ban ISO"). Ảnh chỉ ghép với ảnh. Mỗi tài liệu nhận một tệp (tệp thứ hai
+  báo "trùng"); tệp của tài liệu đã có trên app → bỏ qua.
+- **Bảng xem lại** — chỉ hiện khi có tệp không khớp đúng tên: đếm từng loại; dòng gợi ý / trùng / chưa khớp mở sẵn,
+  mỗi dòng một ô chọn tài liệu ("— Không tải tệp này —"); khớp tên, khớp mã gập lại (bấm mở để soát, đổi). Chọn một tài
+  liệu đã gán cho tệp khác → tệp kia thôi nhận. **TẢI n TỆP LÊN** / **CHỌN TỆP KHÁC**. Khớp đúng tên hết (như
+  `tai_lieu_pdf.zip`) → tải luôn, không hỏi.
+- Tệp gửi lên dưới tên trong sổ đăng ký (server kiểm tên), nội dung là bản đã ký. Dòng "Còn thiếu" ghi theo mã + tên
+  tài liệu. API `tinh_trang_nap` / `nap_bo`: mỗi tệp cần nạp có thêm `ma` (chỉ tài liệu), `ten`.
+- **Zip** (`lib/zip.js`): đọc được ZIP64, zip có dữ liệu chèn trước, tên không cờ UTF-8 (zip của Windows — bảng mã
+  tiếng Việt), tên kiểu máy Mac (dấu tổ hợp → chuẩn NFC); bỏ `__MACOSX/`, `._…`, `.DS_Store`, `Thumbs.db`. Lỗi đọc zip
+  nằm lại trên màn, không chỉ chớp qua một thông báo.
+- Máy chủ chặn vì gửi quá lớn (mã 413, `max_file_size` trong site_config / nginx) → báo rõ "Dữ liệu gửi lên quá lớn
+  so với giới hạn của máy chủ" thay vì "Có lỗi xảy ra" (`lib/api.js`, mọi màn).
+- Build **sx-143**. Không đổi DocType: `git pull` → `bench restart`. Test: `test-tailieu.mjs` (bộ khớp với danh mục
+  thật 88 tệp, zip khó, bảng xem lại), `test-tailieu.py`, `test-hangcho.mjs` (413).
+
 ## Sửa lỗi NẠP DANH MỤC "max characters allowed is 140"; test kiểm ô như frappe (D181)
 
 - **Lỗi**: bấm NẠP DANH MỤC báo `SX Ho So Danh Muc …: 'Tên hồ sơ / văn bản' (Hồ sơ vận hành trước audit 17/9: Kế
@@ -349,7 +373,8 @@ mới tải tiếp được), nút NẠP BỘ thì nằm đó mãi kể cả khi
 - **Danh mục đi kèm app** — sổ đăng ký 21/9/2026, BM.01.03, Phụ lục 3 chuyển từ `scripts/du_lieu/seed_*.json` vào
   `sx/qc/seed/` (`tai_lieu.json`, `tai_lieu_ngoai.json`, `phan_phoi.json`). Bước ① chỉ còn một nút **NẠP DANH MỤC**,
   không chọn tệp nào. Ô "Tạo yêu cầu Đã đọc, hiểu" mặc định tắt (đã phổ biến bản giấy 22/9).
-- Bước ② nút **📦 CHỌN TỆP tai_lieu_pdf.zip** (nút của app, không còn ô "Choose Files" của trình duyệt) — **chọn thẳng
+- Bước ② nút **📦 CHỌN TỆP tai_lieu_pdf.zip** (từ D182: **📦 CHỌN TỆP ZIP / PDF**; nút của app, không còn ô "Choose
+  Files" của trình duyệt) — **chọn thẳng
   tệp zip, không cần giải nén**: app mở zip ngay trên máy (`lib/zip.js`, không thư viện ngoài), khớp tên, tải lần lượt
   những tệp còn thiếu (≤ 10 MB/tệp, kiểm chữ ký đầu tệp như cũ). Vẫn chọn được các tệp PDF, PNG rời. Chọn zip khi chưa
   nạp danh mục → app tự nạp danh mục luôn.

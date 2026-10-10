@@ -78,5 +78,26 @@ await Q.guiLai(post);
 kiem('thao tác cũ chưa có tên người vẫn gửi được (không kẹt vĩnh viễn)',
   daGui.length === 1);
 
+console.log('\n-- lỗi máy chủ đọc được (lib/api.js, D182) --');
+// Máy chủ chặn vì gửi quá lớn (413, trang HTML): trước D182 chỉ hiện "Có lỗi xảy ra" — Ban ISO tải bản đã ký số lớn
+// không biết vì sao hỏng. Nạp api.js THẬT (kèm queue.js) với fetch giả.
+const { mkdtempSync } = await import('node:fs');
+const thu = mkdtempSync(join(tmpdir(), 'api-'));
+writeFileSync(join(thu, 'queue.mjs'), readFileSync('sx/public/sx/lib/queue.js', 'utf8'));
+writeFileSync(join(thu, 'api.mjs'), readFileSync('sx/public/sx/lib/api.js', 'utf8').replaceAll("'./queue.js'", "'./queue.mjs'"));
+window.addEventListener = () => {};
+const traLoi = { status: 413, ok: false, body: null };
+globalThis.fetch = async () => ({ status: traLoi.status, ok: traLoi.ok,
+  json: async () => { if (!traLoi.body) throw new Error('không phải JSON'); return traLoi.body; } });
+const API = await import(`file://${join(thu, 'api.mjs')}`);
+rmSync(thu, { recursive: true });
+const loiCua = async () => { try { await API.call('sx.api.qc_tailieu.nap_tep', {}); return ''; } catch (e) { return e.message; } };
+kiem('413 (quá giới hạn máy chủ) → báo rõ "quá lớn … max_file_size", không phải "Có lỗi xảy ra"',
+  (await loiCua()).includes('quá lớn so với giới hạn của máy chủ (max_file_size)'));
+Object.assign(traLoi, { status: 417, body: { exception: 'frappe.exceptions.ValidationError: Nội dung tệp không khớp đuôi .pdf.' } });
+kiem('lỗi nghiệp vụ khác vẫn bóc đúng câu của server', (await loiCua()) === 'Nội dung tệp không khớp đuôi .pdf.');
+Object.assign(traLoi, { status: 200, ok: true, body: { message: { khoa: 'tl:1' } } });
+kiem('thành công trả message', (await API.call('x', {})).khoa === 'tl:1');
+
 console.log(hong ? `HANGCHO-FAIL (${hong} ca)` : 'HANGCHO-OK');
 process.exit(hong ? 1 : 0);

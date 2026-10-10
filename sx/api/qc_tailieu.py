@@ -1121,30 +1121,34 @@ def _so_tep(kh):
 
 
 def _can_tep(kh, ten_tl, dot_name):
-    """[{khoa, tep, mo_ta, co}] — mọi tệp của bộ tài liệu và đã có trên app chưa."""
+    """[{khoa, tep, mo_ta, co, ma, ten}] — mọi tệp của bộ tài liệu và đã có trên app chưa. `ma`, `ten` để màn Nạp
+    bộ khớp tệp người dùng tự đặt tên (bản đã ký số — D182): mã chỉ có ở tài liệu (ảnh, hồ sơ đợt trùng mã tài liệu)."""
     ra = []
     for x in kh["tai_lieu"]:
         n = ten_tl.get(TL.khoa_tl(x))
         if n and x.get("tep_goc"):
             ra.append({"khoa": f"tl:{n}", "tep": x["tep_goc"], "mo_ta": x["ma"] or x["ten"],
-                       "co": bool(frappe.db.get_value(TL.PT, n, "tep"))})
+                       "co": bool(frappe.db.get_value(TL.PT, n, "tep")), "ma": x["ma"] or "", "ten": x["ten"]})
     for a in kh["anh"]:
         n = ten_tl.get(a["gan_vao"])
         if n:
             co = any(r.tep_goc == a["tep_goc"] and r.tep for r in frappe.get_doc(TL.PT, n).get("tep_kem") or [])
-            ra.append({"khoa": f"kem:{n}", "tep": a["tep_goc"], "mo_ta": f"{a['gan_vao']} — ảnh", "co": co})
+            ra.append({"khoa": f"kem:{n}", "tep": a["tep_goc"], "mo_ta": f"{a['gan_vao']} — ảnh", "co": co,
+                       "ma": "", "ten": a["mo_ta"]})
     if dot_name:
         dot = frappe.get_doc(TL.PT_DOT, dot_name)
         if kh["dot"] and kh["dot"]["tep_goc"]:
             ra.append({"khoa": f"qd:{dot_name}", "tep": kh["dot"]["tep_goc"], "mo_ta": "Quyết định ban hành",
-                       "co": bool(dot.tep_qd)})
+                       "co": bool(dot.tep_qd), "ma": "", "ten": kh["dot"]["ten"]})
         for h in kh["ho_so_dot"]:
             co = any(r.tep_goc == h["tep_goc"] and r.tep for r in dot.get("ho_so") or [])
-            ra.append({"khoa": f"hsdot:{dot_name}", "tep": h["tep_goc"], "mo_ta": h["mo_ta"], "co": co})
+            ra.append({"khoa": f"hsdot:{dot_name}", "tep": h["tep_goc"], "mo_ta": h["mo_ta"], "co": co, "ma": "",
+                       "ten": h["mo_ta"]})
     for h in kh["ho_so"]:
         n = frappe.db.get_value("SX Ho So Danh Muc", {"ma": MA_NAP_HS}, ["name", "tep"], as_dict=True)
         if n:
-            ra.append({"khoa": f"hs:{n.name}", "tep": h["tep_goc"], "mo_ta": h["ten"], "co": bool(n.tep)})
+            ra.append({"khoa": f"hs:{n.name}", "tep": h["tep_goc"], "mo_ta": h["ten"], "co": bool(n.tep), "ma": "",
+                       "ten": h["ten"]})
     return ra
 
 

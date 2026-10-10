@@ -230,6 +230,14 @@ kiem("tài khoản nhiều vai: chức danh ghép cắt gọn ≤ 140 ký tự �
      and cd_het.endswith("…") and all(t in R.NHAN_ROLE.values() for t in cd_het[:-1].split(", "))
      and A._chuc_danh({R.QC, R.QC_GOI}) == "QC chế biến, QC đóng gói", cd_het)
 can = r1["can_tep"]
+kiem("D182: mỗi tệp cần nạp kèm mã + tên tài liệu (màn Nạp bộ khớp tệp đã ký số, tên tự đặt) — mã chỉ ở tài liệu; ảnh, "
+     "QĐ, hồ sơ đợt (trùng mã BM.01.01, BM.01.13 với tài liệu) không mang mã",
+     all({"khoa", "tep", "mo_ta", "co", "ma", "ten"} <= set(x) for x in can) and all(x["ten"] for x in can)
+     and next(x for x in can if x["tep"].startswith("QT_01_"))["ma"] == "QT.01"
+     and next(x for x in can if x["tep"].startswith("QT_01_"))["ten"] == "Quản lý chung hệ thống an toàn thực phẩm"
+     and all(x["ma"] == "" for x in can if not x["khoa"].startswith("tl:"))
+     and {x["khoa"].split(":")[0] for x in can} == {"tl", "kem", "qd", "hsdot", "hs"},
+     sorted({x["khoa"].split(":")[0] for x in can}))
 kiem("cần 85 tệp (81 PDF tài liệu + 3 ảnh + QĐ + 4 hồ sơ đợt + 1 hồ sơ … trừ PLK / BCSX không tệp), chưa tệp nào có",
      len(can) == 79 + 3 + 1 + 4 + 1 and not any(x["co"] for x in can), len(can))
 # Ban ISO sửa phân phối một tài liệu, rồi lỡ nạp lại

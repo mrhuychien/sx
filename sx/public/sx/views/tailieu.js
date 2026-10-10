@@ -16,6 +16,7 @@ import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
 import { docZip, tenGoc } from '/assets/sx/sx/lib/zip.js';
+import { duoi, ghepTep } from '/assets/sx/sx/lib/ghep.js';
 
 const API = 'sx.api.qc_tailieu';
 export const st = { q: '', tt: 'Hiện hành', nguon: 'Nội bộ', scan: '', quyen: null, daMo: {} };
@@ -844,10 +845,15 @@ function moDong(r, dl, xong) {
 // D180: danh mục (sổ đăng ký, BM.01.03, Phụ lục 3) ĐI KÈM APP — một nút NẠP DANH MỤC, không còn chọn 3 tệp .json; tệp
 // PDF chọn thẳng tai_lieu_pdf.zip (giải nén ngay trên máy — lib/zip.js) hoặc các tệp PDF, PNG như cũ. Mở màn là thấy
 // đã nạp tới đâu (tinh_trang_nap) — tải lại trang vẫn đúng chỗ dở; nạp đủ thì nút NẠP BỘ ở Ban hành / Tất cả ẩn đi.
+// D182: tệp do người dùng tự đặt tên (bản đã ký số) — lib/ghep.js khớp theo tên / mã tài liệu / tên gần giống; còn
+// tệp nào không khớp đúng tên thì hiện bảng xem lại (chọn tài liệu cho từng tệp) trước khi tải.
 
 const MB10 = 10 * 1024 * 1024;
+const NHAN_CACH = { ten: 'khớp tên', ma: 'theo mã tài liệu', gan: 'gần đúng — xem lại', tay: 'chọn tay',
+  trung: 'trùng tài liệu với tệp khác', da_co: 'đã có trên app', '': 'chưa khớp' };
+const laTaiLieu = (t) => ['pdf', 'png'].includes(duoi(t));
 
-/** {tên tệp: {ten, co, lay}} từ các tệp đã chọn — tệp .zip mở ra từng tệp bên trong; khớp theo tên không thư mục. */
+/** {tên tệp: {ten, co, lay}} từ các tệp đã chọn — tệp .zip mở ra từng tệp bên trong (tên không kèm thư mục). */
 export async function gomTep(files) {
   const ra = {};
   for (const f of Array.from(files || [])) {
@@ -856,6 +862,14 @@ export async function gomTep(files) {
     } else if (!ra[f.name]) ra[f.name] = { ten: f.name, co: f.size, lay: async () => f };
   }
   return ra;
+}
+
+/** Nhãn một mục còn thiếu cho ô chọn: "QT.01 · Quản lý chung…", "Ảnh · …", "Hồ sơ đợt · …". */
+export function nhanMuc(x) {
+  const loai = String(x.khoa).split(':')[0];
+  const ten = x.ten || x.mo_ta || x.tep;
+  if (loai === 'tl') return `${x.ma ? `${x.ma} · ` : ''}${ten}`;
+  return `${{ kem: 'Ảnh', qd: 'Quyết định', hsdot: 'Hồ sơ đợt', hs: 'Hồ sơ' }[loai] || 'Tệp'} · ${ten}`;
 }
 
 const soNap = (t) => `${t.tai_lieu[0]}/${t.tai_lieu[1]} tài liệu nội bộ · ${t.ngoai[0]}/${t.ngoai[1]} tài liệu bên ngoài · `
@@ -870,34 +884,109 @@ async function veNap(ctx) {
   c.appendChild(kq);
   let tt = null;
   let yeuCau = false;
+  let duyet = null;                 // {dong, tep}: tệp vừa chọn chưa khớp đúng tên — chờ xem lại (D182)
   const napDanhMuc = async () => {
     const r = await ctx.call(`${API}.nap_bo`, { payload: JSON.stringify({ tao_yeu_cau_doc: yeuCau ? 1 : 0 }) });
     (r.loi || []).forEach((l) => toastErr(l));
   };
-  const taiTep = async (files) => {
-    let tep;
-    try { tep = await gomTep(files); } catch (e) { toastErr(e.message); return; }
-    if (!tt.danh_muc_xong) {               // chọn tệp trước khi nạp danh mục: nạp luôn, khỏi bắt bấm hai nút
-      try { await napDanhMuc(); tt = await ctx.call(`${API}.tinh_trang_nap`); } catch (e) { toastErr(e.message); return; }
-    }
-    const viec = tt.can_tep.filter((x) => !x.co && tep[x.tep]);
+  const viecCua = (dong, tep) => dong.filter((d) => d.khoa)
+    .map((d) => ({ x: tt.can_tep.find((x) => x.khoa === d.khoa), y: tep[d.ten], ten: d.ten })).filter((v) => v.x && v.y);
+  const taiLen = async (viec) => {
     const loi = [];
     let xong = 0;
-    for (const x of viec) {
-      const y = tep[x.tep];
-      kq.textContent = `Đang tải ${xong + loi.length + 1}/${viec.length}: ${x.tep}`;
+    for (const { x, y, ten } of viec) {
+      kq.textContent = `Đang tải ${xong + loi.length + 1}/${viec.length}: ${ten}`;
       try {
         if (y.co > MB10) throw new Error('quá 10 MB');
         const b = await y.lay();
+        // gửi dưới tên trong sổ đăng ký (server kiểm tên) — tệp của người dùng đặt tên gì cũng được
         await ctx.call(`${API}.nap_tep`, { khoa: x.khoa, ten: x.tep, noi_dung: await docTep(new File([b], x.tep)) });
         xong += 1;
-      } catch (e) { loi.push(`${x.tep}: ${e.message}`); }
+      } catch (e) { loi.push(`${ten}: ${e.message}`); }
     }
-    kq.innerHTML = `Đã tải ${xong}/${viec.length} tệp.${!viec.length ? ' Không tệp nào khớp tên tệp còn thiếu.' : ''}`
-      + `${loi.length ? `<br>⚠ ${loi.map(esc).join('<br>⚠ ')}` : ''}`;
+    kq.innerHTML = `Đã tải ${xong}/${viec.length} tệp.${loi.length ? `<br>⚠ ${loi.map(esc).join('<br>⚠ ')}` : ''}`;
   };
-  const ve = async () => {
-    try { tt = await ctx.call(`${API}.tinh_trang_nap`); } catch (e) { toastErr(e.message); return; }
+  const chonTep = async (files) => {
+    let tep;
+    try { tep = await gomTep(files); } catch (e) { kq.textContent = `⚠ ${e.message}`; return; }
+    if (!tt.danh_muc_xong) {               // chọn tệp trước khi nạp danh mục: nạp luôn, khỏi bắt bấm hai nút
+      try { await napDanhMuc(); tt = await ctx.call(`${API}.tinh_trang_nap`); } catch (e) {
+        kq.textContent = `⚠ ${e.message}`;
+        return;
+      }
+    }
+    const g = ghepTep(tt.can_tep, Object.keys(tep));
+    const tl = g.dong.filter((d) => laTaiLieu(d.ten));
+    if (!tl.length) {
+      kq.textContent = `⚠ Không có tệp PDF, PNG nào trong ${Object.keys(tep).length} tệp đã chọn — app chỉ nhận PDF, PNG.`;
+      return;
+    }
+    if (tl.every((d) => d.cach === 'ten' || d.cach === 'da_co')) {     // khớp đúng tên hết: tải luôn
+      const viec = viecCua(g.dong, tep);
+      if (viec.length) await taiLen(viec);
+      else kq.textContent = `${tl.length} tệp đã chọn đều đã có trên app.`;
+      return;
+    }
+    kq.textContent = '';
+    duyet = { dong: g.dong, tep };
+  };
+  const veDuyet = (b2) => {
+    const { dong, tep } = duyet;
+    const tl = dong.filter((d) => laTaiLieu(d.ten));
+    const dem = (f) => tl.filter(f).length;
+    const khac = dong.length - tl.length;
+    b2.appendChild(el('div', 'sx-qc-goiy', `Đã đọc ${tl.length} tệp PDF, PNG: ${dem((d) => d.cach === 'ten')} khớp tên · `
+      + `${dem((d) => d.cach === 'ma')} theo mã tài liệu · ${dem((d) => d.cach === 'gan')} gần đúng · `
+      + `${dem((d) => !d.khoa && d.cach !== 'da_co')} chưa khớp${dem((d) => d.cach === 'da_co') ? ` · `
+        + `${dem((d) => d.cach === 'da_co')} đã có trên app` : ''}${khac ? ` · bỏ qua ${khac} tệp không phải PDF, PNG` : ''}`
+      + '. <b>Xem lại từng dòng</b> (nhất là "gần đúng", "chưa khớp"): chọn đúng tài liệu cho tệp, hoặc "Không tải".'));
+    const thieu = tt.can_tep.filter((x) => !x.co);
+    const dongChon = (d) => {
+      const w = el('div', 'sx-qc-oso sx-tl-ghep');
+      w.appendChild(el('div', 'sx-qc-nhan', `<div class="sx-qc-ten">📄 ${esc(d.ten)}</div><div class="sx-qc-goiy">`
+        + `${esc(NHAN_CACH[d.cach] || '')}</div>`));
+      const s = el('select', 'sx-textarea');
+      s.innerHTML = `<option value="">— Không tải tệp này —</option>${thieu.filter((x) => duoi(x.tep) === duoi(d.ten))
+        .map((x) => `<option value="${esc(x.khoa)}">${esc(nhanMuc(x))}</option>`).join('')}`;
+      s.value = d.khoa || '';
+      s.addEventListener('change', () => {
+        const k = s.value || '';
+        dong.forEach((e) => { if (e !== d && k && e.khoa === k) { e.khoa = ''; e.cach = ''; } });   // một tài liệu một tệp
+        d.khoa = k;
+        d.cach = k ? 'tay' : '';
+        veLai();
+      });
+      w.appendChild(s);
+      return w;
+    };
+    // mở sẵn: gợi ý, trùng, chưa khớp, chọn tay; khớp tên / theo mã chắc chắn hơn → gập lại (bấm mở để soát, đổi)
+    tl.filter((d) => !['ten', 'ma', 'da_co'].includes(d.cach)).forEach((d) => b2.appendChild(dongChon(d)));
+    const gap = (tieuDe, ds, ve1) => {
+      if (!ds.length) return;
+      const f = el('details', 'sx-fold');
+      const sum = el('summary', 'sx-fold-head');
+      sum.textContent = tieuDe;
+      f.appendChild(sum);
+      ds.forEach((d) => f.appendChild(ve1(d)));
+      b2.appendChild(f);
+    };
+    gap(`${dem((d) => d.cach === 'ten')} tệp khớp đúng tên ✓`, tl.filter((d) => d.cach === 'ten'), dongChon);
+    gap(`${dem((d) => d.cach === 'ma')} tệp khớp theo mã tài liệu ✓ — bấm để soát`, tl.filter((d) => d.cach === 'ma'),
+      dongChon);
+    gap(`${dem((d) => d.cach === 'da_co')} tệp đã có trên app — không tải lại`, tl.filter((d) => d.cach === 'da_co'),
+      (d) => el('div', 'sx-qc-goiy', esc(d.ten)));
+    gap(`${khac} tệp không phải PDF, PNG — bỏ qua`, dong.filter((d) => !laTaiLieu(d.ten)),
+      (d) => el('div', 'sx-qc-goiy', esc(d.ten)));
+    const viec = viecCua(dong, tep);
+    b2.appendChild(nut(`TẢI ${viec.length} TỆP LÊN`, 'sx-btn-primary sx-btn-big', async (e) => {
+      e.currentTarget.disabled = true;
+      duyet = null;
+      await taiLen(viec);
+      await ve();
+    }));
+    b2.appendChild(nut('CHỌN TỆP KHÁC', '', async () => { duyet = null; kq.textContent = ''; veLai(); }));
+  };
+  const veLai = () => {
     than.innerHTML = '';
     const tong = tt.tong_tep || tt.can_tep.length;
     const thieu = tt.can_tep.filter((x) => !x.co);
@@ -926,29 +1015,34 @@ async function veNap(ctx) {
     }
     than.appendChild(b1);
     const b2 = el('div', 'sx-qc-sc', `<div class="sx-qc-sc-ten">② Tệp PDF, ảnh</div><div class="sx-qc-goiy">`
-      + `${tt.can_tep.length - thieu.length}/${tong} tệp đã có trên app. Chọn tệp <b>tai_lieu_pdf.zip</b> — không cần `
-      + 'giải nén (hoặc chọn các tệp PDF, PNG). App tự khớp tên, tải lần lượt; tệp đã có thì bỏ qua.</div>');
+      + `${tt.can_tep.length - thieu.length}/${tong} tệp đã có trên app. Chọn tệp <b>.zip</b> của bộ tài liệu — bản đã ký `
+      + 'số, tên tệp tự đặt cũng được, không cần giải nén (hoặc chọn các tệp PDF, PNG). App khớp theo tên, mã tài liệu '
+      + '(QT.01, BM.01.01…); tệp chưa chắc thì cho xem lại trước khi tải; tệp đã có thì bỏ qua.</div>');
+    than.appendChild(b2);
+    if (duyet) { veDuyet(b2); return; }
     const inp = el('input');
     inp.type = 'file';
     inp.accept = '.zip,.pdf,.png';
     inp.multiple = true;
     inp.style.display = 'none';
     // nút của app thay ô chọn tệp của trình duyệt ("Choose Files"); chưa nạp danh mục thì nút phụ — chọn vẫn được
-    const chon = nut('📦 CHỌN TỆP tai_lieu_pdf.zip', tt.danh_muc_xong ? 'sx-btn-primary sx-btn-big' : '',
-      () => inp.click());
+    const chon = nut('📦 CHỌN TỆP ZIP / PDF', tt.danh_muc_xong ? 'sx-btn-primary sx-btn-big' : '', () => inp.click());
     inp.addEventListener('change', async () => {
       if (!inp.files || !inp.files.length) return;
       chon.disabled = true;
-      await taiTep(inp.files);
+      await chonTep(inp.files);
       await ve();
     });
     b2.appendChild(chon);
     b2.appendChild(inp);
     if (tt.danh_muc_xong && thieu.length) {
-      b2.appendChild(el('div', 'sx-qc-goiy', `Còn thiếu ${thieu.length} tệp: ${esc(thieu.slice(0, 8).map((x) => x.tep)
-        .join(', '))}${thieu.length > 8 ? '…' : ''}`));
+      b2.appendChild(el('div', 'sx-qc-goiy', `Còn thiếu ${thieu.length} tệp: ${esc(thieu.slice(0, 8).map(nhanMuc)
+        .join('; '))}${thieu.length > 8 ? '…' : ''}`));
     }
-    than.appendChild(b2);
+  };
+  const ve = async () => {
+    try { tt = await ctx.call(`${API}.tinh_trang_nap`); } catch (e) { toastErr(e.message); return; }
+    veLai();
   };
   await ve();
 }

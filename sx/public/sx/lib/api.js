@@ -65,6 +65,8 @@ async function goiThang(method, args = {}) {
   notifyOffline(false);
   let data = {};
   try { data = await res.json(); } catch (e) { /* body rỗng */ }
+  // 413: máy chủ chặn vì gửi quá lớn (site_config max_file_size, nginx) — trả trang HTML, không có lỗi để bóc (D182)
+  if (res.status === 413) throw new Error('Dữ liệu gửi lên quá lớn so với giới hạn của máy chủ (max_file_size).');
   if (!res.ok) throw new Error(extractError(data));
   return data.message;
 }
