@@ -534,4 +534,10 @@ node scripts/test-iso.mjs > /tmp/sx-iso-js.log 2>&1 \
   && tail -1 /tmp/sx-iso-js.log \
   || { cat /tmp/sx-iso-js.log; loi=1; }
 
+# D177: dữ liệu QC mẫu cho site thử. Lọt lên site thật = hồ sơ ISO giả cạnh hồ sơ thật; ghi xen ngày đã có, giờ lượt là
+# giờ chạy lệnh, số ngoài ngưỡng tự đẻ sự cố, xoá sót dòng con / xoá nhầm bản ghi thật — đều làm bẩn số liệu.
+python3 scripts/test-dulieumau.py > /tmp/sx-dulieumau.log 2>&1 \
+  && tail -1 /tmp/sx-dulieumau.log \
+  || { cat /tmp/sx-dulieumau.log; loi=1; }
+
 exit $loi

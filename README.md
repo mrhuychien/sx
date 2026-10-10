@@ -320,6 +320,63 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Dữ liệu QC mẫu 22/9 → nay cho site THỬ (D177)
+
+Để tập huấn QC / Ban ISO, xem màn ISO, thử xuất báo cáo Excel / PDF với số liệu đủ một tháng. **Không bao giờ chạy trên
+site thật**: hồ sơ do máy sinh nằm cạnh hồ sơ thật là hồ sơ giả — tờ in ra không khác tờ QC ghi. Lệnh tự dừng nếu
+site là `site1.local`, hoặc site chưa bật cờ `sx_du_lieu_mau` trong site_config (cả xem trước lẫn xoá).
+
+**Dựng site thử từ bản sao lưu** (trong `~/frappe-bench`; site thật vẫn chạy bình thường):
+
+```bash
+bench --site site1.local backup --with-files            # 3 tệp mới nhất trong sites/site1.local/private/backups/
+bench new-site sx-thu.local --admin-password '<mk>' --db-root-password '<mk root MariaDB>'
+bench --site sx-thu.local restore sites/site1.local/private/backups/<…>-database.sql.gz \
+  --with-public-files sites/site1.local/private/backups/<…>-files.tar \
+  --with-private-files sites/site1.local/private/backups/<…>-private-files.tar --db-root-password '<mk root>'
+bench --site sx-thu.local migrate
+bench --site sx-thu.local set-config mute_emails 1      # site thử có người dùng thật: không gửi thư
+bench --site sx-thu.local scheduler disable             # không chạy việc nền (nhắc, đồng bộ) trên bản chép
+bench --site sx-thu.local set-config sx_du_lieu_mau 1   # cờ dữ liệu mẫu — CHỈ site thử
+```
+
+Mở site thử bằng đúng tên `sx-thu.local`: máy tính thêm dòng `<IP máy chủ> sx-thu.local` vào tệp hosts (máy chủ có
+nginx thì `bench setup nginx` rồi `sudo systemctl reload nginx`). Đăng nhập như site thật (bản sao mang theo tài khoản).
+
+**Chạy** (gọi trần = xem trước, như seed định mức):
+
+```bash
+bench --site sx-thu.local execute sx.seed.du_lieu_mau.tao                              # XEM TRƯỚC: in kế hoạch
+bench --site sx-thu.local execute sx.seed.du_lieu_mau.tao --kwargs "{'dry_run': 0}"    # GHI
+bench --site sx-thu.local execute sx.seed.du_lieu_mau.xoa --kwargs "{'dry_run': 0}"    # XOÁ toàn bộ dữ liệu mẫu
+```
+
+Tham số: `tu` (mặc định `'2026-09-22'`), `den` (mặc định hôm nay), `su_co` (số phiếu sự cố mẫu, mặc định 2), `phan`
+(`'luot,su_co,cat,vai,xuat'` — chọn phần), `chu_nhat` (1 = Chủ nhật cũng làm), `hat` (đổi số ngẫu nhiên).
+
+- **Ngày nào đã có thì thôi**: ngày đã có lượt kiểm (thật hay mẫu) không sinh lượt; sổ cát chỉ sinh trước dòng thật đầu
+  tiên trong kỳ; tuần đã có lần giặt vải, lô đã có phiếu xuất xưởng / mẫu lưu thì bỏ qua. Chạy lại không đẻ thêm gì.
+- **BM.08.01**: thứ Hai → thứ Bảy, ba lượt (thứ Hai lượt Tuần thay Đầu sáng; hôm nay chỉ lượt đã qua giờ), ghi đủ mọi mục
+  áp dụng, số trong ngưỡng SX QC Setting; bột thứ Ba / Năm / Bảy (thứ Năm sáng làm vị có lạc → B1, B2, trưa thử nhanh lạc
+  B7 âm tính); T4 theo từng vật BM.PRP.05; bộ mục theo **phiên bản của ngày đó** (bản 1 trước 08/10, 2 ngày 08/10, 3 từ
+  09/10 — tờ tháng 9 không có ô NC-02); Ban ISO mẫu xem xét các tuần đã qua.
+- **BM.08.02**: 2 phiếu sự cố sinh đúng luật từ lượt kiểm (lưới sàng không đạt, thùng bột quá hạn) — QC mẫu ghi xử lý,
+  Ban ISO mẫu đóng sáng hôm sau.
+- **BM.08.03** nhật ký cát: nhập + rang khô đưa dùng (máy chưa có cát), bổ sung mỗi 6 ngày rang (app tự đếm), vệ sinh
+  thùng / khay thứ Bảy, thay cát khi đủ số ngày tối đa ở Setting. **BM.08.05**: giặt định kỳ mỗi tuần đúng ngày giặt ở
+  Setting (trống = thứ Bảy), QC ký, Ban ISO xem tháng đã qua; danh mục vải trống thì khai 4 vải mẫu V01-A … V02-B.
+- **BM.08.04 + sổ lưu mẫu**: lô của phiếu nhập kho **đã duyệt** trong kỳ chưa có phiếu: lấy mẫu lưu, QC kiểm (A theo gợi
+  ý hồ sơ lô, B2 cân quanh khối lượng trên quy cách), Ban ISO duyệt — giờ đặt trước lúc thủ kho duyệt phiếu nhập (đúng
+  luồng thật). Lô mà hồ sơ gợi ý Không đạt (vd sự cố chưa quyết định) thì bỏ, không bấm Đạt đè lên.
+- **Không sinh**: sản lượng (báo mẻ, phiếu kho, nhập kho — chỉ đọc phiếu nhập để biết lô), tiếp nhận NL, kiểm xe, thiết
+  bị đo (hạn đầu 31/10/2026), động vật gây hại, sổ ghi theo dòng, biên bản, kiểm nghiệm.
+- Ghi qua đúng API của màn QC (dữ liệu mẫu qua mọi luật như QC bấm thật), rồi chỉnh giờ (bắt đầu / hoàn tất lượt, giờ
+  từng ô, ký, duyệt) về đúng ngày, trong khung lượt. Mọi bản ghi của hai tài khoản mẫu `qc.mau@sx.local`,
+  `iso.mau@sx.local` (không mật khẩu, tên "… Mẫu (dữ liệu mẫu)"), ghi chú "Dữ liệu mẫu (site thử)" — `xoa` xoá đúng
+  theo hai tài khoản đó, kể cả dòng con, rồi xoá hai tài khoản.
+- Code: `sx/seed/du_lieu_mau.py` (không whitelist — chỉ chạy bằng `bench execute`). Không đổi DocType, không đổi JS:
+  site thật **không cần** migrate / build gì. Test: `test-dulieumau.py`.
+
 ## Màn ISO riêng, xuất báo cáo Excel / PDF cho đoàn, bản scan tài liệu (D176)
 
 **Lên main 10/10/2026 cùng đợt D171–D176.** Có DocType mới, ô mới → phải
