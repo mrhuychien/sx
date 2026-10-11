@@ -524,9 +524,10 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
       khong_lo: false },
     // D189: mã chưa quản lý lô — đếm được, chốt bật lô; mã còn tồn ở kho khác thì báo ngay trên dòng.
     { item: 'TP-RONG', ten: 'Thỏi vàng Rồng', dvt: 'Hộp', uoms: [], so_sach: 10439, chua_hsd: 10439, thu_hoi: 0,
-      theo_hsd: [], khong_lo: true, bat_lo: true, le_khong_lo: 0, kho_khac: [] },
+      theo_hsd: [], khong_lo: true, bat_lo: true, le_khong_lo: 0,
+      kho_khac: [{ kho: 'CH Bạch Đằng', so: 54, cty_khac: false }, { kho: 'Xưởng', so: -20093, cty_khac: false }] },
     { item: 'TP-TUI', ten: 'Túi 250g', dvt: 'Hộp', uoms: [], so_sach: 8, chua_hsd: 8, thu_hoi: 0, theo_hsd: [],
-      khong_lo: true, bat_lo: true, le_khong_lo: 0, kho_khac: [{ kho: 'Kho Le', so: 2 }] },
+      khong_lo: true, bat_lo: true, le_khong_lo: 0, kho_khac: [{ kho: 'Kho Cty B', so: 2, cty_khac: true }] },
   ];
   const tq = () => ({
     kho: 'Kho TP', duoc_chot: KH.chot, hom_nay: NGAY, phieu: st.phieu, danh_muc: [], gan_day: [], canh_bao: [],
@@ -555,7 +556,8 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
           thu_hoi: 0, chua_dem: true },
         { item: 'TP-RONG', ten: 'Thỏi vàng Rồng', so_sach: 50, dem: 55, chuyen: 50, lo_cu: 1, thieu: 0, thua: 5,
           bu_am: 0, thu_hoi: 0, bat_lo: true }],
-        tong: { so_ma: 3, so_sach: 270, dem: 175, phieu_kho: 3, ve_0: 1, bat_lo: 1 } };
+        tong: { so_ma: 3, so_sach: 270, dem: 175, phieu_kho: 3, ve_0: 1, bat_lo: 1,
+          kho_am: [{ ten: 'Thỏi vàng Rồng', kho: 'Xưởng', so: -20093 }] } };
     }
     if (m === 'sx.api.kiemke.chot') { st.phieu = null; return { name: 'KK-1', so_ma: 1, tong_lech: -60, so_phieu_kho: 2 }; }
     return tq();
@@ -578,8 +580,11 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
     !!c.querySelector('[data-them="2"]') && !!c.querySelector('[data-het="2"]')
     && /Mã chưa quản lý theo lô — chốt sẽ bật lô: tồn cũ không lô về 0, số đếm vào lô theo HSD/.test(c.innerHTML)
     && /Đã đếm 0\/4 mã/.test(c.innerHTML) && !/không ghi HSD được/.test(c.innerHTML), c.innerHTML.slice(0, 400));
-  kiem('… mã còn tồn ở kho khác: báo kho, số và cách xử lý ngay trên dòng',
-    /còn tồn ở kho khác \(Kho Le: 2\) — chưa bật lô được/.test(c.innerHTML));
+  kiem('D191: tồn ở kho khác cùng công ty — nói trước chốt xử lý từng kho (cửa hàng → lô tồn cũ, xưởng âm → về 0), không chặn',
+    /Cờ lô là của mã, áp cả kho khác — chốt xử lý luôn: CH Bạch Đằng 54 → lô tồn cũ \(chưa rõ HSD\), vẫn bán được; Xưởng -20\.093 → về 0 \(tồn âm\)/
+      .test(c.innerHTML), c.innerHTML.match(/Cờ lô[^<]*/));
+  kiem('… kho của công ty khác: ⚠ chưa bật lô được, nói kho, số, cách xử lý',
+    /⚠ Mã chưa quản lý theo lô, còn tồn ở kho của công ty khác \(Kho Cty B: 2\) — chưa bật lô được/.test(c.innerHTML));
   const pr = moi(c.querySelector('[data-them="2"]'));
   kiem('… bấm + HSD của mã đó mở bàn số như mã khác (không báo lỗi)', pr && /^Kiểm kê · KK-1/.test(pr.m.kicker)
     && !TOAST.some(([t]) => /không quản lý theo lô/.test(t)));
@@ -657,9 +662,10 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
     /bật quản lý lô<\/span> · chuyển 50/.test(xm.body.innerHTML) && /; 1 mã bật quản lý lô\./.test(xm.body.innerHTML),
     xm.body.innerHTML.slice(-600));
   nut.bam();
-  kiem('… hộp xác nhận nói đặt lại toàn bộ kho + số mã về 0 + số mã bật lô', /^Đặt lại toàn bộ kho thành phẩm theo số đếm\. 3 mã/.test(
-    HOI[HOI.length - 1].message) && /1 mã chưa đếm về 0; 1 mã bật quản lý lô\./.test(HOI[HOI.length - 1].message),
-  HOI[HOI.length - 1].message);
+  kiem('… hộp xác nhận nói đặt lại toàn bộ kho + số mã về 0 + số mã bật lô + tồn âm kho khác về 0',
+    /^Đặt lại toàn bộ kho thành phẩm theo số đếm\. 3 mã/.test(HOI[HOI.length - 1].message)
+    && /1 mã chưa đếm về 0; 1 mã bật quản lý lô; tồn âm ở kho khác đưa về 0: Thỏi vàng Rồng ở Xưởng -20\.093\./
+      .test(HOI[HOI.length - 1].message), HOI[HOI.length - 1].message);
   await HOI[HOI.length - 1].onConfirm();
   await choRe();
   kiem('CHỐT → xác nhận 2 bước rồi gọi chot(phiếu), thẻ về trạng thái chưa có phiếu',

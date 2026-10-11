@@ -23,8 +23,10 @@ lô đó vẫn vào kho nhưng không đánh dấu — bán phải có BM.08.04 
 MÃ CHƯA QUẢN LÝ LÔ (D189): mã tắt "Has Batch No" mà đã có chứng từ kho — ERPNext cấm bật lại (Item.cant_change) — và
 mã có lô mà còn tồn KHÔNG gắn lô (dữ liệu cũ) vẫn đếm theo HSD như mã khác. Chốt CHUYỂN mã sang quản lý lô: tồn không
 lô về 0 (phiếu xuất / nhập không lô, ghi lúc mã còn tắt lô), bật lô thẳng trong DB (tồn không lô vừa về 0 nên không còn
-hàng nào kẹt), rồi số đếm vào lô theo HSD ở phiếu nhập (giá vốn đang chạy của mã). Mã tắt lô mà còn tồn ở KHO KHÁC thì
-không bật được — có số đếm thì chặn chốt. Mỗi lần đổi cờ ghi vào ds_se ({"dt": "Item"}) để huỷ phiếu trả lại như cũ.
+hàng nào kẹt), rồi số đếm vào lô theo HSD ở phiếu nhập (giá vốn đang chạy của mã). Cờ lô là của MÃ, áp mọi kho (D191):
+tồn không lô của mã ở KHO KHÁC (cửa hàng, xưởng) cũng xử lý luôn — kho dương chuyển nguyên số vào lô "tồn cũ" (chưa rõ
+HSD) ngay tại kho đó, kho âm đưa về 0; chỉ kho của công ty khác mới chặn. Mỗi lần đổi cờ ghi vào ds_se ({"dt": "Item"})
+để huỷ phiếu trả lại như cũ.
 
 Chặn chốt khi mã đã đếm có chứng từ kho SAU lúc đếm (bán, nhập, huỷ phiếu…): số đếm không còn khớp sổ — đếm
 lại mã đó; mã chưa đếm (sắp về 0) có chứng từ SAU lúc bắt đầu kiểm kê → phải đếm (hoặc bấm Không còn). Huỷ
@@ -126,8 +128,8 @@ def ton_lo(kho, items):
 
 
 def ton_kho_khac(items, kho):
-    """{item: [(kho, số)]} — tồn của các mã ở mọi kho KHÁC `kho` (Bin), bỏ số ~0. D189: mã tắt lô còn hàng ở kho khác
-    thì không bật lô được — bật rồi phần đó không xuất / nhập được nữa (phiếu nào cũng đòi lô)."""
+    """{item: [(kho, số)]} — tồn của các mã ở mọi kho KHÁC `kho` (Bin), bỏ số ~0. Cờ lô là của mã, áp mọi kho: bật lô
+    cho mã thì tồn không lô ở các kho này cũng phải vào lô (D191), không thì phiếu nào xuất / bán phần đó cũng đòi lô."""
     items = [i for i in dict.fromkeys(items or []) if i]
     if not items:
         return {}
@@ -137,6 +139,24 @@ def ton_kho_khac(items, kho):
         if abs(flt(b.actual_qty)) > 1e-9:
             ra.setdefault(b.item_code, []).append((b.warehouse, flt(b.actual_qty, 6)))
     return {i: sorted(v) for i, v in ra.items()}
+
+
+def cong_ty_kho(khos):
+    """{kho: công ty} của các kho."""
+    khos = [k for k in dict.fromkeys(khos or []) if k]
+    if not khos:
+        return {}
+    return {w.name: w.company for w in frappe.get_all("Warehouse", filters={"name": ("in", khos)},
+                                                       fields=["name", "company"])}
+
+
+def ma_lo_ton_cu(item):
+    """D191: lô "tồn cũ — chưa rõ HSD" của mã: hàng KHÔNG LÔ ở các kho khác (cửa hàng, xưởng) lúc mã bật lô vào lô
+    này — một lô mỗi mã, dùng chung mọi kho (lô là của mã, tồn tính theo từng kho)."""
+    from sx.utils import _unique_suffix, prefix_lo
+
+    return _unique_suffix(f"{prefix_lo(item)}-TONCU", lambda ma: frappe.db.exists("Batch", ma)
+                          and frappe.db.get_value("Batch", ma, "item") != item)
 
 
 def xoa_cache_ma(item):
@@ -244,7 +264,7 @@ class SXKiemKe(Document):
             ten = {i.name: i.item_name or i.name for i in frappe.get_all(
                 "Item", filters={"name": ("in", items or [""])}, fields=["name", "item_name"])}
             self.flags.ten_ma = ten
-            self.flags.doi_lo, self.flags.kho_khac = {}, {}
+            self.flags.doi_lo, self.flags.kho_khac, self.flags.kho_cty_khac = {}, {}, {}
             lots = ton_lo(self.kho, items)
             self.flags.lo_thu_hoi = {(i, l["batch"]) for i in items for l in lots.get(i, []) if l["thu_hoi"]}
             return {i: lap_ke_hoach_lo(lots.get(i, []), dem[i]) for i in items}, {}, ten
@@ -268,13 +288,20 @@ class SXKiemKe(Document):
         self.flags.co_lo = co_lo
         # D189: mã tắt lô ("bat") và mã có lô mà còn tồn KHÔNG gắn lô ("le") — chốt chuyển sang quản lý lô: tồn
         # không lô vào kế hoạch như một lô cũ chưa có HSD (chuyển sang lô theo HSD / xuất thiếu / bù âm), on_submit
-        # ghi phần đó lúc mã còn tắt lô rồi mới bật. Mã tắt lô còn tồn ở kho khác: không bật được (kho_khac) — có
-        # số đếm thì kiem_truoc_chot chặn, đếm 0 / chưa đếm thì chỉ về 0 và để nguyên không lô.
+        # ghi phần đó lúc mã còn tắt lô rồi mới bật. D191: cờ lô là của mã — tồn của mã tắt lô ở kho khác cùng công
+        # ty (kho_khac) xử lý luôn lúc bật (on_submit, chia_chung_tu); kho của công ty KHÁC (kho_cty_khac) thì phiếu
+        # kho của kiểm kê không ghi sang được — mã đó không bật lô: có số đếm thì kiem_truoc_chot chặn, đếm 0 / chưa
+        # đếm thì chỉ về 0 ở kho này, để nguyên không lô.
+        from sx.utils import get_settings
+
         kk = ton_kho_khac([i for i in items if i not in co_lo], self.kho)
-        self.flags.kho_khac = kk
+        cty, ck = get_settings().get("cong_ty"), cong_ty_kho([w for v in kk.values() for w, _q in v])
+        khac = lambda w: bool(cty and ck.get(w) and ck[w] != cty)   # noqa: E731
+        self.flags.kho_khac = {i: v for i, v in ((i, [(w, q) for w, q in v if not khac(w)]) for i, v in kk.items()) if v}
+        self.flags.kho_cty_khac = {i: v for i, v in ((i, [(w, q) for w, q in v if khac(w)]) for i, v in kk.items()) if v}
         self.flags.doi_lo = {
             i: "le" if i in co_lo else "bat" for i in items
-            if (i not in co_lo and not kk.get(i))
+            if (i not in co_lo and not self.flags.kho_cty_khac.get(i))
             or (i in co_lo and any(not l["batch"] and abs(l["qty"]) > 1e-9 for l in lots.get(i, [])))}
         ke = {i: lap_ke_hoach(lots.get(i, []), dem[i], lambda h, i=i: nsx_tu_hsd(i, h)) for i in items}
         ten_lo = {}
@@ -296,15 +323,15 @@ class SXKiemKe(Document):
             return [_("Chưa đếm mã nào.")]
         if self.la_btp():
             return self._kiem_btp(ke)
-        # D189: mã tắt lô có số đếm thì chốt phải bật lô (HSD nằm trên lô) — mã còn tồn ở kho khác thì không bật được:
-        # bật rồi phiếu nào cũng đòi lô, tồn không lô ở kho đó không xuất / nhập được nữa.
-        kk = getattr(self.flags, "kho_khac", None) or {}
-        ket = [i for i, k in ke.items() if k["dem"] > 0 and kk.get(i)]
+        # D189: mã tắt lô có số đếm thì chốt phải bật lô (HSD nằm trên lô). D191: tồn ở kho khác cùng công ty xử lý
+        # luôn lúc bật; chỉ kho của công ty KHÁC là không ghi sang được — bật lô thì phần đó kẹt.
+        kc = getattr(self.flags, "kho_cty_khac", None) or {}
+        ket = [i for i, k in ke.items() if k["dem"] > 0 and kc.get(i)]
         if ket:
-            loi.append(_("Mã chưa quản lý theo lô — chốt phải bật lô để ghi HSD, nhưng mã còn tồn ở kho khác (bật lô "
-                         "thì phần đó không xuất / nhập được nữa): {0}. Đưa hàng đó về {1} rồi đếm lại, hoặc điều chỉnh "
-                         "tồn ở kho đó về 0, rồi chốt.").format(
-                "; ".join(f"{self._ten(i)} — " + ", ".join(f"{w}: {_so(q)}" for w, q in kk[i]) for i in ket), self.kho))
+            loi.append(_("Mã chưa quản lý theo lô — chốt phải bật lô để ghi HSD, nhưng mã còn tồn ở kho của CÔNG TY KHÁC "
+                         "(phiếu kho của kiểm kê không ghi sang công ty khác; bật lô thì phần đó kẹt): {0}. Điều chỉnh tồn "
+                         "ở kho đó về 0 trước, rồi chốt.").format(
+                "; ".join(f"{self._ten(i)} — " + ", ".join(f"{w}: {_so(q)}" for w, q in kc[i]) for i in ket)))
         loi += self._giao_dich_sau_dem(list(ke))
         return loi
 
@@ -464,17 +491,28 @@ class SXKiemKe(Document):
         chung_tu = []
         giu = []                      # giữ các phiếu kho tới hết request — id không bị phiếu sau dùng lại (xoa_cache_ma)
 
-        gia = {i: gia_von_hien(i, self.kho) for i, k in ke.items() if co_thay_doi(k)}
+        # D191: tồn ở kho khác của mã bật lô — xử lý cùng lúc bật (chia_chung_tu: xuat_kl / nhap_kl / nhap_cu có `kho`).
+        kk_bat = {i: v for i, v in (getattr(self.flags, "kho_khac", None) or {}).items() if doi_lo.get(i) == "bat"}
+        ct = chia_chung_tu(ke, nowdate(), doi_lo, kk_bat)
 
-        def zero(i):
-            return {} if gia.get(i, 0) > 0 else {"allow_zero_valuation_rate": 1}
+        gia = {i: gia_von_hien(i, self.kho) for i, k in ke.items() if co_thay_doi(k)}
+        # Giá vốn từng kho khác — lấy TRƯỚC khi xuất, để nhập lại vào lô tồn cũ đúng giá đã xuất.
+        gia_kho = {(x["item"], x["kho"]): gia_von_hien(x["item"], x["kho"])
+                   for x in ct["nhap_cu"] + ct["nhap_kl"] if x.get("kho")}
+
+        def gia_cua(i, kho=None):
+            return gia_kho.get((i, kho), 0) if kho else gia.get(i, 0)
+
+        def zero(i, kho=None):
+            return {} if gia_cua(i, kho) > 0 else {"allow_zero_valuation_rate": 1}
 
         def lo_cua(b):
             return {"use_serial_batch_fields": 1, "batch_no": b} if b else {}
 
-        def vao(i, b, so):
-            d = {"item_code": i, "qty": so, "t_warehouse": self.kho, **lo_cua(b)}
-            d.update({"basic_rate": gia[i]} if gia.get(i, 0) > 0 else {"allow_zero_valuation_rate": 1})
+        def vao(i, b, so, kho=None):
+            d = {"item_code": i, "qty": so, "t_warehouse": kho or self.kho, **lo_cua(b)}
+            g = gia_cua(i, kho)
+            d.update({"basic_rate": g} if g > 0 else {"allow_zero_valuation_rate": 1})
             return d
 
         def phieu(purpose, ghi_chu, dong):
@@ -498,27 +536,38 @@ class SXKiemKe(Document):
             chung_tu.append({"dt": "Stock Entry", "name": se.name})
             return se
 
-        ct = chia_chung_tu(ke, nowdate(), doi_lo)
-
         # 0. D189: mã chuyển sang quản lý lô — tồn KHÔNG LÔ về 0 khi mã còn tắt lô (mã có lô mà còn tồn không lô thì tạm
-        #    tắt), rồi bật lô. Phần đếm được vào lô theo HSD ở phiếu nhập bước 3, cùng giá vốn đang chạy của mã.
+        #    tắt), rồi bật lô. Phần đếm được vào lô theo HSD ở phiếu nhập bước 3, cùng giá vốn đang chạy của mã. D191:
+        #    kể cả tồn ở kho khác (cửa hàng, xưởng) — kho dương nhập lại nguyên số vào lô tồn cũ ở bước 3, kho âm về 0.
         if doi_lo:
             for i in sorted(i for i, c in doi_lo.items() if c == "le"):
                 self._dat_co_lo(i, 0, chung_tu)
             if ct["xuat_kl"]:
                 phieu("Material Issue", _("Kiểm kê {0}: xuất hết tồn KHÔNG LÔ của mã chuyển sang quản lý lô (số đếm vào "
-                                          "lô theo HSD ở phiếu nhập cùng kiểm kê).").format(self.name),
-                      [{"item_code": x["item"], "qty": x["so"], "s_warehouse": self.kho, **zero(x["item"])}
-                       for x in ct["xuat_kl"]])
+                                          "lô theo HSD; tồn ở kho khác nhập lại nguyên số vào lô tồn cũ — cùng kiểm "
+                                          "kê).").format(self.name),
+                      [{"item_code": x["item"], "qty": x["so"], "s_warehouse": x["kho"] or self.kho,
+                        **zero(x["item"], x["kho"])} for x in ct["xuat_kl"]])
             if ct["nhap_kl"]:
                 phieu("Material Receipt", _("Kiểm kê {0}: bù tồn KHÔNG LÔ đang âm về 0 trước khi chuyển mã sang quản lý "
                                             "lô.").format(self.name),
-                      [vao(x["item"], None, x["so"]) for x in ct["nhap_kl"]])
+                      [vao(x["item"], None, x["so"], x["kho"]) for x in ct["nhap_kl"]])
             for i in sorted(doi_lo):
-                self._dat_co_lo(i, 1, chung_tu)
+                self._dat_co_lo(i, 1, chung_tu, kho_khac=kk_bat.get(i))
 
         for (i, h), b in sorted(ten_lo.items()):
             tao_batch(i, b, nsx=nsx_tu_hsd(i, h), hsd=h)
+        lo_cu = {}
+        for i in sorted({x["item"] for x in ct["nhap_cu"]}):
+            lo_cu[i] = tao_batch(i, ma_lo_ton_cu(i))
+            if not lo_cu[i]:
+                frappe.throw(_("Không tạo được lô tồn cũ cho {0} — mã chưa bật được quản lý lô.").format(self._ten(i)))
+            frappe.db.set_value("Batch", lo_cu[i], "description", _(
+                "Tồn cũ KHÔNG LÔ ở kho khác (cửa hàng, xưởng) lúc mã bật quản lý lô — kiểm kê {0}; chưa rõ HSD.").format(
+                self.name), update_modified=False)
+        for x in chung_tu:            # biên bản: lô tồn cũ của từng mã
+            if x.get("dt") == "Item" and x.get("name") in lo_cu and x.get("kho_khac"):
+                x["lo_cu"] = lo_cu[x["name"]]
 
         # 1. Chuyển lô cũ → lô theo HSD: mỗi mã một Repack (giá vốn không trộn giữa các mã).
         for i, ds in sorted(ct["repack"].items()):
@@ -544,7 +593,7 @@ class SXKiemKe(Document):
         # 3. Thừa (vào lô theo HSD) + bù lô âm + đích của phần chuyển hết hạn / chuyển từ tồn không lô (D189) — giá
         #    vốn đang chạy của mã.
         nhap = [vao(x["item"], x["batch"] or (ten_lo[(x["item"], x["hsd"])] if x["hsd"] else None), x["so"])
-                for x in ct["nhap"]]
+                for x in ct["nhap"]] + [vao(x["item"], lo_cu[x["item"]], x["so"], x["kho"]) for x in ct["nhap_cu"]]
         if nhap:
             phieu("Material Receipt", _("Kiểm kê {0}: nhập điều chỉnh phần THỪA (đếm thấy, sổ không có), bù lô "
                                         "âm; hàng hết hạn chuyển lô đi đường xuất / nhập.").format(self.name), nhap)
@@ -552,7 +601,7 @@ class SXKiemKe(Document):
         # 4. Lô nhận hàng tồn cũ — bán không cần phiếu xuất xưởng (xuatxuong.kiem_ban). Lô của hàng làm từ ngày áp
         #    dụng BM.08.04 chưa duyệt: không đánh dấu — bán phải có phiếu duyệt (chua_duyet_xx).
         chua_xx = set(self.chua_duyet_xx(ke)) if not self.la_btp() else set()
-        for b in sorted({b for k, b in ten_lo.items() if k not in chua_xx}):
+        for b in sorted({b for k, b in ten_lo.items() if k not in chua_xx} | set(lo_cu.values())):
             if not frappe.db.get_value("Batch", b, "custom_kiem_ke"):
                 frappe.db.set_value("Batch", b, "custom_kiem_ke", self.name, update_modified=False)
         self.db_set("ds_se", json.dumps(chung_tu), update_modified=False)
@@ -581,7 +630,7 @@ class SXKiemKe(Document):
             frappe.db.set_value("Batch", b, "expiry_date", None, update_modified=False)
         return ra
 
-    def _dat_co_lo(self, item, co, chung_tu):
+    def _dat_co_lo(self, item, co, chung_tu, kho_khac=None):
         """D189: Item.has_batch_no = `co` ghi thẳng DB. ERPNext cấm đổi ô này khi mã đã có chứng từ kho
         (Item.cant_change) vì sợ tồn cũ không lô kẹt lại — ở đây tồn không lô của mã vừa về 0 ngay trước khi bật (mã
         còn tồn ở kho khác thì lap_ke không cho bật). Ghi vào ds_se để huỷ phiếu trả lại đúng như cũ."""
@@ -590,7 +639,8 @@ class SXKiemKe(Document):
             return
         frappe.db.set_value("Item", item, "has_batch_no", cint(co), update_modified=False)
         xoa_cache_ma(item)
-        chung_tu.append({"dt": "Item", "name": item, "has_batch_no": [cu, cint(co)]})
+        chung_tu.append({"dt": "Item", "name": item, "has_batch_no": [cu, cint(co)],
+                         **({"kho_khac": [[w, flt(q, 6)] for w, q in kho_khac]} if kho_khac else {})})
 
     def _kiem_huy_doi_lo(self, ds):
         """D189: huỷ phiếu đã bật lô cho mã thì mã về lại KHÔNG lô — không được nếu sau lúc chốt mã đã có chứng từ kho

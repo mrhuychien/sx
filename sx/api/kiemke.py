@@ -21,7 +21,7 @@ from frappe.utils import cint, flt, getdate, now_datetime, nowdate
 
 from sx.config.roles import QUAN_LY, THU_KHO, guard_card, is_super, user_roles
 from sx.kiem_ke import chia_chung_tu, so_chung_tu, theo_lo
-from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import BTP, TP, ton_kho_khac, ton_lo
+from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import BTP, TP, cong_ty_kho, ton_kho_khac, ton_lo
 from sx.utils import get_settings, items_tp, kho_xuong, nap_cong_bo
 
 CARD = "kiemke"
@@ -176,8 +176,10 @@ def _hang_tp(kho, p):
     for r in (p.dong if p else []) or []:
         dem.setdefault(r.item, []).append(r)
     hien = [i for i in tp if lots.get(i)] + [i for i in dem if i not in lots]
-    # D189: mã tắt lô — chốt bật lô; còn tồn ở kho khác thì không bật được (báo ngay trên dòng mã).
+    # D189 / D191: mã tắt lô — chốt bật lô; tồn ở kho khác xử lý luôn lúc bật (báo trước trên dòng mã), riêng kho của
+    # công ty khác thì không bật được.
     kk = ton_kho_khac([i for i in hien if tp.get(i) is not None and not tp[i].get("has_batch_no")], kho)
+    cty, ck = get_settings().get("cong_ty"), cong_ty_kho([w for v in kk.values() for w, _q in v])
     _nap_uom(hien + (list(tp) if p else []))
     nap_cong_bo(hien + (list(tp) if p else []))
 
@@ -211,7 +213,8 @@ def _hang_tp(kho, p):
             "bat_lo": bool(i is not None and not i.get("has_batch_no")),
             "le_khong_lo": flt(sum(l["qty"] for l in ls if not l["batch"]), 3)
             if i is not None and i.get("has_batch_no") else 0.0,
-            "kho_khac": [{"kho": w, "so": flt(q, 3)} for w, q in kk.get(item, [])],
+            "kho_khac": [{"kho": w, "so": flt(q, 3), "cty_khac": bool(cty and ck.get(w) and ck[w] != cty)}
+                         for w, q in kk.get(item, [])],
             "da_dem": item in dem,
             "dem": [{"hsd": _h(r.hsd), "so": flt(r.so_dem, 3), "chi_tiet": _doc_json(r.chi_tiet),
                      "nguoi": r.nguoi_dem, "luc": str(r.dem_luc or "")[:16]} for r in dong],
@@ -570,11 +573,19 @@ def xem_truoc(name):
         if le:
             canh.append(_("{0} mã có tồn KHÔNG gắn lô (dữ liệu cũ) — chốt đưa phần đó về 0, số đếm vào lô theo HSD: "
                           "{1}.").format(len(le), liet_ke(le)))
-        kk = getattr(d.flags, "kho_khac", None) or {}
-        giu = [ten.get(i, i) for i in kk if i in ke and ke[i]["dem"] <= 0]
+        # D191: tồn ở kho khác của mã bật lô — chốt xử lý luôn, nói rõ từng kho.
+        kk = {i: v for i, v in (getattr(d.flags, "kho_khac", None) or {}).items() if doi.get(i) == "bat"}
+        if kk:
+            canh.append(_("{0} mã bật lô còn tồn ở kho khác (cờ lô là của mã, áp mọi kho) — chốt xử lý luôn: kho có hàng "
+                          "chuyển NGUYÊN SỐ vào lô tồn cũ (chưa rõ HSD) ngay tại kho đó, vẫn bán được; kho đang âm (tồn "
+                          "âm không có thật) đưa về 0: {1}.").format(len(kk), "; ".join(
+                f"{ten.get(i, i)} ({', '.join(f'{w} {so_vn(q)} → ' + ('lô tồn cũ' if q > 0 else 'về 0') for w, q in v)})"
+                for i, v in sorted(kk.items(), key=lambda x: ten.get(x[0], x[0])))))
+        kc = getattr(d.flags, "kho_cty_khac", None) or {}
+        giu = [ten.get(i, i) for i in kc if i in ke and ke[i]["dem"] <= 0]
         if giu:
-            canh.append(_("{0} mã chưa quản lý theo lô còn tồn ở kho khác — chốt chỉ đưa tồn ở {1} về 0, mã vẫn để "
-                          "không lô: {2}.").format(len(giu), d.kho, liet_ke(giu)))
+            canh.append(_("{0} mã chưa quản lý theo lô còn tồn ở kho của công ty khác — chốt chỉ đưa tồn ở {1} về 0, mã "
+                          "vẫn để không lô: {2}.").format(len(giu), d.kho, liet_ke(giu)))
         xx = d.chua_duyet_xx(ke)
         if xx:
             canh.append(_("{0} lô của hàng làm từ ngày áp dụng BM.08.04 chưa duyệt xuất xưởng: {1}. Chốt vẫn đưa hàng "
@@ -591,7 +602,10 @@ def xem_truoc(name):
                  "chuyen": flt(sum(x["chuyen"] for x in ma), 6),
                  "so_lo": sum(x["lo_can"] or 0 for x in ma),
                  "ve_0": len(chua), "bat_lo": sum(1 for c in doi.values() if c == "bat"),
-                 "phieu_kho": so_chung_tu(chia_chung_tu(ke, nowdate(), doi))},
+                 "kho_am": [] if btp else [{"ten": ten.get(i, i), "kho": w, "so": flt(q, 3)} for i, v in sorted(
+                     (getattr(d.flags, "kho_khac", None) or {}).items()) if doi.get(i) == "bat" for w, q in v if q < 0],
+                 "phieu_kho": so_chung_tu(chia_chung_tu(ke, nowdate(), doi, {
+                     i: v for i, v in (getattr(d.flags, "kho_khac", None) or {}).items() if doi.get(i) == "bat"}))},
     }
 
 
@@ -660,8 +674,21 @@ def bien_ban(name):
         bat = [i for i, cu in dau.items() if not cu]
     ten_ma = {m["item"]: m["ten"] for m in ma}
     bat_lo = sorted(ten_ma.get(i) or i for i in bat)
+    # D191: tồn ở kho khác của mã bật lô — nháp: sẽ làm; đã chốt: đã làm (ghi trong ds_se).
+    kho_khac = []
+    if d.docstatus == 0:
+        for i, v in (getattr(d.flags, "kho_khac", None) or {}).items():
+            if i in bat:
+                kho_khac += [{"ten": ten_ma.get(i) or i, "kho": w, "so": q, "lo": None} for w, q in v]
+    elif d.docstatus == 1:
+        for x in ds:
+            if x.get("dt") == "Item" and x.get("kho_khac"):
+                kho_khac += [{"ten": ten_ma.get(x["name"]) or x["name"], "kho": w, "so": q, "lo": x.get("lo_cu")}
+                             for w, q in x["kho_khac"]]
+    kho_khac.sort(key=lambda k: (k["ten"], k["kho"]))
     return frappe.render_template("sx/sx/doctype/sx_kiem_ke/bien_ban.html", {
-        "d": d, "ma": ma, "tong": tong, "se": se, "bat_lo": bat_lo, "cong_ty": get_settings().get("cong_ty") or "",
+        "d": d, "ma": ma, "tong": tong, "se": se, "bat_lo": bat_lo, "kho_khac": kho_khac,
+        "cong_ty": get_settings().get("cong_ty") or "",
         "nhap": d.docstatus == 0, "huy": d.docstatus == 2, "btp": btp,
         "vn": lambda x: getdate(x).strftime("%d/%m/%Y") if x else "", "so": so_vn,
     })

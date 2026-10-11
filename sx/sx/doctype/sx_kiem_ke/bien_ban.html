@@ -76,6 +76,16 @@
     không kiểm); mã có tồn mà không đếm ghi "chưa đếm — về 0". Mã không có trong biên bản: giữ nguyên số sổ sách.</div>
   {% if bat_lo %}<div class="gc">{{ "Chốt sẽ bật" if nhap else "Đã bật" }} quản lý theo lô cho mã: {{ bat_lo|join(", ") }}
     — tồn cũ không lô về 0, số đếm vào lô theo HSD; từ đó nhập / bán các mã này theo lô.</div>{% endif %}
+  {% if kho_khac %}
+  <div class="gc"><b>Tồn ở kho khác của mã bật lô</b> (cờ lô là của mã, áp mọi kho — không đổi số hàng thật ở kho đó):</div>
+  <table>
+    <tr><th>Sản phẩm</th><th style="width:30%">Kho</th><th class="s" style="width:12%">Tồn không lô</th><th style="width:34%">Việc</th></tr>
+    {% for k in kho_khac %}
+    <tr><td>{{ k.ten }}</td><td>{{ k.kho }}</td><td class="s">{{ so(k.so) }}</td>
+      <td>{% if k.so > 0 %}chuyển nguyên số vào lô tồn cũ{% if k.lo %} {{ k.lo }}{% endif %} (chưa rõ HSD){% else %}tồn âm — đưa về 0{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
   {% endif %}
 
   {% if d.lo %}

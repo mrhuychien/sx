@@ -320,6 +320,28 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê bật lô: tồn của mã ở cửa hàng / xưởng xử lý luôn, không chặn nữa (D191)
+
+- **Hỏi**: "sao chặn ở kho khác? kiểm kê chỉ tính kho thành phẩm" — thẻ báo mã chưa quản lý lô còn tồn ở CH Bạch Đằng
+  54, CH Tuệ Tĩnh 102, Xưởng sản xuất −20.093 nên chưa bật lô được (D189 chặn).
+- **Vì sao dính kho khác**: trong ERPNext, "quản lý theo lô" là của **mã hàng**, không phải của từng kho. Bật lô cho mã
+  để Kho TP có lô theo HSD là bật luôn ở mọi kho: từ đó cửa hàng, xưởng xuất / bán mã đó cũng phải chọn lô. Hàng không lô
+  còn ở cửa hàng mà không xử lý thì kẹt (không bán được); tồn âm không lô ở xưởng thì không bù được nữa.
+- **Nay chốt xử lý luôn** (không đổi số hàng thật ở các kho đó):
+  - kho đang **có hàng** (cửa hàng 54, 102): xuất ra lúc mã còn tắt lô, bật lô, rồi nhập lại **nguyên số** vào **lô tồn
+    cũ** `{mã lô}-TONCU` (chưa rõ HSD) **ngay tại kho đó**, cùng giá vốn của kho đó. Lô tồn cũ đánh dấu như hàng tồn
+    cũ — cửa hàng vẫn bán được (chọn lô đó), không cần phiếu xuất xưởng BM.08.04;
+  - kho đang **âm** (Xưởng −20.093): tồn âm không có thật — **đưa về 0** bằng phiếu nhập điều chỉnh (giá vốn kho đó)
+    trước khi bật lô. Thường là hàng thực ra đã xuất từ Kho TP mà ghi ở xưởng — phần thiếu ở Kho TP khi kiểm kê bù trừ
+    phần này. **Có bút toán điều chỉnh kho: báo kế toán.**
+  - Chỉ còn chặn kho của **công ty khác** (phiếu kho của kiểm kê không ghi sang được) — điều chỉnh kho đó về 0 trước.
+- **Báo trước**: dòng mã trên thẻ ghi từng kho sẽ làm gì; xem trước liệt kê; hộp xác nhận ghi riêng các kho âm đưa
+  về 0; biên bản có bảng "Tồn ở kho khác của mã bật lô" (kho, số, việc, tên lô tồn cũ).
+- Huỷ phiếu kiểm kê: chứng từ huỷ ngược, tồn mọi kho và cờ lô về như trước (như D189).
+- Test `test-kiemke.py` (cửa hàng → lô tồn cũ tại chỗ, xưởng âm → về 0, kho công ty khác → chặn / để không lô, giá vốn
+  từng kho, huỷ trả lại mọi kho), `test-sohsd.mjs` (ghi chú trên dòng mã, hộp xác nhận).
+- Build **sx-148**. Không đổi DocType: `git pull` → `bench restart`.
+
 ## Kiểm kê: đếm thấy hàng đã quá HSD thì chốt vẫn ghi được vào lô của HSD đó (D190)
 
 - **Lỗi tìm ra khi làm D189** (chưa ai gặp vì chưa chốt kiểm kê có hàng hết hạn): ERPNext v16 chặn **nhập** vào lô đã
@@ -352,7 +374,8 @@ không thành `…-2`.
   tắt lô, đưa phần đó về 0 / vào lô theo số đếm, bật lại.
 - **Chặn**: mã chưa quản lý lô **còn tồn ở kho khác** (vd kho hàng trả về) mà có số đếm — bật lô thì phần đó không xuất /
   nhập được nữa. Dòng mã báo ngay "còn tồn ở kho khác (Kho …: n)"; đưa hàng về Kho TP rồi đếm, hoặc điều chỉnh tồn kho
-  đó về 0. Mã đó mà không đếm / Không còn thì chỉ về 0 ở Kho TP, vẫn để không lô (xem trước báo).
+  đó về 0. Mã đó mà không đếm / Không còn thì chỉ về 0 ở Kho TP, vẫn để không lô (xem trước báo). **D191: bỏ chặn này —
+  chốt xử lý luôn tồn ở kho khác; chỉ còn chặn kho của công ty khác.**
 - **Xem trước / biên bản**: dòng mã ghi "bật quản lý lô" / "tồn không lô về 0", cảnh báo liệt kê các mã; hộp xác nhận
   ghi số mã bật lô; biên bản ghi "Đã bật quản lý theo lô cho mã: …", bảng lô ghi "nhận … từ tồn không lô".
 - **Huỷ phiếu** (Desk): chứng từ huỷ ngược, cờ lô trả đúng như cũ (ds_se ghi từng lần đổi cờ). Không cho huỷ nếu sau

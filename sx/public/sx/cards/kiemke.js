@@ -4,7 +4,8 @@
 // xuất FEFO và báo cận date bỏ sót. Thủ kho đi từng mã, đếm theo HSD in trên hộp (cùng bàn số thùng / hộp + HSD
 // với Nhập kho), xem trước rồi CHỐT. D188: chốt = ĐẶT LẠI TOÀN KHO theo số đếm — mỗi loại, mỗi HSD một lô; mã có
 // tồn mà không đếm về 0; lô cũ chuyển sang lô theo HSD, thừa / thiếu ghi điều chỉnh kho. D189: mã chưa quản lý lô
-// (hoặc có tồn không gắn lô) đếm theo HSD như mã khác — chốt bật lô cho mã, tồn cũ không lô về 0.
+// (hoặc có tồn không gắn lô) đếm theo HSD như mã khác — chốt bật lô cho mã, tồn cũ không lô về 0. D191: cờ lô là của
+// mã, áp mọi kho — tồn ở kho khác (cửa hàng, xưởng) chốt xử lý luôn: kho dương vào lô tồn cũ tại chỗ, kho âm về 0.
 // BÁN THÀNH PHẨM (D155): Kho BTP / Kho xưởng — hàng rời tính kg, lô theo ngày làm / lô rang, không có HSD: CÂN
 // TỪNG LÔ. Lô đã cân thì số cân thay số sổ của lô đó; lô chưa cân giữ nguyên.
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
@@ -293,13 +294,19 @@ export async function render({ container, call, boot }) {
     ganGanDay();
   }
 
-  // D189: mã chưa quản lý lô / có tồn không gắn lô — đếm như mã khác, chốt chuyển sang lô. Còn tồn ở kho khác thì
-  // không bật lô được: báo ngay trên dòng mã (chốt sẽ chặn nếu mã có số đếm).
+  // D189: mã chưa quản lý lô / có tồn không gắn lô — đếm như mã khác, chốt chuyển sang lô. D191: cờ lô là của mã, áp
+  // mọi kho — tồn ở kho khác chốt xử lý luôn (nói trước từng kho); riêng kho của công ty khác thì chưa bật lô được.
   function veLo(x) {
     const kk = x.kho_khac || [];
+    const cty = kk.filter((k) => k.cty_khac);
+    if (x.bat_lo && cty.length) {
+      return `<div class="sx-kk-nhac">⚠ Mã chưa quản lý theo lô, còn tồn ở kho của công ty khác (${esc(cty.map((k) => `${
+        k.kho}: ${formatNumber(k.so)}`).join(', '))}) — chưa bật lô được: điều chỉnh tồn kho đó về 0 trước khi chốt.</div>`;
+    }
     if (x.bat_lo && kk.length) {
-      return `<div class="sx-kk-nhac">⚠ Mã chưa quản lý theo lô, còn tồn ở kho khác (${esc(kk.map((k) => `${k.kho}: ${
-        formatNumber(k.so)}`).join(', '))}) — chưa bật lô được: đưa hàng đó về đây (rồi đếm) hoặc điều chỉnh về 0 trước khi chốt.</div>`;
+      return `<div class="sx-kk-nhac">Mã chưa quản lý theo lô — chốt sẽ bật lô: tồn cũ không lô về 0, số đếm vào lô theo HSD.
+        Cờ lô là của mã, áp cả kho khác — chốt xử lý luôn: ${esc(kk.map((k) => `${k.kho} ${formatNumber(k.so)} → ${
+  k.so > 0 ? 'lô tồn cũ (chưa rõ HSD), vẫn bán được' : 'về 0 (tồn âm)'}`).join('; '))}.</div>`;
     }
     if (x.bat_lo) {
       return '<div class="sx-kk-nhac">Mã chưa quản lý theo lô — chốt sẽ bật lô: tồn cũ không lô về 0, số đếm vào lô theo HSD.</div>';
@@ -612,7 +619,9 @@ export async function render({ container, call, boot }) {
         title: `Chốt kiểm kê ${x.name}`,
         message: `${btp ? '' : 'Đặt lại toàn bộ kho thành phẩm theo số đếm. '}${t.so_ma} mã${btp ? `, ${t.so_lo} lô` : ''}: sổ ${
           n(t.so_sach)} → ${btp ? 'cân' : 'đếm'} ${n(t.dem)}${dv} (${coDau(t.dem - t.so_sach, d)})${
-          t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}.\n`
+          t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}${
+          (t.kho_am || []).length ? `; tồn âm ở kho khác đưa về 0: ${t.kho_am.map((k) => `${k.ten} ở ${k.kho} ${
+            formatNumber(k.so)}`).join(', ')}` : ''}.\n`
           + `Sinh ${t.phieu_kho} chứng từ kho. Chốt rồi không sửa trên màn này được nữa — muốn huỷ phải huỷ `
           + 'phiếu kiểm kê trên Desk (các chứng từ kho huỷ theo).',
         confirmLabel: 'CHỐT',
