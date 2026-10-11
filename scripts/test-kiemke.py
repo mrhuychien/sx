@@ -708,13 +708,13 @@ kiem("xem trước: 3 mã bật lô, 1 mã dọn tồn không lô; báo trước
      and xt["tong"]["bat_lo"] == 3 and xt["tong"]["phieu_kho"] == 4
      and any("BẬT quản lý lô" in c and "Khoai môn H24 300g, Thỏi vàng Rồng 200g, Túi 250g" in c for c in xt["canh_bao"])
      and any("kho khác" in c and "Thỏi vàng Rồng 200g (Xuong -20 → về 0)" in c and "Túi 250g (CH Le 2 → lô tồn cũ)" in c
-             for c in xt["canh_bao"]), (xt["tong"], xt["canh_bao"]))
+             and "điều chỉnh kho (báo kế toán)" in c for c in xt["canh_bao"]), (xt["tong"], xt["canh_bao"]))
 kiem("… tổng ghi riêng tồn âm ở kho khác sẽ đưa về 0 (để hộp xác nhận nói rõ)",
      xt["tong"]["kho_am"] == [{"ten": "Thỏi vàng Rồng 200g", "kho": "Xuong", "so": -20}], xt["tong"]["kho_am"])
 html = " ".join(A.bien_ban(P5).split())
 kiem("biên bản nháp: ghi mã SẼ bật quản lý lô + bảng tồn ở kho khác",
      "Chốt sẽ bật quản lý theo lô cho mã: Khoai môn H24 300g, Thỏi vàng Rồng 200g, Túi 250g" in html
-     and "Tồn ở kho khác của mã bật lô" in html and "tồn âm — đưa về 0" in html
+     and "Tồn ở kho khác của mã bật lô" in html and "đưa về 0, ghi điều chỉnh kho" in html
      and "chuyển nguyên số vào lô tồn cũ (chưa rõ HSD)" in html, html[-1500:])
 A.chot(P5)
 d5 = F.bang("SX Kiem Ke")[P5]
@@ -773,7 +773,8 @@ html = " ".join(A.bien_ban(P5).split())
 kiem("biên bản đã chốt: mã đã bật quản lý lô; bảng tồn ở kho khác ghi kho, số, việc (có tên lô tồn cũ)",
      "Đã bật quản lý theo lô cho mã: Khoai môn H24 300g, Thỏi vàng Rồng 200g, Túi 250g —" in html
      and "<td>Túi 250g</td><td>CH Le</td><td class=\"s\">2</td> <td>chuyển nguyên số vào lô tồn cũ TUI-TONCU (chưa rõ HSD)"
-     in html and "<td>Xuong</td><td class=\"s\">-20</td> <td>tồn âm — đưa về 0</td>" in html, html[-1800:])
+     in html and "<td>Xuong</td><td class=\"s\">-20</td> <td>tồn âm (chuyển ra mà chưa ghi nhập / sản xuất vào kho này) — đưa về "
+     "0, ghi điều chỉnh kho</td>" in html, html[-1800:])
 F.bang("Stock Ledger Entry")["r9"] = {"name": "r9", "item_code": "TP-RONG", "warehouse": KHO, "voucher_type": "Sales Invoice",
                                       "voucher_no": "SINV-0099", "actual_qty": -2, "creation": "2026-10-09 11:00:00",
                                       "modified": "2026-10-09 11:00:00", "is_cancelled": 0}

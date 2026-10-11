@@ -578,7 +578,8 @@ def xem_truoc(name):
         if kk:
             canh.append(_("{0} mã bật lô còn tồn ở kho khác (cờ lô là của mã, áp mọi kho) — chốt xử lý luôn: kho có hàng "
                           "chuyển NGUYÊN SỐ vào lô tồn cũ (chưa rõ HSD) ngay tại kho đó, vẫn bán được; kho đang âm (tồn "
-                          "âm không có thật) đưa về 0: {1}.").format(len(kk), "; ".join(
+                          "âm không có thật — thường do chuyển ra mà chưa ghi sản xuất / nhập vào kho đó) đưa về 0, ghi "
+                          "điều chỉnh kho (báo kế toán): {1}.").format(len(kk), "; ".join(
                 f"{ten.get(i, i)} ({', '.join(f'{w} {so_vn(q)} → ' + ('lô tồn cũ' if q > 0 else 'về 0') for w, q in v)})"
                 for i, v in sorted(kk.items(), key=lambda x: ten.get(x[0], x[0])))))
         kc = getattr(d.flags, "kho_cty_khac", None) or {}

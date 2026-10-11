@@ -320,6 +320,16 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sửa giải thích tồn âm ở Xưởng khi kiểm kê bật lô (D192)
+
+- Số âm của thành phẩm ở Xưởng sản xuất (vd −20.093) là do trước đây chuyển thành phẩm từ Xưởng sang Kho TP bằng phiếu
+  chuyển kho mà không ghi sản xuất vào Xưởng — không phải hàng xuất nhầm kho như D191 đoán. Kho TP nhận đúng số nên phần
+  thiếu khi kiểm kê Kho TP **không** bù trừ số âm này.
+- Kiểm kê bật lô vẫn đưa số âm đó về 0 (Xưởng thật không còn hàng) — nay xem trước và biên bản ghi rõ là **điều chỉnh
+  kho**, để kế toán biết: ghi nhận phần sản xuất chưa từng vào sổ; nguyên liệu tương ứng chưa trừ, kiểm kê nguyên liệu sẽ
+  thấy thiếu. README D191 sửa theo.
+- Không đổi giao diện: `git pull` → `bench restart`.
+
 ## Kiểm kê bật lô: tồn của mã ở cửa hàng / xưởng xử lý luôn, không chặn nữa (D191)
 
 - **Hỏi**: "sao chặn ở kho khác? kiểm kê chỉ tính kho thành phẩm" — thẻ báo mã chưa quản lý lô còn tồn ở CH Bạch Đằng
@@ -332,8 +342,12 @@ không thành `…-2`.
     cũ** `{mã lô}-TONCU` (chưa rõ HSD) **ngay tại kho đó**, cùng giá vốn của kho đó. Lô tồn cũ đánh dấu như hàng tồn
     cũ — cửa hàng vẫn bán được (chọn lô đó), không cần phiếu xuất xưởng BM.08.04;
   - kho đang **âm** (Xưởng −20.093): tồn âm không có thật — **đưa về 0** bằng phiếu nhập điều chỉnh (giá vốn kho đó)
-    trước khi bật lô. Thường là hàng thực ra đã xuất từ Kho TP mà ghi ở xưởng — phần thiếu ở Kho TP khi kiểm kê bù trừ
-    phần này. **Có bút toán điều chỉnh kho: báo kế toán.**
+    trước khi bật lô. Số âm này do **trước đây chuyển thành phẩm từ Xưởng sang Kho TP bằng phiếu chuyển kho** mà không
+    ghi sản xuất vào Xưởng (D192): hàng vào Kho TP đúng số, chỉ Xưởng âm. Đưa về 0 là ghi nhận phần sản xuất chưa từng
+    vào sổ — **bút toán điều chỉnh kho (tăng giá trị kho Xưởng về 0): báo kế toán**. Nguyên liệu đã dùng làm số hàng đó
+    cũng chưa trừ sổ — kiểm kê kho nguyên liệu sẽ thấy thiếu tương ứng. Từ nay nhập thành phẩm qua màn **Nhập kho**
+    (ra lô theo HSD, trừ nguyên liệu theo BOM / sổ nợ BOM), không chuyển từ Xưởng nữa — mã đã bật lô mà chuyển từ Xưởng
+    (không có lô ở đó) ERPNext sẽ báo lỗi.
   - Chỉ còn chặn kho của **công ty khác** (phiếu kho của kiểm kê không ghi sang được) — điều chỉnh kho đó về 0 trước.
 - **Báo trước**: dòng mã trên thẻ ghi từng kho sẽ làm gì; xem trước liệt kê; hộp xác nhận ghi riêng các kho âm đưa
   về 0; biên bản có bảng "Tồn ở kho khác của mã bật lô" (kho, số, việc, tên lô tồn cũ).

@@ -82,7 +82,7 @@
     <tr><th>Sản phẩm</th><th style="width:30%">Kho</th><th class="s" style="width:12%">Tồn không lô</th><th style="width:34%">Việc</th></tr>
     {% for k in kho_khac %}
     <tr><td>{{ k.ten }}</td><td>{{ k.kho }}</td><td class="s">{{ so(k.so) }}</td>
-      <td>{% if k.so > 0 %}chuyển nguyên số vào lô tồn cũ{% if k.lo %} {{ k.lo }}{% endif %} (chưa rõ HSD){% else %}tồn âm — đưa về 0{% endif %}</td></tr>
+      <td>{% if k.so > 0 %}chuyển nguyên số vào lô tồn cũ{% if k.lo %} {{ k.lo }}{% endif %} (chưa rõ HSD){% else %}tồn âm (chuyển ra mà chưa ghi nhập / sản xuất vào kho này) — đưa về 0, ghi điều chỉnh kho{% endif %}</td></tr>
     {% endfor %}
   </table>
   {% endif %}
