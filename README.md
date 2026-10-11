@@ -320,6 +320,19 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê: đếm thấy hàng đã quá HSD thì chốt vẫn ghi được vào lô của HSD đó (D190)
+
+- **Lỗi tìm ra khi làm D189** (chưa ai gặp vì chưa chốt kiểm kê có hàng hết hạn): ERPNext v16 chặn **nhập** vào lô đã
+  hết hạn ở mọi phiếu kho trừ xuất / chuyển kho (`StockController.validate_serialized_batch`: "Row #…: The batch … has
+  already expired"). Kiểm kê đếm thấy hộp quá HSD thì phải nhập vào lô HSD đó (chuyển từ lô cũ / thừa / bù âm) → bấm
+  chốt là văng lỗi tiếng Anh, không chốt được cả phiếu. Test giả trước đây không mô phỏng chặn này nên không thấy.
+- **Sửa**: lúc ghi phiếu nhập của kiểm kê, lô đích đã hết hạn được **tạm bỏ HSD**, ghi xong **trả lại ngay** (cùng giao
+  dịch — lỗi giữa chừng thì cuộn lại cả). Hàng hết hạn vào sổ đúng lô, đúng HSD, để rồi xử lý / huỷ theo quy trình.
+  Repack vẫn không đụng lô hết hạn (đi đường xuất + nhập như D154).
+- Test `test-kiemke.py`: phiếu kho giả nay chặn nhập vào lô hết hạn như ERPNext; phần "hàng hết hạn trong kho" kiểm
+  thêm HSD của lô được trả lại đúng sau chốt.
+- Không đổi giao diện: `git pull` → `bench restart`.
+
 ## Kiểm kê: mã chưa quản lý theo lô đếm theo HSD như mã khác — chốt bật lô cho mã (D189)
 
 - **Hỏi**: thẻ kiểm kê báo "mã không quản lý theo lô — không ghi HSD được" ở các mã như Thỏi vàng Rồng 200g, Túi 250g,
@@ -1209,7 +1222,7 @@ nhận giấy. Căn cứ QT.01 phần kiểm soát tài liệu; QĐ ban hành 21
   - phần **thiếu** → Material Issue, phần **thừa** → Material Receipt (giá vốn đang chạy của mã) — chênh lệch vào tài
     khoản điều chỉnh kho;
   - lô đang thu hồi không đụng; hàng hết hạn mà phải chuyển lô thì đi xuất + nhập (ERPNext không cho Repack đụng lô
-    hết hạn).
+    hết hạn; phiếu nhập vào lô hết hạn ERPNext cũng chặn — D190 tạm bỏ HSD lúc ghi).
 - **Không cho chốt khi**: mã đã đếm có chứng từ kho **sau lúc đếm** (bán, nhập, huỷ phiếu…) — bấm **Đếm lại** mã đó;
   HSD của hàng làm **từ ngày áp dụng BM.08.04** mà chưa duyệt xuất xưởng (đó không phải hàng tồn cũ — hàng chưa nhập
   kho thì nhập qua màn Nhập kho; **D188: không chặn nữa** — lô vào kho, chưa bán được tới khi duyệt); mã không quản

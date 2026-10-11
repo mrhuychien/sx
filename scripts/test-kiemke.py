@@ -249,6 +249,11 @@ class StockEntry(F.Document):
                 assert r.get("s_warehouse"), r
             if p == "Material Receipt":
                 assert r.get("t_warehouse"), r
+        if p not in ("Material Issue", "Material Transfer"):   # ERPNext StockController.validate_serialized_batch
+            for r in self.items:
+                hsd = F.bang("Batch").get(r.get("batch_no") or "", {}).get("expiry_date")
+                assert not hsd or str(hsd)[:10] >= F.hom_nay().isoformat(), ("The batch has already expired",
+                                                                              r["batch_no"])
         if p == "Repack":
             for r in self.items:                     # ERPNext StockEntry.validate_batch
                 hsd = F.bang("Batch")[r["batch_no"]].get("expiry_date")
@@ -562,6 +567,8 @@ kiem("chốt: Repack chỉ có phần còn hạn; lô hết hạn đi xuất + n
 kiem("tồn sau chốt: HSD 01/09/26 (hết hạn) 10, HSD 15/03/27 25, lô cũ 40 → 5 thiếu xuất hết",
      SO[("TP-DO", "DO-HSD010926")] == 10 and SO[("TP-DO", "DO-HSD150327")] == 25 and SO[("TP-DO", "DO-150926")] == 0,
      {k: v for k, v in SO.items() if k[0] == "TP-DO"})
+kiem("D190: phiếu nhập vào lô HẾT HẠN qua được chặn của ERPNext (tạm bỏ HSD lúc ghi) — ghi xong lô giữ đúng HSD cũ",
+     str(F.bang("Batch")["DO-HSD010926"]["expiry_date"]) == "2026-09-01", F.bang("Batch")["DO-HSD010926"])
 F.get_doc("SX Kiem Ke", P3).cancel()
 kiem("huỷ phiếu đó: tồn về như trước", all(abs(SO.get(k, 0) - SO_TRUOC.get(k, 0)) < 1e-9 for k in set(SO) | set(SO_TRUOC)))
 

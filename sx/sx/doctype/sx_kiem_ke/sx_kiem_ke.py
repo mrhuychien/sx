@@ -13,7 +13,9 @@ chứng từ kho:
   · một Material Issue cho phần THIẾU, một Material Receipt cho phần THỪA (kèm bù lô âm về 0) — chênh lệch
     kiểm kê vào tài khoản điều chỉnh kho như mọi phiếu kiểm kê.
   · hàng ĐÃ HẾT HẠN (HSD trước ngày chốt) mà phải chuyển lô: ERPNext không cho Repack đụng lô hết hạn, nên phần
-    đó đi đường xuất + nhập (sx/kiem_ke.chia_chung_tu).
+    đó đi đường xuất + nhập (sx/kiem_ke.chia_chung_tu). Phiếu NHẬP vào lô hết hạn ERPNext cũng chặn
+    (StockController.validate_serialized_batch: "The batch … has already expired") — D190: tạm bỏ HSD của lô đó
+    lúc ghi phiếu nhập, ghi xong trả lại ngay (_tam_bo_hsd).
 Lô theo HSD nhận hàng được đánh dấu custom_kiem_ke = hàng TỒN CŨ, bán không cần phiếu xuất xưởng — TRỪ lô của hàng
 làm từ ngày áp dụng BM.08.04 mà chưa duyệt (chua_duyet_xx): D188 không chặn chốt nữa (đặt lại kho phải chốt được),
 lô đó vẫn vào kho nhưng không đánh dấu — bán phải có BM.08.04 duyệt; QC thấy nó ở màn Xuất xưởng (Lô chờ kiểm).
@@ -485,8 +487,13 @@ class SXKiemKe(Document):
             for d in dong:
                 se.append("items", d)
             se.flags.ignore_permissions = True
-            se.insert()
-            se.submit()
+            het = self._tam_bo_hsd(dong) if purpose == "Material Receipt" else {}
+            try:
+                se.insert()
+                se.submit()
+            finally:
+                for b, h in het.items():
+                    frappe.db.set_value("Batch", b, "expiry_date", h, update_modified=False)
             giu.append(se)
             chung_tu.append({"dt": "Stock Entry", "name": se.name})
             return se
@@ -555,6 +562,24 @@ class SXKiemKe(Document):
         # kiểm tra liên kết của Frappe chặn huỷ vì chính chúng.
         self.ignore_linked_doctypes = ("Stock Entry", "Batch")
         self._kiem_huy_doi_lo(json.loads(self.ds_se or "[]"))
+
+    def _tam_bo_hsd(self, dong):
+        """D190: ERPNext không cho NHẬP vào lô đã hết hạn (StockController.validate_serialized_batch — mọi phiếu trừ
+        xuất / chuyển kho), kể cả phiếu nhập điều chỉnh kiểm kê. Hàng hết hạn vẫn nằm trong kho, đếm thấy thì phải vào
+        sổ (rồi huỷ theo quy trình) — tạm bỏ HSD của các lô đó trong lúc ghi phiếu; nơi gọi trả lại ngay sau (cùng
+        giao dịch: lỗi giữa chừng thì cuộn lại cả). {lô: HSD cũ}."""
+        hom_nay = getdate(nowdate())
+        ra = {}
+        for d in dong:
+            b = d.get("batch_no")
+            if not b or b in ra:
+                continue
+            h = frappe.db.get_value("Batch", b, "expiry_date")
+            if h and getdate(h) < hom_nay:
+                ra[b] = h
+        for b in ra:
+            frappe.db.set_value("Batch", b, "expiry_date", None, update_modified=False)
+        return ra
 
     def _dat_co_lo(self, item, co, chung_tu):
         """D189: Item.has_batch_no = `co` ghi thẳng DB. ERPNext cấm đổi ô này khi mã đã có chứng từ kho
