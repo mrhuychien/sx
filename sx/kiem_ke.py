@@ -81,7 +81,7 @@ def lap_ke_hoach(lots, dem, nsx_cua=None):
             if lay > EPS:
                 be.append([l, lay])
 
-    be.sort(key=lambda p: (str(p[0].get("ngay") or ""), p[0]["batch"]))
+    be.sort(key=lambda p: (str(p[0].get("ngay") or ""), p[0]["batch"] or ""))
     for h in sorted(can):         # HSD cũ nhất trước — hàng làm sớm nhất ghép với lô sớm nhất
         nsx = nsx_cua(h)
         cung = [i for i, p in enumerate(be) if p[0].get("hsd") == h]     # lô cũ ghi đúng HSD này: cùng hàng
@@ -148,37 +148,55 @@ def lap_ke_hoach_lo(lots, dem):
     return ke
 
 
-def chia_chung_tu(ke_theo_ma, hom_nay):
+def chia_chung_tu(ke_theo_ma, hom_nay, doi_lo=()):
     """Chia kế hoạch các mã thành chứng từ kho — hàm thuần.
 
-    {"repack": {item: [chuyển]}, "xuat": [{item, batch, so}], "nhap": [{item, hsd, batch, so}]}
+    {"repack": {item: [chuyển]}, "xuat": [{item, batch, so}], "nhap": [{item, hsd, batch, so}],
+     "xuat_kl": [{item, batch None, so}], "nhap_kl": [{item, hsd None, batch None, so}]}
       repack  mỗi mã một phiếu: giá vốn đi theo hàng, truy xuất ngược còn mắt xích.
       xuat    phần THIẾU + nguồn của phần chuyển dính lô ĐÃ HẾT HẠN.
       nhap    phần THỪA (batch None = lô theo HSD), bù lô âm (batch có sẵn), đích của phần chuyển hết hạn.
+      xuat_kl / nhap_kl  (D189) tồn KHÔNG LÔ của mã chuyển sang quản lý lô (`doi_lo`): xuất hết phần dương, nhập bù
+              phần âm về 0. Hai phiếu này ghi lúc mã còn TẮT lô; bật lô xong, phần đếm được vào lô theo HSD ở phiếu
+              `nhap` (cùng giá vốn) — một mã không vừa tắt vừa bật lô trong một phiếu được, nên không Repack.
     ERPNext không cho Repack đụng lô đã hết hạn (StockEntry.validate_batch: "Batch … has expired") — hàng hết
-    hạn vẫn nằm trong kho, vẫn phải đếm, nên phần đó đi đường xuất + nhập (hai phiếu này không bị chặn).
+    hạn vẫn nằm trong kho, vẫn phải đếm, nên phần đó đi đường xuất + nhập.
     `hom_nay` = ngày ghi sổ ('YYYY-MM-DD'); HSD trước ngày đó là hết hạn.
     """
     het = lambda h: bool(h) and str(h)[:10] < str(hom_nay)[:10]   # noqa: E731
-    ra = {"repack": {}, "xuat": [], "nhap": []}
+    ra = {"repack": {}, "xuat": [], "nhap": [], "xuat_kl": [], "nhap_kl": []}
     for i in sorted(ke_theo_ma):
         k = ke_theo_ma[i]
+        doi = i in doi_lo
         for x in k["chuyen"]:
-            if het(x["hsd"]) or het(x.get("tu_hsd")):
+            if doi and not x["tu"]:
+                ra["xuat_kl"].append({"item": i, "batch": None, "so": x["so"]})
+                ra["nhap"].append({"item": i, "hsd": x["hsd"], "batch": None, "so": x["so"]})
+            elif het(x["hsd"]) or het(x.get("tu_hsd")):
                 ra["xuat"].append({"item": i, "batch": x["tu"], "so": x["so"]})
                 ra["nhap"].append({"item": i, "hsd": x["hsd"], "batch": None, "so": x["so"]})
             else:
                 ra["repack"].setdefault(i, []).append(x)
-        ra["xuat"] += [{"item": i, "batch": x["batch"], "so": x["so"]} for x in k["xuat"]]
+        for x in k["xuat"]:
+            ra["xuat_kl" if doi and not x["batch"] else "xuat"].append({"item": i, "batch": x["batch"], "so": x["so"]})
         ra["nhap"] += [{"item": i, "hsd": x["hsd"], "batch": None, "so": x["so"]} for x in k["nhap"]]
-        ra["nhap"] += [{"item": i, "hsd": x["hsd"], "batch": x["batch"], "so": x["so"]} for x in k["bu_am"]]
+        for x in k["bu_am"]:
+            ra["nhap_kl" if doi and not x["batch"] else "nhap"].append(
+                {"item": i, "hsd": x["hsd"], "batch": x["batch"], "so": x["so"]})
         ra["nhap"] += [{"item": i, "hsd": None, "batch": x["batch"], "so": x["so"]} for x in k.get("nhap_lo", [])]
+    for loai in ("xuat_kl", "nhap_kl"):            # tồn không lô: một dòng mỗi mã
+        gom = {}
+        for x in ra[loai]:
+            gom[x["item"]] = gom.get(x["item"], 0.0) + x["so"]
+        ra[loai] = [{"item": i, "batch": None, "so": _r(q)} for i, q in sorted(gom.items())]
     return ra
 
 
 def so_chung_tu(ct):
-    """Số Stock Entry sẽ sinh: mỗi mã có chuyển lô một Repack, cộng một phiếu xuất, một phiếu nhập."""
-    return len(ct["repack"]) + (1 if ct["xuat"] else 0) + (1 if ct["nhap"] else 0)
+    """Số Stock Entry sẽ sinh: mỗi mã có chuyển lô một Repack, cộng một phiếu xuất, một phiếu nhập; mã chuyển sang
+    quản lý lô (D189) thêm một phiếu xuất / một phiếu nhập phần tồn không lô."""
+    return (len(ct["repack"]) + (1 if ct["xuat"] else 0) + (1 if ct["nhap"] else 0)
+            + (1 if ct.get("xuat_kl") else 0) + (1 if ct.get("nhap_kl") else 0))
 
 
 def co_thay_doi(ke):

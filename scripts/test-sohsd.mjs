@@ -522,6 +522,11 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
       theo_hsd: [{ hsd: '2027-06-08', so: 30 }], khong_lo: false },
     { item: 'TP-DO', ten: 'Bột đậu', dvt: 'Gói', uoms: [], so_sach: 40, chua_hsd: 40, thu_hoi: 0, theo_hsd: [],
       khong_lo: false },
+    // D189: mã chưa quản lý lô — đếm được, chốt bật lô; mã còn tồn ở kho khác thì báo ngay trên dòng.
+    { item: 'TP-RONG', ten: 'Thỏi vàng Rồng', dvt: 'Hộp', uoms: [], so_sach: 10439, chua_hsd: 10439, thu_hoi: 0,
+      theo_hsd: [], khong_lo: true, bat_lo: true, le_khong_lo: 0, kho_khac: [] },
+    { item: 'TP-TUI', ten: 'Túi 250g', dvt: 'Hộp', uoms: [], so_sach: 8, chua_hsd: 8, thu_hoi: 0, theo_hsd: [],
+      khong_lo: true, bat_lo: true, le_khong_lo: 0, kho_khac: [{ kho: 'Kho Le', so: 2 }] },
   ];
   const tq = () => ({
     kho: 'Kho TP', duoc_chot: KH.chot, hom_nay: NGAY, phieu: st.phieu, danh_muc: [], gan_day: [], canh_bao: [],
@@ -547,8 +552,10 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
         ma: [{ item: 'TP-SEN', ten: 'Bánh sen', so_sach: 180, dem: 120, chuyen: 120, lo_cu: 2, thieu: 60, thua: 0,
           bu_am: 0, thu_hoi: 0 },
         { item: 'TP-DO', ten: 'Bột đậu', so_sach: 40, dem: 0, chuyen: 0, lo_cu: 0, thieu: 40, thua: 0, bu_am: 0,
-          thu_hoi: 0, chua_dem: true }],
-        tong: { so_ma: 2, so_sach: 220, dem: 120, phieu_kho: 2, ve_0: 1 } };
+          thu_hoi: 0, chua_dem: true },
+        { item: 'TP-RONG', ten: 'Thỏi vàng Rồng', so_sach: 50, dem: 55, chuyen: 50, lo_cu: 1, thieu: 0, thua: 5,
+          bu_am: 0, thu_hoi: 0, bat_lo: true }],
+        tong: { so_ma: 3, so_sach: 270, dem: 175, phieu_kho: 3, ve_0: 1, bat_lo: 1 } };
     }
     if (m === 'sx.api.kiemke.chot') { st.phieu = null; return { name: 'KK-1', so_ma: 1, tong_lech: -60, so_phieu_kho: 2 }; }
     return tq();
@@ -556,8 +563,8 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   const loiGoi = (m) => goi.filter((g) => g[0] === m).pop();
   const c = new E('div');
   await KK.render({ container: c, call, boot: {} });
-  kiem('chưa có phiếu: nhắc số mã còn hàng chưa ghi HSD + nút BẮT ĐẦU',
-    /2 mã còn hàng chưa ghi HSD · 190/.test(c.innerHTML) && !!c.querySelector('#kk-bat'));
+  kiem('chưa có phiếu: nhắc số mã còn hàng chưa ghi HSD (cả mã chưa quản lý lô) + nút BẮT ĐẦU',
+    /4 mã còn hàng chưa ghi HSD · 10\.637/.test(c.innerHTML) && !!c.querySelector('#kk-bat'), c.innerHTML.slice(0, 600));
   kiem('D188: nói rõ chốt = đặt lại toàn bộ kho thành phẩm, mỗi loại mỗi HSD một lô, mã không đếm về 0',
     /đặt lại toàn bộ kho thành phẩm/.test(c.innerHTML) && /mỗi loại, mỗi HSD một lô/.test(c.innerHTML)
     && /mã không đếm về 0/.test(c.innerHTML));
@@ -566,7 +573,16 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   kiem('BẮT ĐẦU → phiếu đang đếm, mã chưa đếm có nút + HSD / Không còn',
     !!c.querySelector('[data-them="0"]') && !!c.querySelector('[data-het="1"]'), c.innerHTML.slice(0, 200));
   kiem('… mã có tồn chưa đếm ghi "chưa đếm — chốt về 0"; nhắc đang kiểm kê nói chốt đặt lại toàn kho',
-    (c.innerHTML.match(/chưa đếm — chốt về 0/g) || []).length === 2 && /đặt lại toàn kho theo số đếm/.test(c.innerHTML));
+    (c.innerHTML.match(/chưa đếm — chốt về 0/g) || []).length === 4 && /đặt lại toàn kho theo số đếm/.test(c.innerHTML));
+  kiem('D189: mã chưa quản lý lô là dòng đếm được (+ HSD, Không còn), ghi "chốt sẽ bật lô"; tính vào số mã phải đếm',
+    !!c.querySelector('[data-them="2"]') && !!c.querySelector('[data-het="2"]')
+    && /Mã chưa quản lý theo lô — chốt sẽ bật lô: tồn cũ không lô về 0, số đếm vào lô theo HSD/.test(c.innerHTML)
+    && /Đã đếm 0\/4 mã/.test(c.innerHTML) && !/không ghi HSD được/.test(c.innerHTML), c.innerHTML.slice(0, 400));
+  kiem('… mã còn tồn ở kho khác: báo kho, số và cách xử lý ngay trên dòng',
+    /còn tồn ở kho khác \(Kho Le: 2\) — chưa bật lô được/.test(c.innerHTML));
+  const pr = moi(c.querySelector('[data-them="2"]'));
+  kiem('… bấm + HSD của mã đó mở bàn số như mã khác (không báo lỗi)', pr && /^Kiểm kê · KK-1/.test(pr.m.kicker)
+    && !TOAST.some(([t]) => /không quản lý theo lô/.test(t)));
   let p = moi(c.querySelector('[data-them="0"]'));
   kiem('+ HSD → bàn số một màn: tab thùng / hộp, HSD KHÔNG điền sẵn (phải đọc trên hộp)',
     p && /^Kiểm kê · KK-1/.test(p.m.kicker) && p.tabs().length === 2 && p.hsd() === '', p && p.hsd());
@@ -637,9 +653,13 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   kiem('xem trước: mã chưa đếm ghi "chưa đếm → về 0"; cuối: đặt lại toàn bộ kho, 1 mã chưa đếm về 0',
     /chưa đếm → về 0<\/span> · thiếu 40/.test(xm.body.innerHTML) && /đặt lại toàn bộ kho thành phẩm/.test(xm.body.innerHTML)
     && /1 mã chưa đếm về 0/.test(xm.body.innerHTML), xm.body.innerHTML.slice(-400));
+  kiem('… mã chuyển sang quản lý lô ghi "bật quản lý lô"; cuối: 1 mã bật quản lý lô (D189)',
+    /bật quản lý lô<\/span> · chuyển 50/.test(xm.body.innerHTML) && /; 1 mã bật quản lý lô\./.test(xm.body.innerHTML),
+    xm.body.innerHTML.slice(-600));
   nut.bam();
-  kiem('… hộp xác nhận nói đặt lại toàn bộ kho + số mã về 0', /^Đặt lại toàn bộ kho thành phẩm theo số đếm\. 2 mã/.test(
-    HOI[HOI.length - 1].message) && /1 mã chưa đếm về 0/.test(HOI[HOI.length - 1].message), HOI[HOI.length - 1].message);
+  kiem('… hộp xác nhận nói đặt lại toàn bộ kho + số mã về 0 + số mã bật lô', /^Đặt lại toàn bộ kho thành phẩm theo số đếm\. 3 mã/.test(
+    HOI[HOI.length - 1].message) && /1 mã chưa đếm về 0; 1 mã bật quản lý lô\./.test(HOI[HOI.length - 1].message),
+  HOI[HOI.length - 1].message);
   await HOI[HOI.length - 1].onConfirm();
   await choRe();
   kiem('CHỐT → xác nhận 2 bước rồi gọi chot(phiếu), thẻ về trạng thái chưa có phiếu',

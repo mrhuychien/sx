@@ -320,6 +320,34 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê: mã chưa quản lý theo lô đếm theo HSD như mã khác — chốt bật lô cho mã (D189)
+
+- **Hỏi**: thẻ kiểm kê báo "mã không quản lý theo lô — không ghi HSD được" ở các mã như Thỏi vàng Rồng 200g, Túi 250g,
+  Tứ Vị 1,2 kg, Khoai môn H24… — không đếm được. Các mã này tạo trên Desk mà quên tích **Has Batch No**, đã có chứng
+  từ kho nên **ERPNext cấm bật lại** (Item.cant_change: "As there are existing submitted transactions…"); từ D103 nhập
+  kho mã đó đi không lô (mất truy xuất).
+- **Nay**: các mã đó là dòng đếm bình thường (+ HSD / Không còn), ghi chú "chốt sẽ bật lô". Chốt kiểm kê **chuyển mã
+  sang quản lý lô**:
+  1. tồn **không lô** của mã ở Kho TP về 0 — xuất hết phần dương / nhập bù phần âm (mã bán khi chưa nhập kho đang âm),
+     hai phiếu này ghi lúc mã còn tắt lô;
+  2. **bật Has Batch No** cho mã (ghi thẳng DB: tồn không lô vừa về 0 nên không còn hàng nào kẹt — đúng điều ERPNext
+     lo);
+  3. số đếm vào **lô theo HSD** (`…-HSDddmmyy`) ở phiếu nhập của kiểm kê, **cùng giá vốn đang chạy** của mã.
+  Từ sau chốt, nhập kho / bán các mã đó theo lô như mọi mã khác. Mã chưa quản lý lô có tồn ở Kho TP mà không đếm
+  (về 0) cũng được bật lô luôn — lần nhập kho sau ra lô theo HSD.
+- **Mã có lô mà còn tồn KHÔNG gắn lô** (dữ liệu cũ) — trước đây chặn chốt, bảo sửa trên Desk — nay chốt dọn luôn: tạm
+  tắt lô, đưa phần đó về 0 / vào lô theo số đếm, bật lại.
+- **Chặn**: mã chưa quản lý lô **còn tồn ở kho khác** (vd kho hàng trả về) mà có số đếm — bật lô thì phần đó không xuất /
+  nhập được nữa. Dòng mã báo ngay "còn tồn ở kho khác (Kho …: n)"; đưa hàng về Kho TP rồi đếm, hoặc điều chỉnh tồn kho
+  đó về 0. Mã đó mà không đếm / Không còn thì chỉ về 0 ở Kho TP, vẫn để không lô (xem trước báo).
+- **Xem trước / biên bản**: dòng mã ghi "bật quản lý lô" / "tồn không lô về 0", cảnh báo liệt kê các mã; hộp xác nhận
+  ghi số mã bật lô; biên bản ghi "Đã bật quản lý theo lô cho mã: …", bảng lô ghi "nhận … từ tồn không lô".
+- **Huỷ phiếu** (Desk): chứng từ huỷ ngược, cờ lô trả đúng như cũ (ds_se ghi từng lần đổi cờ). Không cho huỷ nếu sau
+  chốt mã vừa bật lô đã có chứng từ kho khác (nhập / bán theo lô) — về lại không lô thì hàng theo lô đó kẹt.
+- Test `test-kiemke.py` (mã dương / âm / còn tồn kho khác / có lô lẫn tồn không lô, thứ tự chứng từ, cờ lô, giá vốn,
+  huỷ), `test-sohsd.mjs` (dòng mã, bàn số, xem trước, hộp xác nhận).
+- Build **sx-147**. Không đổi DocType: `git pull` → `bench restart`.
+
 ## Kiểm kê thành phẩm: chốt = đặt lại toàn bộ Kho TP, mỗi loại mỗi HSD một lô (D188)
 
 - **Yêu cầu**: chốt kiểm kê coi như **đặt lại (reset) lô toàn bộ kho thành phẩm** — thủ kho nhập bao nhiêu thùng /
@@ -1185,7 +1213,7 @@ nhận giấy. Căn cứ QT.01 phần kiểm soát tài liệu; QĐ ban hành 21
 - **Không cho chốt khi**: mã đã đếm có chứng từ kho **sau lúc đếm** (bán, nhập, huỷ phiếu…) — bấm **Đếm lại** mã đó;
   HSD của hàng làm **từ ngày áp dụng BM.08.04** mà chưa duyệt xuất xưởng (đó không phải hàng tồn cũ — hàng chưa nhập
   kho thì nhập qua màn Nhập kho; **D188: không chặn nữa** — lô vào kho, chưa bán được tới khi duyệt); mã không quản
-  lý theo lô / có tồn không gắn lô. Còn phiếu nhập kho nháp thì nhắc
+  lý theo lô / có tồn không gắn lô (**D189: nay chốt chuyển mã sang quản lý lô**). Còn phiếu nhập kho nháp thì nhắc
   (hàng đó chưa vào sổ — đếm vào là thành thừa).
 - **Lô theo HSD nhận hàng tồn cũ** được đánh dấu `Batch.custom_kiem_ke` → bán **không cần phiếu xuất xưởng** BM.08.04
   (như tồn cũ trước ngày áp dụng). Truy xuất: lô cũ ghi "Kiểm kê KK-… — chuyển sang lô theo HSD"; thu hồi lô cũ hay

@@ -3,7 +3,8 @@
 // THÀNH PHẨM (D154): lô thành phẩm vào kho từ trước khi lô mang HSD — truy xuất theo HSD in trên hộp không ra,
 // xuất FEFO và báo cận date bỏ sót. Thủ kho đi từng mã, đếm theo HSD in trên hộp (cùng bàn số thùng / hộp + HSD
 // với Nhập kho), xem trước rồi CHỐT. D188: chốt = ĐẶT LẠI TOÀN KHO theo số đếm — mỗi loại, mỗi HSD một lô; mã có
-// tồn mà không đếm về 0; lô cũ chuyển sang lô theo HSD, thừa / thiếu ghi điều chỉnh kho.
+// tồn mà không đếm về 0; lô cũ chuyển sang lô theo HSD, thừa / thiếu ghi điều chỉnh kho. D189: mã chưa quản lý lô
+// (hoặc có tồn không gắn lô) đếm theo HSD như mã khác — chốt bật lô cho mã, tồn cũ không lô về 0.
 // BÁN THÀNH PHẨM (D155): Kho BTP / Kho xưởng — hàng rời tính kg, lô theo ngày làm / lô rang, không có HSD: CÂN
 // TỪNG LÔ. Lô đã cân thì số cân thay số sổ của lô đó; lô chưa cân giữ nguyên.
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
@@ -26,7 +27,7 @@ const st = { loc: 'het', tim: '' };     // giữ bộ lọc qua các lần vẽ 
 
 // [khoá, [nhãn thành phẩm, nhãn bán thành phẩm], lọc]. Bán thành phẩm: "chưa cân" = còn lô trên sổ chưa cân.
 const LOC = [
-  ['chua', ['Chưa đếm', 'Chưa cân'], (x) => (x.lo ? x.con_chua > 0 : !x.da_dem && !x.khong_lo)],
+  ['chua', ['Chưa đếm', 'Chưa cân'], (x) => (x.lo ? x.con_chua > 0 : !x.da_dem)],
   ['dem', ['Đã đếm', 'Đã cân'], (x) => x.da_dem],
   ['lech', ['Lệch', 'Lệch'], (x) => x.da_dem && Math.abs(lechCua(x)) > 1e-9],
   ['het', ['Tất cả', 'Tất cả'], () => true],
@@ -134,7 +135,7 @@ export async function render({ container, call, boot }) {
       const soLo = dl.hang.reduce((a, x) => a + x.lo.filter((l) => !l.thu_hoi).length, 0);
       tom = `<div class="sx-muted">${dl.hang.length} mã · ${soLo} lô trên sổ ${esc(dl.kho)}.</div>`;
     } else {
-      const co = dl.hang.filter((x) => !x.khong_lo && x.so_sach > 0);
+      const co = dl.hang.filter((x) => x.so_sach > 0);
       const chua = co.filter((x) => x.chua_hsd > 0);
       tom = chua.length ? `<div class="sx-kk-bao">${chua.length} mã còn hàng chưa ghi HSD · ${formatNumber(
         chua.reduce((a, x) => a + x.chua_hsd, 0))} sp</div>`
@@ -187,7 +188,7 @@ export async function render({ container, call, boot }) {
       const lo = hang.flatMap((x) => x.lo.filter((l) => !l.thu_hoi));
       tien = `Đã cân ${lo.filter((l) => l.can != null).length}/${lo.length} lô`;
     } else {
-      tien = `Đã đếm ${daDem.length}/${hang.filter((x) => !x.khong_lo).length} mã`;
+      tien = `Đã đếm ${daDem.length}/${hang.length} mã`;
     }
     let nhom = null;
     const khoi = ds.map(([x, i]) => {
@@ -271,7 +272,6 @@ export async function render({ container, call, boot }) {
         onTim: (item) => {
           const x = hang.find((h) => h.item === item) || moi(dl.danh_muc.find((h) => h.item === item));
           if (!x) { toastErr('Mã này không phải thành phẩm.'); return; }
-          if (x.khong_lo) { toastErr(`${x.ten}: mã không quản lý theo lô — không ghi HSD được.`); return; }
           moDong(x, null);
         },
       }));
@@ -293,11 +293,24 @@ export async function render({ container, call, boot }) {
     ganGanDay();
   }
 
-  function veMa(x, i) {
-    if (x.khong_lo) {
-      return `<div class="sx-kk-ma sx-kk-ma-tat"><div class="sx-vh-name">${esc(x.ten)}</div>
-        <div class="sx-vh-meta">sổ ${formatNumber(x.so_sach)} · mã không quản lý theo lô — không ghi HSD được</div></div>`;
+  // D189: mã chưa quản lý lô / có tồn không gắn lô — đếm như mã khác, chốt chuyển sang lô. Còn tồn ở kho khác thì
+  // không bật lô được: báo ngay trên dòng mã (chốt sẽ chặn nếu mã có số đếm).
+  function veLo(x) {
+    const kk = x.kho_khac || [];
+    if (x.bat_lo && kk.length) {
+      return `<div class="sx-kk-nhac">⚠ Mã chưa quản lý theo lô, còn tồn ở kho khác (${esc(kk.map((k) => `${k.kho}: ${
+        formatNumber(k.so)}`).join(', '))}) — chưa bật lô được: đưa hàng đó về đây (rồi đếm) hoặc điều chỉnh về 0 trước khi chốt.</div>`;
     }
+    if (x.bat_lo) {
+      return '<div class="sx-kk-nhac">Mã chưa quản lý theo lô — chốt sẽ bật lô: tồn cũ không lô về 0, số đếm vào lô theo HSD.</div>';
+    }
+    if (x.le_khong_lo) {
+      return `<div class="sx-kk-nhac">Có ${formatNumber(x.le_khong_lo)} tồn không gắn lô (dữ liệu cũ) — chốt đưa phần đó về 0 / vào lô theo số đếm.</div>`;
+    }
+    return '';
+  }
+
+  function veMa(x, i) {
     const l = lechCua(x);
     const tom = x.da_dem
       ? `đếm <b>${formatNumber(x.tong_dem)}</b> · sổ ${formatNumber(x.so_sach)} · ${Math.abs(l) > 1e-9
@@ -315,6 +328,7 @@ export async function render({ container, call, boot }) {
     return `<div class="sx-kk-ma${x.da_dem ? ' sx-kk-ma-xong' : ''}">
       <div class="sx-kk-dau"><div class="sx-vh-name">${esc(x.ten)}</div><div class="sx-kk-so">${tom}</div></div>
       ${tren ? `<div class="sx-vh-meta">Sổ: ${esc(tren)}</div>` : ''}
+      ${x.khong_lo ? veLo(x) : ''}
       <div class="sx-kk-dong">${dong}
         <button type="button" class="sx-np-chip sx-kk-them" data-them="${i}">+ HSD</button>
         ${x.da_dem ? `<button type="button" class="sx-np-chip" data-lai="${i}">Đếm lại</button>`
@@ -576,7 +590,9 @@ export async function render({ container, call, boot }) {
       <div class="sx-vh-list">${x.ma.map((r) => `
         <div class="sx-vh-row" style="cursor:default"><div class="sx-vh-who">
           <div class="sx-vh-name">${esc(r.ten)}</div>
-          <div class="sx-vh-meta">${r.chua_dem ? '<span class="sx-kk-chua">chưa đếm → về 0</span> · ' : ''}${esc([
+          <div class="sx-vh-meta">${r.chua_dem ? '<span class="sx-kk-chua">chưa đếm → về 0</span> · ' : ''}${
+  r.bat_lo ? '<span class="sx-kk-chua">bật quản lý lô</span> · ' : ''}${
+  r.le_khong_lo ? '<span class="sx-kk-chua">tồn không lô về 0</span> · ' : ''}${esc([
     btp && r.lo_can ? `${r.lo_can} lô` : '',
     r.chuyen ? `chuyển ${formatNumber(r.chuyen)} từ ${r.lo_cu} lô cũ sang lô theo HSD` : '',
     r.thieu ? `thiếu ${n(r.thieu)}${dv}` : '', r.thua ? `thừa ${n(r.thua)}${dv}` : '',
@@ -587,7 +603,8 @@ export async function render({ container, call, boot }) {
       <div class="sx-muted">${btp ? `Chốt sẽ sinh ${t.phieu_kho} chứng từ kho: thiếu / thừa từng lô ghi điều chỉnh kho.
         Lô chưa cân giữ nguyên số sổ sách.` : `Chốt sẽ <b>đặt lại toàn bộ kho thành phẩm</b> theo số đếm, sinh ${
   t.phieu_kho} chứng từ kho: chuyển lô giữ nguyên giá vốn; thiếu / thừa ghi điều chỉnh kho. Sau chốt mỗi loại,
-        mỗi HSD một lô${t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}.`}</div>`;
+        mỗi HSD một lô${t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${
+  t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}.`}</div>`;
     if (x.duoc_chot && !x.loi.length && x.ma.length) {
       const b = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'CHỐT KIỂM KÊ');
       b.type = 'button';
@@ -595,7 +612,7 @@ export async function render({ container, call, boot }) {
         title: `Chốt kiểm kê ${x.name}`,
         message: `${btp ? '' : 'Đặt lại toàn bộ kho thành phẩm theo số đếm. '}${t.so_ma} mã${btp ? `, ${t.so_lo} lô` : ''}: sổ ${
           n(t.so_sach)} → ${btp ? 'cân' : 'đếm'} ${n(t.dem)}${dv} (${coDau(t.dem - t.so_sach, d)})${
-          t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}.\n`
+          t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}.\n`
           + `Sinh ${t.phieu_kho} chứng từ kho. Chốt rồi không sửa trên màn này được nữa — muốn huỷ phải huỷ `
           + 'phiếu kiểm kê trên Desk (các chứng từ kho huỷ theo).',
         confirmLabel: 'CHỐT',

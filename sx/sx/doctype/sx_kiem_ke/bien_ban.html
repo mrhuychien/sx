@@ -74,6 +74,8 @@
   </table>
   <div class="gc">Số đếm thay toàn bộ tồn của mã trong kho, mỗi mã mỗi HSD một lô (trừ lô đang thu hồi — để riêng,
     không kiểm); mã có tồn mà không đếm ghi "chưa đếm — về 0". Mã không có trong biên bản: giữ nguyên số sổ sách.</div>
+  {% if bat_lo %}<div class="gc">{{ "Chốt sẽ bật" if nhap else "Đã bật" }} quản lý theo lô cho mã: {{ bat_lo|join(", ") }}
+    — tồn cũ không lô về 0, số đếm vào lô theo HSD; từ đó nhập / bán các mã này theo lô.</div>{% endif %}
   {% endif %}
 
   {% if d.lo %}

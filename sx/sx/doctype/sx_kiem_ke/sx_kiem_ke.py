@@ -18,9 +18,15 @@ Lô theo HSD nhận hàng được đánh dấu custom_kiem_ke = hàng TỒN CŨ
 làm từ ngày áp dụng BM.08.04 mà chưa duyệt (chua_duyet_xx): D188 không chặn chốt nữa (đặt lại kho phải chốt được),
 lô đó vẫn vào kho nhưng không đánh dấu — bán phải có BM.08.04 duyệt; QC thấy nó ở màn Xuất xưởng (Lô chờ kiểm).
 
+MÃ CHƯA QUẢN LÝ LÔ (D189): mã tắt "Has Batch No" mà đã có chứng từ kho — ERPNext cấm bật lại (Item.cant_change) — và
+mã có lô mà còn tồn KHÔNG gắn lô (dữ liệu cũ) vẫn đếm theo HSD như mã khác. Chốt CHUYỂN mã sang quản lý lô: tồn không
+lô về 0 (phiếu xuất / nhập không lô, ghi lúc mã còn tắt lô), bật lô thẳng trong DB (tồn không lô vừa về 0 nên không còn
+hàng nào kẹt), rồi số đếm vào lô theo HSD ở phiếu nhập (giá vốn đang chạy của mã). Mã tắt lô mà còn tồn ở KHO KHÁC thì
+không bật được — có số đếm thì chặn chốt. Mỗi lần đổi cờ ghi vào ds_se ({"dt": "Item"}) để huỷ phiếu trả lại như cũ.
+
 Chặn chốt khi mã đã đếm có chứng từ kho SAU lúc đếm (bán, nhập, huỷ phiếu…): số đếm không còn khớp sổ — đếm
 lại mã đó; mã chưa đếm (sắp về 0) có chứng từ SAU lúc bắt đầu kiểm kê → phải đếm (hoặc bấm Không còn). Huỷ
-phiếu đã chốt (Desk) = huỷ các chứng từ kho theo thứ tự ngược.
+phiếu đã chốt (Desk) = huỷ các chứng từ kho theo thứ tự ngược (trả cờ quản lý lô đã đổi).
 
 BÁN THÀNH PHẨM (D155, loai = "Bán thành phẩm", Kho BTP / Kho xưởng): hàng rời tính kg, lô theo ngày làm / lô
 rang, không có HSD — CÂN TỪNG LÔ. Mỗi (mã, lô) một dòng; lô đã cân thì số cân thay số sổ của lô đó, lô chưa cân
@@ -41,6 +47,7 @@ DANG_DEM, DA_CHOT, DA_HUY = "Đang đếm", "Đã chốt", "Đã huỷ"
 TP, BTP = "Thành phẩm", "Bán thành phẩm"
 
 VIEC = {"chuyen_di": "chuyển {so} sang lô HSD {hsd}", "nhan": "nhận {so} từ lô {lo}",
+        "nhan_kl": "nhận {so} từ tồn không lô",
         "thieu": "xuất thiếu {so}", "thua": "nhập thừa {so}", "bu_am": "bù lô âm {so}",
         "thu_hoi": "đang thu hồi — không kiểm ({so})"}
 
@@ -60,6 +67,8 @@ def mo_ta_viec(viec):
         return _("khớp sổ — giữ nguyên")
     ra = []
     for loai, x, so in viec:
+        if loai == "nhan" and not x:
+            loai = "nhan_kl"
         ra.append(VIEC[loai].format(so=_so(so), hsd=_vn(x) if loai == "chuyen_di" else "", lo=x or ""))
     return "; ".join(ra)
 
@@ -112,6 +121,36 @@ def ton_lo(kho, items):
             "chuan": la_lo_hsd(r.b),
         })
     return ra
+
+
+def ton_kho_khac(items, kho):
+    """{item: [(kho, số)]} — tồn của các mã ở mọi kho KHÁC `kho` (Bin), bỏ số ~0. D189: mã tắt lô còn hàng ở kho khác
+    thì không bật lô được — bật rồi phần đó không xuất / nhập được nữa (phiếu nào cũng đòi lô)."""
+    items = [i for i in dict.fromkeys(items or []) if i]
+    if not items:
+        return {}
+    ra = {}
+    for b in frappe.get_all("Bin", filters={"item_code": ("in", items), "warehouse": ("!=", kho)},
+                            fields=["item_code", "warehouse", "actual_qty"]):
+        if abs(flt(b.actual_qty)) > 1e-9:
+            ra.setdefault(b.item_code, []).append((b.warehouse, flt(b.actual_qty, 6)))
+    return {i: sorted(v) for i, v in ra.items()}
+
+
+def xoa_cache_ma(item):
+    """Bỏ cache của Item sau khi đổi has_batch_no thẳng trong DB: cache tài liệu (ERPNext đọc cờ lô qua
+    get_cached_value lúc ghi sổ kho) và cache theo request (StockController.is_serial_batch_item nhớ theo (phiếu, mã),
+    khoá theo id phiếu — phiếu sau có thể trùng id phiếu trước)."""
+    try:
+        frappe.clear_document_cache("Item", item)
+    except Exception:
+        pass
+    rc = getattr(getattr(frappe, "local", None), "request_cache", None)
+    if rc is not None:
+        try:
+            rc.clear()
+        except Exception:
+            pass
 
 
 class SXKiemKe(Document):
@@ -203,7 +242,7 @@ class SXKiemKe(Document):
             ten = {i.name: i.item_name or i.name for i in frappe.get_all(
                 "Item", filters={"name": ("in", items or [""])}, fields=["name", "item_name"])}
             self.flags.ten_ma = ten
-            self.flags.ton_khong_lo = {}
+            self.flags.doi_lo, self.flags.kho_khac = {}, {}
             lots = ton_lo(self.kho, items)
             self.flags.lo_thu_hoi = {(i, l["batch"]) for i in items for l in lots.get(i, []) if l["thu_hoi"]}
             return {i: lap_ke_hoach_lo(lots.get(i, []), dem[i]) for i in items}, {}, ten
@@ -225,12 +264,17 @@ class SXKiemKe(Document):
         co_lo = {i.name for i in frappe.get_all("Item", filters={"name": ("in", items or [""]), "has_batch_no": 1},
                                                 fields=["name"])}
         self.flags.co_lo = co_lo
-        # Mã quản lý lô mà có tồn KHÔNG gắn lô (dữ liệu cũ lỗi) không chuyển / xuất theo lô được — để riêng,
-        # kiem_truoc_chot báo. Mã không quản lý lô: tồn của nó vốn không lô — về 0 bằng phiếu xuất không lô.
-        self.flags.ton_khong_lo = {i: flt(sum(l["qty"] for l in lots.get(i, []) if not l["batch"]), 6)
-                                   for i in items if i in co_lo and any(not l["batch"] for l in lots.get(i, []))}
-        ke = {i: lap_ke_hoach([l for l in lots.get(i, []) if l["batch"] or i not in co_lo], dem[i],
-                              lambda h, i=i: nsx_tu_hsd(i, h)) for i in items}
+        # D189: mã tắt lô ("bat") và mã có lô mà còn tồn KHÔNG gắn lô ("le") — chốt chuyển sang quản lý lô: tồn
+        # không lô vào kế hoạch như một lô cũ chưa có HSD (chuyển sang lô theo HSD / xuất thiếu / bù âm), on_submit
+        # ghi phần đó lúc mã còn tắt lô rồi mới bật. Mã tắt lô còn tồn ở kho khác: không bật được (kho_khac) — có
+        # số đếm thì kiem_truoc_chot chặn, đếm 0 / chưa đếm thì chỉ về 0 và để nguyên không lô.
+        kk = ton_kho_khac([i for i in items if i not in co_lo], self.kho)
+        self.flags.kho_khac = kk
+        self.flags.doi_lo = {
+            i: "le" if i in co_lo else "bat" for i in items
+            if (i not in co_lo and not kk.get(i))
+            or (i in co_lo and any(not l["batch"] and abs(l["qty"]) > 1e-9 for l in lots.get(i, [])))}
+        ke = {i: lap_ke_hoach(lots.get(i, []), dem[i], lambda h, i=i: nsx_tu_hsd(i, h)) for i in items}
         ten_lo = {}
         for i, k in ke.items():
             for h in sorted({x["hsd"] for x in k["chuyen"]} | {x["hsd"] for x in k["nhap"]}):
@@ -238,9 +282,10 @@ class SXKiemKe(Document):
         return ke, ten_lo, ten
 
     def _ten(self, item):
-        """Tên mã cho câu báo lỗi: tên trên Item (lap_ke đã tra) > tên trên dòng > mã."""
+        """Tên mã cho câu báo lỗi: tên trên Item (lap_ke đã tra) > tên trên dòng đếm / bảng lô > mã."""
         t = (getattr(self.flags, "ten_ma", None) or {}).get(item)
-        return t or next((r.ten for r in self.dong or [] if r.item == item and r.ten), None) or item
+        return t or next((r.ten for r in list(self.dong or []) + list(self.lo or []) if r.item == item and r.ten),
+                         None) or item
 
     def kiem_truoc_chot(self, ke):
         """Lỗi chặn chốt: [chuỗi]. Rỗng = chốt được."""
@@ -249,20 +294,15 @@ class SXKiemKe(Document):
             return [_("Chưa đếm mã nào.")]
         if self.la_btp():
             return self._kiem_btp(ke)
-        # Mã tắt "Has Batch No" mà đã có giao dịch kho thì ERPNext không cho bật lô nữa (mfg.dam_bao_quan_ly_lo)
-        # — không có lô thì không mang HSD được. Mã chưa từng có giao dịch thì lúc chốt tự bật. Chỉ chặn mã có SỐ
-        # ĐẾM: mã không lô đếm 0 / chưa đếm thì về 0 bằng phiếu xuất không lô (D188).
-        co_so = [i for i, k in ke.items() if k["dem"] > 0]
-        khong_lo = [i.item_name or i.name for i in frappe.get_all(
-            "Item", filters={"name": ("in", co_so or [""]), "has_batch_no": 0}, fields=["name", "item_name"])
-            if frappe.db.exists("Stock Ledger Entry", {"item_code": i.name, "is_cancelled": 0})]
-        if khong_lo:
-            loi.append(_("Mã không quản lý theo lô — không ghi HSD được, bỏ khỏi phiếu: {0}.").format(
-                ", ".join(khong_lo)))
-        le = getattr(self.flags, "ton_khong_lo", None) or {}
-        if le:
-            loi.append(_("Mã có tồn KHÔNG gắn lô trong kho — kiểm kê HSD không chuyển được phần đó, sửa tồn trên "
-                         "Desk trước: {0}.").format(", ".join(f"{self._ten(i)} ({_so(q)})" for i, q in sorted(le.items()))))
+        # D189: mã tắt lô có số đếm thì chốt phải bật lô (HSD nằm trên lô) — mã còn tồn ở kho khác thì không bật được:
+        # bật rồi phiếu nào cũng đòi lô, tồn không lô ở kho đó không xuất / nhập được nữa.
+        kk = getattr(self.flags, "kho_khac", None) or {}
+        ket = [i for i, k in ke.items() if k["dem"] > 0 and kk.get(i)]
+        if ket:
+            loi.append(_("Mã chưa quản lý theo lô — chốt phải bật lô để ghi HSD, nhưng mã còn tồn ở kho khác (bật lô "
+                         "thì phần đó không xuất / nhập được nữa): {0}. Đưa hàng đó về {1} rồi đếm lại, hoặc điều chỉnh "
+                         "tồn ở kho đó về 0, rồi chốt.").format(
+                "; ".join(f"{self._ten(i)} — " + ", ".join(f"{w}: {_so(q)}" for w, q in kk[i]) for i in ket), self.kho))
         loi += self._giao_dich_sau_dem(list(ke))
         return loi
 
@@ -392,12 +432,16 @@ class SXKiemKe(Document):
             frappe.throw("<br>".join(loi), title=_("Chưa chốt được kiểm kê"))
         self.flags.ke, self.flags.ten_lo = ke, ten_lo
         self.set("lo", [])
+        bat = {i for i, c in (getattr(self.flags, "doi_lo", None) or {}).items() if c == "bat"}
         for i in sorted(ke, key=lambda x: ten.get(x, x)):
             bang = theo_lo(ke[i], lambda h, i=i: ten_lo[(i, h)])
             for b, g in sorted(bang.items(), key=lambda x: (x[1]["hsd"] or "", x[0] or "")):
+                viec = mo_ta_viec(g["viec"])
+                if not b and i in bat:
+                    viec += _("; mã chuyển sang quản lý lô")
                 self.append("lo", {"item": i, "ten": ten.get(i, i), "batch": b, "hsd": g["hsd"],
                                    "so_truoc": g["truoc"], "so_sau": g["sau"],
-                                   "chenh": flt(g["sau"] - g["truoc"], 6), "viec": mo_ta_viec(g["viec"])})
+                                   "chenh": flt(g["sau"] - g["truoc"], 6), "viec": viec})
         self.so_ma = len(ke)
         self.tong_so_sach = flt(sum(k["so_sach"] for k in ke.values()), 6)
         self.tong_dem = flt(sum(k["dem"] for k in ke.values()), 6)
@@ -413,11 +457,10 @@ class SXKiemKe(Document):
         ke, ten_lo = getattr(self.flags, "ke", None), getattr(self.flags, "ten_lo", None)
         if ke is None or ten_lo is None:
             ke, ten_lo, _ten = self.lap_ke()
+        doi_lo = getattr(self.flags, "doi_lo", None) or {}
         cong_ty = get_settings().cong_ty
         chung_tu = []
-
-        for (i, h), b in sorted(ten_lo.items()):
-            tao_batch(i, b, nsx=nsx_tu_hsd(i, h), hsd=h)
+        giu = []                      # giữ các phiếu kho tới hết request — id không bị phiếu sau dùng lại (xoa_cache_ma)
 
         gia = {i: gia_von_hien(i, self.kho) for i, k in ke.items() if co_thay_doi(k)}
 
@@ -426,6 +469,11 @@ class SXKiemKe(Document):
 
         def lo_cua(b):
             return {"use_serial_batch_fields": 1, "batch_no": b} if b else {}
+
+        def vao(i, b, so):
+            d = {"item_code": i, "qty": so, "t_warehouse": self.kho, **lo_cua(b)}
+            d.update({"basic_rate": gia[i]} if gia.get(i, 0) > 0 else {"allow_zero_valuation_rate": 1})
+            return d
 
         def phieu(purpose, ghi_chu, dong):
             se = frappe.new_doc("Stock Entry")
@@ -439,10 +487,31 @@ class SXKiemKe(Document):
             se.flags.ignore_permissions = True
             se.insert()
             se.submit()
+            giu.append(se)
             chung_tu.append({"dt": "Stock Entry", "name": se.name})
             return se
 
-        ct = chia_chung_tu(ke, nowdate())
+        ct = chia_chung_tu(ke, nowdate(), doi_lo)
+
+        # 0. D189: mã chuyển sang quản lý lô — tồn KHÔNG LÔ về 0 khi mã còn tắt lô (mã có lô mà còn tồn không lô thì tạm
+        #    tắt), rồi bật lô. Phần đếm được vào lô theo HSD ở phiếu nhập bước 3, cùng giá vốn đang chạy của mã.
+        if doi_lo:
+            for i in sorted(i for i, c in doi_lo.items() if c == "le"):
+                self._dat_co_lo(i, 0, chung_tu)
+            if ct["xuat_kl"]:
+                phieu("Material Issue", _("Kiểm kê {0}: xuất hết tồn KHÔNG LÔ của mã chuyển sang quản lý lô (số đếm vào "
+                                          "lô theo HSD ở phiếu nhập cùng kiểm kê).").format(self.name),
+                      [{"item_code": x["item"], "qty": x["so"], "s_warehouse": self.kho, **zero(x["item"])}
+                       for x in ct["xuat_kl"]])
+            if ct["nhap_kl"]:
+                phieu("Material Receipt", _("Kiểm kê {0}: bù tồn KHÔNG LÔ đang âm về 0 trước khi chuyển mã sang quản lý "
+                                            "lô.").format(self.name),
+                      [vao(x["item"], None, x["so"]) for x in ct["nhap_kl"]])
+            for i in sorted(doi_lo):
+                self._dat_co_lo(i, 1, chung_tu)
+
+        for (i, h), b in sorted(ten_lo.items()):
+            tao_batch(i, b, nsx=nsx_tu_hsd(i, h), hsd=h)
 
         # 1. Chuyển lô cũ → lô theo HSD: mỗi mã một Repack (giá vốn không trộn giữa các mã).
         for i, ds in sorted(ct["repack"].items()):
@@ -465,12 +534,8 @@ class SXKiemKe(Document):
             phieu("Material Issue", _("Kiểm kê {0}: xuất điều chỉnh phần THIẾU (sổ có, đếm không thấy); hàng hết "
                                       "hạn chuyển lô đi đường xuất / nhập.").format(self.name), xuat)
 
-        # 3. Thừa (vào lô theo HSD) + bù lô âm + đích của phần chuyển hết hạn — giá vốn đang chạy của mã.
-        def vao(i, b, so):
-            d = {"item_code": i, "qty": so, "t_warehouse": self.kho, **lo_cua(b)}
-            d.update({"basic_rate": gia[i]} if gia.get(i, 0) > 0 else {"allow_zero_valuation_rate": 1})
-            return d
-
+        # 3. Thừa (vào lô theo HSD) + bù lô âm + đích của phần chuyển hết hạn / chuyển từ tồn không lô (D189) — giá
+        #    vốn đang chạy của mã.
         nhap = [vao(x["item"], x["batch"] or (ten_lo[(x["item"], x["hsd"])] if x["hsd"] else None), x["so"])
                 for x in ct["nhap"]]
         if nhap:
@@ -489,14 +554,56 @@ class SXKiemKe(Document):
         # Các Stock Entry của phiếu trỏ ngược về phiếu (custom_kiem_ke) và bị huỷ ngay trong on_cancel — đừng để
         # kiểm tra liên kết của Frappe chặn huỷ vì chính chúng.
         self.ignore_linked_doctypes = ("Stock Entry", "Batch")
+        self._kiem_huy_doi_lo(json.loads(self.ds_se or "[]"))
+
+    def _dat_co_lo(self, item, co, chung_tu):
+        """D189: Item.has_batch_no = `co` ghi thẳng DB. ERPNext cấm đổi ô này khi mã đã có chứng từ kho
+        (Item.cant_change) vì sợ tồn cũ không lô kẹt lại — ở đây tồn không lô của mã vừa về 0 ngay trước khi bật (mã
+        còn tồn ở kho khác thì lap_ke không cho bật). Ghi vào ds_se để huỷ phiếu trả lại đúng như cũ."""
+        cu = cint(frappe.db.get_value("Item", item, "has_batch_no"))
+        if cu == cint(co):
+            return
+        frappe.db.set_value("Item", item, "has_batch_no", cint(co), update_modified=False)
+        xoa_cache_ma(item)
+        chung_tu.append({"dt": "Item", "name": item, "has_batch_no": [cu, cint(co)]})
+
+    def _kiem_huy_doi_lo(self, ds):
+        """D189: huỷ phiếu đã bật lô cho mã thì mã về lại KHÔNG lô — không được nếu sau lúc chốt mã đã có chứng từ kho
+        khác (nhập / bán theo lô): hàng theo lô đó sẽ kẹt."""
+        dau = {}
+        for ct in ds:
+            if ct.get("dt") == "Item":
+                dau.setdefault(ct.get("name"), cint((ct.get("has_batch_no") or [1])[0]))
+        tat = sorted(i for i, cu in dau.items() if not cu)
+        if not tat:
+            return
+        cua_ta = {ct.get("name") for ct in ds if ct.get("dt") != "Item"}
+        moc = self.chot_luc or self.modified
+        for i in tat:
+            khac = sorted({f"{r.voucher_type} {r.voucher_no}" for r in frappe.get_all(
+                "Stock Ledger Entry", filters={"item_code": i, "is_cancelled": 0, "creation": (">=", moc)},
+                fields=["voucher_type", "voucher_no"]) if r.voucher_no not in cua_ta})
+            if khac:
+                frappe.throw(_("Không huỷ được: phiếu này đã bật quản lý lô cho {0}, sau đó mã có chứng từ kho theo lô "
+                               "({1}). Huỷ phiếu thì mã về lại không lô, hàng theo lô kẹt — huỷ các chứng từ đó trước.")
+                             .format(self._ten(i), ", ".join(khac[:5]) + (" …" if len(khac) > 5 else "")))
 
     def on_cancel(self):
         """Huỷ = huỷ đúng những chứng từ kho phiếu này sinh ra, thứ tự ngược (nhập thừa trước, rồi xuất
-        thiếu, rồi các phiếu chuyển lô) để không bước nào rút hàng chưa có."""
+        thiếu, rồi các phiếu chuyển lô) để không bước nào rút hàng chưa có. Cờ quản lý lô đã đổi (D189) trả lại
+        đúng chỗ của nó trong thứ tự đó: tắt lô lại trước khi huỷ phiếu tồn không lô."""
         from sx.api.mfg import cancel_doc
 
+        ds = json.loads(self.ds_se or "[]")
         log = []
-        for ct in reversed(json.loads(self.ds_se or "[]")):
+        for ct in reversed(ds):
+            if ct.get("dt") == "Item":
+                cu = (ct.get("has_batch_no") or [None])[0]
+                if cu is not None and frappe.db.exists("Item", ct.get("name")):
+                    frappe.db.set_value("Item", ct["name"], "has_batch_no", cint(cu), update_modified=False)
+                    xoa_cache_ma(ct["name"])
+                    log.append(f"Item {ct['name']}: has_batch_no về {cint(cu)}")
+                continue
             cancel_doc(ct.get("dt"), ct.get("name"), log)
         for b in frappe.get_all("Batch", filters={"custom_kiem_ke": self.name}, pluck="name"):
             frappe.db.set_value("Batch", b, "custom_kiem_ke", None, update_modified=False)
