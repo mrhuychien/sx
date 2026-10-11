@@ -6,6 +6,8 @@
 // tồn mà không đếm về 0; lô cũ chuyển sang lô theo HSD, thừa / thiếu ghi điều chỉnh kho. D189: mã chưa quản lý lô
 // (hoặc có tồn không gắn lô) đếm theo HSD như mã khác — chốt bật lô cho mã, tồn cũ không lô về 0. D191: cờ lô là của
 // mã, áp mọi kho — tồn ở kho khác (cửa hàng, xưởng) chốt xử lý luôn: kho dương vào lô tồn cũ tại chỗ, kho âm về 0.
+// D193: nút "Tồn âm thành phẩm ở Kho Xưởng sản xuất" — xem từng dòng âm (do chuyển sang Kho TP mà không ghi sản xuất
+// vào xưởng), quản lý bấm DỌN để nhập điều chỉnh về 0, in danh sách cho kế toán.
 // BÁN THÀNH PHẨM (D155): Kho BTP / Kho xưởng — hàng rời tính kg, lô theo ngày làm / lô rang, không có HSD: CÂN
 // TỪNG LÔ. Lô đã cân thì số cân thay số sổ của lô đó; lô chưa cân giữ nguyên.
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
@@ -152,7 +154,8 @@ export async function render({ container, call, boot }) {
       ${tom}
       ${veCanhBao()}
       <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-bat">BẮT ĐẦU KIỂM KÊ</button>
-      ${veGanDay()}`;
+      ${veGanDay()}
+      ${veNutAm()}`;
     $('#kk-bat').addEventListener('click', (e) => lam(() => call('sx.api.kiemke.bat_dau', khoNay()), e.currentTarget));
     ganKho();
     ganGanDay();
@@ -172,6 +175,71 @@ export async function render({ container, call, boot }) {
 
   function ganGanDay() {
     container.querySelectorAll('[data-bb]').forEach((b) => b.addEventListener('click', () => inBienBan(b.dataset.bb)));
+    const am = $('#kk-am');
+    if (am) am.addEventListener('click', (e) => moDonAm(e.currentTarget));
+  }
+
+  // D193: chỉ thành phẩm — tồn âm ở Kho Xưởng sản xuất (không phải kho đang kiểm kê).
+  const veNutAm = () => (laBtp() ? '' : `<button type="button" class="sx-btn sx-btn-ghost" id="kk-am">
+    Tồn âm thành phẩm ở Kho Xưởng sản xuất</button>`);
+
+  async function moDonAm(nut) {
+    if (nut) nut.disabled = true;
+    let x;
+    try { x = await call('sx.api.tonam.ds_am'); } catch (e) { toastErr(e.message); return; } finally {
+      if (nut) nut.disabled = false;
+    }
+    const t = x.tong;
+    const m = openModal({ kicker: 'Dọn tồn âm thành phẩm', title: x.kho || 'Kho Xưởng sản xuất' });
+    const dong = x.dong.map((r) => `
+        <div class="sx-vh-row" style="cursor:default"><div class="sx-vh-who">
+          <div class="sx-vh-name">${esc(r.ten)}</div>
+          <div class="sx-vh-meta">${esc([r.batch ? `lô ${r.batch}${r.hsd ? ` · HSD ${veNgayDu(r.hsd)}` : ''}` : 'không lô',
+    `giá vốn ${r.gia ? formatNumber(r.gia) : '0'}`, `giá trị ${formatNumber(r.gia_tri)} đ`].join(' · '))}</div></div>
+          <span class="sx-nv-qty">${formatNumber(r.so)} → 0</span></div>`).join('');
+    m.body.innerHTML = `
+      ${x.loi ? `<div class="sx-error-box">${esc(x.loi)}</div>` : ''}
+      <div class="sx-muted">Số âm không có thật — thành phẩm từng chuyển từ kho này sang Kho TP (phiếu chuyển kho) mà không
+        ghi sản xuất vào. <b>DỌN</b> = nhập điều chỉnh từng dòng âm về 0 theo giá vốn của kho (bút toán điều chỉnh kho —
+        báo kế toán). Chỉ kho này; phần dương giữ nguyên.</div>
+      ${x.dong.length ? `<div class="sx-kk-tien">${t.so_ma} mã · ${t.so_dong} dòng · +${formatNumber(t.so_luong)} · giá trị ${
+  formatNumber(t.gia_tri)} đ</div>
+      <div class="sx-vh-list">${dong}</div>` : (x.loi ? '' : '<div class="sx-muted">Không còn tồn âm thành phẩm ở kho này.</div>')}
+      ${x.lan_truoc.length ? `<div class="sx-field-label">Đã dọn — bấm để in danh sách</div>
+      <div class="sx-vh-list">${x.lan_truoc.map((g, i) => `
+        <div class="sx-vh-row" data-inam="${i}" role="button" tabindex="0" style="cursor:pointer">
+          <div class="sx-vh-who"><div class="sx-vh-name">${esc(g.lan)} · ${esc(veNgayDu(g.ngay))}</div>
+            <div class="sx-vh-meta">${esc(g.phieu.join(', '))}</div></div><span class="sx-nv-qty">🖨</span></div>`).join('')}</div>` : ''}`;
+    m.body.querySelectorAll('[data-inam]').forEach((b) => b.addEventListener('click', () => inDonAm(
+      x.lan_truoc[Number(b.dataset.inam)].phieu)));
+    if (x.dong.length && x.duoc_don) {
+      const b = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'DỌN TỒN ÂM');
+      b.type = 'button';
+      b.addEventListener('click', () => confirm2Step({
+        title: `Dọn tồn âm ở ${x.kho}`,
+        message: `Nhập điều chỉnh ${t.so_dong} dòng âm (${t.so_ma} mã, +${formatNumber(t.so_luong)}) về 0 ở ${x.kho}, tổng giá trị ${
+          formatNumber(t.gia_tri)} đ — bút toán điều chỉnh kho, báo kế toán. Chỉ kho này. Muốn huỷ thì huỷ các phiếu nhập `
+          + 'trên Desk.',
+        confirmLabel: 'DỌN',
+        onConfirm: async () => {
+          try {
+            const kq = await call('sx.api.tonam.don_am');
+            m.close();
+            toast(`Đã dọn ${kq.so_dong} dòng âm ở ${kq.kho}: ${kq.phieu.join(', ')}.`);
+            inDonAm(kq.phieu);
+          } catch (e) { toastErr(e.message); throw e; }
+        },
+      }));
+      m.body.appendChild(b);
+    } else if (x.dong.length) {
+      m.body.appendChild(el('div', 'sx-muted', 'Chỉ quản lý dọn được (bút toán điều chỉnh kho).'));
+    }
+  }
+
+  async function inDonAm(phieu) {
+    try {
+      inHtml('Dọn tồn âm thành phẩm', await call('sx.api.tonam.bien_ban', { phieu: JSON.stringify(phieu) }));
+    } catch (e) { toastErr(e.message); }
   }
 
   // ─────────────────────────── đang đếm ───────────────────────────
@@ -228,7 +296,8 @@ export async function render({ container, call, boot }) {
         <button type="button" class="sx-btn sx-btn-ghost" id="kk-in">🖨 In bản nháp</button>
         ${p.duoc_huy ? '<button type="button" class="sx-btn sx-btn-ghost" id="kk-huy">Bỏ phiếu kiểm kê</button>' : ''}
       </div>
-      ${veGanDay()}`;
+      ${veGanDay()}
+      ${veNutAm()}`;
 
     ganKho();
     container.querySelectorAll('[data-loc]').forEach((b) => b.addEventListener('click', () => {
@@ -643,16 +712,19 @@ export async function render({ container, call, boot }) {
 
   async function inBienBan(name) {
     try {
-      const html = await call('sx.api.kiemke.bien_ban', { name });
-      const w = window.open('', '_blank');
-      if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
-      // Cửa sổ about:blank không thừa kế bảng mã — tự khai, như các tờ in khác.
-      w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Biên bản kiểm kê ${
-        esc(name)}</title></head><body>${html}</body></html>`);
-      w.document.close();
-      w.focus();
-      setTimeout(() => w.print(), 400);
+      inHtml(`Biên bản kiểm kê ${name}`, await call('sx.api.kiemke.bien_ban', { name }));
     } catch (e) { toastErr(e.message); }
+  }
+
+  function inHtml(tieuDe, html) {
+    const w = window.open('', '_blank');
+    if (!w) { toastErr('Trình duyệt chặn cửa sổ in. Cho phép pop-up rồi thử lại.'); return; }
+    // Cửa sổ about:blank không thừa kế bảng mã — tự khai, như các tờ in khác.
+    w.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${
+      esc(tieuDe)}</title></head><body>${html}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 400);
   }
 
   ve();

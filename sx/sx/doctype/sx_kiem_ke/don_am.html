@@ -1,0 +1,47 @@
+{#- Danh sách dọn tồn âm thành phẩm ở các kho khác Kho TP (D193) — cho kế toán. A4 dọc. -#}
+<style>
+  @page { size: A4 portrait; margin: 12mm 12mm; }
+  .kk { font: 12px/1.4 "Times New Roman", serif; color: #000; }
+  .kk h1 { font-size: 16px; text-align: center; margin: 0 0 2px; text-transform: uppercase; }
+  .kk .ct { font-size: 12px; font-weight: bold; margin-bottom: 6px; }
+  .kk .ma { text-align: center; font-size: 11px; margin-bottom: 8px; }
+  .kk table { width: 100%; border-collapse: collapse; }
+  .kk td, .kk th { border: 1px solid #000; padding: 3px 5px; vertical-align: top; text-align: left; }
+  .kk th { background: #eee; font-weight: bold; }
+  .kk td.s, .kk th.s { text-align: right; white-space: nowrap; }
+  .kk tr.tong td { font-weight: bold; background: #f4f4f4; }
+  .kk h2 { font-size: 12.5px; margin: 10px 0 4px; }
+  .kk .gc { font-size: 11px; margin-top: 4px; }
+  .kk .ky { margin-top: 16px; width: 100%; }
+  .kk .ky td { border: 0; text-align: center; height: 70px; width: 33%; }
+</style>
+<div class="kk">
+  {% if cong_ty %}<div class="ct">{{ cong_ty }}</div>{% endif %}
+  <h1>Danh sách điều chỉnh tồn âm thành phẩm</h1>
+  <div class="ma">{% if lan %}Lần {{ lan }} &nbsp;·&nbsp; {% endif %}Ngày {{ ngay }} &nbsp;·&nbsp; {{ tong.so_dong }} dòng,
+    {{ nhom|length }} kho</div>
+
+  {% for g in nhom %}
+  <h2>{{ loop.index }}. {{ g.kho }}</h2>
+  <table>
+    <tr><th>Sản phẩm</th><th style="width:16%">Lô</th><th class="s" style="width:12%">Số âm → 0</th>
+      <th class="s" style="width:13%">Giá vốn</th><th class="s" style="width:15%">Giá trị</th><th style="width:14%">Phiếu</th></tr>
+    {% for x in g.dong %}
+    <tr><td>{{ x.ten }}</td><td>{{ x.batch or "(không lô)" }}</td><td class="s">+{{ so(x.so) }}</td>
+      <td class="s">{{ so(x.gia) if x.gia else "0" }}</td><td class="s">{{ so(x.gia_tri) }}</td><td>{{ x.phieu }}</td></tr>
+    {% endfor %}
+    <tr class="tong"><td colspan="2">Cộng {{ g.dong|length }} dòng</td><td class="s">+{{ so(g.so_luong) }}</td><td></td>
+      <td class="s">{{ so(g.gia_tri) }}</td><td></td></tr>
+  </table>
+  {% endfor %}
+  <table style="margin-top:8px"><tr class="tong"><td>TỔNG GIÁ TRỊ ĐIỀU CHỈNH TĂNG KHO</td>
+    <td class="s" style="width:15%">{{ so(tong.gia_tri) }}</td></tr></table>
+
+  <div class="gc">Tồn âm không có thật: thành phẩm từng được chuyển ra khỏi các kho này (vd Xưởng sản xuất → Kho thành phẩm
+    bằng phiếu chuyển kho) mà không ghi sản xuất / nhập vào. Mỗi dòng âm được nhập điều chỉnh về 0 theo giá vốn của kho đó
+    (Stock Entry Material Receipt — đối ứng tài khoản điều chỉnh kho). Nguyên liệu đã dùng làm ra số hàng đó chưa trừ sổ —
+    kiểm kê kho nguyên liệu sẽ thấy thiếu tương ứng. Phần tồn dương ở các kho giữ nguyên. Chứng từ kho: {{ se|join(", ") }}.</div>
+
+  <table class="ky"><tr><td><b>Người lập</b><br>(ký, ghi rõ họ tên)</td><td><b>Kế toán</b><br>(ký, ghi rõ họ tên)</td>
+    <td><b>Quản lý / Giám đốc</b><br>(ký, ghi rõ họ tên)</td></tr></table>
+</div>

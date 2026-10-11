@@ -320,6 +320,28 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Dọn tồn âm thành phẩm ở Kho Xưởng sản xuất (D193)
+
+- **Vì sao âm**: trước đây thành phẩm được chuyển từ Xưởng sản xuất sang Kho TP bằng **phiếu chuyển kho** mà không ghi
+  sản xuất vào Xưởng — Kho TP nhận đúng số, chỉ Xưởng âm (vd −20.093). Số âm không có thật.
+- **Ở đâu**: thẻ **Kiểm kê kho** (thành phẩm) → nút **Tồn âm thành phẩm ở Kho Xưởng sản xuất**. Chỉ đúng kho đặt ở SX
+  Settings → *Kho Xưởng sản xuất* (`kho_xuong`; chưa đặt thì báo, không lấy kho khác thay). Cửa hàng, Kho TP (kiểm kê
+  lo) và mọi kho khác **không đụng**; kho thuộc công ty khác thì báo.
+- **Xem**: từng dòng âm của thành phẩm (mã × lô, HSD), giá vốn của kho, giá trị; tổng số mã, số dòng, số lượng, giá trị.
+  Phần dương giữ nguyên. Thủ kho xem được; **chỉ quản lý dọn** (bút toán điều chỉnh kho).
+- **DỌN** (xác nhận 2 bước): phiếu **Material Receipt** đưa từng dòng âm về 0 theo giá vốn của kho (chưa có giá vốn thì
+  giá 0). Dòng có lô bù đúng lô đó (lô hết hạn: tạm bỏ HSD lúc ghi như D190); dòng âm không lô của mã đang quản lý lô
+  (dữ liệu cũ): tạm tắt lô của mã trong lúc ghi, ghi xong bật lại ngay (cùng giao dịch, như D189). Ghi chú phiếu:
+  "Dọn tồn âm thành phẩm [DA-ddmmyy-hhmmss] ở …".
+- **Cho kế toán**: dọn xong tự mở **danh sách in** (kho, mã, lô, số, giá vốn, giá trị, tổng, số phiếu, chỗ ký người lập /
+  kế toán / quản lý); các lần dọn trước bấm để in lại. Đối ứng là tài khoản điều chỉnh kho — ghi nhận phần sản xuất trước
+  đây chưa vào sổ; nguyên liệu đã dùng cho số đó chưa trừ, kiểm kê kho nguyên liệu sẽ thấy thiếu tương ứng.
+- Muốn bỏ: huỷ các phiếu nhập đó trên Desk.
+- Mã `sx/api/tonam.py`, tờ in `sx/sx/doctype/sx_kiem_ke/don_am.html`; `tam_bo_hsd` / `tra_hsd` (D190) tách thành hàm
+  dùng chung. Test `test-kiemke.py` (chỉ kho xưởng, chỉ dòng âm của thành phẩm, quyền, lô hết hạn, mã có lô lẫn âm không
+  lô, giá vốn, danh sách in), `test-sohsd.mjs` (nút, xem, xác nhận, in).
+- Build **sx-149**. Không đổi DocType: `git pull` → `bench restart`.
+
 ## Sửa giải thích tồn âm ở Xưởng khi kiểm kê bật lô (D192)
 
 - Số âm của thành phẩm ở Xưởng sản xuất (vd −20.093) là do trước đây chuyển thành phẩm từ Xưởng sang Kho TP bằng phiếu

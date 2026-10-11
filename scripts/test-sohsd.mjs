@@ -560,6 +560,22 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
           kho_am: [{ ten: 'Thỏi vàng Rồng', kho: 'Xưởng', so: -20093 }] } };
     }
     if (m === 'sx.api.kiemke.chot') { st.phieu = null; return { name: 'KK-1', so_ma: 1, tong_lech: -60, so_phieu_kho: 2 }; }
+    // D193: dọn tồn âm thành phẩm ở Kho Xưởng sản xuất
+    if (m === 'sx.api.tonam.ds_am') {
+      return { kho: 'Xưởng sản xuất - HGC', loi: null, duoc_don: KH.chot,
+        dong: st.da_don ? [] : [
+          { item: 'TP-RONG', ten: 'Thỏi vàng Rồng', batch: null, hsd: null, so: -20093, gia: 12000, gia_tri: 241116000 },
+          { item: 'TP-SEN', ten: 'Bánh sen', batch: 'SEN-HSD010926', hsd: '2026-09-01', so: -3, gia: 0, gia_tri: 0 }],
+        tong: st.da_don ? { so_dong: 0, so_ma: 0, so_luong: 0, gia_tri: 0 }
+          : { so_dong: 2, so_ma: 2, so_luong: 20096, gia_tri: 241116000 },
+        lan_truoc: st.da_don ? [{ lan: 'DA-091026-100000', ngay: '2026-10-09', phieu: ['SE-9', 'SE-10'] }] : [] };
+    }
+    if (m === 'sx.api.tonam.don_am') {
+      st.da_don = true;
+      return { kho: 'Xưởng sản xuất - HGC', lan: 'DA-091026-100000', phieu: ['SE-9', 'SE-10'], so_dong: 2, so_ma: 2,
+        so_luong: 20096, gia_tri: 241116000 };
+    }
+    if (m === 'sx.api.tonam.bien_ban') return '<div>danh sách</div>';
     return tq();
   };
   const loiGoi = (m) => goi.filter((g) => g[0] === m).pop();
@@ -671,6 +687,43 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   kiem('CHỐT → xác nhận 2 bước rồi gọi chot(phiếu), thẻ về trạng thái chưa có phiếu',
     loiGoi('sx.api.kiemke.chot')[1].name === 'KK-1' && !!c.querySelector('#kk-bat')
     && TOAST.some(([t]) => /Đã chốt KK-1/.test(t)));
+
+  // D193: dọn tồn âm thành phẩm ở Kho Xưởng sản xuất
+  kiem('D193: thẻ thành phẩm có nút xem tồn âm ở Kho Xưởng sản xuất', /Tồn âm thành phẩm ở Kho Xưởng sản xuất/
+    .test(c.querySelector('#kk-am') && c.querySelector('#kk-am').textContent));
+  KH.chot = false;
+  c.querySelector('#kk-am').bam();
+  await choRe();
+  let am = MO[MO.length - 1];
+  kiem('… bấm → xem từng dòng âm (mã, lô, HSD, giá vốn, giá trị, số → 0), tổng; nói rõ chỉ kho này, bút toán điều chỉnh',
+    !!loiGoi('sx.api.tonam.ds_am') && am.kicker === 'Dọn tồn âm thành phẩm' && am.title === 'Xưởng sản xuất - HGC'
+    && /Thỏi vàng Rồng/.test(am.body.innerHTML) && /-20\.093 → 0/.test(am.body.innerHTML)
+    && /lô SEN-HSD010926 · HSD 01\/09\/26/.test(am.body.innerHTML) && /giá trị 241\.116\.000 đ/.test(am.body.innerHTML)
+    && /2 mã · 2 dòng · \+20\.096/.test(am.body.innerHTML) && /Chỉ kho này/.test(am.body.innerHTML)
+    && /bút toán điều chỉnh kho/.test(am.body.innerHTML), am.body.innerHTML.slice(0, 600));
+  kiem('… không phải quản lý: không có nút DỌN, nói chỉ quản lý dọn được',
+    !am.body.kids.some((k) => k.textContent === 'DỌN TỒN ÂM') && am.body.kids.some((k) => /Chỉ quản lý/.test(k.textContent)));
+  KH.chot = true;
+  c.querySelector('#kk-am').bam();
+  await choRe();
+  am = MO[MO.length - 1];
+  const nutDon = am.body.kids.find((k) => k.textContent === 'DỌN TỒN ÂM');
+  kiem('… quản lý: có nút DỌN TỒN ÂM', !!nutDon);
+  nutDon.bam();
+  kiem('… hộp xác nhận nói số dòng, kho, tổng giá trị, bút toán điều chỉnh kho',
+    /^Nhập điều chỉnh 2 dòng âm \(2 mã, \+20\.096\) về 0 ở Xưởng sản xuất - HGC, tổng giá trị 241\.116\.000 đ — bút toán điều chỉnh kho/
+      .test(HOI[HOI.length - 1].message), HOI[HOI.length - 1].message);
+  await HOI[HOI.length - 1].onConfirm();
+  await choRe();
+  kiem('… xác nhận → gọi don_am, báo đã dọn, in danh sách cho kế toán (đúng các phiếu vừa ghi)',
+    !!loiGoi('sx.api.tonam.don_am') && TOAST.some(([t]) => /Đã dọn 2 dòng âm ở Xưởng sản xuất - HGC: SE-9, SE-10/.test(t))
+    && loiGoi('sx.api.tonam.bien_ban')[1].phieu === JSON.stringify(['SE-9', 'SE-10']));
+  c.querySelector('#kk-am').bam();
+  await choRe();
+  am = MO[MO.length - 1];
+  kiem('… mở lại: hết dòng âm, có lần dọn trước để in lại',
+    /Không còn tồn âm thành phẩm ở kho này/.test(am.body.innerHTML) && /DA-091026-100000/.test(am.body.innerHTML)
+    && !am.body.kids.some((k) => k.textContent === 'DỌN TỒN ÂM'));
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -775,6 +828,7 @@ console.log('\n-- Kiểm kê bán thành phẩm (D155): chọn kho, cân từng 
   c.querySelector('#kk-bat').bam();
   await choRe();
   kiem('BẮT ĐẦU → mở phiếu cho đúng kho / loại', bang(loiGoi('sx.api.kiemke.bat_dau')[1], { kho: 'Kho BTP', loai: BTP }));
+  kiem('bán thành phẩm: không có nút tồn âm thành phẩm (D193 chỉ thành phẩm)', !c.querySelector('#kk-am'));
   kiem('đang cân: nhóm theo chuyền, mỗi lô một ô CÂN; lô thu hồi chỉ ghi, không bấm được; tồn không lô báo riêng',
     /sx-kk-nhom">Bột nền/.test(c.innerHTML) && /sx-kk-nhom">Đường hoán/.test(c.innerHTML)
     && !!c.querySelector('[data-lo="0:1"]') && !!c.querySelector('[data-lo="0:2"]') && !c.querySelector('[data-lo="0:0"]')
