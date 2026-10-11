@@ -115,8 +115,8 @@ def dong(item="DX-01", **kw):
     return d
 
 
-def ng(do_am=13.0, coa=("Phụ liệu bột",)):
-    return {"do_am_toi_da": do_am, "nhom_can_coa": list(coa)}
+def ng(coa=("Phụ liệu bột",)):
+    return {"nhom_can_coa": list(coa)}
 
 
 def xet(d, item_group=None):
@@ -129,28 +129,17 @@ print("-- dòng nào là nguyên liệu, dòng nào không --")
 kiem("dòng trống phần QC → bỏ qua (bao bì, dịch vụ, vật tư sửa chữa)",
      not T.co_kiem(dong("TUI-01")))
 kiem("chỉ ghi mỗi số lô → đã là dòng cần kiểm", T.co_kiem(dong(ncc_lo="L123")))
-kiem("chỉ ghi mỗi độ ẩm → đã là dòng cần kiểm", T.co_kiem(dong(do_am=12.0)))
+kiem("D187: ô độ ẩm không còn là ô QC — dòng chỉ còn số độ ẩm cũ không phải dòng cần kiểm",
+     "custom_do_am" not in T.O_QC and not T.co_kiem(dong(do_am=12.0)))
 kiem("ghi kết luận Đạt → đã là dòng cần kiểm", T.co_kiem(dong(ket_luan="Đạt")))
 
-# ═══ 2. Độ ẩm ════════════════════════════════════════════════════════════
-print("\n-- độ ẩm --")
-kl, bao = xet(dong(do_am=12.5, ket_luan="Đạt"))
-kiem("12,5% (dưới ngưỡng 13) → không đụng vào kết luận", kl is None and not bao)
-kl, bao = xet(dong(do_am=13.0, ket_luan="Đạt"))
-kiem("đúng 13,0% → vẫn Đạt (ngưỡng là ≤, không phải <)", kl is None)
-kl, bao = xet(dong(do_am=14.2, ket_luan="Đạt"))
-kiem("14,2% → ÉP sang Cách ly", kl == "Cách ly", str(kl))
-kiem("và nói ra con số, không sửa lặng lẽ", bao and "14.2" in bao, bao or "")
-kl, _b = xet(dong(do_am=0, ket_luan="Đạt"))
-kiem("chưa đo (0) → không ép gì", kl is None)
-kl, _b = xet(dong(do_am=20.0, ket_luan="Không đạt"))
-kiem("đã Không đạt rồi thì KHÔNG hạ xuống Cách ly", kl == "Không đạt", str(kl))
-print("\n-- W40 (D162): không đo độ ẩm khi nhận đỗ, lạc — mặc định không kiểm --")
-kiem("mã không còn ngưỡng độ ẩm mặc định; site chưa đặt → nguong() trả None",
-     "do_am_toi_da" not in NG.MAC_DINH and NG.nguong()["do_am_toi_da"] is None)
-kl, bao = T.kiem_dong(dong(do_am=20.0, ket_luan="Đạt"), "Đỗ xanh", {"do_am_toi_da": None, "nhom_can_coa": []},
+# ═══ 2. Độ ẩm — bỏ hẳn (D187) ═════════════════════════════════════════════
+print("\n-- D187: không đo độ ẩm khi nhận (BM.07.03 sửa đổi 01) --")
+kiem("không còn ngưỡng độ ẩm: không mặc định, nguong() không trả khoá do_am_toi_da",
+     "do_am_toi_da" not in NG.MAC_DINH and "do_am_toi_da" not in NG.nguong())
+kl, bao = T.kiem_dong(dong(do_am=20.0, ket_luan="Đạt"), "Đỗ xanh", {"do_am_toi_da": 13.0, "nhom_can_coa": []},
                       lambda g: CAY_NHOM.get(g))
-kiem("ngưỡng trống → 20% cũng không ép Cách ly (luật chỉ chạy khi site tự đặt ngưỡng)", kl is None and not bao)
+kiem("số độ ẩm còn sót trên dòng (20%) không ép Cách ly, dù cài đặt cũ còn ngưỡng", kl is None and not bao)
 
 # ═══ 3. COA vi sinh ══════════════════════════════════════════════════════
 print("\n-- COA vi sinh theo nhóm hàng --")
@@ -166,7 +155,7 @@ kl, _b = xet(dong("DX-01", coa_vi_sinh="Không", ket_luan="Đạt"))
 kiem("đỗ xanh không thuộc nhóm bắt buộc → không ép", kl is None)
 kl, _b = T.kiem_dong(dong("SUA-01", coa_vi_sinh="Không", ket_luan="Đạt"),
                      "Sữa bột nguyên kem",
-                     {"do_am_toi_da": 13.0, "nhom_can_coa": []},
+                     {"nhom_can_coa": []},
                      lambda g: CAY_NHOM.get(g))
 kiem("chưa khai nhóm nào ở Setting → luật COA KHÔNG chạy (không đoán bừa)",
      kl is None)
@@ -187,8 +176,7 @@ kiem("Đạt + cảm quan Đạt = bình thường",
 
 # ═══ 5. Móc vào Purchase Invoice ═════════════════════════════════════════
 print("\n-- lưu hoá đơn --")
-CAI_DAT.update({"do_am_toi_da": 13.0,
-                "nhom_can_coa": [Doc({"item_group": "Phụ liệu bột"})]})
+CAI_DAT.update({"nhom_can_coa": [Doc({"item_group": "Phụ liệu bột"})]})
 
 
 def hoa_don(*ds):
@@ -199,22 +187,20 @@ def hoa_don(*ds):
 
 
 DA_BAO[:] = []
-hd = hoa_don(dong("DX-01", do_am=14.5, ket_luan="Đạt"), dong("TUI-01"))
+hd = hoa_don(dong("SUA-01", coa_vi_sinh="Không", ket_luan="Đạt"), dong("TUI-01"))
 T.validate(hd)
 kiem("ép kết luận đúng dòng có ghi QC", hd["items"][0]["custom_ket_luan"] == "Cách ly")
 kiem("dòng bao bì không bị đụng tới", "custom_ket_luan" not in hd["items"][1])
 kiem("có báo ra màn hình", len(DA_BAO) == 1, str(DA_BAO))
 
 DA_BAO[:] = []
-T.validate(hoa_don(dong("DX-01", do_am=12.0, ket_luan="Đạt")))
+T.validate(hoa_don(dong("DX-01", ncc_lo="L-1", ket_luan="Đạt")))
 kiem("hoá đơn sạch thì KHÔNG hiện hộp thoại làm phiền", not DA_BAO)
-CAI_DAT.pop("do_am_toi_da")
 DA_BAO[:] = []
-hd = hoa_don(dong("DX-01", do_am=16.0, ket_luan="Đạt"))
+hd = hoa_don(dong("DX-01", ncc_lo="L-2", do_am=16.0, ket_luan="Đạt"))
 T.validate(hd)
-kiem("W40: SX QC Setting không đặt ngưỡng độ ẩm → lô đỗ ghi 16% vẫn giữ Đạt, không báo gì",
+kiem("D187: lô đỗ còn số độ ẩm cũ 16% vẫn giữ Đạt, không báo gì",
      hd["items"][0]["custom_ket_luan"] == "Đạt" and not DA_BAO, str(DA_BAO))
-CAI_DAT["do_am_toi_da"] = 13.0
 
 try:
     T.validate(hoa_don(dong("DX-01", ket_luan="Đạt", cam_quan_dat="Không đạt")))
@@ -238,7 +224,8 @@ kiem("Không đạt = mức Cao, Cách ly = mức Thường",
      str([x["muc_do"] for x in DA_TAO]))
 kiem("phiếu mang số lô của NCC để truy ngược",
      [x["lo_anh_huong"] for x in DA_TAO] == ["L-2609", "S-77"])
-kiem("mô tả có cả độ ẩm đo được", "15.0%" in DA_TAO[0]["mo_ta"], DA_TAO[0]["mo_ta"])
+kiem("mô tả: tên hàng, lô NCC, kết luận — không còn độ ẩm (D187)",
+     DA_TAO[0]["mo_ta"] == "DX-01 — lô NCC L-2609: kết luận Không đạt", DA_TAO[0]["mo_ta"])
 kiem("ghi số lượng để biết cách ly bao nhiêu",
      DA_TAO[0]["so_luong"] == "100.0 kg", str(DA_TAO[0]["so_luong"]))
 kiem("lấy ngày của hoá đơn, không phải hôm nay",
@@ -256,7 +243,7 @@ kiem("huỷ rồi duyệt lại KHÔNG đẻ phiếu thứ hai", len(DA_TAO) == 
 print("\n-- kiểm dở rồi bỏ trống kết luận --")
 DA_TAO[:] = []
 try:
-    T.on_submit(hoa_don(dong("DX-01", ncc_lo="L-99", do_am=12.0)))
+    T.on_submit(hoa_don(dong("DX-01", ncc_lo="L-99", cam_quan_dat="Đạt")))
     kiem("chặn duyệt khi dòng đã kiểm dở mà chưa có kết luận", False)
 except Loi as e:
     kiem("chặn duyệt khi dòng đã kiểm dở mà chưa có kết luận",

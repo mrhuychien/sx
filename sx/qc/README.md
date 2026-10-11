@@ -18,7 +18,7 @@ scripts/test-qc.py      chốt mọi thứ trên khớp nhau
 
 | Spec viết | Ở đây | Vì sao |
 |---|---|---|
-| `ca_san_xuat` Link tới DocType ca; 3 lượt × 2 ca | **một ngày ba lượt, không chia ca** (D95): Đầu sáng trước 08:30 · Trưa trước 14:00 · Cuối chiều trước 20:00 | Nhà máy chốt lịch này ngày 28/9. Trường `ca` giữ lại (ẩn) chỉ cho phiếu trước D95; patch `d95_qc_mot_ngay_ba_luot` đổi tên lượt cũ (Đầu ca / Giữa ca / Cuối ca) sang tên mới trên phiếu đã có. Có thêm `ngay_san_xuat` Link tuỳ chọn chỉ để nối hồ sơ. |
+| `ca_san_xuat` Link tới DocType ca; 3 lượt × 2 ca | **một ngày ba lượt, không chia ca** (D95): Đầu sáng trước 08:30 · Trưa trước 14:00 · Cuối chiều trước 20:00 | Nhà máy chốt lịch này ngày 28/9. Patch `d95_qc_mot_ngay_ba_luot` đổi tên lượt cũ (Đầu ca / Giữa ca / Cuối ca) sang tên mới trên phiếu đã có; trường `ca` (ẩn, chỉ còn trên phiếu trước D95) bỏ hẳn từ D187. Có thêm `ngay_san_xuat` Link tuỳ chọn chỉ để nối hồ sơ. |
 | BM.07.03 gắn custom field lên **Purchase Receipt** | gắn lên **Purchase Invoice** | Kho nguyên liệu nhập thẳng bằng Purchase Invoice, không lập Purchase Receipt. Bám spec ở đây nghĩa là dựng một chứng từ không ai lập. |
 | BM.07.03 để kết luận ở đầu phiếu | kết luận ở **từng dòng hàng** | BM.07.03 kiểm theo LÔ. Một hoá đơn có ba mặt hàng ba lô; một ô kết luận chung thì cái lô có vấn đề biến mất trong đó. Chỉ `nguoi_kiem` và `ghi_chu_qc` ở đầu phiếu. |
 | Bảng màu riêng `--sxqc-*`, font Be Vietnam Pro | bố cục theo bản thiết kế, **màu và font theo `sx`** | Một app không nên có hai phong cách. Kích thước chạm, thứ tự mục, thanh đáy cố định giữ nguyên như thiết kế. |
@@ -46,13 +46,14 @@ xem, và cái không ai nhớ thì không ai đóng. Đã gộp về `SX Su Co`:
 ## P1 — Tiếp nhận nguyên liệu (BM.07.03)
 
 Custom field trên **Purchase Invoice** (đầu phiếu: người kiểm, ghi chú) và
-**Purchase Invoice Item** (mỗi lô: lô NCC, CQ/CO, COA vi sinh, aflatoxin, độ ẩm,
-cảm quan, kết luận). Logic ở `sx/qc/tiep_nhan.py`, móc qua `doc_events`.
+**Purchase Invoice Item** (mỗi lô: lô NCC, CQ/CO, COA vi sinh, aflatoxin, cảm quan,
+kết luận). Logic ở `sx/qc/tiep_nhan.py`, móc qua `doc_events`.
 
-Hai luật **ÉP** kết luận sang *Cách ly* — cổng an toàn thực phẩm, không phải gợi ý:
+Luật **ÉP** kết luận sang *Cách ly* — cổng an toàn thực phẩm, không phải gợi ý:
 
-- nhóm hàng bắt buộc có COA vi sinh mà COA = *Không* (nhóm con cũng tính);
-- độ ẩm vượt `do_am_toi_da` trong Setting.
+- nhóm hàng bắt buộc có COA vi sinh mà COA = *Không* (nhóm con cũng tính).
+
+Độ ẩm khi nhận: ô và ngưỡng bỏ hẳn từ D187 (BM.07.03 sửa đổi 01 không đo độ ẩm khi nhận đỗ, lạc).
 
 Ép chứ không chặn lưu: hàng đã về tới sân, chặn lưu hoá đơn không làm hàng biến
 mất — nó chỉ làm người ta bỏ trống ô QC cho xong việc. Nhưng luôn **nói ra**,
@@ -188,7 +189,7 @@ dashboard mỗi ngày sẽ dạy mắt bỏ qua đúng vùng đó, rồi hôm c�
 qua nốt. Cùng lý do, hai chip "Sự cố mở / Quá hạn" ở cuối màn `#/qc` đã bỏ — hộp
 nhắc nói cùng chuyện, nói kỹ hơn, và bấm vào cũng sang đúng màn đó.
 
-Ca **không có lượt nào** thì không bị nhắc thiếu lượt: ca đó có thể đơn giản là
+Ngày **không có lượt nào** thì không bị nhắc thiếu lượt: ngày đó có thể đơn giản là
 không sản xuất, mà đoán bừa rồi nhắc mỗi ngày là cách nhanh nhất để người ta bỏ
 qua cả hộp.
 
@@ -218,9 +219,13 @@ qua cả hộp.
 
 ## Bộ mục bản 2 — BM.08.01 sửa đổi (D129 — W01, W02)
 
-Mỗi phiếu nhớ **phiên bản bộ mục** lúc mở (`phien_ban`; phiếu trước D129 để trống =
-bản 1). Mục có `tu` / `den` trong `muc.py`. Nhờ vậy phiếu cũ in / CSV y như lúc ghi:
-không chen mục mới thành ô "chưa kiểm", không mất số T11 đã ghi.
+Mỗi phiếu nhớ **phiên bản bộ mục** lúc mở (`phien_ban`; trống = bản 1). Mục có `tu` / `den` trong
+`muc.py`: bản giấy sửa đổi thì phiếu đã ghi in / CSV y như lúc ghi — không chen mục mới thành ô "chưa
+kiểm", không mất số đã ghi.
+
+**D187**: các bản 1–3 của giai đoạn chạy thử gộp thành **một bản 1 = bộ mục hiện hành**; bỏ hẳn T11 quả
+chuẩn, mục 5 "Thùng ủ, vải ủ sạch, khô" (bản 2 — nay là mục 5 theo HD.08.02, W30), mục 6 một bộ nam châm
+(nay NC-01 / NC-02, W30). Patch `d187_bo_phan_cu` đưa mọi phiếu về bản 1. Bảng dưới là lịch sử.
 
 Bản 2 so với bản 1:
 

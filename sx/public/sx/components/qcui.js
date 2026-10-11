@@ -365,7 +365,7 @@ export function oCheck(m, giaTri, onSet, khoa) {
   return row;
 }
 
-/** Segmented control. Dùng cho ca Sáng/Chiều, tab, và B7 ba trạng thái. */
+/** Segmented control. Dùng cho tab và B7 ba trạng thái. */
 export function segment(lua, dang, onSet, khoa, boDuoc = false) {
   const box = el('div', 'sx-qc-seg');
   let hien = dang;

@@ -320,6 +320,27 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Bỏ phần chỉ còn để đọc phiếu cũ: T11, ca Sáng / Chiều, mục 5 – 6 bản cũ, ô độ ẩm khi nhận (D187)
+
+- Rà soát app theo sổ đăng ký tài liệu 21/9/2026: các phần dưới không còn trên bản giấy hiện hành, app chỉ giữ để đọc /
+  in phiếu ghi trong lúc chạy thử — nay **bỏ hẳn**:
+  - **Vòng kiểm BM.08.01**: T11 "Cân: quả chuẩn" (HD.08.01 bỏ T11), mục 5 "Thùng ủ, vải ủ sạch, khô" (bản 08/10 — nay
+    mục 5 theo HD.08.02), mục 6 một bộ nam châm (nay NC-01 / NC-02 M1 / M2). Bộ mục bản 1–3 của giai đoạn chạy thử gộp
+    thành **một bộ mục hiện hành** (`sx/qc/muc.py` `PHIEN_BAN = 1`); cơ chế phiên bản (`tu` / `den`) giữ nguyên cho
+    lần sửa bản giấy sau.
+  - **Ô ca Sáng / Chiều** (phiếu trước D95) trên SX QC Round, SX Su Co; tham số `ca` của API vòng kiểm; bảng đổi tên
+    lượt cũ "Đầu ca / Giữa ca / Cuối ca" (`DOI_TEN_CU` — patch d95 vẫn giữ bảng riêng của nó).
+  - **Độ ẩm khi nhận** (BM.07.03 sửa đổi 01: không đo độ ẩm khi nhận đỗ, lạc — độ ẩm vào KH.KN.01): ô *Độ ẩm (%)* trên
+    dòng phiếu nhập mua / hoá đơn mua, ngưỡng *Độ ẩm tối đa* ở SX QC Setting, luật ép Cách ly theo độ ẩm, ô độ ẩm trên
+    màn Tiếp nhận NL, chữ "độ ẩm" trong mô tả phiếu sự cố và sổ BM.07.03.
+- **Phiếu đã ghi**: patch `d187_bo_phan_cu` đưa mọi phiếu vòng kiểm về bộ mục bản 1 — phiếu ghi trước 09/10/2026 nay
+  hiện / in theo bộ mục hiện hành (mục có từ 08–09/10 để trống; không còn hàng T11, nam châm cũ); xoá custom field độ
+  ẩm, dọn ngưỡng cũ. Frappe không xoá cột trong cơ sở dữ liệu khi bỏ field: số cũ còn nằm đó, app không đọc, không hiện.
+- Dữ liệu mẫu (D177) không còn chia bộ mục theo ngày. Test vòng kiểm, nam châm, tiếp nhận viết lại theo một bộ mục;
+  `scripts/fakefrappe.py`: `get_meta().has_field` đọc DocType JSON của app, `db.delete`, `db.set_value` theo bộ lọc.
+- Build **sx-145**. Có đổi DocType, custom field, patch: `git pull` → `bench --site site1.local migrate` →
+  `bench restart`.
+
 ## In tem QR trạm động vật gây hại ra giấy có QR; thông báo màn QC gập một dòng (D186)
 
 - **Lỗi**: in tem QR trạm (màn Động vật gây hại → 🖨 IN TEM QR TRẠM) thì giấy không có QR. QR vẽ bằng bảng ô có

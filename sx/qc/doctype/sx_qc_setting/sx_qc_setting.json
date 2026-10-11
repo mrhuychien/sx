@@ -31,8 +31,6 @@
   "han_trua",
   "han_cuoi_chieu",
   "section_tiep_nhan",
-  "do_am_toi_da",
-  "column_break_tn",
   "nhom_can_coa",
   "nhom_can_aflatoxin",
   "bat_buoc_kiem_xe",
@@ -226,17 +224,6 @@
    "fieldname": "section_tiep_nhan",
    "fieldtype": "Section Break",
    "label": "Tiếp nhận nguyên liệu (BM.07.03)"
-  },
-  {
-   "fieldname": "do_am_toi_da",
-   "fieldtype": "Float",
-   "label": "Độ ẩm tối đa (%)",
-   "precision": "1",
-   "description": "Để trống = không kiểm (09/10/2026: đỗ, lạc không đo độ ẩm khi nhận — độ ẩm vào kiểm nghiệm năm KH.KN.01; ô Độ ẩm trên phiếu nhập mua đang ẩn). Đặt số thì áp cho mọi dòng có ghi độ ẩm."
-  },
-  {
-   "fieldname": "column_break_tn",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "nhom_can_coa",

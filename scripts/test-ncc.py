@@ -417,8 +417,9 @@ kiem("loại hồ sơ trong DocType khớp hằng số code",
      set(hs_j["loai_ho_so"]["options"].split("\n")) >= {N.DKKD, N.ATTP, N.HACCP, N.CONG_BO, N.PKN, N.PKN_BB, N.HOP_DONG})
 kiem("Purchase Receipt có đủ ô QC tiếp nhận như hoá đơn mua + ô giấy tờ lô",
      all(("Purchase Receipt Item", f) in cf for f in ("custom_ncc_lo", "custom_coa_vi_sinh", "custom_aflatoxin",
-                                                       "custom_do_am", "custom_ket_luan", "custom_giay_to"))
-     and ("Purchase Receipt", "custom_nguoi_kiem") in cf)
+                                                       "custom_cam_quan_dat", "custom_ket_luan", "custom_giay_to"))
+     and ("Purchase Receipt", "custom_nguoi_kiem") in cf
+     and not any(f == "custom_do_am" for _dt, f in cf))     # D187: bỏ ô độ ẩm
 hk = open("sx/hooks.py", encoding="utf-8").read()
 kiem("hook: Purchase Receipt kiểm tiếp nhận + cảnh báo NCC; Supplier.validate; Purchase Order cảnh báo",
      '"Purchase Receipt": {' in hk and '"Supplier": {"validate": "sx.qc.ncc.validate_supplier"}' in hk

@@ -52,11 +52,6 @@ fields = [
       description="Một ngày ba lượt: Đầu sáng · Trưa · Cuối chiều. Tuần = lượt "
                   "đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư. "
                   "Bổ sung = lượt riêng sau mất điện / sự cố máy, không tính vào ba lượt."),
-    # Bỏ từ D95 (không còn chia ca). Giữ field để phiếu cũ còn nguyên giá trị —
-    # xoá cột là mất dấu vết phiếu đó được ghi ở ca nào.
-    f("ca", "Select", "Ca (phiếu cũ)", options="\n" + "\n".join(("Sáng", "Chiều")),
-      hidden=1, read_only=1,
-      description="Chỉ còn trên phiếu trước D95. Từ D95 một ngày ba lượt, không chia ca."),
     f("column_break_head", "Column Break"),
     f("co_san_xuat_bot", "Check", "Hôm nay có sản xuất bột", default="0"),
     # D100: hai cờ lạc do SERVER tính lúc validate từ ô B0 (loại bột) — không ai
@@ -70,7 +65,7 @@ fields = [
       read_only=1, description="Lượt này hoặc một lượt trước trong ngày làm vị có sữa bột."),
     # D129: bộ mục của bản giấy lúc MỞ phiếu (sx/qc/muc.py PHIEN_BAN). Trống = 1.
     f("phien_ban", "Int", "Phiên bản bộ mục", read_only=1,
-      description="Bộ mục BM.08.01 lúc mở phiếu. Phiếu trước D129 để trống = bản 1."),
+      description="Bộ mục BM.08.01 lúc mở phiếu (trống = bản 1). Bản giấy sửa đổi thì phiếu đã ghi giữ bộ mục cũ."),
     f("qc_user", "Link", "QC chế biến", options="User", reqd=1),
     f("qc_goi_user", "Link", "QC đóng gói", options="User"),
     f("ngay_san_xuat", "Link", "Phiếu ngày sản xuất", options="SX Ngay San Xuat",

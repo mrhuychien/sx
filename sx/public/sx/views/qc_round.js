@@ -77,9 +77,7 @@ export async function render({ container, call, tham_so }) {
 
   // ── đầu màn ─────────────────────────────────────────────────────────
   const dau = el('div', 'sx-qc-top');
-  // Ca chỉ còn trên phiếu trước D95; phiếu mới một ngày ba lượt, không chia ca.
-  const tenLuot = `${dl.luot}${dl.ca ? ` (ca ${dl.ca})` : ''} · `
-    + `${dl.ngay.slice(8)}/${dl.ngay.slice(5, 7)}`;
+  const tenLuot = `${dl.luot} · ${dl.ngay.slice(8)}/${dl.ngay.slice(5, 7)}`;
   dau.innerHTML = `<div style="flex:1;min-width:0">
       <div class="sx-qc-ngay" style="font-size:var(--sx-f-md)">${esc(tenLuot)}</div>
       <div class="sx-qc-ai" id="sx-qc-gio">bắt đầu ${esc(formatTime(dl.started_at))}</div>

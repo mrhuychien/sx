@@ -35,3 +35,4 @@ sx.patches.d171_thu_vien_tai_lieu
 sx.patches.d172_so
 sx.patches.d173_danh_muc_ncc
 sx.patches.d174_bien_ban
+sx.patches.d187_bo_phan_cu

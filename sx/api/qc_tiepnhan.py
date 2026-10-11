@@ -2,10 +2,10 @@
 
 QC chế biến (vai SX QC) không vào Desk, mà phần QC của tiếp nhận nằm trên PHIẾU NHẬP MUA
 (Purchase Receipt, W10) / hoá đơn mua có trừ kho (đường cũ trước D138). Màn này ghi ĐÚNG các ô
-custom có sẵn của dòng hàng (lô NCC, CQ/CO, COA vi sinh, aflatoxin, độ ẩm, cảm quan, kết luận) và
+custom có sẵn của dòng hàng (lô NCC, CQ/CO, COA vi sinh, aflatoxin, cảm quan, kết luận) và
 đầu phiếu (người kiểm, ghi chú QC, kiểm xe) — không đụng số lượng, đơn giá, kho. Lưu bằng
 doc.save() nên các hook validate chạy y như trên Desk (kiem_xe → tiep_nhan → ncc): xe không đạt ép
-Cách ly, thiếu COA / giấy tờ / độ ẩm vượt ngưỡng ép Cách ly, lô Không đạt / Cách ly vào kho cách
+Cách ly, thiếu COA / giấy tờ ép Cách ly, lô Không đạt / Cách ly vào kho cách
 ly, "Đạt" mà cảm quan Không đạt bị chặn. Lời cảnh báo của các hook trả về cho màn hình hiện ra
 (cổng chỉ đọc thông báo của server khi có lỗi).
 
@@ -33,13 +33,12 @@ SO_NGAY = 14
 LOAI = ("Purchase Receipt", "Purchase Invoice")
 ANH_TOI_DA = 8
 # Ô QC của dòng hàng = đúng custom field có sẵn (sx/fixtures/custom_field.json — test đối chiếu).
-#   None = chữ tự do · "so" = số · tuple = lựa chọn của ô Select
+#   None = chữ tự do · tuple = lựa chọn của ô Select
 O_DONG = {
     "custom_ncc_lo": None,
     "custom_co_cq": ("", "Có", "Không"),
     "custom_coa_vi_sinh": ("", "Có", "Không", "Không yêu cầu"),
     "custom_aflatoxin": ("", "Có", "Không", "Không yêu cầu"),
-    "custom_do_am": "so",
     "custom_cam_quan_dat": ("", TN.DAT, TN.KHONG_DAT),
     "custom_ket_luan": ("", TN.DAT, TN.KHONG_DAT, TN.CACH_LY),
 }
@@ -136,8 +135,8 @@ def _dict(doc, bao=None):
              "qty": flt(r.qty, 3), "uom": r.get("uom") or r.get("stock_uom") or "", "kho": r.get("warehouse") or "",
              "batch_no": r.get("batch_no") or "", "giay_to": r.get("custom_giay_to") or "",
              "can_coa": bool(nhom & can_coa), "can_aflatoxin": bool(nhom & can_af)}
-        for f, kieu in O_DONG.items():
-            d[f] = (flt(r.get(f)) or None) if kieu == "so" else (r.get(f) or "")
+        for f in O_DONG:
+            d[f] = r.get(f) or ""
         dong.append(d)
     xe = None
     if doc.doctype == "Purchase Receipt":
@@ -154,7 +153,7 @@ def _dict(doc, bao=None):
         "ncc_loai": ncc.get("loai") or "", "ncc_nguon": ncc.get("nguon") or "", "ncc_duyet": bool(ncc.get("duyet")),
         "pkn": ({"so_hieu": pkn.get("so_hieu") or "", "het_han": str(pkn.get("het_han") or "")} if pkn else None),
         "nguoi_kiem": doc.get("custom_nguoi_kiem") or "", "ghi_chu_qc": doc.get("custom_ghi_chu_qc") or "",
-        "xe": xe, "dong": dong, "so_anh": len(_anh(doc)), "do_am_toi_da": flt(ng.get("do_am_toi_da")) or None,
+        "xe": xe, "dong": dong, "so_anh": len(_anh(doc)),
         "lua_chon": {f: list(k[1:]) for f, k in O_DONG.items() if isinstance(k, tuple)},
         "sua": doc.docstatus == 0 and _duoc_ghi(), "them_anh": doc.docstatus < 2 and _duoc_ghi(),
         "bao": bao or [],
@@ -170,16 +169,6 @@ def xem_phieu(doctype, name):
 def _chuan(f, kieu, v, r):
     if kieu is None:
         return str(v or "").strip()[:140] or None
-    if kieu == "so":
-        if v in (None, ""):
-            return None
-        try:
-            so = float(str(v).replace(",", "."))
-        except ValueError:
-            so = -1
-        if not 0 <= so <= 100:
-            frappe.throw(_("Dòng {0} ({1}): độ ẩm phải từ 0 đến 100%.").format(r.idx, r.item_code))
-        return so
     v = v or ""
     if v not in kieu:
         frappe.throw(_("Dòng {0} ({1}): giá trị không hợp lệ — {2}.").format(r.idx, r.item_code, v))
@@ -296,7 +285,6 @@ def in_bm0703(thang=None):
         b = han.get(r.batch_no) or {}
         kiem = [f"Cảm quan: {r.custom_cam_quan_dat}" if r.custom_cam_quan_dat else ""]
         kiem += [f"aflatoxin: {r.custom_aflatoxin}" if r.custom_aflatoxin else "",
-                 f"độ ẩm {flt(r.custom_do_am):g}%" if flt(r.custom_do_am) else "",
                  f"CQ/CO: {r.custom_co_cq}" if r.custom_co_cq else ""]
         ho_so = r.custom_giay_to or (f"COA vi sinh: {r.custom_coa_vi_sinh}" if r.custom_coa_vi_sinh else "")
         xu = [p.custom_ghi_chu_qc or ""]

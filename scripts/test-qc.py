@@ -223,9 +223,9 @@ kiem("W39: T1 nước tại vòi, T10 khóa kho, tủ hóa chất ngoài giờ �
      and field["t1_be_nuoc"]["label"] == "T1 Nước tại vòi trong, không mùi; vòi, ống không rò"
      and field["t10_khoa"]["label"] == "T10 Khóa kho, tủ hóa chất ngoài giờ"
      and not [m["f"] for m in M.MUC if "bể" in m["nhan"].lower() or "bể" in m["ngan"].lower()])
-kiem("T11 quả chuẩn: còn trên phiếu bản 1, bỏ khỏi bản 2 (W01, D129)",
-     M.ap_dung(M.THEO_F["t11_can_qua_chuan"], M.TUAN, {"phien_ban": 1})
-     and not ap("t11_can_qua_chuan", M.TUAN))
+kiem("D187: T11 quả chuẩn bỏ hẳn — không còn trong danh mục mục kiểm, không còn ô trên DocType",
+     "t11_can_qua_chuan" not in M.THEO_F and "t11_can_qua_chuan" not in field
+     and not [m for m in M.MUC if m["so"] == "T11"])
 kiem("phần D chỉ khi hôm đó có bột",
      ap("b1_lac_sach", M.TRUA, 1) and not ap("b1_lac_sach", M.TRUA, 0))
 kiem("rang + luộc + nhãn ghi ở MỌI lượt",
@@ -243,7 +243,7 @@ kiem("thùng quá hạn 0 = ĐẾM ĐƯỢC 0", M.co_ghi(M.THEO_F["thung_bot_qua
 kiem("trạm bẫy 0 = đếm được 0", M.co_ghi(M.THEO_F["t2_so_bay_dau_hieu"], 0))
 kiem("chọn rỗng = chưa kiểm", not M.co_ghi(M.THEO_F["luoc_soi_du"], ""))
 kiem("checkbox không tích VẪN là câu trả lời",
-     M.co_ghi(M.THEO_F["nam_cham_mat_kim_loai"], 0))
+     M.co_ghi(M.THEO_F["nc01_mat_kim_loai"], 0))
 
 # ═══ 4. Luật sinh sự cố ══════════════════════════════════════════════════
 print("\n-- lệch → sự cố: từng luật một --")
@@ -280,11 +280,11 @@ kiem("mục Không đạt → sự cố", len(pt(luoc_soi_du="Không đạt")) =
 kiem("mục Đạt → không sự cố", not pt(luoc_soi_du="Đạt"))
 kiem("mục để trống → không sự cố (để trống khác không đạt)", not pt(luoc_soi_du=""))
 kiem("mạt kim loại → sự cố mức CAO",
-     [(c, m) for _f, c, _l, m, _t in pt(nam_cham_mat_kim_loai=1)]
+     [(c, m) for _f, c, _l, m, _t in pt(nc01_mat_kim_loai=1)]
      == [("6 Vỡ đỗ, nam châm", "Cao")])
 kiem("có vật bắt được nhưng KHÔNG phải mạt kim loại → chỉ cảnh báo",
-     not pt(nam_cham_vat="mảnh nhựa")
-     and SC.canh_bao(luot(nam_cham_vat="mảnh nhựa")))
+     not pt(nc01_vat="mảnh nhựa")
+     and SC.canh_bao(luot(nc01_vat="mảnh nhựa")))
 
 # D100: mục lạc chỉ áp dụng khi lượt có làm vị có lạc (co_lac do server tính).
 bot = {"co_san_xuat_bot": 1, "co_lac": 1, "luot": M.TRUA}
@@ -442,27 +442,20 @@ kiem("và nói rõ vì sao", loi and "không phải lượt thêm" in loi, loi o
 TRUNG[:] = [{"name": "QC-0009", "luot": M.TRUA}]
 kiem("đã có Trưa → vẫn mở được Đầu sáng",
      thu(luot(name="QC-0002"), R.SXQCRound.kiem_trung) is None)
-TRUNG[:] = [{"name": "QC-0009", "luot": M.TRUA, "ca": "Chiều"}]
-kiem("phiếu cũ có ca KHÁC vẫn tính là trùng (không còn tách theo ca)",
-     thu(luot(name="QC-0002", luot=M.TRUA, ca="Sáng"), R.SXQCRound.kiem_trung)
-     is not None)
+kiem("đã có Trưa → chặn Trưa thứ hai trong ngày",
+     thu(luot(name="QC-0002", luot=M.TRUA), R.SXQCRound.kiem_trung) is not None)
 TRUNG[:] = []
 
 # ═══ 7b. Đổi tên lượt (patch D95) ════════════════════════════════════════
 print("\n-- tên lượt cũ → mới --")
-kiem("không còn lượt nào tên cũ trong danh mục",
-     not set(M.DOI_TEN_CU) & set(M.LUOT), str(M.LUOT))
-kiem("bảng đổi tên trỏ đúng sang ba lượt trong ngày",
-     sorted(M.DOI_TEN_CU.values()) == sorted(M.LUOT_TRONG_NGAY))
 _pa = open("sx/patches/d95_qc_mot_ngay_ba_luot.py", encoding="utf-8").read()
-# Patch CHÉP bảng đổi tên chứ không import muc.py — patch là ảnh chụp tại D95,
-# muc.py đổi sau này thì patch vẫn phải làm đúng việc nó đã làm. Nhưng ở thời
-# điểm viết, hai bảng phải khớp nhau.
+# Patch CHÉP bảng đổi tên chứ không import muc.py — patch là ảnh chụp tại D95. D187 bỏ bảng đổi tên khỏi
+# muc.py (không còn bản JS cũ nào gửi tên lượt cũ), nhưng patch vẫn phải đổi sang đúng tên lượt hiện hành.
 _ns = {}
 exec(_pa.split("import frappe")[1].split("def execute")[0], _ns)   # noqa: S102
-kiem("bảng trong patch khớp muc.DOI_TEN_CU", _ns.get("DOI_TEN") == M.DOI_TEN_CU)
-kiem("patch KHÔNG đụng vào trường ca của phiếu cũ",
-     '"ca"' not in _pa.split("def execute")[1])
+kiem("patch D95 đổi tên cũ sang đúng ba lượt trong ngày; không còn lượt nào tên cũ trong danh mục",
+     sorted(_ns["DOI_TEN"].values()) == sorted(M.LUOT_TRONG_NGAY) and not set(_ns["DOI_TEN"]) & set(M.LUOT)
+     and not hasattr(M, "DOI_TEN_CU"), str(M.LUOT))
 
 # ═══ 8. Sinh phiếu sự cố gắn hai chiều ═══════════════════════════════════
 print("\n-- sự cố gắn hai chiều với lượt --")

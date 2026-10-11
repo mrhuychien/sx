@@ -211,16 +211,10 @@ def get_today(ngay=None):
 
 
 @frappe.whitelist()
-def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ca=None, ly_do_bo_sung=None):
-    """Mở lượt. Đã có bản nháp thì trả lại chính nó, không đẻ bản thứ hai.
-
-    `ca` BỎ QUA (D95 — không còn chia ca). Vẫn nhận tham số này vì điện thoại
-    đang mở sẵn bản JS cũ sẽ còn gửi nó cho tới lần tải lại trang; không nhận thì
-    Frappe văng "unexpected keyword argument" và QC không mở được lượt nào.
-    """
+def start_round(ngay, luot, co_san_xuat_bot=None, nhap_lai_tu_giay=0, ly_do_bo_sung=None):
+    """Mở lượt. Đã có bản nháp thì trả lại chính nó, không đẻ bản thứ hai."""
     _guard_ghi()
     d = getdate(ngay)
-    luot = M.DOI_TEN_CU.get(luot, luot)   # bản JS cũ gửi "Đầu ca"/"Giữa ca"/…
     if luot not in M.LUOT:
         frappe.throw(_("Lượt không hợp lệ: {0}").format(luot))
     ly_do_bo_sung = (ly_do_bo_sung or "").strip()
@@ -415,7 +409,7 @@ def chi_tiet_round(name):
         "co_lac": cint(doc.get("co_lac")),
         "can_thu_lac": cint(doc.get("can_thu_lac")),
         "name": doc.name,
-        "ngay": str(doc.ngay), "luot": doc.luot, "ca": doc.ca or "",
+        "ngay": str(doc.ngay), "luot": doc.luot,
         "gio_thuc_te": str(doc.get("gio_thuc_te") or "")[:5], "anh_giay": doc.get("anh_giay") or "",
         "ly_do_bo_sung": doc.get("ly_do_bo_sung") or "",
         "co_san_xuat_bot": co_bot,
@@ -702,14 +696,13 @@ def _bot_nen_ton():
 
 
 @frappe.whitelist()
-def list_rounds(tu=None, den=None, ca=None):
-    """`ca` bỏ qua từ D95 — giữ tham số cho bản JS cũ đang mở trên điện thoại."""
+def list_rounds(tu=None, den=None):
     _guard_qc()
     tu, den = _khoang(tu, den)
     dk = {"ngay": ("between", [tu, den]), "docstatus": ("<", 2)}
     return frappe.get_all(
         "SX QC Round", filters=dk,
-        fields=["name", "ngay", "luot", "ca", "docstatus", "ghi_muon",
+        fields=["name", "ngay", "luot", "docstatus", "ghi_muon",
                 "nhap_lai_tu_giay", "finished_at", "duration_min", "qc_user",
                 "reviewed_on", "so_muc_ap_dung", "so_muc_da_cham"],
         order_by="ngay desc, creation")
@@ -1168,8 +1161,7 @@ def _dem(ds, khoa):
 
 
 @frappe.whitelist()
-def day_sheet(ngay, ca=None):
-    # `ca` bỏ qua từ D95 — giữ tham số cho bản JS cũ đang mở trên điện thoại.
+def day_sheet(ngay):
     """HTML tờ ngày BM.08.01 để in / xuất PDF đưa auditor.
 
     Ba cột lượt trên một trang, đúng bố cục bản giấy — auditor cầm tờ này so với
@@ -1180,8 +1172,7 @@ def day_sheet(ngay, ca=None):
 
 
 @frappe.whitelist()
-def month_sheets(tu, den, ca=None):
-    # `ca` bỏ qua từ D95.
+def month_sheets(tu, den):
     """Gộp tờ ngày của cả khoảng thành MỘT tài liệu, mỗi ngày một trang.
 
     Ban ISO in cả tháng một lần để kẹp vào hồ sơ, không ai ngồi bấm in 30 lần.
@@ -1230,8 +1221,8 @@ def _to_ngay(ngay, kem_style=True):
         # Dòng in ra: mục dây chuyền bánh luôn in (tờ giống bản giấy), còn máy
         # 2/3, phần bột, phần lạc chỉ in khi có lượt nào trong ngày áp dụng —
         # in sẵn ba máy trống thì auditor tưởng ba máy chạy mà không ai kiểm.
-        # D129: mục không có trong bộ mục của BẤT KỲ lượt nào hôm đó (T11 đã bỏ, mục
-        # mới chưa có) thì không in — hàng trống của một mục không tồn tại là sai.
+        # D129: mục không có trong bộ mục của BẤT KỲ lượt nào hôm đó (mục đã bỏ / chưa
+        # có ở bản giấy lúc ghi) thì không in — hàng trống của một mục không tồn tại là sai.
         muc_buoc = [m for m in M.MUC if m["buoc"] == ma
                     and (m["f"] in co_mat
                          or (not m["bot"] and not m.get("lac") and not m.get("sua")

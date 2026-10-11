@@ -33,8 +33,8 @@ const phieu = (them = {}) => ({
     custom_xe_hang_chung: '', custom_xe_san: '', custom_xe_ket_luan: '' },
   dong: [{ name: 'r1', idx: 1, item_code: 'SUA', item_name: 'Sữa bột', qty: 50, uom: 'Kg', kho: 'Kho NVL', batch_no: '',
     giay_to: 'Nhập khẩu — COA lô: KHÔNG', can_coa: true, can_aflatoxin: false, custom_ncc_lo: '', custom_co_cq: '',
-    custom_coa_vi_sinh: '', custom_aflatoxin: '', custom_do_am: null, custom_cam_quan_dat: '', custom_ket_luan: '' }],
-  so_anh: 0, do_am_toi_da: 13,
+    custom_coa_vi_sinh: '', custom_aflatoxin: '', custom_cam_quan_dat: '', custom_ket_luan: '' }],
+  so_anh: 0,
   lua_chon: { custom_co_cq: ['Có', 'Không'], custom_coa_vi_sinh: ['Có', 'Không', 'Không yêu cầu'],
     custom_aflatoxin: ['Có', 'Không', 'Không yêu cầu'], custom_cam_quan_dat: ['Đạt', 'Không đạt'],
     custom_ket_luan: ['Đạt', 'Không đạt', 'Cách ly'] },
@@ -96,14 +96,8 @@ tim(o('Lô NCC'), (e) => e.tagName === 'INPUT')[0].doi('LOT-2610');
 nut(o('COA vi sinh'), 'Có').bam();
 nut(o('Cảm quan'), 'Đạt').bam();
 nut(o('Kết luận tiếp nhận'), 'Đạt').bam();
-tim(dong, (e) => e.classList.contains('sx-qc-oso-khung'))[0].bam();
-const pad = PAD[PAD.length - 1];
-kiem('độ ẩm: bàn số có thập phân, nói ngưỡng', pad.allowDecimal === true && pad.unitLabel === '%'
-  && dong.chu.includes('ngưỡng ≤ 13'));
-pad.onOk(0);
-kiem('… bàn số về 0 = xoá độ ẩm (rỗng khác 0)', tim(dong, (e) => e.classList.contains('sx-qc-oso-khung'))[0].chu.startsWith('—'));
-tim(dong, (e) => e.classList.contains('sx-qc-oso-khung'))[0].bam();
-PAD[PAD.length - 1].onOk(11.5);
+kiem('D187: dòng hàng không còn ô độ ẩm, không mở bàn số nào', !tim(dong, (e) => e.classList.contains('sx-qc-oso-khung')).length
+  && !dong.chu.includes('ẩm') && !PAD.length);
 traVe = phieu({ bao: ['Kiểm tra nguyên liệu đầu vào:\nDòng 1 (SUA): Nhập khẩu — phải có COA'] });
 traVe.xe = { ...traVe.xe, qc_kiem: 'qc@x', qc_luc: '2026-10-09 10:00' };
 nut(m.body, 'LƯU KẾT QUẢ KIỂM').bam();
@@ -111,8 +105,8 @@ await cho();
 const p = JSON.parse(GOI.filter(([k]) => k.endsWith('luu_phieu')).pop()[1].payload);
 kiem('LƯU gửi đúng ô QC của dòng — KHÔNG gửi số lượng / kho / đơn giá',
   bang(Object.keys(p.dong[0]).sort(), ['custom_aflatoxin', 'custom_cam_quan_dat', 'custom_co_cq', 'custom_coa_vi_sinh',
-    'custom_do_am', 'custom_ket_luan', 'custom_ncc_lo', 'name'])
-  && p.dong[0].custom_ncc_lo === 'LOT-2610' && p.dong[0].custom_do_am === 11.5 && p.dong[0].custom_ket_luan === 'Đạt', p);
+    'custom_ket_luan', 'custom_ncc_lo', 'name'])
+  && p.dong[0].custom_ncc_lo === 'LOT-2610' && p.dong[0].custom_ket_luan === 'Đạt', p);
 kiem('… kèm kiểm xe: biển số, đơn vị VC, lái xe, các mục, kết luận', p.xe.custom_xe_bien_so === '29C-123.45'
   && p.xe.custom_xe_don_vi === 'Nhà xe Minh Phát' && p.xe.custom_xe_tai_xe === 'Anh Ba'
   && MUC.every((x) => p.xe[x.f] === 'Đạt') && p.xe.custom_xe_ket_luan === 'Không đạt', p.xe);
@@ -123,19 +117,14 @@ kiem('lưu xong: mở lại phiếu với lời cảnh báo của luật trên �
 kiem('… dấu QC kiểm xe (tính là chuyến QC kiểm trong tuần) hiện trong khối kiểm xe',
   m.body.chu.includes('QC kiểm: qc · 09/10 10:00 — tính là chuyến QC kiểm trong tuần'));
 
-console.log('\n-- W40: ô độ ẩm chỉ khi site đặt ngưỡng --');
-traVe = phieu({ do_am_toi_da: null });
+console.log('\n-- D187: không còn ô độ ẩm khi nhận --');
+traVe = phieu({ do_am_toi_da: 13, dong: [{ ...phieu().dong[0], custom_do_am: 12.5 }] });
 nut(api.container, 'KIỂM TIẾP NHẬN').bam();
 await cho();
 m = MO[MO.length - 1];
-kiem('không đặt ngưỡng (mặc định từ 09/10/2026): không có ô độ ẩm', !tim(m.body, (e) => e.classList.contains('sx-qc-oso-khung')).length
-  && !m.body.chu.includes('Độ ẩm'));
-traVe = phieu({ do_am_toi_da: null, dong: [{ ...phieu().dong[0], custom_do_am: 12.5 }] });
-nut(api.container, 'KIỂM TIẾP NHẬN').bam();
-await cho();
-m = MO[MO.length - 1];
-kiem('… dòng đã có số độ ẩm cũ thì vẫn hiện số đó', tim(m.body, (e) => e.classList.contains('sx-qc-oso-khung'))[0]
-  && tim(m.body, (e) => e.classList.contains('sx-qc-oso-khung'))[0].chu.startsWith('12.5'));
+kiem('server cũ còn gửi ngưỡng / dòng còn số độ ẩm cũ → màn vẫn không hiện ô, không hiện số',
+  !tim(m.body, (e) => e.classList.contains('sx-qc-oso-khung')).length && !m.body.chu.includes('Độ ẩm')
+  && !m.body.chu.includes('12.5'));
 
 console.log('\n-- phiếu đã duyệt / hoá đơn mua --');
 traVe = phieu({ docstatus: 1, sua: false, xe: { ...phieu().xe, ap_dung: false } });

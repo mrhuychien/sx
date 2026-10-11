@@ -46,7 +46,7 @@ Cách dựng site thử riêng từ bản sao lưu: README, mục D177.
 import json
 import random
 import re
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, time, timedelta
 
 import frappe
 from frappe import _
@@ -78,8 +78,6 @@ TEN_PHAN = {"luot": "BM.08.01 vòng kiểm", "su_co": "BM.08.02 sự cố", "cat
 CHU_NHAT = 6
 BOT_THU = (1, 3, 5)                    # thứ Ba, Năm, Bảy có sản xuất bột
 THU_LAC = 3                            # thứ Năm làm vị có lạc (nếu danh mục bột có)
-# Phiên bản bộ mục BM.08.01 theo ngày (sx/qc/muc.py PHIEN_BAN): ngày trước mốc đầu tiên là bản 1.
-PB_TU = ((date(2026, 10, 9), 3), (date(2026, 10, 8), 2))
 
 # Giờ đi lượt: (bắt đầu sớm nhất, bắt đầu muộn nhất, (phút làm ít nhất, nhiều nhất)) — hết lượt vẫn trong khung giờ
 # của lượt (sx/qc/nguong.py: Đầu sáng → 08:30, Trưa 08:30–14:00, Cuối chiều 14:00–20:00) và dưới 45 phút.
@@ -159,12 +157,6 @@ def _nguoi_mau():
 
 
 # ═══════════════════════════════════════ giờ, số ═════════════════════════════════════════
-
-def phien_ban(d):
-    """Phiên bản bộ mục BM.08.01 có hiệu lực ngày `d`."""
-    d = getdate(d)
-    return next((pb for tu, pb in PB_TU if d >= tu), 1)
-
 
 def _luc(d, t, rd=None, phut=0):
     """datetime ngày `d` giờ `t`, cộng thêm 0…phut phút ngẫu nhiên."""
@@ -436,10 +428,6 @@ def _mot_luot(ngay, luot, bd, kt, kh, hong=None):
     d = ngay["ngay"]
     rd = random.Random(f'{ngay["hat"]}|{luot}')
     name = Q.start_round(str(d), luot, co_san_xuat_bot=ngay["bot"])["name"]
-    pb = phien_ban(d)
-    if pb != M.PHIEN_BAN:
-        # Bộ mục của NGÀY ĐÓ (D129): before_insert gắn bản hiện hành; đặt lại trước khi ghi mục nào.
-        frappe.db.set_value("SX QC Round", name, "phien_ban", pb, update_modified=False)
     dau = dict(ngay["may"])
     vi = ngay["vi"] if luot == ngay["luot"][0][0] else ngay["vi_sau"]
     if ngay["bot"] and vi:

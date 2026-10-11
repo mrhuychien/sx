@@ -172,7 +172,7 @@ fx = {(f["dt"], f["fieldname"]): f for f in json.load(open("sx/fixtures/custom_f
 kiem("lựa chọn của từng ô = đúng ô Select trên phiếu nhập mua VÀ hoá đơn mua (fixtures)",
      all(list(A.O_DONG[f]) == fx[(dt, f)]["options"].split("\n")
          for dt in ("Purchase Receipt Item", "Purchase Invoice Item") for f, k in A.O_DONG.items() if isinstance(k, tuple))
-     and fx[("Purchase Receipt Item", "custom_do_am")]["fieldtype"] == "Float"
+     and "custom_do_am" not in A.O_DONG
      and all(fx[("Purchase Receipt", f)]["options"].split("\n") == ["", KX.DAT, KX.KHONG_DAT] for f in A.XE_CHON))
 
 # ═══ 3. Lưu: chỉ ô QC, luật như Desk ═════════════════════════════════════
@@ -242,13 +242,11 @@ kiem("'Đạt' mà cảm quan Không đạt → CHẶN như trên Desk, không g
      loi and "cảm quan 'Không đạt'" in loi and F.bang("Purchase Receipt")["PR-1"]["items"][0]["custom_cam_quan_dat"] == "Đạt",
      loi or "")
 kiem("giá trị lạ ở ô chọn → chặn", "không hợp lệ" in (thu(lambda: luu("PR-1", [{"name": "PR-1-1", "custom_ket_luan": "Tốt"}])) or ""))
-kiem("độ ẩm ngoài 0–100 / không phải số → chặn",
-     thu(lambda: luu("PR-1", [{"name": "PR-1-2", "custom_do_am": 120}])) is not None
-     and thu(lambda: luu("PR-1", [{"name": "PR-1-2", "custom_do_am": "abc"}])) is not None)
-r = luu("PR-1", [{"name": "PR-1-2", "custom_do_am": "12,5", "custom_aflatoxin": "Có", "custom_ket_luan": "Đạt",
+r = luu("PR-1", [{"name": "PR-1-2", "custom_do_am": "abc", "custom_aflatoxin": "Có", "custom_ket_luan": "Đạt",
                   "custom_cam_quan_dat": "Đạt"}])
-kiem("độ ẩm dấu phẩy → số; đỗ có aflatoxin → giữ Đạt", (F.bang("Purchase Receipt")["PR-1"]["items"][1]["custom_do_am"],
-                                                     r["dong"][1]["custom_ket_luan"]) == (12.5, "Đạt"))
+kiem("D187: gửi kèm ô độ ẩm (bản màn cũ) → bỏ qua, không lưu, không lỗi; đỗ có aflatoxin → giữ Đạt",
+     not F.bang("Purchase Receipt")["PR-1"]["items"][1].get("custom_do_am") and "custom_do_am" not in r["dong"][1]
+     and r["dong"][1]["custom_ket_luan"] == "Đạt", r["dong"][1])
 r = luu("PR-1", [{"name": "PR-1-1", "custom_coa_vi_sinh": "Không"}])
 kiem("sữa (nhóm bắt buộc COA) mà COA = Không → ép Cách ly, nói lý do",
      r["dong"][0]["custom_ket_luan"] == "Cách ly" and any("COA" in b for b in r["bao"]), r["bao"])
@@ -312,27 +310,39 @@ F.bang("Purchase Receipt")["PR-1"]["docstatus"] = 2
 kiem("phiếu đã huỷ → không mở / không thêm ảnh", thu(lambda: A.xem_phieu("Purchase Receipt", "PR-1")) is not None
      and thu(lambda: A.them_anh("Purchase Receipt", "PR-1", json.dumps([PNG]))) is not None)
 
-# ═══ 5. W40: không đo độ ẩm khi nhận đỗ, lạc ═════════════════════════════
-print("\n-- W40 (D162): bỏ đo độ ẩm khi nhận --")
+# ═══ 5. D187: bỏ hẳn ô độ ẩm khi nhận (BM.07.03 sửa đổi 01) ═══════════════════
+print("\n-- D187: bỏ hẳn ô độ ẩm khi nhận --")
 for dt in ("Purchase Receipt Item", "Purchase Invoice Item"):
-    kiem(f"{dt}: ô Độ ẩm ẨN (không còn trên form, lưới, bản in), không bắt buộc",
-         fx[(dt, "custom_do_am")].get("hidden") == 1 and not fx[(dt, "custom_do_am")].get("reqd"))
-kiem("site chưa đặt ngưỡng → màn QC không có ngưỡng độ ẩm (ô độ ẩm không hiện)",
-     A.xem_phieu("Purchase Invoice", "PI-1")["do_am_toi_da"] is None)
+    kiem(f"{dt}: không còn ô Độ ẩm; Cảm quan đứng ngay sau Aflatoxin",
+         (dt, "custom_do_am") not in fx and fx[(dt, "custom_cam_quan_dat")]["insert_after"] == "custom_aflatoxin")
+st = {f["fieldname"]: f for f in json.load(open("sx/qc/doctype/sx_qc_setting/sx_qc_setting.json", encoding="utf-8"))["fields"]}
+kiem("SX QC Setting không còn ngưỡng Độ ẩm tối đa; màn QC không nhận ngưỡng nào",
+     "do_am_toi_da" not in st and "do_am_toi_da" not in A.xem_phieu("Purchase Invoice", "PI-1"))
 P2 = F.nap("sx.patches.d162_bo_do_am", "sx/patches/d162_bo_do_am.py")
 F.CAI_DAT["do_am_toi_da"] = 13.0
 P2.execute()
-kiem("patch: ngưỡng còn đúng mặc định cũ 13% → để trống (không kiểm)", not F.CAI_DAT.get("do_am_toi_da"))
-F.CAI_DAT["do_am_toi_da"] = 14.0
-P2.execute()
-kiem("patch: site đã tự đặt số khác → giữ", F.CAI_DAT["do_am_toi_da"] == 14.0)
-kiem("… site đặt ngưỡng thì màn QC nhận ngưỡng (hiện ô độ ẩm)", A.xem_phieu("Purchase Invoice", "PI-1")["do_am_toi_da"] == 14.0)
-F.CAI_DAT.pop("do_am_toi_da")
-P2.execute()
-kiem("patch: trống → vẫn trống; có trong patches.txt", "do_am_toi_da" not in F.CAI_DAT or not F.CAI_DAT["do_am_toi_da"]
-     and "sx.patches.d162_bo_do_am" in open("sx/patches.txt", encoding="utf-8").read())
-st = {f["fieldname"]: f for f in json.load(open("sx/qc/doctype/sx_qc_setting/sx_qc_setting.json", encoding="utf-8"))["fields"]}
-kiem("SX QC Setting: ô Độ ẩm tối đa không còn mặc định 13", not st["do_am_toi_da"].get("default"))
+kiem("patch d162 (site chạy sau D187): ô đã bỏ → không đụng gì, không lỗi", F.CAI_DAT["do_am_toi_da"] == 13.0)
+CF = F.bang("Custom Field")
+for dt in ("Purchase Receipt Item", "Purchase Invoice Item"):
+    for fn in ("custom_do_am", "custom_aflatoxin"):
+        CF[f"{dt}-{fn}"] = {"name": f"{dt}-{fn}", "dt": dt, "fieldname": fn}
+QR = F.bang("SX QC Round")
+_cu = dict(QR)
+QR.clear()
+QR.update({f"QC-PB{pb}": {"name": f"QC-PB{pb}", "phien_ban": pb, "docstatus": 1} for pb in (0, 1, 2, 3)})
+P3 = F.nap("sx.patches.d187_bo_phan_cu", "sx/patches/d187_bo_phan_cu.py")
+P3.execute()
+kiem("patch d187: xoá ô độ ẩm trên dòng phiếu nhập mua / hoá đơn mua, không đụng ô khác",
+     sorted(CF) == ["Purchase Invoice Item-custom_aflatoxin", "Purchase Receipt Item-custom_aflatoxin"], sorted(CF))
+kiem("… dọn giá trị ngưỡng Độ ẩm tối đa còn lại", "do_am_toi_da" not in F.CAI_DAT)
+kiem("… mọi phiếu vòng kiểm về bộ mục bản 1", {x["phien_ban"] for x in QR.values()} == {1})
+P3.execute()
+kiem("… chạy lại vô hại; có trong patches.txt", sorted(CF) == ["Purchase Invoice Item-custom_aflatoxin",
+                                                               "Purchase Receipt Item-custom_aflatoxin"]
+     and "sx.patches.d187_bo_phan_cu" in open("sx/patches.txt", encoding="utf-8").read())
+QR.clear()
+QR.update(_cu)
+CF.clear()
 
 # ═══ 5b. W36 (D167): sổ BM.07.03 theo tháng ═══════════════════════════════
 print("\n-- W36: in sổ BM.07.03 theo tháng --")

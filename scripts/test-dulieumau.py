@@ -306,9 +306,8 @@ kiem("chạy lệnh lúc 08:00 cho lô nhập hôm nay (phiếu nhập không gh
 kiem("giờ mẫu không vượt lúc chạy lệnh", DL._da_qua(datetime(2026, 10, 10, 13, 30), datetime(2026, 10, 10, 9, 0))
      < datetime(2026, 10, 10, 9, 0) and DL._da_qua(datetime(2026, 10, 9, 13, 30), datetime(2026, 10, 10, 9, 0))
      == datetime(2026, 10, 9, 13, 30))
-kiem("phiên bản bộ mục theo ngày: 1 trước 8/10, 2 ngày 8/10, 3 từ 9/10",
-     [DL.phien_ban(x) for x in ("2026-09-22", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10")]
-     == [1, 1, 2, 3, 3])
+kiem("D187: không còn phiên bản bộ mục theo ngày — mọi ngày dùng bộ mục hiện hành", not hasattr(DL, "phien_ban")
+     and not hasattr(DL, "PB_TU"))
 
 # ═══ 3. Ghi ═════════════════════════════════════════════════════════════════
 print("\n-- ghi: lượt kiểm BM.08.01 --")
@@ -374,11 +373,13 @@ for x in LU.values():
             log_sai.append((x["name"], r["fieldname"], str(r["client_ts"])))
 kiem("giờ ghi từng ô (log) nằm trong lượt, không phải giờ chạy lệnh", not log_sai and len(
     F.get_all("SX QC Round Log", filters={"parent": next(iter(LU))})) > 5, log_sai[:3])
-kiem("phiên bản bộ mục theo ngày: tháng 9 bản 1 (không ô NC-02), 8/10 bản 2, 9–10/10 bản 3",
-     all(x["phien_ban"] == DL.phien_ban(x["ngay"]) for x in LU.values())
-     and theo[("2026-09-22", M.DAU_SANG)].get("nc02_da_kiem") is None
-     and theo[("2026-09-22", M.DAU_SANG)].get("nam_cham_da_kiem") == M.DAT
-     and theo[("2026-10-09", M.DAU_SANG)].get("nc01_da_kiem") == M.DAT)
+kiem("D187: mọi lượt (cả tháng 9) mang bộ mục hiện hành — ba nam châm, mục 5 theo HD.08.02, không ô cũ",
+     all(x["phien_ban"] == M.PHIEN_BAN for x in LU.values())
+     and theo[("2026-09-22", M.DAU_SANG)].get("nc01_da_kiem") == M.DAT
+     and theo[("2026-09-22", M.DAU_SANG)].get("u_thung_go_vai") == M.DAT
+     and theo[("2026-10-09", M.DAU_SANG)].get("nc01_da_kiem") == M.DAT
+     and not any(x.get("nam_cham_da_kiem") or x.get("u_thung_vai_sach") or x.get("t11_can_qua_chuan")
+                 for x in LU.values()))
 t = theo[("2026-09-28", M.TUAN)]
 vk = F.get_all("SX QC Round Vat", filters={"parent": t["name"]})
 kiem("lượt Tuần: T1–T10 đạt, T2 đếm 0, T4 ghi theo từng vật BM.PRP.05", t["t1_be_nuoc"] == M.DAT

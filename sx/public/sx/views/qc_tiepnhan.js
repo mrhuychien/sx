@@ -2,7 +2,7 @@
 //
 // QC chế biến không có Desk, mà phần QC của tiếp nhận nằm trên phiếu nhập mua (Purchase Receipt) /
 // hoá đơn mua có trừ kho. Màn này: danh sách phiếu NHÁP 14 ngày → mở một phiếu → kiểm xe (cùng lúc
-// với hàng) + từng dòng: lô NCC, CQ/CO, COA vi sinh, aflatoxin, độ ẩm, cảm quan, kết luận → LƯU.
+// với hàng) + từng dòng: lô NCC, CQ/CO, COA vi sinh, aflatoxin, cảm quan, kết luận → LƯU.
 // Server lưu bằng doc.save() nên luật y như Desk: xe không đạt / thiếu COA / thiếu giấy tờ → ép
 // Cách ly, lô Cách ly vào kho cách ly; lời cảnh báo hiện ngay dưới đầu phiếu. Duyệt phiếu là việc
 // của thủ kho. Ảnh (hàng, giấy tờ, xe) chụp xong gửi ngay, nén trên máy.
@@ -10,7 +10,6 @@
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal } from '/assets/sx/sx/components/modal.js';
-import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 import { chip, khungTrong, segment } from '/assets/sx/sx/components/qcui.js';
 import { nenAnh } from '/assets/sx/sx/lib/anh.js';
 
@@ -163,25 +162,6 @@ function dongHang(r, d, khoa) {
     o.appendChild(oChon('Kết quả aflatoxin', lc.custom_aflatoxin, r.custom_aflatoxin, (v) => { r.custom_aflatoxin = v; },
       khoa, r.can_aflatoxin ? 'nhóm hàng phải có' : ''));
   }
-  // W40 (D162): đỗ, lạc không đo độ ẩm khi nhận — ô chỉ hiện khi site đặt ngưỡng, hoặc dòng đã có số cũ.
-  const coAm = d.do_am_toi_da || r.custom_do_am != null;
-  const am = el('button', 'sx-qc-oso-khung', '');
-  am.type = 'button';
-  am.disabled = khoa;
-  const veAm = () => {
-    am.innerHTML = `<span class="sx-qc-oso-val">${r.custom_do_am != null ? esc(String(r.custom_do_am)) : '—'}</span>`
-      + `<span class="sx-qc-oso-dv">% ẩm${d.do_am_toi_da ? ` · ngưỡng ≤ ${esc(String(d.do_am_toi_da))}` : ''}</span>`;
-  };
-  veAm();
-  const oAm = el('div', 'sx-tn-o');
-  oAm.appendChild(el('span', 'sx-qc-goiy', 'Độ ẩm (%)'));
-  oAm.appendChild(am);
-  am.addEventListener('click', () => openNumpad({
-    kicker: `Dòng ${r.idx}`, title: `${r.item_name} — độ ẩm (%)`, initial: r.custom_do_am != null ? String(r.custom_do_am) : '',
-    allowDecimal: true, unitLabel: '%',
-    onOk: (n) => { r.custom_do_am = n > 0 ? n : null; veAm(); },
-  }));
-  if (coAm) o.appendChild(oAm);
   o.appendChild(oChon('Cảm quan', lc.custom_cam_quan_dat, r.custom_cam_quan_dat, (v) => { r.custom_cam_quan_dat = v; }, khoa));
   o.appendChild(oChon('Kết luận tiếp nhận', lc.custom_ket_luan, r.custom_ket_luan, (v) => { r.custom_ket_luan = v; }, khoa));
   if (r.giay_to) o.appendChild(el('div', 'sx-xx-goiy', `Giấy tờ lô: ${esc(r.giay_to)}`));
@@ -274,7 +254,7 @@ export function moPhieu(d, api) {
       const goi = {
         dong: f.dong.map((r) => ({
           name: r.name, custom_ncc_lo: r.custom_ncc_lo, custom_co_cq: r.custom_co_cq,
-          custom_coa_vi_sinh: r.custom_coa_vi_sinh, custom_aflatoxin: r.custom_aflatoxin, custom_do_am: r.custom_do_am,
+          custom_coa_vi_sinh: r.custom_coa_vi_sinh, custom_aflatoxin: r.custom_aflatoxin,
           custom_cam_quan_dat: r.custom_cam_quan_dat, custom_ket_luan: r.custom_ket_luan,
         })),
         ghi_chu_qc: f.ghi_chu_qc,

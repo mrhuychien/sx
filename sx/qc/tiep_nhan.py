@@ -11,11 +11,10 @@ Vì sao kết luận nằm ở TỪNG DÒNG HÀNG chứ không ở đầu phiế
 LÔ. Một hoá đơn có thể có ba mặt hàng ba lô khác nhau; để một ô kết luận ở đầu
 phiếu thì ba lô chung một câu trả lời, và cái lô có vấn đề biến mất trong đó.
 
-Hai luật ÉP kết luận (không phải gợi ý — đây là cổng an toàn thực phẩm):
+Một luật ÉP kết luận (không phải gợi ý — đây là cổng an toàn thực phẩm):
   · nhóm hàng bắt buộc có COA vi sinh mà COA = Không  → Cách ly
-  · độ ẩm vượt ngưỡng                                  → Cách ly
-    W40 (D162): đỗ, lạc KHÔNG đo độ ẩm khi nhận (quyết định 09/10/2026), ô Độ ẩm ẩn, ngưỡng mặc định
-    trống = không kiểm. Luật giữ cho site tự bật lại với nhóm hàng khác.
+(Độ ẩm khi nhận: bỏ hẳn từ D187 — BM.07.03 sửa đổi 01 không đo độ ẩm khi nhận đỗ, lạc; độ ẩm vào
+kiểm nghiệm năm KH.KN.01.)
 Ép chứ không chặn: hàng đã về tới sân rồi, chặn lưu hoá đơn không làm hàng biến
 mất — nó chỉ làm người ta bỏ trống ô QC cho xong việc.
 
@@ -39,7 +38,7 @@ KHONG = "Không"
 # Dòng nào không ghi gì ở phần QC thì bỏ qua hẳn: hoá đơn mua bao bì, dịch vụ,
 # vật tư sửa chữa… không phải nguyên liệu và không có gì để kiểm.
 O_QC = ("custom_ncc_lo", "custom_co_cq", "custom_coa_vi_sinh",
-        "custom_aflatoxin", "custom_do_am", "custom_cam_quan_dat",
+        "custom_aflatoxin", "custom_cam_quan_dat",
         "custom_ket_luan")
 
 
@@ -74,14 +73,6 @@ def kiem_dong(dong, item_group, ng, tra_cha):
     `dong` là dict-like; không đọc DB, không ghi gì. Test gọi thẳng nó.
     """
     kl = dong.get("custom_ket_luan") or ""
-
-    do_am = flt(dong.get("custom_do_am"))
-    toi_da = flt(ng.get("do_am_toi_da"))
-    if do_am and toi_da and do_am > toi_da:
-        return CACH_LY if kl != KHONG_DAT else kl, _(
-            "Độ ẩm {0}% vượt ngưỡng {1}% → chuyển Cách ly").format(
-                flt(do_am, 1), flt(toi_da, 1))
-
     can_coa = set(ng.get("nhom_can_coa") or ())
     if can_coa and item_group and dong.get("custom_coa_vi_sinh") == KHONG:
         if set(_nhom_va_cha(item_group, tra_cha)) & can_coa:
@@ -250,11 +241,8 @@ def on_submit(doc, method=None):
             # đầu mới là mức Cao — để Cao cho cả hai thì Cao hết nghĩa.
             "muc_do": "Cao" if r.custom_ket_luan == KHONG_DAT else "Thường",
             "muc": _("Tiếp nhận: {0}").format(r.item_code),
-            "mo_ta": _("{0} — lô NCC {1}: kết luận {2}{3}").format(
-                r.item_name or r.item_code, r.get("custom_ncc_lo") or "—",
-                r.custom_ket_luan,
-                _(" (độ ẩm {0}%)").format(flt(r.custom_do_am, 1))
-                if flt(r.custom_do_am) else ""),
+            "mo_ta": _("{0} — lô NCC {1}: kết luận {2}").format(
+                r.item_name or r.item_code, r.get("custom_ncc_lo") or "—", r.custom_ket_luan),
             "lo_anh_huong": r.get("custom_ncc_lo") or "",
             "so_luong": f"{flt(r.qty, 3)} {r.uom or ''}".strip(),
             "nguoi_xu_ly": doc.get("custom_nguoi_kiem") or None,

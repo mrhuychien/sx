@@ -13,5 +13,8 @@ CU = 13.0
 
 
 def execute():
+    # D187 bỏ hẳn ô này khỏi SX QC Setting (patch d187 dọn giá trị còn lại) — site chạy tới đây sau D187 thì thôi.
+    if not frappe.get_meta(ST).has_field("do_am_toi_da"):
+        return
     if flt(frappe.db.get_single_value(ST, "do_am_toi_da")) == CU:
         frappe.db.set_single_value(ST, "do_am_toi_da", None)

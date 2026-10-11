@@ -108,11 +108,6 @@ def nguong():
     ra["nguoi_dong_su_co"] = [r.user for r in (s.get("nguoi_dong_su_co") or []) if r.user] if s else []
     ra["nguoi_duyet_xuat_xuong"] = ([r.user for r in (s.get("nguoi_duyet_xuat_xuong") or []) if r.user]
                                     if s else [])
-    # W40 (D162): đỗ, lạc KHÔNG đo độ ẩm khi nhận (quyết định 09/10/2026 — độ ẩm vào kiểm nghiệm năm
-    # KH.KN.01). Ngưỡng độ ẩm tiếp nhận không còn mặc định: trống = không kiểm. Site cần kiểm độ ẩm cho
-    # nhóm hàng khác thì đặt số ở SX QC Setting và hiện lại ô Độ ẩm (Customize Form).
-    v = s.get("do_am_toi_da") if s else None
-    ra["do_am_toi_da"] = float(v) if v else None
     ra["cho_phep_bo_qua_luot_khi_khong_san_xuat"] = int(
         (s.get("cho_phep_bo_qua_luot_khi_khong_san_xuat") if s else 1) or 0)
 

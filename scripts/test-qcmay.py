@@ -585,8 +585,8 @@ kiem("nhiệt độ rang KHÔNG còn bắt buộc khi Rang không chạy",
 kiem("số cũ trong ô Rang không sinh sự cố khi Rang không chạy",
      not sc(buoc_nghi="3", rang_nhiet_do=200) and sc(rang_nhiet_do=200))
 kiem("vật bắt ở nam châm không cảnh báo khi Vỡ đỗ không chạy",
-     not SC.canh_bao(Doc(luot="Đầu sáng", buoc_nghi="6", nam_cham_vat="ốc vít"))
-     and SC.canh_bao(Doc(luot="Đầu sáng", nam_cham_vat="ốc vít")))
+     not SC.canh_bao(Doc(luot="Đầu sáng", buoc_nghi="6", nc01_vat="ốc vít"))
+     and SC.canh_bao(Doc(luot="Đầu sáng", nc01_vat="ốc vít")))
 d = validate(buoc_nghi="12\nA\n3")
 kiem("server lọc lúc lưu: chỉ giữ bước tắt được", d.buoc_nghi == "3\n12", repr(d.buoc_nghi))
 kiem("… và số mục phải chấm giảm theo", d.so_muc_ap_dung == len(M.muc_cham("Trưa", d))

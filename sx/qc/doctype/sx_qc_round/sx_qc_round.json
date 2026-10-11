@@ -8,7 +8,6 @@
   "naming_series",
   "ngay",
   "luot",
-  "ca",
   "column_break_head",
   "co_san_xuat_bot",
   "co_lac",
@@ -58,12 +57,8 @@
   "luoi_sang_nguyen_ven",
   "thung_khay_cat_sach",
   "section_buoc_5",
-  "u_thung_vai_sach",
   "u_thung_go_vai",
   "section_buoc_6",
-  "nam_cham_da_kiem",
-  "nam_cham_vat",
-  "nam_cham_mat_kim_loai",
   "nc01_da_kiem",
   "nc01_vat",
   "nc01_mat_kim_loai",
@@ -99,7 +94,6 @@
   "t8_bon_rua_tay",
   "t9_thiet_bi",
   "t10_khoa",
-  "t11_can_qua_chuan",
   "section_buoc_b",
   "san_pham_bot",
   "b1_lac_sach",
@@ -160,15 +154,6 @@
    "description": "Một ngày ba lượt: Đầu sáng · Trưa · Cuối chiều. Tuần = lượt đầu sáng thứ Hai (gồm cả phần A và phần C), không phải lượt thứ tư. Bổ sung = lượt riêng sau mất điện / sự cố máy, không tính vào ba lượt."
   },
   {
-   "fieldname": "ca",
-   "fieldtype": "Select",
-   "label": "Ca (phiếu cũ)",
-   "options": "\nSáng\nChiều",
-   "hidden": 1,
-   "read_only": 1,
-   "description": "Chỉ còn trên phiếu trước D95. Từ D95 một ngày ba lượt, không chia ca."
-  },
-  {
    "fieldname": "column_break_head",
    "fieldtype": "Column Break"
   },
@@ -213,7 +198,7 @@
    "fieldtype": "Int",
    "label": "Phiên bản bộ mục",
    "read_only": 1,
-   "description": "Bộ mục BM.08.01 lúc mở phiếu. Phiếu trước D129 để trống = bản 1."
+   "description": "Bộ mục BM.08.01 lúc mở phiếu (trống = bản 1). Bản giấy sửa đổi thì phiếu đã ghi giữ bộ mục cũ."
   },
   {
    "fieldname": "qc_user",
@@ -475,12 +460,6 @@
    "collapsible": 1
   },
   {
-   "fieldname": "u_thung_vai_sach",
-   "fieldtype": "Select",
-   "label": "5 Thùng ủ, vải ủ sạch, khô",
-   "options": "\nĐạt\nKhông đạt"
-  },
-  {
    "fieldname": "u_thung_go_vai",
    "fieldtype": "Select",
    "label": "5 Thùng ủ gỗ, vải ủ: sạch, khô, không mốc, không đọng nước, phủ kín; vải nguyên vẹn, đúng mã thùng; ủ ≤ 48 giờ",
@@ -492,25 +471,6 @@
    "fieldtype": "Section Break",
    "label": "6. Vỡ đỗ · Nam châm  (oPRP-2)",
    "collapsible": 1
-  },
-  {
-   "fieldname": "nam_cham_da_kiem",
-   "fieldtype": "Select",
-   "label": "6 Nam châm đã kiểm, vệ sinh",
-   "options": "\nĐạt\nKhông đạt"
-  },
-  {
-   "fieldname": "nam_cham_vat",
-   "fieldtype": "Data",
-   "label": "6b Vật bắt được",
-   "description": "để trống nếu không có"
-  },
-  {
-   "fieldname": "nam_cham_mat_kim_loai",
-   "fieldtype": "Check",
-   "label": "6c Có mạt kim loại",
-   "description": "tích = tạo sự cố",
-   "default": "0"
   },
   {
    "fieldname": "nc01_da_kiem",
@@ -732,12 +692,6 @@
    "fieldname": "t10_khoa",
    "fieldtype": "Select",
    "label": "T10 Khóa kho, tủ hóa chất ngoài giờ",
-   "options": "\nĐạt\nKhông đạt"
-  },
-  {
-   "fieldname": "t11_can_qua_chuan",
-   "fieldtype": "Select",
-   "label": "T11 Cân: quả chuẩn đạt",
    "options": "\nĐạt\nKhông đạt"
   },
   {

@@ -228,21 +228,24 @@ def ap_pb(luot, pb, **kw):
 
 def sc(**kw):
     kw.setdefault("luot", "Đầu sáng")
-    kw.setdefault("phien_ban", 2)
     return SC.phat_hien(Doc(kw))
 
 
 # ═══ 1. Phiên bản bộ mục ════════════════════════════════════════════════
-print("-- phiên bản: phiếu cũ giữ bộ cũ, phiếu mới theo bộ mới --")
-MOI = {"a5_chuyen_doi", "thung_khay_cat_sach", "u_thung_vai_sach", "hat_tho", "di_vat_ray"}
-kiem("bộ mục hiện hành từ bản 2 trở lên (bản 3 — W30, xem test-namcham.py)", M.PHIEN_BAN >= 2)
-kiem("phiếu trước D129 (phiên bản trống) KHÔNG có mục mới",
-     not (MOI & ap_pb("Tuần", 0)), str(MOI & ap_pb("Tuần", 0)))
-kiem("phiếu trước D129 vẫn có T11 quả chuẩn (số đã ghi không biến mất)",
-     "t11_can_qua_chuan" in ap_pb("Tuần", 0))
-kiem("phiếu bản 2 có đủ mục mới ở lượt Tuần", MOI <= ap_pb("Tuần", 2), str(MOI - ap_pb("Tuần", 2)))
-kiem("phiếu bản 2 KHÔNG có T11 (chuyển sang quản lý thiết bị đo — W17)",
-     "t11_can_qua_chuan" not in ap_pb("Tuần", 2))
+print("-- phiên bản: D187 gộp về MỘT bộ mục; cơ chế giữ cho lần sửa bản giấy sau --")
+MOI = {"a5_chuyen_doi", "thung_khay_cat_sach", "u_thung_go_vai", "nc01_da_kiem", "hat_tho", "di_vat_ray"}
+CU = {"t11_can_qua_chuan", "u_thung_vai_sach", "nam_cham_da_kiem", "nam_cham_vat", "nam_cham_mat_kim_loai"}
+JD = {f["fieldname"] for f in json.load(open("sx/qc/doctype/sx_qc_round/sx_qc_round.json", encoding="utf-8"))["fields"]}
+kiem("D187: một bộ mục hiện hành — PHIEN_BAN = 1, không mục nào còn giới hạn phiên bản",
+     M.PHIEN_BAN == 1 and all(m["tu"] == 1 and not m["den"] for m in M.MUC))
+kiem("D187: ô cũ bỏ hẳn — T11 quả chuẩn, mục 5 bản cũ, mục 6 một bộ nam châm (danh mục lẫn DocType)",
+     not CU & set(M.THEO_F) and not CU & JD and "ca" not in JD, str(CU & (set(M.THEO_F) | JD)))
+kiem("phiếu mọi phiên bản cũ (trống / 2 / 3 — trước patch d187) đọc đủ bộ mục hiện hành",
+     MOI <= ap_pb("Tuần", 0) and ap_pb("Tuần", 0) == ap_pb("Tuần", 2) == ap_pb("Tuần", 3) == ap_pb("Tuần", 1))
+_x = dict(M.THEO_F["luoc_soi_du"], tu=2)
+_y = dict(M.THEO_F["luoc_soi_du"], den=2)
+kiem("cơ chế phiên bản còn nguyên: mục `tu=2` không có ở phiếu bản 1, mục `den=2` không có ở phiếu bản 2",
+     not M.con_hieu_luc(_x, 1) and M.con_hieu_luc(_x, 2) and M.con_hieu_luc(_y, 1) and not M.con_hieu_luc(_y, 2))
 d = Doc(luot="Trưa", ngay="2026-10-08")
 R.SXQCRound.before_insert(d)
 kiem("mở phiếu mới → ghi phiên bản hiện hành", d.phien_ban == M.PHIEN_BAN)
@@ -252,19 +255,19 @@ kiem("phiếu đã có phiên bản (Desk / nhập lại) → giữ nguyên", d.
 
 print("\n-- W01: mục mới đúng lượt --")
 for l in ("Đầu sáng", "Trưa", "Cuối chiều", "Tuần"):
-    kiem(f"1e chuyển đổi trong ngày có ở lượt {l}", "a5_chuyen_doi" in ap_pb(l, 2))
-    kiem(f"5 thùng ủ, vải ủ có ở lượt {l}", "u_thung_vai_sach" in ap_pb(l, 2))
+    kiem(f"1e chuyển đổi trong ngày có ở lượt {l}", "a5_chuyen_doi" in ap_pb(l, 1))
 kiem("4b thùng, khay cát sạch chỉ lượt Đầu sáng / Tuần",
-     "thung_khay_cat_sach" in ap_pb("Đầu sáng", 2) and "thung_khay_cat_sach" in ap_pb("Tuần", 2)
-     and "thung_khay_cat_sach" not in ap_pb("Trưa", 2))
+     "thung_khay_cat_sach" in ap_pb("Đầu sáng", 1) and "thung_khay_cat_sach" in ap_pb("Tuần", 1)
+     and "thung_khay_cat_sach" not in ap_pb("Trưa", 1))
 kiem("mục 4 cũ thành 4a, mục mới 4b cùng công đoạn Sàng cát",
      M.THEO_F["luoi_sang_nguyen_ven"]["so"] == "4a" and M.THEO_F["thung_khay_cat_sach"]["buoc"] == "4")
 kiem("công đoạn 5 Ủ tắt được khi không chạy",
-     "5" in M.BUOC_TAT_DUOC and "u_thung_vai_sach" not in ap_pb("Trưa", 2, buoc_nghi="5"))
+     "5" in M.BUOC_TAT_DUOC and "u_thung_go_vai" in ap_pb("Đầu sáng", 1)
+     and "u_thung_go_vai" not in ap_pb("Đầu sáng", 1, buoc_nghi="5"))
 kiem("bước 5 đứng giữa 4 Sàng cát và 6 Vỡ đỗ",
      [b[0] for b in M.BUOC].index("5") == [b[0] for b in M.BUOC].index("4") + 1)
 kiem("nhãn mục 5 nói VẢI ủ, không phải khăn phủ",
-     "vải ủ" in M.THEO_F["u_thung_vai_sach"]["nhan"] and "khăn" not in M.THEO_F["u_thung_vai_sach"]["nhan"])
+     "vải ủ" in M.THEO_F["u_thung_go_vai"]["nhan"] and "khăn" not in M.THEO_F["u_thung_go_vai"]["nhan"])
 kiem("B5 nhắc hộp nhựa", "hộp nhựa" in M.THEO_F["b5_nhan_di_ung"]["nhan"])
 
 print("\n-- W01: mục chuyển đổi (1e, B7c) --")
@@ -276,17 +279,15 @@ kiem("1e Không đạt → sự cố Dị ứng mức Thường",
      == [("a5_chuyen_doi", "Dị ứng", "Thường")], str(sc(a5_chuyen_doi="Không đạt")))
 kiem("1e Đạt / Không có → không sự cố",
      not sc(a5_chuyen_doi="Đạt") and not sc(a5_chuyen_doi="Không có chuyển đổi"))
-kiem("1e trên phiếu bản 1 không xét (mục chưa tồn tại)",
-     not sc(a5_chuyen_doi="Không đạt", phien_ban=1))
 kiem("4b Không đạt → sự cố PRP", [x[2] for x in sc(thung_khay_cat_sach="Không đạt")] == ["PRP"])
-kiem("5 Không đạt → sự cố PRP", [x[2] for x in sc(luot="Trưa", u_thung_vai_sach="Không đạt")] == ["PRP"])
+kiem("5 Không đạt → sự cố PRP", [x[2] for x in sc(u_thung_go_vai="Không đạt")] == ["PRP"])
 
 print("\n-- W01: B7c vệ sinh chuyển đổi sữa --")
 kiem("có bột, không vị có sữa → không có B7c",
-     "b7_ve_sinh_sua" not in ap_pb("Trưa", 2, co_san_xuat_bot=1))
-kiem("có vị có sữa → có B7c", "b7_ve_sinh_sua" in ap_pb("Trưa", 2, co_san_xuat_bot=1, co_sua=1))
+     "b7_ve_sinh_sua" not in ap_pb("Trưa", 1, co_san_xuat_bot=1))
+kiem("có vị có sữa → có B7c", "b7_ve_sinh_sua" in ap_pb("Trưa", 1, co_san_xuat_bot=1, co_sua=1))
 kiem("lượt trước làm vị có sữa → lượt này có B7c",
-     "b7_ve_sinh_sua" in ap_pb("Trưa", 2, co_san_xuat_bot=1, can_ve_sinh_sua=1))
+     "b7_ve_sinh_sua" in ap_pb("Trưa", 1, co_san_xuat_bot=1, can_ve_sinh_sua=1))
 kiem("B7c Không đạt → Dị ứng",
      [x[2] for x in sc(luot="Trưa", co_san_xuat_bot=1, co_sua=1, b7_ve_sinh_sua="Không đạt")]
      == ["Dị ứng"])
@@ -301,11 +302,11 @@ frappe.get_all = lambda dt, *a, **k: ([Doc(x) for x in SP_GIA] if dt == "SX San 
                                      else _ga(dt, *a, **k))
 LUOT.clear()
 d = R.SXQCRound(Doc(name="QC-1", ngay="2026-10-08", luot="Trưa", co_san_xuat_bot=1,
-                    san_pham_bot="BDN", phien_ban=2))
+                    san_pham_bot="BDN"))
 R.SXQCRound.tinh_boi_canh(d)
 kiem("vị gắn sản phẩm 'có sữa bột' → co_sua = 1, B7c bật", d.co_sua == 1 and d.can_ve_sinh_sua == 1)
 d = R.SXQCRound(Doc(name="QC-2", ngay="2026-10-08", luot="Trưa", co_san_xuat_bot=1,
-                    san_pham_bot="BDS", phien_ban=2))
+                    san_pham_bot="BDS"))
 R.SXQCRound.tinh_boi_canh(d)
 kiem("vị không gắn, không có trong danh sách → co_sua = 0", d.co_sua == 0)
 CAI_DAT["bot_co_sua"] = "Bột đậu sữa dừa có đường"
@@ -330,7 +331,7 @@ kiem("nhãn máy 2 ghi M2", M.THEO_F["hat_tho_m2"]["nhan"].endswith("M2"))
 kiem("hạt thô là ô ĐẾM: 0 hạt = đã kiểm (cả ô máy 2)",
      M.co_ghi(M.THEO_F["hat_tho"], 0) and M.co_ghi(M.THEO_F["hat_tho_m2"], 0))
 kiem("chưa có ngưỡng hạt thô → 5 hạt KHÔNG thành sự cố", not sc(hat_tho=5))
-cb = SC.canh_bao(Doc(luot="Đầu sáng", phien_ban=2, hat_tho=5))
+cb = SC.canh_bao(Doc(luot="Đầu sáng", hat_tho=5))
 kiem("… nhưng có cảnh báo ghi M1", any("5 hạt thô" in c and "M1" in c for c in cb), str(cb))
 CAI_DAT["hat_tho_toi_da"] = "0"
 kiem("ngưỡng '0' (không cho hạt nào) là ngưỡng THẬT → 1 hạt = sự cố oPRP-2",
@@ -358,7 +359,7 @@ kiem("CSV: mục chuyển đổi in đủ chữ", Q._in_csv(cd, "Không có chuy
 ds = open("sx/qc/day_sheet.html", encoding="utf-8").read()
 kiem("tờ in có chú thích KCĐ", "KCĐ = không có chuyển đổi" in ds)
 qsrc = open("sx/api/qc.py", encoding="utf-8").read()
-kiem("tờ in bỏ hàng của mục không có trong bộ mục nào của ngày (T11 sau D129)",
+kiem("tờ in bỏ hàng của mục không có trong bộ mục nào của ngày (cơ chế D129)",
      "M.con_hieu_luc(m, pb) for pb in pb_ngay" in qsrc)
 jd = {f["fieldname"]: f for f in json.load(open(
     "sx/qc/doctype/sx_qc_round/sx_qc_round.json", encoding="utf-8"))["fields"]}

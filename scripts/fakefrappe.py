@@ -182,6 +182,10 @@ def exists(dt, ten=None):
 
 def set_value(dt, ten, f, v=None, update_modified=True):
     dd = f if isinstance(f, dict) else {f: v}
+    if isinstance(ten, dict):                 # như frappe: bộ lọc → sửa mọi bản ghi khớp
+        for x in get_all(dt, ten):
+            set_value(dt, x["name"], dd)
+        return
     _kiem_ghi(dt, ten, dd)
     bang(dt)[ten].update(dd)
 
@@ -196,6 +200,17 @@ def _kiem_ghi(dt, ten, dd):
 
 def count(dt, f=None):
     return len(get_all(dt, f))
+
+
+def xoa_ban_ghi(dt, f=None):
+    """frappe.db.delete: xoá thẳng các bản ghi khớp bộ lọc (không gọi hook). "Singles" = các ô của doctype Single."""
+    if dt == "Singles":
+        dd = f or {}
+        noi = CAI_DAT if dd.get("doctype") == "SX QC Setting" else CAI_DAT_SX
+        noi.pop(dd.get("field"), None)
+        return
+    for x in get_all(dt, f):
+        bang(dt).pop(x["name"], None)
 
 
 def sx_dau_trang(ma, ten=None):
@@ -456,12 +471,13 @@ def get_doc(a, b=None):
 
 def delete_doc(dt, ten, **k):
     d = get_doc(dt, ten)
-    if hasattr(d, "_goi"):
-        d._goi("on_trash")
+    goi = getattr(d, "_goi", None)            # DocThuong (không controller) trả None cho thuộc tính lạ
+    if callable(goi):
+        goi("on_trash")
     bang(dt).pop(ten)
     _chep_con(dt, {"name": ten}, xoa=True)
-    if hasattr(d, "_goi"):
-        d._goi("after_delete")
+    if callable(goi):
+        goi("after_delete")
 
 
 def bang_con(dt, f, dt_con):
@@ -528,9 +544,12 @@ def cai():
     frappe.render_template = render_template
     frappe.get_cached_doc = lambda dt, *a: Doc(CAI_DAT if dt == "SX QC Setting" else CAI_DAT_SX)
     frappe.get_single = frappe.get_cached_doc
-    frappe.get_meta = lambda dt: types.SimpleNamespace(has_field=lambda f: True, get_field=lambda f: None)
+    # has_field theo DocType JSON của app (D187: patch hỏi "ô này còn không"); DocType ngoài app → coi như có.
+    frappe.get_meta = lambda dt: types.SimpleNamespace(has_field=lambda f: f in meta(dt) if meta(dt) else True,
+                                                       get_field=lambda f: None)
     frappe.db = types.SimpleNamespace(get_value=get_value, exists=exists, set_value=set_value, count=count,
                                       table_exists=lambda dt: dt not in DON, commit=lambda: None,
+                                      delete=xoa_ban_ghi,
                                       get_single_value=lambda dt, f: (CAI_DAT if dt == "SX QC Setting"
                                                                       else CAI_DAT_SX).get(f),
                                       set_single_value=lambda dt, f, v: (CAI_DAT if dt == "SX QC Setting"
