@@ -129,8 +129,39 @@ def _duoc_ghi():
     return bool(_sieu() or _roles() & GHI_DUOC)
 
 
+def _ton_can_duyet():
+    """{(item, hsd): số} — lô thành phẩm ĐANG CÓ trong Kho TP mà bán phải có BM.08.04 duyệt (như kiem_ban: lô tạo từ
+    ngày áp dụng, không phải lô tồn cũ của kiểm kê). D188: kiểm kê đặt lại kho đưa hàng làm từ ngày áp dụng vào lô theo
+    HSD mà không đánh dấu tồn cũ — QC phải thấy các lô đó để kiểm. Chặn tắt / chưa cấu hình Kho TP → {}."""
+    s = get_settings()
+    kho = s.get("kho_tp")
+    if not kho or not _bat(s):
+        return {}
+    from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import ton_lo
+
+    ds = [(i, l) for i, ls in ton_lo(kho, [x.name for x in items_tp(["name"])]).items() for l in ls
+          if l["batch"] and l["hsd"] and not l["thu_hoi"] and flt(l["qty"]) > 0]
+    if not ds:
+        return {}
+    try:
+        lo = {b.name: b for b in frappe.get_all("Batch", filters={"name": ("in", [l["batch"] for _i, l in ds])},
+                                                 fields=["name", "creation", "custom_kiem_ke"])}
+    except Exception:                 # chưa migrate D154
+        return {}
+    tn = tu_ngay(s)
+    ra = {}
+    for i, l in ds:
+        b = lo.get(l["batch"])
+        if not b or b.get("custom_kiem_ke") or (tn and getdate(b.creation) < tn):
+            continue
+        k = (i, str(getdate(l["hsd"])))
+        ra[k] = ra.get(k, 0.0) + flt(l["qty"])
+    return ra
+
+
 def _cho_kiem():
-    """[(item, hsd, nsx, so_luong, nguon)] — lô có hàng chờ nhập kho, chưa có phiếu hiệu lực."""
+    """[(item, hsd, nsx, so_luong, nguon)] — lô có hàng chờ nhập kho, hoặc đang trong Kho TP mà chưa được bán (D188),
+    chưa có phiếu hiệu lực."""
     from sx.api.khotp import con_theo_hsd
 
     den = getdate(nowdate())
@@ -150,6 +181,11 @@ def _cho_kiem():
         if k not in gom:
             gom[k] = {"so_luong": flt(r.so_dem) or flt(r.so_lap), "nsx": None,
                       "nguon": _("phiếu nhập kho nháp")}
+    for k, q in _ton_can_duyet().items():
+        if k in gom:
+            gom[k]["so_luong"] += q
+        else:
+            gom[k] = {"so_luong": q, "nsx": None, "nguon": _("đang trong kho, chưa bán được")}
     if not gom:
         return []
     p = XX.theo_lo(list(gom))

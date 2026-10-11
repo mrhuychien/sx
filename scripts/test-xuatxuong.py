@@ -843,6 +843,45 @@ kiem("lô đã có phiếu hiệu lực (TP-SEN đã duyệt) không hiện lạ
 kiem("số lượng + nguồn", cho[("TP-DUA", "2027-06-01")]["so_luong"] == 30
      and cho[("TP-DUA", "2027-06-02")]["so_luong"] == 12)
 kiem("cờ quyền: QC ghi được, không duyệt", (ds["duoc_ghi"], ds["duoc_duyet"]) == (True, False))
+# D188: kiểm kê đặt lại kho đưa hàng làm từ ngày áp dụng vào lô theo HSD mà không đánh dấu tồn cũ → lô đó đang trong
+# Kho TP nhưng chưa bán được; QC phải thấy nó ở Lô chờ kiểm. Tồn kiểm kê / tồn trước ngày áp dụng / lô đã duyệt thì không.
+KK = types.ModuleType("sx.sx.doctype.sx_kiem_ke.sx_kiem_ke")
+TON = {}
+KK.ton_lo = lambda kho, items: {i: ls for i, ls in TON.items() if i in items} if kho == "Kho TP" else {}
+sys.modules["sx.sx.doctype.sx_kiem_ke.sx_kiem_ke"] = KK
+THEM = [{"name": "DUA-HSD270701", "item": "TP-DUA", "expiry_date": date(2027, 7, 1), "creation": "2026-10-08 11:00"},
+        {"name": "DUA-HSD270801", "item": "TP-DUA", "expiry_date": date(2027, 8, 1), "creation": "2026-10-08 11:00",
+         "custom_kiem_ke": "SKK-00001"},
+        {"name": "DUA-CU-270901", "item": "TP-DUA", "expiry_date": date(2027, 9, 1), "creation": "2026-04-01 10:00"},
+        {"name": "DUA-HSD270601", "item": "TP-DUA", "expiry_date": date(2027, 6, 1), "creation": "2026-10-08 11:00"}]
+BATCH.extend(THEM)
+
+
+def _l(b, q, hsd, thu_hoi=False):
+    return {"batch": b, "qty": q, "hsd": hsd, "thu_hoi": thu_hoi}
+
+
+TON.update({"TP-DUA": [_l("DUA-HSD270701", 7, "2027-07-01"), _l("DUA-HSD270801", 9, "2027-08-01"),
+                       _l("DUA-CU-270901", 4, "2027-09-01"), _l("DUA-HSD270601", 5, "2027-06-01"),
+                       _l("DUA-HSD270701", 0, "2027-07-01"), _l(None, 2, None)],
+            "TP-SEN": [_l("SEN-HSD270405", 6, "2027-04-05")]})
+SETTINGS["kho_tp"] = "Kho TP"
+cho = {(c["item"], c["hsd"]): c for c in A.ds_xuat_xuong()["cho_kiem"]}
+kiem("D188: lô ĐANG TRONG Kho TP mà bán phải có BM.08.04 hiện ở Lô chờ kiểm (nguồn 'đang trong kho')",
+     ("TP-DUA", "2027-07-01") in cho and cho[("TP-DUA", "2027-07-01")]["so_luong"] == 7
+     and "trong kho" in cho[("TP-DUA", "2027-07-01")]["nguon"], sorted(cho))
+kiem("… không hiện: lô tồn kiểm kê (đánh dấu), lô tạo trước ngày áp dụng, lô đã có phiếu duyệt, tồn không lô",
+     not {("TP-DUA", "2027-08-01"), ("TP-DUA", "2027-09-01"), ("TP-SEN", "2027-04-05")} & set(cho), sorted(cho))
+kiem("… cùng HSD với hàng đã vào hộp chưa nhập: cộng số (30 + 5)", cho[("TP-DUA", "2027-06-01")]["so_luong"] == 35,
+     cho[("TP-DUA", "2027-06-01")])
+SETTINGS["chan_nhap_chua_xuat_xuong"] = 0
+kiem("… tắt chặn BM.08.04 → không thêm lô trong kho", ("TP-DUA", "2027-07-01") not in {
+    (c["item"], c["hsd"]) for c in A.ds_xuat_xuong()["cho_kiem"]})
+SETTINGS["chan_nhap_chua_xuat_xuong"] = 1
+SETTINGS.pop("kho_tp")
+TON.clear()
+for x in THEM:
+    BATCH.remove(x)
 vai("SX Vao Hop")
 kiem("người ngoài QC không vào được", thu(lambda: A.ds_xuat_xuong()) is not None)
 vai("ISO Manager")

@@ -2,8 +2,8 @@
 //
 // THÀNH PHẨM (D154): lô thành phẩm vào kho từ trước khi lô mang HSD — truy xuất theo HSD in trên hộp không ra,
 // xuất FEFO và báo cận date bỏ sót. Thủ kho đi từng mã, đếm theo HSD in trên hộp (cùng bàn số thùng / hộp + HSD
-// với Nhập kho), xem trước rồi CHỐT — số đếm thay tồn của mã: lô cũ chuyển sang lô theo HSD, thừa / thiếu ghi
-// điều chỉnh kho.
+// với Nhập kho), xem trước rồi CHỐT. D188: chốt = ĐẶT LẠI TOÀN KHO theo số đếm — mỗi loại, mỗi HSD một lô; mã có
+// tồn mà không đếm về 0; lô cũ chuyển sang lô theo HSD, thừa / thiếu ghi điều chỉnh kho.
 // BÁN THÀNH PHẨM (D155): Kho BTP / Kho xưởng — hàng rời tính kg, lô theo ngày làm / lô rang, không có HSD: CÂN
 // TỪNG LÔ. Lô đã cân thì số cân thay số sổ của lô đó; lô chưa cân giữ nguyên.
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
@@ -145,8 +145,8 @@ export async function render({ container, call, boot }) {
       <div class="sx-field-label">${tieuDe()}</div>
       <div class="sx-muted">${laBtp()
     ? 'Cân từng lô (kg) rồi chốt: lô đã cân thì số cân thay số sổ của lô đó, lô chưa cân giữ nguyên; thừa / thiếu ghi điều chỉnh kho.'
-    : `Đếm hàng trong kho theo HSD in trên hộp rồi chốt: lô cũ chưa có HSD chuyển sang lô theo HSD, thừa / thiếu
-        ghi điều chỉnh kho.`}</div>
+    : `Đếm số thùng / hộp từng loại theo HSD in trên hộp rồi chốt. Chốt = <b>đặt lại toàn bộ kho thành phẩm</b>
+        theo số đếm: mỗi loại, mỗi HSD một lô; mã không đếm về 0; thừa / thiếu ghi điều chỉnh kho.`}</div>
       ${tom}
       ${veCanhBao()}
       <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-bat">BẮT ĐẦU KIỂM KÊ</button>
@@ -206,7 +206,7 @@ export async function render({ container, call, boot }) {
     : 'sx-kk-khop'}">${coDau(lech, le())}${laBtp() ? ' kg' : ''}</span>` : ''}</div>
       <div class="sx-kk-nhac">${laBtp()
     ? 'Đang kiểm kê: lô đã cân thì đừng xuất / nhập lô đó. Có chứng từ kho của lô sau lúc cân thì phải cân lại lô đó mới chốt được.'
-    : 'Đang kiểm kê: đừng bán / nhập / xuất các mã đang đếm. Có chứng từ kho sau lúc đếm thì phải đếm lại mã đó mới chốt được.'}</div>
+    : 'Đang kiểm kê: đừng bán / nhập / xuất thành phẩm. Chốt sẽ đặt lại toàn kho theo số đếm — mã có tồn mà không đếm về 0. Có chứng từ kho sau lúc đếm thì phải đếm lại mã đó mới chốt được.'}</div>
       ${veCanhBao()}
       <div class="sx-kk-loc" role="tablist">${LOC.map(([k, ten, f]) => `<button type="button" role="tab"
         class="sx-np-chip${st.loc === k ? ' sx-np-chip-on' : ''}" data-loc="${k}" aria-selected="${st.loc === k}">${
@@ -302,7 +302,8 @@ export async function render({ container, call, boot }) {
     const tom = x.da_dem
       ? `đếm <b>${formatNumber(x.tong_dem)}</b> · sổ ${formatNumber(x.so_sach)} · ${Math.abs(l) > 1e-9
         ? `<span class="sx-kk-lech">${coDau(l)}</span>` : '<span class="sx-kk-khop">khớp</span>'}`
-      : `sổ <b>${formatNumber(x.so_sach)}</b> · <span class="sx-kk-chua">chưa đếm</span>`;
+      : `sổ <b>${formatNumber(x.so_sach)}</b> · <span class="sx-kk-chua">chưa đếm${
+        x.so_sach > 0 ? ' — chốt về 0' : ''}</span>`;
     const tren = [x.chua_hsd > 0 ? `chưa có HSD ${formatNumber(x.chua_hsd)}` : '',
       ...x.theo_hsd.map((h) => `HSD ${veNgayDu(h.hsd)}: ${formatNumber(h.so)}`),
       x.thu_hoi > 0 ? `thu hồi ${formatNumber(x.thu_hoi)} (để riêng, không đếm)` : ''].filter(Boolean).join(' · ');
@@ -575,7 +576,7 @@ export async function render({ container, call, boot }) {
       <div class="sx-vh-list">${x.ma.map((r) => `
         <div class="sx-vh-row" style="cursor:default"><div class="sx-vh-who">
           <div class="sx-vh-name">${esc(r.ten)}</div>
-          <div class="sx-vh-meta">${esc([
+          <div class="sx-vh-meta">${r.chua_dem ? '<span class="sx-kk-chua">chưa đếm → về 0</span> · ' : ''}${esc([
     btp && r.lo_can ? `${r.lo_can} lô` : '',
     r.chuyen ? `chuyển ${formatNumber(r.chuyen)} từ ${r.lo_cu} lô cũ sang lô theo HSD` : '',
     r.thieu ? `thiếu ${n(r.thieu)}${dv}` : '', r.thua ? `thừa ${n(r.thua)}${dv}` : '',
@@ -584,15 +585,17 @@ export async function render({ container, call, boot }) {
     || 'khớp sổ — không đổi gì')}</div></div>
           <span class="sx-nv-qty">${n(r.so_sach)} → ${n(r.dem)}</span></div>`).join('')}</div>
       <div class="sx-muted">${btp ? `Chốt sẽ sinh ${t.phieu_kho} chứng từ kho: thiếu / thừa từng lô ghi điều chỉnh kho.
-        Lô chưa cân giữ nguyên số sổ sách.` : `Chốt sẽ sinh ${t.phieu_kho} chứng từ kho: chuyển lô giữ nguyên giá vốn;
-        thiếu / thừa ghi điều chỉnh kho. Mã chưa đếm giữ nguyên số sổ sách.`}</div>`;
+        Lô chưa cân giữ nguyên số sổ sách.` : `Chốt sẽ <b>đặt lại toàn bộ kho thành phẩm</b> theo số đếm, sinh ${
+  t.phieu_kho} chứng từ kho: chuyển lô giữ nguyên giá vốn; thiếu / thừa ghi điều chỉnh kho. Sau chốt mỗi loại,
+        mỗi HSD một lô${t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}.`}</div>`;
     if (x.duoc_chot && !x.loi.length && x.ma.length) {
       const b = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'CHỐT KIỂM KÊ');
       b.type = 'button';
       b.addEventListener('click', () => confirm2Step({
         title: `Chốt kiểm kê ${x.name}`,
-        message: `${t.so_ma} mã${btp ? `, ${t.so_lo} lô` : ''}: sổ ${n(t.so_sach)} → ${btp ? 'cân' : 'đếm'} ${n(t.dem)}${dv} (${
-          coDau(t.dem - t.so_sach, d)}).\n`
+        message: `${btp ? '' : 'Đặt lại toàn bộ kho thành phẩm theo số đếm. '}${t.so_ma} mã${btp ? `, ${t.so_lo} lô` : ''}: sổ ${
+          n(t.so_sach)} → ${btp ? 'cân' : 'đếm'} ${n(t.dem)}${dv} (${coDau(t.dem - t.so_sach, d)})${
+          t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}.\n`
           + `Sinh ${t.phieu_kho} chứng từ kho. Chốt rồi không sửa trên màn này được nữa — muốn huỷ phải huỷ `
           + 'phiếu kiểm kê trên Desk (các chứng từ kho huỷ theo).',
         confirmLabel: 'CHỐT',

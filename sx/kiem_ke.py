@@ -1,20 +1,23 @@
-"""Kiểm kê kho thành phẩm theo HSD (D154) — phần TÍNH, không đụng DB.
+"""Kiểm kê kho thành phẩm theo HSD (D154; D188: chốt = đặt lại toàn kho) — phần TÍNH, không đụng DB.
 
 Thủ kho đếm hàng trong kho theo HSD in trên hộp. Chốt kiểm kê thì số đếm THAY toàn bộ tồn của mã đó trong
-kho (trừ lô đang thu hồi — để riêng, không kiểm ở đây). Hàm `lap_ke_hoach` nhận tồn từng lô + số đếm theo
-HSD của MỘT mã và trả ra phải làm gì với từng lô:
+kho (trừ lô đang thu hồi — để riêng, không kiểm ở đây); D188: mã có tồn mà không đếm thì số đếm là 0. Sau chốt
+mỗi (mã, HSD) đúng MỘT lô — lô chuẩn `…-HSDddmmyy` (sx.utils.ma_lo_hsd). Hàm `lap_ke_hoach` nhận tồn từng lô +
+số đếm theo HSD của MỘT mã và trả ra phải làm gì với từng lô:
 
-  giu     lô đã có HSD, số đếm của HSD đó đủ phủ → để nguyên, không sinh chứng từ
-  chuyen  lô cũ chưa có HSD (và phần dư của lô có HSD mà đếm ít hơn) → chuyển sang lô theo HSD đếm được
-          (Stock Entry Repack: giá vốn đi theo hàng, truy xuất ngược từ lô HSD về lô cũ vẫn còn)
+  giu     lô CHUẨN của một HSD, số đếm của HSD đó đủ phủ → để nguyên, không sinh chứng từ
+  chuyen  lô cũ (chưa có HSD, hoặc có HSD mà không phải lô chuẩn — D188 gộp về lô chuẩn) và phần dư của lô
+          chuẩn mà đếm ít hơn → chuyển sang lô chuẩn của HSD đếm được (Stock Entry Repack: giá vốn đi theo
+          hàng, truy xuất ngược từ lô HSD về lô cũ vẫn còn)
   xuat    phần sổ có mà đếm không thấy → xuất điều chỉnh THIẾU (Material Issue)
   nhap    phần đếm thấy mà sổ không có → nhập điều chỉnh THỪA vào lô theo HSD (Material Receipt)
   bu_am   lô đang âm (kho cho phép tồn âm) → nhập bù về 0
   bo_qua  lô đang thu hồi → không đụng
 
-Lô cũ không biết hộp nào mang HSD nào (hộp chỉ in HSD, không in mã lô), nên lô cũ là một "bể" chung. Ghép
-HSD cũ nhất với lô cũ nhất mà NGÀY LÔ ≥ NSX của HSD đó (hộp làm ngày D chỉ có thể nằm trong lô nhập từ
-ngày D trở đi); hết lô hợp lệ mới lấy lô còn lại. Phần bể thừa là THIẾU, phần HSD chưa có nguồn là THỪA.
+Lô cũ không biết hộp nào mang HSD nào (hộp chỉ in HSD, không in mã lô), nên lô cũ là một "bể" chung. Lấy cho
+một HSD: trước hết lô cũ ghi ĐÚNG HSD đó (cùng hàng, chỉ khác tên lô); rồi lô cũ nhất mà NGÀY LÔ ≥ NSX của HSD
+(hộp làm ngày D chỉ có thể nằm trong lô nhập từ ngày D trở đi); hết lô hợp lệ mới lấy lô còn lại. Phần bể thừa
+là THIẾU, phần HSD chưa có nguồn là THỪA.
 """
 
 EPS = 1e-6
@@ -28,8 +31,8 @@ def lap_ke_hoach(lots, dem, nsx_cua=None):
     """Kế hoạch kiểm kê cho MỘT mã ở MỘT kho — hàm thuần.
 
     lots    [{batch, qty, hsd ('YYYY-MM-DD' | None), ngay (NSX / ngày tạo lô), thu_hoi, chuan}]
-            `chuan` = lô theo HSD sinh từ D131 (tên …-HSDddmmyy) — đếm ít hơn sổ thì giữ hàng trên lô
-            chuẩn trước, bớt từ lô cũ trước.
+            `chuan` = lô theo HSD sinh từ D131 (tên …-HSDddmmyy) — lô duy nhất được GIỮ cho HSD của nó; lô có
+            HSD mà không chuẩn vào bể, gộp sang lô chuẩn (D188: mỗi mã, mỗi HSD một lô).
     dem     {hsd: số đếm}; {} = đã đếm, không còn hộp nào
     nsx_cua hsd → NSX ('YYYY-MM-DD') của hộp mang HSD đó, None khi mã chưa khai hạn dùng
     """
@@ -53,10 +56,10 @@ def lap_ke_hoach(lots, dem, nsx_cua=None):
             ke["bu_am"].append({"batch": l["batch"], "hsd": h, "so": _r(-q)})
             continue
         l = dict(l, qty=q, hsd=h)
-        if h:
+        if h and l.get("chuan"):
             co_hsd.setdefault(h, []).append(l)
         else:
-            be.append([l, q])
+            be.append([l, q])     # lô cũ: chưa có HSD, hoặc có HSD mà không phải lô chuẩn (D188 — gộp về lô chuẩn)
     ke["so_sach"] = _r(ke["so_sach"])
 
     can = {}                      # hsd → số còn phải đưa vào lô theo HSD đó
@@ -69,8 +72,8 @@ def lap_ke_hoach(lots, dem, nsx_cua=None):
             if c - co > EPS:
                 can[h] = c - co
             continue
-        du = co - c               # đếm ít hơn sổ của HSD này: bớt từ lô cũ trước, lô cũ nhất trước
-        for l in sorted(ds, key=lambda x: (bool(x.get("chuan")), str(x.get("ngay") or ""), x["batch"])):
+        du = co - c               # đếm ít hơn sổ của HSD này: phần dư của lô chuẩn vào bể
+        for l in sorted(ds, key=lambda x: (str(x.get("ngay") or ""), x["batch"])):
             lay = min(l["qty"], du)
             du -= lay
             if l["qty"] - lay > EPS:
@@ -81,11 +84,12 @@ def lap_ke_hoach(lots, dem, nsx_cua=None):
     be.sort(key=lambda p: (str(p[0].get("ngay") or ""), p[0]["batch"]))
     for h in sorted(can):         # HSD cũ nhất trước — hàng làm sớm nhất ghép với lô sớm nhất
         nsx = nsx_cua(h)
-        hop = [i for i, p in enumerate(be)
-               if not nsx or not p[0].get("ngay") or str(p[0]["ngay"])[:10] >= str(nsx)[:10]]
-        con_lai = sorted((i for i in range(len(be)) if i not in hop),
+        cung = [i for i, p in enumerate(be) if p[0].get("hsd") == h]     # lô cũ ghi đúng HSD này: cùng hàng
+        hop = [i for i, p in enumerate(be) if i not in cung
+               and (not nsx or not p[0].get("ngay") or str(p[0]["ngay"])[:10] >= str(nsx)[:10])]
+        con_lai = sorted((i for i in range(len(be)) if i not in cung and i not in hop),
                          key=lambda i: str(be[i][0].get("ngay") or ""), reverse=True)
-        for i in hop + con_lai:
+        for i in cung + hop + con_lai:
             if can[h] <= EPS:
                 break
             lay = min(be[i][1], can[h])

@@ -320,6 +320,32 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê thành phẩm: chốt = đặt lại toàn bộ Kho TP, mỗi loại mỗi HSD một lô (D188)
+
+- **Yêu cầu**: chốt kiểm kê coi như **đặt lại (reset) lô toàn bộ kho thành phẩm** — thủ kho nhập bao nhiêu thùng /
+  hộp loại gì, HSD nào; chốt xong Kho TP đúng bằng số đếm, mỗi (loại, HSD) đúng **một lô**.
+- **Cách đếm không đổi** (màn Nhập kho → Kiểm kê kho thành phẩm): từng loại bấm **+ HSD**, nhập số thùng / hộp theo
+  HSD in trên hộp; loại không còn hộp nào bấm **Không còn**.
+- **Chốt giờ đặt lại toàn kho**:
+  - Thành phẩm có tồn trong Kho TP mà **không đếm** → **về 0** (xuất thiếu toàn bộ) — trước đây giữ nguyên. Dòng mã
+    trên thẻ ghi "chưa đếm — chốt về 0"; XEM TRƯỚC liệt kê các mã đó ("chưa đếm → về 0") kèm cảnh báo, hộp xác nhận
+    ghi số mã về 0; biên bản ghi "chưa đếm — về 0". Lô đang thu hồi vẫn để riêng, không đụng; hàng không phải thành
+    phẩm để trong Kho TP không đụng.
+  - **Mỗi loại, mỗi HSD một lô** — lô chuẩn `…-HSDddmmyy`. Lô cũ chưa có HSD **và lô đã ghi HSD mà không phải lô
+    chuẩn** (trước đây được giữ nguyên) gộp sang lô chuẩn bằng Repack: giá vốn đi theo hàng, truy xuất ngược từ lô
+    HSD về lô cũ vẫn còn. Lấy hàng cho một HSD: trước hết lô cũ ghi đúng HSD đó, rồi tới lô cũ theo ngày như D154.
+  - Mã không quản lý lô mà có tồn, không đếm (hoặc Không còn) → về 0 bằng phiếu xuất không lô (trước đây chặn chốt).
+- **Chặn chốt mới**: mã chưa đếm (sắp về 0) có chứng từ kho **sau lúc bắt đầu kiểm kê** (nhập kho, trả hàng…) — hàng
+  đó có thể đang nằm trong kho mà chưa ai đếm. Đếm mã đó (hoặc bấm Không còn) rồi chốt.
+- **BM.08.04 không chặn chốt nữa**: HSD của hàng làm từ ngày áp dụng BM.08.04 mà chưa duyệt xuất xưởng — chốt vẫn đưa
+  hàng vào lô theo HSD (đặt lại kho phải chốt được) nhưng lô đó **không đánh dấu tồn cũ** → **chưa bán được** tới khi
+  QC kiểm, Trưởng Ban ISO duyệt BM.08.04. XEM TRƯỚC báo trước các lô đó. Màn QC → Xuất xưởng, mục **Lô chờ kiểm** nay
+  có cả lô đang nằm trong Kho TP mà chưa bán được (nguồn "đang trong kho, chưa bán được").
+- Test: `test-kiemke.py` (gộp lô có HSD không chuẩn về lô chuẩn, mã chưa đếm về 0 kể cả mã không lô, chặn chứng từ
+  sau lúc bắt đầu, lô chưa duyệt BM.08.04 không đánh dấu, biên bản, huỷ phiếu trả lại tồn), `test-xuatxuong.py` (lô
+  chờ kiểm từ tồn kho), `test-sohsd.mjs` (chữ trên thẻ, xem trước, hộp xác nhận).
+- Build **sx-146**. Không đổi DocType: `git pull` → `bench restart`.
+
 ## Bỏ phần chỉ còn để đọc phiếu cũ: T11, ca Sáng / Chiều, mục 5 – 6 bản cũ, ô độ ẩm khi nhận (D187)
 
 - Rà soát app theo sổ đăng ký tài liệu 21/9/2026: các phần dưới không còn trên bản giấy hiện hành, app chỉ giữ để đọc /
@@ -1147,7 +1173,8 @@ nhận giấy. Căn cứ QT.01 phần kiểm soát tài liệu; QĐ ban hành 21
   hết hạn vẫn đếm được. Mỗi lần LƯU ghi thẳng vào phiếu trên server — tải lại trang, đổi máy, hai người cùng đếm đều được.
 - **Chốt — thủ kho hoặc quản lý** (D155; trước đó chỉ quản lý): **XEM TRƯỚC & CHỐT** cho thấy từng mã sổ → đếm, chuyển bao
   nhiêu từ lô cũ sang lô theo HSD, thiếu / thừa, số chứng từ kho sẽ sinh. Chốt thì số đếm **thay toàn bộ tồn của mã
-  trong Kho TP** (mã chưa đếm giữ nguyên):
+  trong Kho TP** (mã chưa đếm giữ nguyên — **D188: nay chốt đặt lại toàn kho, mã chưa đếm về 0, mỗi mã mỗi HSD một
+  lô**):
   - lô cũ chưa có HSD (và phần dư của lô có HSD mà đếm ít hơn) chuyển sang lô theo HSD (`…-HSDddmmyy`) bằng Stock
     Entry **Repack** — mỗi mã một phiếu, giá vốn đi theo hàng; truy xuất ngược từ lô HSD về lô cũ rồi về ngày sản
     xuất vẫn còn. Ghép HSD với lô cũ theo ngày: hộp làm ngày D chỉ nằm được trong lô nhập từ ngày D;
@@ -1157,7 +1184,8 @@ nhận giấy. Căn cứ QT.01 phần kiểm soát tài liệu; QĐ ban hành 21
     hết hạn).
 - **Không cho chốt khi**: mã đã đếm có chứng từ kho **sau lúc đếm** (bán, nhập, huỷ phiếu…) — bấm **Đếm lại** mã đó;
   HSD của hàng làm **từ ngày áp dụng BM.08.04** mà chưa duyệt xuất xưởng (đó không phải hàng tồn cũ — hàng chưa nhập
-  kho thì nhập qua màn Nhập kho); mã không quản lý theo lô / có tồn không gắn lô. Còn phiếu nhập kho nháp thì nhắc
+  kho thì nhập qua màn Nhập kho; **D188: không chặn nữa** — lô vào kho, chưa bán được tới khi duyệt); mã không quản
+  lý theo lô / có tồn không gắn lô. Còn phiếu nhập kho nháp thì nhắc
   (hàng đó chưa vào sổ — đếm vào là thành thừa).
 - **Lô theo HSD nhận hàng tồn cũ** được đánh dấu `Batch.custom_kiem_ke` → bán **không cần phiếu xuất xưởng** BM.08.04
   (như tồn cũ trước ngày áp dụng). Truy xuất: lô cũ ghi "Kiểm kê KK-… — chuyển sang lô theo HSD"; thu hồi lô cũ hay

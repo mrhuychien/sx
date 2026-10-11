@@ -1,7 +1,8 @@
 """API thẻ "Kiểm kê kho" — màn Nhập kho + Quản lý.
 
-THÀNH PHẨM (D154, Kho TP): ĐẾM theo HSD in trên hộp — mỗi mã một hay nhiều dòng (HSD → số). Chốt: số đếm thay
-tồn của các mã đã đếm, lô cũ chưa có HSD chuyển sang lô theo HSD, thừa / thiếu ghi điều chỉnh kho.
+THÀNH PHẨM (D154, Kho TP): ĐẾM theo HSD in trên hộp — mỗi mã một hay nhiều dòng (HSD → số thùng / hộp). Chốt =
+ĐẶT LẠI TOÀN KHO theo số đếm (D188): mỗi (mã, HSD) đúng một lô, mã có tồn mà không đếm về 0, lô cũ chuyển sang lô
+theo HSD, thừa / thiếu ghi điều chỉnh kho.
 
 BÁN THÀNH PHẨM (D155, Kho BTP / Kho xưởng): hàng rời tính kg — CÂN TỪNG LÔ. Lô đã cân thì số cân thay số sổ của
 lô đó, lô chưa cân giữ nguyên. Chốt: thiếu / thừa từng lô ghi điều chỉnh kho.
@@ -515,11 +516,11 @@ def dem_lai(name, item):
     return _luu(d)
 
 
-def _tom_tat(ke, ten, lo_can=None):
+def _tom_tat(ke, ten, lo_can=None, chua=()):
     ma = []
-    for i, k in sorted(ke.items(), key=lambda x: ten.get(x[0], x[0])):
+    for i, k in sorted(ke.items(), key=lambda x: (x[0] in chua, ten.get(x[0], x[0]))):
         ma.append({
-            "item": i, "ten": ten.get(i, i), "so_sach": k["so_sach"], "dem": k["dem"],
+            "item": i, "ten": ten.get(i, i), "so_sach": k["so_sach"], "dem": k["dem"], "chua_dem": i in chua,
             "lech": flt(k["dem"] - k["so_sach"], 6),
             "chuyen": flt(sum(x["so"] for x in k["chuyen"]), 6),
             "lo_cu": len({x["tu"] for x in k["chuyen"]}),
@@ -540,15 +541,21 @@ def xem_truoc(name):
     d = _phieu(name)
     ke, _ten_lo, ten = d.lap_ke()
     btp = d.la_btp()
-    ma = _tom_tat(ke, ten, {i: len(v) for i, v in d.dem_theo_lo().items()} if btp else None)
+    chua = set() if btp else (getattr(d.flags, "chua_dem", None) or set())
+    ma = _tom_tat(ke, ten, {i: len(v) for i, v in d.dem_theo_lo().items()} if btp else None, chua)
     canh = _canh_bao(d.kho, _loai(d))
+    if chua:
+        ds = sorted(ten.get(i, i) for i in chua)
+        canh.append(_("{0} mã có tồn trên sổ mà CHƯA ĐẾM — chốt sẽ đưa về 0 (xuất thiếu toàn bộ): {1}. Còn hàng thì "
+                      "đếm mã đó trước khi chốt.").format(len(ds), ", ".join(ds[:8]) + (" …" if len(ds) > 8 else "")))
     if not btp:
-        tp = [i.name for i in items_tp(["name"])]
-        chua = [i for i, ls in ton_lo(d.kho, tp).items() if i not in ke
-                and any(l["batch"] and not l["hsd"] and not l["thu_hoi"] and l["qty"] > 0 for l in ls)]
-        if chua:
-            canh.append(_("{0} mã còn lô chưa có HSD mà chưa đếm — chốt lần này giữ nguyên các mã đó.").format(
-                len(chua)))
+        xx = d.chua_duyet_xx(ke)
+        if xx:
+            canh.append(_("{0} lô của hàng làm từ ngày áp dụng BM.08.04 chưa duyệt xuất xưởng: {1}. Chốt vẫn đưa hàng "
+                          "vào lô theo HSD nhưng CHƯA BÁN ĐƯỢC tới khi QC kiểm, Trưởng Ban ISO duyệt BM.08.04 (màn "
+                          "QC → Xuất xưởng, mục Lô chờ kiểm).").format(
+                len(xx), ", ".join(f"{ten.get(i, i)} HSD {getdate(h).strftime('%d/%m/%y')}" for i, h in xx[:6])
+                + (" …" if len(xx) > 6 else "")))
     return {
         "name": d.name, "loai": _loai(d), "ma": ma, "loi": d.kiem_truoc_chot(ke), "canh_bao": canh,
         "duoc_chot": _duoc_chot(),
@@ -557,6 +564,7 @@ def xem_truoc(name):
                  "thieu": flt(sum(x["thieu"] for x in ma), 6), "thua": flt(sum(x["thua"] for x in ma), 6),
                  "chuyen": flt(sum(x["chuyen"] for x in ma), 6),
                  "so_lo": sum(x["lo_can"] or 0 for x in ma),
+                 "ve_0": len(chua),
                  "phieu_kho": so_chung_tu(chia_chung_tu(ke, nowdate()))},
     }
 
@@ -622,25 +630,31 @@ def _bien_ban_tp(d, ten):
     dem, so_sach = {}, {}
     for r in d.dong or []:
         dem.setdefault(r.item, []).append({"hsd": r.hsd, "so": flt(r.so_dem, 3)})
+    ten = dict(ten)
     if d.docstatus == 0:
-        # Bản nháp: số sổ sách tính tới lúc in — để soát trước khi chốt.
-        ke, _ten_lo, _t = d.lap_ke()
+        # Bản nháp: số sổ sách tính tới lúc in — để soát trước khi chốt. D188: kế hoạch có cả mã chưa đếm (về 0).
+        ke, _ten_lo, ten_ke = d.lap_ke()
         so_sach = {i: k["so_sach"] for i, k in ke.items()}
+        for i in ke:
+            ten.setdefault(i, ten_ke.get(i, i))
     else:
-        # Đã chốt: sổ trước = tồn các lô lúc chốt, trừ lô đang thu hồi (để riêng, không kiểm).
+        # Đã chốt: sổ trước = tồn các lô lúc chốt, trừ lô đang thu hồi (để riêng, không kiểm). Mã chưa đếm đã về 0
+        # (D188) chỉ có trong bảng lô — đưa vào danh sách mã.
         from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import VIEC
 
         bo = VIEC["thu_hoi"].split(" —")[0]
         for r in d.lo or []:
             if bo not in (r.viec or ""):
                 so_sach[r.item] = so_sach.get(r.item, 0.0) + flt(r.so_truoc)
+            ten.setdefault(r.item, r.ten or r.item)
     ma = []
-    for i in sorted(ten, key=lambda x: ten[x]):
+    for i in sorted(ten, key=lambda x: (x not in dem, ten[x])):
         dm = flt(sum(x["so"] for x in dem.get(i, [])), 3)
         ss = flt(so_sach.get(i, 0.0), 3) if d.docstatus != 2 else None
         ma.append({"item": i, "ten": ten[i], "dem": sorted((x for x in dem.get(i, []) if x["hsd"]),
                                                             key=lambda x: str(x["hsd"])),
-                   "tong_dem": dm, "so_sach": ss, "lech": flt(dm - ss, 3) if ss is not None else None})
+                   "tong_dem": dm, "so_sach": ss, "lech": flt(dm - ss, 3) if ss is not None else None,
+                   "chua_dem": i not in dem})
     return ma
 
 

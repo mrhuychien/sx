@@ -61,7 +61,7 @@
       <tr>
         {% if loop.first %}<td rowspan="{{ n }}">{{ stt }}</td>
           <td rowspan="{{ n }}">{{ m.ten }}</td>{% endif %}
-        <td>{{ vn(x.hsd) if x.hsd else "không còn hàng" }}</td>
+        <td>{{ vn(x.hsd) if x.hsd else ("chưa đếm — về 0" if m.chua_dem else "không còn hàng") }}</td>
         <td class="s">{{ so(x.so) }}</td>
         {% if loop.first %}<td class="s" rowspan="{{ n }}">{{ so(m.so_sach) }}</td>
           <td class="s" rowspan="{{ n }}">{% if m.lech is not none %}{{ "+" if m.lech > 0 else "" }}{{ so(m.lech) }}{% endif %}</td>{% endif %}
@@ -72,8 +72,8 @@
       <td class="s">{{ so(tong.so_sach) }}</td>
       <td class="s">{% if tong.lech is not none %}{{ "+" if tong.lech > 0 else "" }}{{ so(tong.lech) }}{% endif %}</td></tr>
   </table>
-  <div class="gc">Mã đã đếm: số đếm thay toàn bộ tồn của mã trong kho (trừ lô đang thu hồi — để riêng, không kiểm).
-    Mã không có trong biên bản: giữ nguyên số sổ sách.</div>
+  <div class="gc">Số đếm thay toàn bộ tồn của mã trong kho, mỗi mã mỗi HSD một lô (trừ lô đang thu hồi — để riêng,
+    không kiểm); mã có tồn mà không đếm ghi "chưa đếm — về 0". Mã không có trong biên bản: giữ nguyên số sổ sách.</div>
   {% endif %}
 
   {% if d.lo %}
