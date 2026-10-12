@@ -10,6 +10,8 @@
 // vào xưởng), quản lý bấm DỌN để nhập điều chỉnh về 0, in danh sách cho kế toán.
 // D195: "Chốt sổ tại" — thủ kho / quản lý đặt thời điểm chốt sổ: số sổ sách tính tới lúc đó (số đếm giữ nguyên), chốt
 // ghi chứng từ kho lùi về lúc đó (mã bật lô: chênh lệch ghi lùi, chuyển vào lô lúc bấm). Để trống = lúc bấm chốt.
+// D196: "Huỷ chốt, mở lại đếm tiếp" — phiếu chốt nhầm / chốt khi chưa đếm xong (phiếu chốt mới nhất của kho): huỷ mọi
+// chứng từ kho của lần chốt rồi mở lại phiếu đang đếm với đúng các dòng đã đếm. Thủ kho / quản lý, bắt buộc lý do.
 // BÁN THÀNH PHẨM (D155): Kho BTP / Kho xưởng — hàng rời tính kg, lô theo ngày làm / lô rang, không có HSD: CÂN
 // TỪNG LÔ. Lô đã cân thì số cân thay số sổ của lô đó; lô chưa cân giữ nguyên.
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
@@ -174,11 +176,55 @@ export async function render({ container, call, boot }) {
   g.trang_thai === 'Đã huỷ' ? ' <span class="sx-badge sx-badge-err">Đã huỷ</span>' : ''}</div>
             <div class="sx-vh-meta">${g.so_ma} mã · sổ ${so(g.tong_so_sach)} → ${dem()} ${
   so(g.tong_dem)}${laBtp() ? ' kg' : ''}</div></div>
-          <span class="sx-nv-qty">${coDau(g.tong_lech, le())}</span></div>`).join('')}</div>`;
+          <span class="sx-nv-qty">${coDau(g.tong_lech, le())}</span></div>`).join('')}</div>${veNutHuyChot()}`;
+  }
+
+  // D196: chỉ phiếu đã chốt MỚI NHẤT (lần chốt sau tính trên số của lần trước); người chốt được mới thấy nút.
+  function veNutHuyChot() {
+    const g = dl.duoc_chot ? dl.gan_day.find((x) => x.trang_thai === 'Đã chốt') : null;
+    return g ? `<button type="button" class="sx-btn sx-btn-ghost" id="kk-huychot" data-name="${esc(g.name)}">↺ Huỷ chốt ${
+      esc(g.name)}, mở lại ${dem()} tiếp</button>` : '';
+  }
+
+  function moHuyChot(name) {
+    const g = dl.gan_day.find((x) => x.name === name) || { name };
+    const m = openModal({ kicker: `Kiểm kê · ${name}`, title: `Huỷ chốt, mở lại ${dem()} tiếp` });
+    m.body.innerHTML = `
+      <div class="sx-muted">Huỷ phiếu <b>${esc(name)}</b>${g.chot_luc ? ` (chốt ${esc(veLuc(g.chot_luc))})` : ''}: mọi chứng
+        từ kho của lần chốt bị huỷ theo thứ tự ngược, mã đã bật quản lý lô trở lại như cũ — tồn kho về như trước lúc chốt.
+        Rồi mở lại phiếu đang ${dem()} với <b>đúng các dòng đã ${dem()}</b> (số, người ${dem()}, lúc ${dem()}) — ${dem()}
+        tiếp rồi chốt lại.</div>
+      <div class="sx-kk-nhac">Sau lúc chốt mà mã vừa bật lô đã bán / xuất theo lô thì không huỷ được — huỷ các chứng từ đó
+        trước. Có chứng từ kho sau lúc ${dem()} thì khi chốt lại phải ${dem()} lại mã đó, hoặc đặt thời điểm chốt sổ.</div>
+      <textarea class="sx-textarea" id="kk-hc-ly" rows="2" placeholder="Lý do huỷ chốt (bắt buộc)"></textarea>`;
+    const nut = el('button', 'sx-btn sx-btn-danger sx-btn-big', 'HUỶ CHỐT & MỞ LẠI');
+    nut.type = 'button';
+    nut.addEventListener('click', () => {
+      const ly = (m.body.querySelector('#kk-hc-ly').value || '').trim();
+      if (!ly) { toastErr('Ghi lý do huỷ chốt.'); return; }
+      confirm2Step({
+        title: `Huỷ chốt ${name}`,
+        message: `Huỷ mọi chứng từ kho của lần chốt ${name} (tồn kho về như trước lúc chốt), rồi mở lại phiếu đang ${dem()} `
+          + `với đúng số đã ${dem()}. Lý do: ${ly}`,
+        confirmLabel: 'HUỶ CHỐT',
+        onConfirm: async () => {
+          try {
+            dl = await call('sx.api.kiemke.huy_chot', { name, ly_do: ly });
+            m.close();
+            ve();
+            const hc = dl.huy_chot || {};
+            toast(`Đã huỷ chốt ${name} — mở lại phiếu ${hc.moi || ''} với số đã ${dem()}.`);
+          } catch (e) { toastErr(e.message); throw e; }
+        },
+      });
+    });
+    m.body.appendChild(nut);
   }
 
   function ganGanDay() {
     container.querySelectorAll('[data-bb]').forEach((b) => b.addEventListener('click', () => inBienBan(b.dataset.bb)));
+    const hc = $('#kk-huychot');
+    if (hc) hc.addEventListener('click', () => moHuyChot(hc.dataset.name));
     const am = $('#kk-am');
     if (am) am.addEventListener('click', (e) => moDonAm(e.currentTarget));
   }
@@ -732,8 +778,8 @@ export async function render({ container, call, boot }) {
             formatNumber(k.so)}`).join(', ')}` : ''}.\n`
           + `Sinh ${t.phieu_kho} chứng từ kho${t.thoi_diem ? `, ghi lùi về ${veLuc(t.thoi_diem)}${t.bat_lui
             ? ` (riêng việc chuyển ${t.bat_lui} mã bật lô vào lô theo HSD làm lúc bấm, với tồn hiện tại)` : ''}` : ''}. `
-          + 'Chốt rồi không sửa trên màn này được nữa — muốn huỷ phải huỷ '
-          + 'phiếu kiểm kê trên Desk (các chứng từ kho huỷ theo).',
+          + 'Chốt nhầm thì bấm "Huỷ chốt, mở lại" ở danh sách kiểm kê đã chốt (huỷ các chứng từ kho, giữ số đã '
+          + `${btp ? 'cân' : 'đếm'}).`,
         confirmLabel: 'CHỐT',
         onConfirm: async () => {
           try {

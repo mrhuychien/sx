@@ -1525,6 +1525,106 @@ F.bang("Bin").pop("bx1")
 F.bang("SX Phieu Nhap TP").pop("PNX")
 frappe.local.__dict__.pop("sx_nho", None)
 
+print("\n-- D196: huỷ chốt, mở lại phiếu đang đếm (giữ số đã đếm) --")
+SLE_GOC9, SO_GOC9 = dict(SLE), dict(SO)
+SLE.clear()
+SO.clear()
+CHO_AM["v"] = False
+C._so_lo, C._sle_khoang = so_lo_gia, sle_khoang_gia
+F.bang("Item")["TP-XB"] = {"name": "TP-XB", "item_name": "Bánh xốp", "stock_uom": "Hộp", "custom_sx_nhom": "TP",
+                           "disabled": 0, "has_batch_no": 0, "shelf_life_in_days": 270, "custom_batch_prefix": "XB"}
+F.bang("Bin")["bxb"] = {"name": "bxb", "item_code": "TP-XB", "warehouse": KHO, "actual_qty": 10, "valuation_rate": 5000}
+frappe.local.__dict__.pop("sx_nho", None)
+SO.update({("TP-SEN", "SEN-100926"): 50, ("TP-XB", None): 10})
+SO_TRUOC9 = {k: dict(v) for k, v in SO_KHO.items()}
+F.vai("SX Thu Kho", u="kho@x")
+P9 = A.bat_dau()["phieu"]["name"]
+F.bang("SX Kiem Ke")[P9].update({"creation": "2026-10-09 22:00:00", "bat_dau_luc": "2026-10-09 08:00:00"})
+A.ghi(P9, "TP-SEN", hsd=H1, so_dem=30)          # mới đếm một phần — HSD 18/06/27 chưa đếm
+A.ghi(P9, "TP-XB", hsd=H1, so_dem=10)
+A.dat_thoi_diem(P9, "2026-10-09 09:58")
+dong9 = [(r["item"], str(r["hsd"]), r["so_dem"], r["nguoi_dem"], str(r["dem_luc"]))
+         for r in F.bang("SX Kiem Ke")[P9]["dong"]]
+A.chot(P9)                                       # chốt nhầm khi chưa đếm xong
+kiem("(chốt nhầm: phiếu đã chốt, mã không lô đã bật lô, lô cũ của sen đã về 0)",
+     F.bang("SX Kiem Ke")[P9]["docstatus"] == 1 and F.bang("Item")["TP-XB"]["has_batch_no"] == 1
+     and SO[("TP-SEN", "SEN-100926")] == 0)
+tq = A.tong_quan()
+kiem("danh sách đã chốt có giờ chốt (hộp huỷ chốt ghi)", tq["gan_day"][0]["name"] == P9
+     and tq["gan_day"][0]["chot_luc"] == "2026-10-09 10:00", tq["gan_day"][0])
+kiem("thiếu lý do → chặn", "lý do" in (thu(lambda: A.huy_chot(P9, "  ")) or ""))
+R.CARD_ROLES["kiemke"].append("SX QC")
+F.vai("SX QC", u="qc@x")
+kiem("không phải thủ kho / quản lý → chặn", "thủ kho / quản lý" in (thu(lambda: A.huy_chot(P9, "chốt nhầm")) or ""))
+R.CARD_ROLES["kiemke"].remove("SX QC")
+F.vai("SX Thu Kho", u="kho@x")
+P10 = A.bat_dau()["phieu"]["name"]
+kiem("phiếu chưa chốt → không huỷ chốt được",
+     "không ở trạng thái đã chốt" in (thu(lambda: A.huy_chot(P10, "chốt nhầm")) or ""))
+kiem("kho đang có phiếu đang đếm → chặn, nói phiếu (mỗi kho một phiếu đang đếm)",
+     f"đang có phiếu kiểm kê {P10} đang đếm" in (thu(lambda: A.huy_chot(P9, "chốt nhầm")) or ""))
+A.huy(P10)
+F.bang("SX Kiem Ke")["SKK-SAU"] = {"name": "SKK-SAU", "doctype": "SX Kiem Ke", "docstatus": 1, "kho": KHO,
+                                   "loai": "Thành phẩm", "creation": "2026-10-09 23:00:00"}
+kiem("đã chốt phiếu khác SAU phiếu này → chặn (lần chốt sau tính trên số của lần trước)",
+     "đã chốt phiếu SKK-SAU" in (thu(lambda: A.huy_chot(P9, "chốt nhầm")) or ""))
+F.bang("SX Kiem Ke").pop("SKK-SAU")
+SLE["hx1"] = {"name": "hx1", "item_code": "TP-XB", "warehouse": KHO, "batch_no": "XB-HSD080627", "actual_qty": -1,
+              "voucher_type": "Sales Invoice", "voucher_no": "SINV-XB", "posting_datetime": "2026-10-09 11:00:00",
+              "creation": "2026-10-09 11:00:00", "modified": "2026-10-09 11:00:00", "is_cancelled": 0}
+loi = thu(lambda: A.huy_chot(P9, "chốt nhầm")) or ""
+kiem("sau chốt mã vừa bật lô đã bán theo lô → không huỷ được, nói chứng từ; phiếu vẫn đã chốt, không mở phiếu mới",
+     "Không huỷ được" in loi and "SINV-XB" in loi and F.bang("SX Kiem Ke")[P9]["docstatus"] == 1
+     and not A._nhap(KHO), loi)
+SLE.pop("hx1")
+kq = A.huy_chot(P9, "chốt nhầm khi chưa đếm xong")
+d9 = F.bang("SX Kiem Ke")[P9]
+moi = kq["huy_chot"]["moi"]
+dm = F.bang("SX Kiem Ke")[moi]
+kiem("HUỶ CHỐT: phiếu cũ Đã huỷ, ghi lý do; chứng từ kho của lần chốt huỷ hết; tồn về như trước lúc chốt; mã đã bật lô "
+     "về không lô", kq["huy_chot"]["cu"] == P9 and d9["docstatus"] == 2 and d9["trang_thai"] == "Đã huỷ"
+     and "chốt nhầm khi chưa đếm xong" in d9["ghi_chu"] and F.bang("Item")["TP-XB"]["has_batch_no"] == 0
+     and all(F.bang("Stock Entry")[x["name"]]["docstatus"] == 2 for x in json.loads(d9["ds_se"]) if x["dt"] == "Stock Entry")
+     and all(abs(SO_KHO[k].get(x, 0) - SO_TRUOC9[k].get(x, 0)) < 1e-9
+             for k in SO_TRUOC9 for x in set(SO_KHO[k]) | set(SO_TRUOC9[k])),
+     {k: {x: q for x, q in v.items() if abs(q - SO_TRUOC9[k].get(x, 0)) > 1e-9} for k, v in SO_KHO.items()})
+kiem("… mở lại phiếu đang đếm: đúng các dòng đã đếm (số, người đếm, lúc đếm), lúc bắt đầu, thời điểm chốt sổ; ghi nguồn; "
+     "thẻ hiện phiếu đó", kq["phieu"]["name"] == moi and dm["docstatus"] == 0 and dm["trang_thai"] == "Đang đếm"
+     and [(r["item"], str(r["hsd"]), r["so_dem"], r["nguoi_dem"], str(r["dem_luc"])) for r in dm["dong"]] == dong9
+     and str(dm["bat_dau_luc"])[:16] == "2026-10-09 08:00" and str(dm["thoi_diem"])[:16] == "2026-10-09 09:58"
+     and f"Mở lại từ phiếu đã huỷ chốt {P9}: chốt nhầm khi chưa đếm xong" in dm["ghi_chu"]
+     and not dm.get("chot_luc") and not dm.get("ds_se") and dm["nguoi_lap"] == "kho@x", (kq["phieu"], dm))
+kiem("… danh sách đã chốt: phiếu cũ hiện Đã huỷ", A.tong_quan()["gan_day"][0]["trang_thai"] == "Đã huỷ")
+A.ghi(moi, "TP-SEN", hsd=H2, so_dem=20)
+A.chot(moi)
+kiem("đếm tiếp phần còn lại rồi chốt lại → tồn đúng số đếm đủ",
+     SO[("TP-SEN", "SEN-HSD080627")] == 30 and SO[("TP-SEN", "SEN-HSD180627")] == 20 and SO[("TP-SEN", "SEN-100926")] == 0
+     and SO[("TP-XB", "XB-HSD080627")] == 10 and SO[("TP-XB", None)] == 0
+     and F.bang("SX Kiem Ke")[moi]["docstatus"] == 1, SO)
+F.vai("System Manager", u="admin@x")
+F.get_doc("SX Kiem Ke", moi).cancel()
+cu = json.loads(json.dumps(F.bang("SX Kiem Ke")[moi], default=str))
+for k in ("name", "creation", "modified"):
+    cu.pop(k, None)
+cu.update({"docstatus": 0, "amended_from": moi,
+           "dong": [{k: v for k, v in r.items() if k not in ("name", "parent", "idx")} for r in cu["dong"]]})
+am = F.get_doc(cu).insert()
+da = F.bang("SX Kiem Ke")[am.name]
+kiem("Amend trên Desk (phiếu đã huỷ): bản sửa đổi là phiếu đang đếm sạch — không mang giờ chốt, người chốt, chứng từ, "
+     "bảng lô, tổng của lần chốt cũ; giữ các dòng đếm",
+     da["trang_thai"] == "Đang đếm" and not da.get("chot_luc") and not da.get("nguoi_chot") and not da.get("ds_se")
+     and not da.get("lo") and da.get("so_ma") == 0 and da.get("tong_dem") == 0 and len(da["dong"]) == 3, da)
+F.bang("SX Kiem Ke").pop(am.name)
+F.vai("SX Thu Kho", u="kho@x")
+C._so_lo, C._sle_khoang = SO_LO_CU, SLE_KHOANG_CU
+SLE.clear()
+SLE.update(SLE_GOC9)
+SO.clear()
+SO.update(SO_GOC9)
+F.bang("Item").pop("TP-XB")
+F.bang("Bin").pop("bxb")
+frappe.local.__dict__.pop("sx_nho", None)
+
 print("\n-- dây nối --")
 kiem("thẻ kiemke: thủ kho + quản lý; nằm ở màn Nhập kho (sau phiếu nhập) và Quản lý",
      R.CARD_ROLES["kiemke"] == [R.THU_KHO, R.QUAN_LY] and R.VIEW_CARDS["nhapkho"][:2] == ["nhapkhotp", "kiemke"]

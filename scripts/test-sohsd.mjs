@@ -531,7 +531,7 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   ];
   const tq = () => ({
     kho: 'Kho TP', duoc_chot: KH.chot, hom_nay: NGAY, bay_gio: '2026-10-09T10:00', phieu: st.phieu, danh_muc: [],
-    gan_day: [], canh_bao: [],
+    gan_day: st.gan_day || [], canh_bao: [],
     hang: HANG.map((h) => ({ ...h, da_dem: !!st.dem[h.item], dem: st.dem[h.item] || [],
       tong_dem: (st.dem[h.item] || []).reduce((a, x) => a + x.so, 0) })),
   });
@@ -550,6 +550,11 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
     if (m === 'sx.api.kiemke.het_hang') st.dem[a.item] = [{ hsd: null, so: 0 }];
     if (m === 'sx.api.kiemke.dem_lai') delete st.dem[a.item];
     if (m === 'sx.api.kiemke.dat_thoi_diem') st.phieu = { ...st.phieu, thoi_diem: String(a.thoi_diem || '').slice(0, 16) };
+    if (m === 'sx.api.kiemke.huy_chot') {         // D196
+      st.phieu = { name: 'KK-2', bat_dau_luc: '2026-10-09 08:15', thoi_diem: '', duoc_huy: true };
+      st.gan_day = st.gan_day.map((g) => (g.name === a.name ? { ...g, trang_thai: 'Đã huỷ' } : g));
+      return { ...tq(), huy_chot: { cu: a.name, moi: 'KK-2' } };
+    }
     if (m === 'sx.api.kiemke.xem_truoc') {
       return { name: 'KK-1', loi: KH.loi, canh_bao: [], duoc_chot: KH.chot,
         ma: [{ item: 'TP-SEN', ten: 'Bánh sen', so_sach: 180, dem: 120, chuyen: 120, lo_cu: 2, thieu: 60, thua: 0,
@@ -694,7 +699,8 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   xtTd.body.kids.find((k) => k.textContent === 'CHỐT KIỂM KÊ').bam();
   kiem('… hộp xác nhận: chứng từ ghi lùi về lúc đó; riêng mã bật lô chuyển vào lô lúc bấm',
     /Sinh 3 chứng từ kho, ghi lùi về 09\/10\/26 08:30 \(riêng việc chuyển 1 mã bật lô vào lô theo HSD làm lúc bấm, với tồn hiện tại\)\./
-      .test(HOI[HOI.length - 1].message), HOI[HOI.length - 1].message);
+      .test(HOI[HOI.length - 1].message) && /Chốt nhầm thì bấm "Huỷ chốt, mở lại"/.test(HOI[HOI.length - 1].message),
+    HOI[HOI.length - 1].message);
   c.querySelector('#kk-td').bam();
   hop = MO[MO.length - 1];
   kiem('mở lại: ô điền thời điểm đang đặt; có nút BỎ', hop.body.querySelector('#kk-td-o').value === '2026-10-09T08:30'
@@ -779,6 +785,45 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   kiem('… mở lại: hết dòng âm, có lần dọn trước để in lại',
     /Không còn tồn âm thành phẩm ở kho này/.test(am.body.innerHTML) && /DA-091026-100000/.test(am.body.innerHTML)
     && !am.body.kids.some((k) => k.textContent === 'DỌN TỒN ÂM'));
+
+  // D196: huỷ chốt, mở lại đếm tiếp — phiếu chốt nhầm / chốt khi chưa đếm xong.
+  st.gan_day = [
+    { name: 'KK-1', ngay: '2026-10-09', trang_thai: 'Đã chốt', so_ma: 3, tong_so_sach: 270, tong_dem: 175, tong_lech: -95,
+      chot_luc: '2026-10-09 10:05' },
+    { name: 'KK-0', ngay: '2026-10-01', trang_thai: 'Đã chốt', so_ma: 2, tong_so_sach: 10, tong_dem: 10, tong_lech: 0,
+      chot_luc: '2026-10-01 17:00' },
+  ];
+  KH.chot = false;
+  await KK.render({ container: c, call, boot: {} });
+  kiem('D196: không có quyền chốt → không có nút huỷ chốt', !c.querySelector('#kk-huychot'));
+  KH.chot = true;
+  await KK.render({ container: c, call, boot: {} });
+  const hcNut = c.querySelector('#kk-huychot');
+  kiem('… thủ kho / quản lý: nút "Huỷ chốt KK-1, mở lại đếm tiếp" — chỉ phiếu chốt MỚI NHẤT',
+    hcNut && hcNut.dataset.name === 'KK-1' && /Huỷ chốt KK-1, mở lại đếm tiếp/.test(hcNut.textContent),
+    hcNut && hcNut.textContent);
+  hcNut.bam();
+  const hcHop = MO[MO.length - 1];
+  const hcLuu = hcHop.body.kids.find((k) => k.textContent === 'HUỶ CHỐT & MỞ LẠI');
+  kiem('bấm → hộp nói: huỷ mọi chứng từ kho của lần chốt (chốt 09/10/26 10:05), tồn về như trước, mở lại đúng các dòng '
+    + 'đã đếm; ô lý do', hcHop.title === 'Huỷ chốt, mở lại đếm tiếp' && /chốt 09\/10\/26 10:05/.test(hcHop.body.innerHTML)
+    && /tồn kho về như trước lúc chốt/.test(hcHop.body.innerHTML) && /đúng các dòng đã đếm/.test(hcHop.body.innerHTML)
+    && !!hcHop.body.querySelector('#kk-hc-ly') && !!hcLuu, hcHop.body.innerHTML);
+  const nHoi = HOI.length;
+  hcLuu.bam();
+  kiem('… chưa ghi lý do → báo, không hỏi xác nhận',
+    HOI.length === nHoi && TOAST.some(([t, k]) => k === 'err' && /Ghi lý do huỷ chốt/.test(t)));
+  hcHop.body.querySelector('#kk-hc-ly').value = 'chốt nhầm khi chưa đếm xong';
+  hcLuu.bam();
+  kiem('… có lý do → xác nhận 2 bước: huỷ chứng từ, mở lại với số đã đếm, kèm lý do',
+    /^Huỷ mọi chứng từ kho của lần chốt KK-1 .*mở lại phiếu đang đếm với đúng số đã đếm\. Lý do: chốt nhầm khi chưa đếm xong$/
+      .test(HOI[HOI.length - 1].message), HOI[HOI.length - 1].message);
+  await HOI[HOI.length - 1].onConfirm();
+  await choRe();
+  kiem('… xác nhận → huy_chot(KK-1, lý do); đóng hộp; thẻ mở phiếu đang đếm KK-2; báo đã huỷ chốt',
+    bang(loiGoi('sx.api.kiemke.huy_chot')[1], { name: 'KK-1', ly_do: 'chốt nhầm khi chưa đếm xong' }) && hcHop.dong
+    && /Kiểm kê KK-2/.test(c.innerHTML) && TOAST.some(([t]) => /Đã huỷ chốt KK-1 — mở lại phiếu KK-2 với số đã đếm/.test(t)),
+  loiGoi('sx.api.kiemke.huy_chot'));
 }
 
 // ═════════════════════════════════════════════════════════════════════

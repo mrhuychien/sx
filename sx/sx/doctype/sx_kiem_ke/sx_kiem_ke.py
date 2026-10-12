@@ -30,7 +30,8 @@ HSD) ngay tại kho đó, kho âm đưa về 0; chỉ kho của công ty khác m
 
 Chặn chốt khi mã đã đếm có chứng từ kho SAU lúc đếm (bán, nhập, huỷ phiếu…): số đếm không còn khớp sổ — đếm
 lại mã đó; mã chưa đếm (sắp về 0) có chứng từ SAU lúc bắt đầu kiểm kê → phải đếm (hoặc bấm Không còn). Huỷ
-phiếu đã chốt (Desk) = huỷ các chứng từ kho theo thứ tự ngược (trả cờ quản lý lô đã đổi).
+phiếu đã chốt (Desk, hoặc thẻ: Huỷ chốt, mở lại đếm tiếp — D196) = huỷ các chứng từ kho theo thứ tự ngược (trả cờ quản
+lý lô đã đổi).
 
 THỜI ĐIỂM CHỐT SỔ (D195, `thoi_diem`): để trống = lúc bấm chốt (như trên). Đặt rồi thì số sổ sách tính TỚI thời điểm
 đó (số đếm giữ nguyên) và chứng từ kho của kiểm kê ghi LÙI về thời điểm đó. Kiểm thay cho "chứng từ sau lúc đếm":
@@ -279,6 +280,11 @@ class SXKiemKe(Document):
     def validate(self):
         if self.docstatus == 0:
             self.trang_thai = DANG_DEM
+            # D196: phiếu đang đếm không mang kết quả của lần chốt nào — bản sửa đổi (Amend trên Desk) của phiếu đã huỷ
+            # chép cả các ô đó sang (biên bản nháp sẽ ghi "Chốt …", kể chứng từ đã huỷ). Chốt tính lại hết.
+            self.nguoi_chot = self.chot_luc = self.ds_se = None
+            self.so_ma, self.tong_so_sach, self.tong_dem, self.tong_lech = 0, 0, 0, 0
+            self.set("lo", [])
         if self.la_btp():
             self._chuan_dong_lo()
         else:

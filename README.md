@@ -320,6 +320,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê: huỷ chốt, mở lại phiếu đang đếm — giữ nguyên số đã đếm (D196)
+
+- **Khi nào**: chốt nhầm, hoặc chốt khi chưa đếm xong (mã chưa đếm đã bị đưa về 0 — D188).
+- **Ở đâu**: thẻ **Kiểm kê kho** → danh sách *Kiểm kê đã chốt* → nút **↺ Huỷ chốt …, mở lại đếm tiếp** (thủ kho / quản
+  lý; chỉ phiếu chốt **mới nhất** của kho — lần chốt sau tính trên số của lần trước). Ghi **lý do** (bắt buộc) → xác
+  nhận 2 bước.
+- **Làm gì**: huỷ phiếu — mọi chứng từ kho của lần chốt huỷ theo thứ tự ngược, mã đã bật quản lý lô trở lại không lô, tồn
+  kho về như trước lúc chốt; lý do ghi vào phiếu cũ. Rồi mở **phiếu đang đếm mới** với đúng các dòng đã đếm (số, người
+  đếm, lúc đếm), lúc bắt đầu và thời điểm chốt sổ — đếm tiếp rồi chốt lại.
+- **Không huỷ được khi**: sau lúc chốt, mã vừa bật lô đã bán / xuất theo lô (báo chứng từ — huỷ các chứng từ đó trước);
+  kho đang có phiếu đang đếm khác; đã chốt phiếu khác sau phiếu này. ERPNext còn tự chặn nếu kỳ kho đã khoá sổ, hoặc
+  (site tắt tồn âm) huỷ làm lô âm vì hàng của lô đó đã bán.
+- **Chốt lại**: có chứng từ kho sau lúc đếm (vd đã bán trong lúc phiếu bị chốt nhầm) thì app bắt đếm lại mã đó — hoặc đặt
+  **thời điểm chốt sổ** (D195) đúng lúc đã đếm.
+- Trên Desk (System Manager) vẫn làm được: Huỷ (Cancel) phiếu rồi **Sửa đổi (Amend)** — bản sửa đổi nay là phiếu đang đếm
+  sạch (không mang giờ chốt, chứng từ, bảng lô, tổng của lần chốt cũ).
+- Mã API `kiemke.huy_chot`; `SXKiemKe.validate` dọn các ô kết quả của phiếu đang đếm. Test `test-kiemke.py` (huỷ + mở lại,
+  từng điều kiện chặn, chốt lại, Amend), `test-sohsd.mjs` (nút, hộp lý do, xác nhận).
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-151**.
+
 ## Kiểm kê: chỉnh thời điểm chốt sổ — sổ sách tính tới lúc đó, chứng từ ghi lùi về lúc đó (D195)
 
 - **Ở đâu**: thẻ **Kiểm kê kho**, phiếu đang đếm → dòng **Chốt sổ tại: …** → **✎ Đổi** (thủ kho / quản lý). Chọn ngày

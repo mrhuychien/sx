@@ -169,8 +169,8 @@ def _canh_bao(kho, loai=TP):
 def _gan_day(kho, loai):
     ds = frappe.get_all(PT, filters={"docstatus": ("in", [1, 2]), "kho": kho},
                         fields=["name", "ngay", "trang_thai", "loai", "so_ma", "tong_so_sach", "tong_dem", "tong_lech",
-                                "nguoi_chot"], order_by="creation desc", limit=GAN_DAY * 4)
-    return [dict(x, ngay=str(x.ngay)) for x in ds if _loai(x) == loai][:GAN_DAY]
+                                "nguoi_chot", "chot_luc"], order_by="creation desc", limit=GAN_DAY * 4)
+    return [dict(x, ngay=str(x.ngay), chot_luc=str(x.chot_luc or "")[:16]) for x in ds if _loai(x) == loai][:GAN_DAY]
 
 
 @frappe.whitelist()
@@ -678,6 +678,51 @@ def huy(name):
     kho, loai = d.kho, _loai(d)
     frappe.delete_doc(PT, d.name, ignore_permissions=True)
     return tong_quan(kho, loai)
+
+
+@frappe.whitelist()
+def huy_chot(name, ly_do=None):
+    """HUỶ CHỐT, MỞ LẠI ĐẾM TIẾP (D196) — phiếu chốt nhầm / chốt khi chưa đếm xong: huỷ phiếu (đảo mọi chứng từ kho của
+    lần chốt theo thứ tự ngược, trả cờ quản lý lô đã đổi — SXKiemKe.on_cancel; sau chốt mã vừa bật lô đã có chứng từ theo
+    lô thì không huỷ được) rồi mở lại phiếu đang đếm với ĐÚNG các dòng đã đếm (số, người đếm, lúc đếm), lúc bắt đầu và
+    thời điểm chốt sổ — đếm tiếp rồi chốt lại. Thủ kho / quản lý (người chốt được); bắt buộc lý do. Chỉ phiếu đã chốt mới
+    nhất của kho (lần chốt sau tính trên số của lần trước); kho đang có phiếu đang đếm thì không mở thêm phiếu thứ hai."""
+    guard_card(CARD)
+    if not _duoc_chot():
+        frappe.throw(_("Chỉ thủ kho / quản lý huỷ được phiếu kiểm kê đã chốt."), frappe.PermissionError)
+    ly_do = str(ly_do or "").strip()
+    if not ly_do:
+        frappe.throw(_("Ghi lý do huỷ chốt."))
+    if not name or not frappe.db.exists(PT, name):
+        frappe.throw(_("Không thấy phiếu kiểm kê {0}.").format(name or ""))
+    d = frappe.get_doc(PT, name)
+    if d.docstatus != 1:
+        frappe.throw(_("Phiếu kiểm kê {0} không ở trạng thái đã chốt.").format(name))
+    loai = _loai(d)
+    dang = _nhap(d.kho, loai)
+    if dang:
+        frappe.throw(_("{0} đang có phiếu kiểm kê {1} đang đếm — chốt hoặc bỏ phiếu đó trước, rồi mới huỷ chốt {2}.")
+                     .format(d.kho, dang.name, name))
+    sau = [x.name for x in frappe.get_all(PT, filters={"docstatus": 1, "kho": d.kho, "creation": (">", d.creation)},
+                                          fields=["name", "loai"]) if _loai(x) == loai]
+    if sau:
+        frappe.throw(_("Sau phiếu {0} đã chốt phiếu {1} — lần chốt sau tính trên số của lần trước; huỷ phiếu đó trước.")
+                     .format(name, ", ".join(sau)))
+    dong = [{f: r.get(f) for f in ("item", "ten", "dvt", "batch", "hsd", "so_dem", "chi_tiet", "nguoi_dem", "dem_luc")}
+            for r in d.dong or []]
+    d.db_set("ghi_chu", ((d.ghi_chu or "") + "\n" + _("[Huỷ chốt {0} — {1}] {2}").format(
+        now_datetime().strftime("%d/%m/%Y %H:%M"), frappe.session.user, ly_do)).strip(), update_modified=False)
+    d.flags.ignore_permissions = True
+    d.cancel()
+    moi = frappe.get_doc({"doctype": PT, "ngay": d.ngay, "kho": d.kho, "loai": loai,
+                          "nguoi_lap": d.nguoi_lap or frappe.session.user, "bat_dau_luc": d.bat_dau_luc,
+                          "thoi_diem": d.get("thoi_diem"), "trang_thai": "Đang đếm", "dong": dong,
+                          "ghi_chu": _("Mở lại từ phiếu đã huỷ chốt {0}: {1}").format(d.name, ly_do)})
+    moi.flags.ignore_permissions = True
+    moi.insert()
+    ra = tong_quan(d.kho, loai)
+    ra["huy_chot"] = {"cu": d.name, "moi": moi.name}
+    return ra
 
 
 def _ten_ma(d):
