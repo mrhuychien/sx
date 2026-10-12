@@ -148,6 +148,29 @@ def lap_ke_hoach_lo(lots, dem):
     return ke
 
 
+def gop_ton_lo(tong, lo):
+    """Tồn theo (mã, lô) từ hai nguồn của sổ cái kho — hàm thuần (D194).
+
+    tong  {item: tồn của mã tại kho} = qty_after_transaction của dòng sổ cái CUỐI (ERPNext tính tồn như vậy — Bin,
+          Stock Balance). Không cộng actual_qty: phiếu Stock Reconciliation (tồn đầu kỳ, kiểm kê trên ERPNext) ghi
+          actual_qty = 0 và đặt số tồn ở qty_after_transaction — cộng actual_qty là bỏ sót cả phần đó.
+    lo    [{item, b, q}] — tồn từng lô (cộng dòng Serial and Batch Entry, batch_no cũ trên SLE).
+    Trả [{item, b, q}]: các lô + phần chênh (tổng − các lô) là tồn KHÔNG gắn lô (b None). Mã có lô mà không có tổng
+    (không có dòng sổ cái nào — không xảy ra trên ERPNext) thì giữ số các lô."""
+    ra, theo = [], {}
+    for r in lo or []:
+        if r.get("b"):
+            theo.setdefault(r["item"], []).append(r)
+    for item in list(dict.fromkeys(list(tong or {}) + list(theo))):
+        ds = theo.get(item, [])
+        ra += [{"item": item, "b": r["b"], "q": _r(r["q"])} for r in ds]
+        if item in (tong or {}):
+            le = _r(float(tong[item] or 0) - sum(float(r["q"] or 0) for r in ds))
+            if abs(le) > EPS:
+                ra.append({"item": item, "b": None, "q": le})
+    return ra
+
+
 def chia_chung_tu(ke_theo_ma, hom_nay, doi_lo=(), kho_khac=None):
     """Chia kế hoạch các mã thành chứng từ kho — hàm thuần.
 

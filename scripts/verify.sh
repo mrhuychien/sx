@@ -457,6 +457,12 @@ python3 scripts/test-kiemke.py > /tmp/sx-kiemke.log 2>&1 \
   && tail -1 /tmp/sx-kiemke.log \
   || { cat /tmp/sx-kiemke.log; loi=1; }
 
+# D194: tồn theo (mã, lô) của kiểm kê chạy THẬT trên SQLite — Stock Reconciliation ghi actual_qty = 0, cộng actual_qty
+# là sai số (tồn 6.265 hiện −6.331). Test giả ở trên thay _so_lo bằng số dựng sẵn nên không bắt được lỗi SQL.
+python3 scripts/test-tonlo-sql.py > /tmp/sx-tonlo.log 2>&1 \
+  && tail -1 /tmp/sx-tonlo.log \
+  || { cat /tmp/sx-tonlo.log; loi=1; }
+
 # D158 (W30): BM.08.01 bản 3 — ba nam châm NC-01, NC-02 M1 / M2, mục 5 theo HD.08.02. Phiếu cũ chen dòng mới,
 # sự cố không ghi nam châm nào, NC-02 bắt ghi khi máy nghiền không chạy — đều im lặng.
 python3 scripts/test-namcham.py > /tmp/sx-namcham.log 2>&1 \

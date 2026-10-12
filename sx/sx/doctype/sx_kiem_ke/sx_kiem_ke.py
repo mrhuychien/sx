@@ -77,20 +77,40 @@ def mo_ta_viec(viec):
     return "; ".join(ra)
 
 
-def _so_lo(kho, items):
-    """[{item, b, q}] — tồn theo (mã, lô) tại một kho, từ sổ cái kho.
+def _so_lo(kho, items, den=None):
+    """[{item, b, q}] — tồn theo (mã, lô) tại một kho, từ sổ cái kho; `den` = tính tới thời điểm đó (None = hiện tại).
 
-    ERPNext v15+ ghi lô trong Serial and Batch Bundle, SLE có thể để trống batch_no — gom cả hai đường như
-    sx.utils.ton_cac_lo, số lượng lấy theo dòng của đúng lô trong bundle (dòng xuất mang số âm)."""
-    return frappe.db.sql(
-        """select sle.item_code as item, coalesce(e.batch_no, sle.batch_no) as b,
+    D194: TỔNG của mã lấy qty_after_transaction của dòng sổ cái cuối (như ERPNext — Bin, Stock Balance), KHÔNG cộng
+    actual_qty: phiếu Stock Reconciliation (tồn đầu kỳ, kiểm kê trên ERPNext) ghi actual_qty = 0, số tồn nằm ở
+    qty_after_transaction — cộng actual_qty thì mất cả phần đó (vd tồn 6.265 hiện thành −6.331). Theo LÔ: ERPNext v15+
+    ghi lô trong Serial and Batch Bundle (SLE có thể để trống batch_no) — gom cả hai đường như sx.utils.ton_cac_lo, số
+    lượng theo dòng của đúng lô trong bundle (dòng xuất mang số âm). Phần chênh tổng − các lô = tồn không gắn lô
+    (sx.kiem_ke.gop_ton_lo)."""
+    from sx.kiem_ke import gop_ton_lo
+
+    items = [i for i in dict.fromkeys(items or []) if i]
+    if not items or not kho:
+        return []
+    dk = {"kho": kho, "items": tuple(items), "den": den}
+    loc = " and sle.posting_datetime <= %(den)s" if den else ""
+    tong = {r.item: flt(r.q) for r in frappe.db.sql(
+        f"""select t.item, t.q from (
+                select sle.item_code as item, sle.qty_after_transaction as q,
+                       row_number() over (partition by sle.item_code
+                                          order by sle.posting_datetime desc, sle.creation desc, sle.name desc) as rn
+                  from `tabStock Ledger Entry` sle
+                 where sle.is_cancelled = 0 and sle.warehouse = %(kho)s and sle.item_code in %(items)s{loc}) t
+             where t.rn = 1""", dk, as_dict=True)}
+    lo = frappe.db.sql(
+        f"""select sle.item_code as item, coalesce(e.batch_no, sle.batch_no) as b,
                   sum(coalesce(e.qty, sle.actual_qty)) as q
              from `tabStock Ledger Entry` sle
              left join `tabSerial and Batch Entry` e
                on e.parent = sle.serial_and_batch_bundle
-            where sle.is_cancelled = 0 and sle.warehouse = %(kho)s and sle.item_code in %(items)s
-            group by sle.item_code, coalesce(e.batch_no, sle.batch_no)""",
-        {"kho": kho, "items": tuple(items)}, as_dict=True)
+            where sle.is_cancelled = 0 and sle.warehouse = %(kho)s and sle.item_code in %(items)s{loc}
+              and coalesce(e.batch_no, sle.batch_no, '') != ''
+            group by sle.item_code, coalesce(e.batch_no, sle.batch_no)""", dk, as_dict=True)
+    return [frappe._dict(r) for r in gop_ton_lo(tong, [{"item": r.item, "b": r.b, "q": flt(r.q)} for r in lo])]
 
 
 def ton_lo(kho, items):
@@ -433,12 +453,15 @@ class SXKiemKe(Document):
                     anh = -q
                 else:
                     continue
+                if s.voucher_type == "Stock Reconciliation" and abs(q) < 1e-9:
+                    anh = None        # D194: Stock Reconciliation đặt thẳng số tồn (actual_qty = 0) — vẫn đổi sổ
                 g = sau.setdefault(k, {})
-                g[(s.voucher_type, s.voucher_no)] = g.get((s.voucher_type, s.voucher_no), 0.0) + anh
+                cu = g.get((s.voucher_type, s.voucher_no), 0.0)
+                g[(s.voucher_type, s.voucher_no)] = None if anh is None or cu is None else cu + anh
         loi = []
         for k, g in sorted(sau.items(), key=lambda x: str(x[0])):
-            ct = [f"{vt} {vn} ({'+' if q > 0 else ''}{_so(q)})" for (vt, vn), q in sorted(g.items())
-                  if abs(q) > 1e-9]
+            ct = [f"{vt} {vn} (" + (_("đặt lại tồn") if q is None else f"{'+' if q > 0 else ''}{_so(q)}") + ")"
+                  for (vt, vn), q in sorted(g.items()) if q is None or abs(q) > 1e-9]
             if not ct:
                 continue
             if lo_rieng:

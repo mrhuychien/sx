@@ -320,6 +320,22 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sửa số tồn sai trên kiểm kê khi mã có phiếu Stock Reconciliation (D194)
+
+- **Lỗi**: thẻ kiểm kê / xem trước cho số sổ sách khác ERPNext — vd *Bánh đậu Sầu riêng 170g*: ERPNext tồn 6.265, thẻ
+  hiện −6.331. App cộng `actual_qty` của sổ cái kho; phiếu **Stock Reconciliation** (nhập tồn đầu kỳ, kiểm kê trên
+  ERPNext) lại ghi `actual_qty = 0` và đặt số tồn ở `qty_after_transaction` — cộng `actual_qty` là mất cả phần đó.
+- **Sửa** (`sx_kiem_ke._so_lo`, dùng chung cho thẻ kiểm kê, xem trước, chốt, biên bản, dọn tồn âm D193, lô chờ duyệt
+  BM.08.04): tổng của mã = `qty_after_transaction` của dòng sổ cái cuối (đúng cách ERPNext tính — Bin, Stock Balance);
+  theo lô vẫn cộng từ Serial and Batch Entry / `batch_no` cũ; phần chênh tổng − các lô là tồn không lô
+  (`sx.kiem_ke.gop_ton_lo`). Kiểm "chứng từ sau lúc đếm" nay tính cả Stock Reconciliation ("đặt lại tồn").
+- **Phiếu kiểm kê đã CHỐT trước bản này** (và lần dọn tồn âm nếu đã bấm) tính chênh lệch từ số sổ sai ở các mã có
+  Stock Reconciliation — huỷ trên Desk rồi làm lại. Phiếu đang đếm chỉ cần tải lại thẻ: số đếm giữ nguyên.
+- Test mới `scripts/test-tonlo-sql.py` chạy THẬT câu truy vấn trên SQLite (tồn đầu bằng Stock Reconciliation, lô theo
+  bundle, lô kiểu cũ, phiếu đã huỷ, cùng giờ ghi sổ) — test giả khác thay `_so_lo` bằng số dựng sẵn nên không thấy lỗi
+  này. Có trong `verify.sh`.
+- Không đổi giao diện: `git pull` → `bench restart`.
+
 ## Dọn tồn âm thành phẩm ở Kho Xưởng sản xuất (D193)
 
 - **Vì sao âm**: trước đây thành phẩm được chuyển từ Xưởng sản xuất sang Kho TP bằng **phiếu chuyển kho** mà không ghi

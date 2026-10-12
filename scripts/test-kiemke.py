@@ -175,6 +175,13 @@ kiem("… chỉ có tồn ở kho khác (Kho TP không có gì để nhập) v�
      K.so_chung_tu(K.chia_chung_tu({"TP-X": K.lap_ke_hoach([], {})}, "2026-10-09", {"TP-X": "bat"},
                                    {"TP-X": [("CH A", 3)]})) == 2)
 
+tl = K.gop_ton_lo({"SR170": 6265, "LOT": 82, "MOI": 0}, [{"item": "LOT", "b": "A", "q": 70}, {"item": "LOT", "b": "B", "q": 7},
+                                                           {"item": "X", "b": "X1", "q": 3}])
+kiem("D194 tồn theo lô: tổng của mã = số tồn ERPNext (qty_after_transaction dòng cuối — có cả Stock Reconciliation), "
+     "các lô cộng từ lô, phần chênh là tồn KHÔNG lô; mã tổng 0 không đẻ dòng 0",
+     sorted((r["item"], r["b"] or "", r["q"]) for r in tl)
+     == [("LOT", "", 5.0), ("LOT", "A", 70.0), ("LOT", "B", 7.0), ("SR170", "", 6265.0), ("X", "X1", 3.0)], tl)
+
 print("\n-- bán thành phẩm: kế hoạch theo LÔ (hàm thuần, D155) --")
 R1, R5 = lo("R-011026", 40), lo("R-051026", 25.5)
 ke = K.lap_ke_hoach_lo([R1, R5, lo("R-070926", 3, thu_hoi=True), lo("BBS-061026", -2)],
@@ -320,7 +327,8 @@ xxq = types.ModuleType("sx.qc.xuat_xuong")
 xxq.chua_duyet = lambda cap: [(i, str(h)[:10], None) for i, h in cap if (i, str(h)[:10]) not in XX_CAI["duyet"]]
 sys.modules["sx.qc.xuat_xuong"] = xxq
 C = F.nap("sx.sx.doctype.sx_kiem_ke.sx_kiem_ke", "sx/sx/doctype/sx_kiem_ke/sx_kiem_ke.py")
-C._so_lo = lambda kho, items: [F.Doc(item=i, b=b, q=q) for (i, b), q in SO_KHO.get(kho, {}).items() if i in items]
+C._so_lo = lambda kho, items, den=None: [F.Doc(item=i, b=b, q=q) for (i, b), q in SO_KHO.get(kho, {}).items()
+                                         if i in items]
 F.dang_ky("SX Kiem Ke", C.SXKiemKe)
 A = F.nap("sx.api.kiemke", "sx/api/kiemke.py")
 
@@ -476,6 +484,13 @@ kiem("mã có chứng từ kho SAU lúc đếm → chặn chốt, kể chứng t
      "sau lúc đếm" in loi and "SINV-0007 (-5)" in loi and "SINV-0001 (+3)" in loi, loi)
 kiem("… không kể SLE chỉ repost lại giá, không kể phiếu tạo rồi huỷ sau đếm (số không đổi)",
      "SE-REPOST" not in loi and "DN-0003" not in loi, loi)
+F.bang("Stock Ledger Entry")["s5"] = {"name": "s5", "item_code": "TP-SEN", "warehouse": KHO, "voucher_type": "Stock Reconciliation",
+                                      "voucher_no": "MAT-RECO-0001", "actual_qty": 0, "creation": "2026-10-09 09:45:00",
+                                      "modified": "2026-10-09 09:45:00", "is_cancelled": 0}
+loi = " ".join(A.xem_truoc(P2)["loi"])
+kiem("D194: Stock Reconciliation sau lúc đếm (đặt thẳng số tồn, actual_qty = 0) cũng tính là chứng từ đổi sổ",
+     "MAT-RECO-0001 (đặt lại tồn)" in loi, loi)
+F.bang("Stock Ledger Entry").pop("s5")
 F.vai("SX Quan Ly", u="ql@x")
 n_truoc = len(F.bang("Stock Entry"))
 kiem("chốt lúc đó → không được, nói đếm lại", "ĐẾM LẠI" in (thu(lambda: A.chot(P2)) or ""))
