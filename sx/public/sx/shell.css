@@ -2096,6 +2096,9 @@ b.sx-tx-kl-loi { background: none; }
 .sx-kk-bao { padding: var(--sx-s2) var(--sx-s3); border-radius: var(--sx-radius-sm); background: var(--sx-warning-soft);
   color: var(--sx-warning-text); font-weight: 700; }
 .sx-kk-tien { font-size: var(--sx-f-md); font-weight: 800; }
+/* D195 — thời điểm chốt sổ: một dòng, nút đổi bên cạnh */
+.sx-kk-moc { display: flex; align-items: center; flex-wrap: wrap; gap: 4px var(--sx-s2); font-size: var(--sx-f-sm); }
+.sx-kk-moc .sx-np-chip { min-height: 32px; padding: 0 var(--sx-s2); font-size: var(--sx-f-xs); }
 .sx-kk-loc { display: flex; gap: var(--sx-s1); flex-wrap: wrap; }
 .sx-kk-nhac { font-size: var(--sx-f-xs); font-weight: 600; line-height: 1.4; color: var(--sx-warning-text); }
 .sx-kk-loc .sx-np-chip { flex: 1 1 auto; min-height: 34px; padding: 0 var(--sx-s2); font-size: var(--sx-f-xs); }

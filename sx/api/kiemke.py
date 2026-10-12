@@ -17,10 +17,10 @@ import re
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, getdate, now_datetime, nowdate
+from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, nowdate
 
 from sx.config.roles import QUAN_LY, THU_KHO, guard_card, is_super, user_roles
-from sx.kiem_ke import chia_chung_tu, so_chung_tu, theo_lo
+from sx.kiem_ke import theo_lo
 from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import BTP, TP, cong_ty_kho, ton_kho_khac, ton_lo
 from sx.utils import get_settings, items_tp, kho_xuong, nap_cong_bo
 
@@ -111,6 +111,32 @@ def _phieu(name):
     return d
 
 
+def _td(p):
+    """Thời điểm chốt sổ của phiếu (D195) — None: số sổ sách tính tới hiện tại."""
+    return get_datetime(p.get("thoi_diem")) if p and p.get("thoi_diem") else None
+
+
+@frappe.whitelist()
+def dat_thoi_diem(name, thoi_diem=None):
+    """Đặt / bỏ THỜI ĐIỂM CHỐT SỔ (D195) — thủ kho / quản lý. Không đụng số đếm: số sổ sách tính lại tới thời điểm
+    đó, chốt ghi chứng từ kho lùi về đó. Để trống = lúc bấm chốt."""
+    guard_card(CARD)
+    if not _duoc_chot():
+        frappe.throw(_("Chỉ thủ kho / quản lý đặt thời điểm chốt sổ."), frappe.PermissionError)
+    d = _phieu(name)
+    if thoi_diem:
+        td = get_datetime(thoi_diem).replace(second=0, microsecond=0)
+        loi = d.kiem_thoi_diem(td)
+        if loi:
+            frappe.throw("<br>".join(loi))
+        d.thoi_diem = td
+        d.ngay = td.date()
+    else:
+        d.thoi_diem = None
+        d.ngay = getdate(d.bat_dau_luc or nowdate())
+    return _luu(d)
+
+
 def _canh_bao(kho, loai=TP):
     """Điều nên biết trước khi đếm / chốt — không chặn."""
     ra = []
@@ -156,11 +182,13 @@ def tong_quan(kho=None, loai=None):
     ra = (_hang_btp if k["loai"] == BTP else _hang_tp)(k["kho"], p)
     ra.update({
         "kho": k["kho"], "loai": k["loai"], "cac_kho": cac_kho(), "duoc_chot": _duoc_chot(), "hom_nay": nowdate(),
+        "bay_gio": now_datetime().strftime("%Y-%m-%dT%H:%M"),
         "phieu": None, "gan_day": _gan_day(k["kho"], k["loai"]), "canh_bao": _canh_bao(k["kho"], k["loai"]),
     })
     if p:
         ra["phieu"] = {"name": p.name, "ngay": str(p.ngay), "nguoi_lap": p.nguoi_lap,
                        "bat_dau_luc": str(p.bat_dau_luc or "")[:16],
+                       "thoi_diem": str(p.get("thoi_diem") or "")[:16],
                        "duoc_huy": bool(_la_quan_ly() or p.nguoi_lap == frappe.session.user)}
     return ra
 
@@ -171,7 +199,7 @@ def _hang_tp(kho, p):
 
     tp = {i.name: i for i in items_tp(["name", "item_name", "stock_uom", "shelf_life_in_days",
                                         "has_batch_no"])}
-    lots = ton_lo(kho, list(tp))
+    lots = ton_lo(kho, list(tp), _td(p))
     dem = {}
     for r in (p.dong if p else []) or []:
         dem.setdefault(r.item, []).append(r)
@@ -240,7 +268,7 @@ def _mo_ta_btp(i):
 def _hang_btp(kho, p):
     """Bán thành phẩm: từng mã → từng lô trên sổ (kg, ngày lô) + số đã cân; lô đã cân mà sổ không có cũng hiện."""
     btp = {i.name: i for i in _items_btp()}
-    lots = ton_lo(kho, list(btp))
+    lots = ton_lo(kho, list(btp), _td(p))
     can = {}
     for r in (p.dong if p else []) or []:
         can.setdefault(r.item, {})[r.batch or None] = r
@@ -482,7 +510,7 @@ def lo_khac(name, item, tim=None):
     """"+ LÔ KHÁC": lô của mã (mới nhất trước) không có trên sổ kho này — cân thấy hàng của lô đó."""
     guard_card(CARD)
     d = _phieu(name)
-    co = {l["batch"] for l in ton_lo(d.kho, [item]).get(item, [])}
+    co = {l["batch"] for l in ton_lo(d.kho, [item], _td(d)).get(item, [])}
     co |= {r.batch for r in d.dong or [] if r.item == item}
     f = {"item": item, "disabled": 0}
     if tim:
@@ -503,7 +531,7 @@ def het_hang(name, item):
     moi = {"item": item, "ten": ten, "so_dem": 0, "nguoi_dem": frappe.session.user, "dem_luc": now_datetime()}
     if d.la_btp():
         co_lo = cint(frappe.db.get_value("Item", item, "has_batch_no"))
-        ds = [l["batch"] for l in ton_lo(d.kho, [item]).get(item, [])
+        ds = [l["batch"] for l in ton_lo(d.kho, [item], _td(d)).get(item, [])
               if not l["thu_hoi"] and (l["batch"] or not co_lo)]
         if not ds:
             frappe.throw(_("{0} không còn lô nào trên sổ kho này.").format(ten))
@@ -549,7 +577,7 @@ def xem_truoc(name):
     """Chốt thì sẽ làm gì (không ghi gì): từng mã sổ → đếm, chuyển lô, thiếu, thừa; lỗi chặn; cảnh báo."""
     guard_card(CARD)
     d = _phieu(name)
-    ke, _ten_lo, ten = d.lap_ke()
+    ke, ten_lo, ten = d.lap_ke()
     btp = d.la_btp()
     chua = set() if btp else (getattr(d.flags, "chua_dem", None) or set())
     doi = {} if btp else (getattr(d.flags, "doi_lo", None) or {})
@@ -587,6 +615,20 @@ def xem_truoc(name):
         if giu:
             canh.append(_("{0} mã chưa quản lý theo lô còn tồn ở kho của công ty khác — chốt chỉ đưa tồn ở {1} về 0, mã "
                           "vẫn để không lô: {2}.").format(len(giu), d.kho, liet_ke(giu)))
+        # D195: chốt lùi có mã bật lô — hai nhịp (SXKiemKe._bat_lui); nói rõ tồn hiện tại sẽ chia vào lô ra sao.
+        td = _td(d)
+        lui = d._bat_lui(ke) if td else {}
+        if lui:
+            co = [(i, x) for i, x in sorted(lui.items(), key=lambda x: ten.get(x[0], x[0])) if x["ct"]]
+            canh.append(_("{0} mã bật quản lý lô mà chốt lùi: phần chênh lệch (đếm − sổ) ghi lùi về {1}, mã còn không lô; "
+                          "chuyển tồn vào lô theo HSD làm LÚC BẤM CHỐT với tồn hiện tại — số đếm cộng / trừ chứng từ "
+                          "không lô sau thời điểm chốt: bán / xuất trừ HSD sớm nhất trước, nhập theo HSD của phiếu nhập "
+                          "thành phẩm (không rõ HSD → lô tồn cũ).{2}").format(
+                len(lui), td.strftime("%d/%m/%Y %H:%M"), (" " + _("Có chứng từ sau thời điểm chốt: {0}.").format("; ".join(
+                    f"{ten.get(i, i)} → " + (", ".join(
+                        (f"HSD {getdate(h).strftime('%d/%m/%y')} {so_vn(q)}" if h else f"lô tồn cũ {so_vn(q)}")
+                        for h, q in sorted(x["ket"].items(), key=lambda kv: kv[0] or "9999")) or "0")
+                    for i, x in co[:8]) + (" …" if len(co) > 8 else ""))) if co else ""))
         xx = d.chua_duyet_xx(ke)
         if xx:
             canh.append(_("{0} lô của hàng làm từ ngày áp dụng BM.08.04 chưa duyệt xuất xưởng: {1}. Chốt vẫn đưa hàng "
@@ -605,8 +647,9 @@ def xem_truoc(name):
                  "ve_0": len(chua), "bat_lo": sum(1 for c in doi.values() if c == "bat"),
                  "kho_am": [] if btp else [{"ten": ten.get(i, i), "kho": w, "so": flt(q, 3)} for i, v in sorted(
                      (getattr(d.flags, "kho_khac", None) or {}).items()) if doi.get(i) == "bat" for w, q in v if q < 0],
-                 "phieu_kho": so_chung_tu(chia_chung_tu(ke, nowdate(), doi, {
-                     i: v for i, v in (getattr(d.flags, "kho_khac", None) or {}).items() if doi.get(i) == "bat"}))},
+                 "thoi_diem": str(d.get("thoi_diem") or "")[:16],
+                 "bat_lui": 0 if btp or not _td(d) else len(d._bat_lui(ke)),
+                 "phieu_kho": d.so_phieu_kho(ke, ten_lo)},
     }
 
 

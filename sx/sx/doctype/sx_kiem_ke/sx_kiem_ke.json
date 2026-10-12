@@ -12,6 +12,7 @@
   "loai",
   "nguoi_lap",
   "bat_dau_luc",
+  "thoi_diem",
   "section_dong",
   "dong",
   "section_lo",
@@ -94,6 +95,12 @@
    "fieldtype": "Datetime",
    "label": "Bắt đầu đếm lúc",
    "read_only": 1
+  },
+  {
+   "fieldname": "thoi_diem",
+   "fieldtype": "Datetime",
+   "label": "Thời điểm chốt sổ",
+   "description": "Số sổ sách tính tới thời điểm này; chứng từ kho của kiểm kê ghi lùi về thời điểm này. Để trống = lúc bấm chốt."
   },
   {
    "fieldname": "section_dong",
@@ -197,7 +204,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-09 18:00:00.000000",
+ "modified": "2026-10-12 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Kiem Ke",

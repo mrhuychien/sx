@@ -8,6 +8,8 @@
 // mã, áp mọi kho — tồn ở kho khác (cửa hàng, xưởng) chốt xử lý luôn: kho dương vào lô tồn cũ tại chỗ, kho âm về 0.
 // D193: nút "Tồn âm thành phẩm ở Kho Xưởng sản xuất" — xem từng dòng âm (do chuyển sang Kho TP mà không ghi sản xuất
 // vào xưởng), quản lý bấm DỌN để nhập điều chỉnh về 0, in danh sách cho kế toán.
+// D195: "Chốt sổ tại" — thủ kho / quản lý đặt thời điểm chốt sổ: số sổ sách tính tới lúc đó (số đếm giữ nguyên), chốt
+// ghi chứng từ kho lùi về lúc đó (mã bật lô: chênh lệch ghi lùi, chuyển vào lô lúc bấm). Để trống = lúc bấm chốt.
 // BÁN THÀNH PHẨM (D155): Kho BTP / Kho xưởng — hàng rời tính kg, lô theo ngày làm / lô rang, không có HSD: CÂN
 // TỪNG LÔ. Lô đã cân thì số cân thay số sổ của lô đó; lô chưa cân giữ nguyên.
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
@@ -53,6 +55,8 @@ export function ngayTuMa(ma) {
   return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === iso ? iso : '';
 }
 const kg = (n) => formatNumber(n, 3);
+/** 'YYYY-MM-DD HH:MM[:SS]' → 'dd/mm/yy HH:MM'. */
+const veLuc = (s) => `${veNgayDu(String(s).slice(0, 10))} ${String(s).slice(11, 16)}`;
 const coDau = (n, le = 0) => `${n > 0 ? '+' : ''}${formatNumber(n, le)}`;
 
 function khoDaNho() {
@@ -183,6 +187,32 @@ export async function render({ container, call, boot }) {
   const veNutAm = () => (laBtp() ? '' : `<button type="button" class="sx-btn sx-btn-ghost" id="kk-am">
     Tồn âm thành phẩm ở Kho Xưởng sản xuất</button>`);
 
+  // D195: thời điểm chốt sổ — không đụng số đã đếm, chỉ tính lại số sổ sách tới lúc đó.
+  function moThoiDiem(p) {
+    const m = openModal({ kicker: `Kiểm kê · ${p.name}`, title: 'Thời điểm chốt sổ' });
+    const goc = String(p.thoi_diem || p.bat_dau_luc || '').replace(' ', 'T').slice(0, 16);
+    m.body.innerHTML = `
+      <div class="sx-muted">Số sổ sách tính tới thời điểm này; chốt ghi chứng từ kho <b>lùi về</b> thời điểm này. Số đã
+        ${dem()} giữ nguyên. Nên đặt đúng lúc ${dem()} (kho đứng yên); để trống = lúc bấm chốt.</div>
+      <input class="sx-textarea" type="datetime-local" id="kk-td-o" value="${esc(goc)}" max="${esc(dl.bay_gio || '')}">`;
+    const luu = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'LƯU THỜI ĐIỂM');
+    luu.type = 'button';
+    luu.addEventListener('click', () => {
+      const v = (m.body.querySelector('#kk-td-o').value || '').trim();
+      if (!v) { toastErr('Chọn ngày giờ chốt sổ.'); return; }
+      lam(() => call('sx.api.kiemke.dat_thoi_diem', { name: p.name, thoi_diem: v.replace('T', ' ') }), luu)
+        .then((xong) => { if (xong) { m.close(); toast(`Chốt sổ tại ${veLuc(v.replace('T', ' '))} — số sổ sách đã tính lại.`); } });
+    });
+    m.body.appendChild(luu);
+    if (p.thoi_diem) {
+      const bo = el('button', 'sx-btn sx-btn-ghost sx-btn-big', 'BỎ — CHỐT THEO LÚC BẤM');
+      bo.type = 'button';
+      bo.addEventListener('click', () => lam(() => call('sx.api.kiemke.dat_thoi_diem', { name: p.name }), bo)
+        .then((xong) => { if (xong) { m.close(); toast('Bỏ thời điểm chốt sổ — chốt theo lúc bấm.'); } }));
+      m.body.appendChild(bo);
+    }
+  }
+
   async function moDonAm(nut) {
     if (nut) nut.disabled = true;
     let x;
@@ -272,11 +302,16 @@ export async function render({ container, call, boot }) {
       ${veKho()}
       <div class="sx-field-label">Kiểm kê ${esc(p.name)} · bắt đầu ${esc(veNgayDu(p.bat_dau_luc))} ${
   esc(String(p.bat_dau_luc).slice(11, 16))} · ${esc(dl.kho)}</div>
+      <div class="sx-kk-moc">Chốt sổ tại: <b>${p.thoi_diem ? esc(veLuc(p.thoi_diem)) : 'lúc bấm chốt'}</b>${
+  dl.duoc_chot ? ' <button type="button" class="sx-np-chip" id="kk-td">✎ Đổi</button>' : ''}</div>
       <div class="sx-kk-tien">${tien}${daDem.length ? ` · lệch <span class="${Math.abs(lech) > 1e-9 ? 'sx-kk-lech'
     : 'sx-kk-khop'}">${coDau(lech, le())}${laBtp() ? ' kg' : ''}</span>` : ''}</div>
       <div class="sx-kk-nhac">${laBtp()
     ? 'Đang kiểm kê: lô đã cân thì đừng xuất / nhập lô đó. Có chứng từ kho của lô sau lúc cân thì phải cân lại lô đó mới chốt được.'
-    : 'Đang kiểm kê: đừng bán / nhập / xuất thành phẩm. Chốt sẽ đặt lại toàn kho theo số đếm — mã có tồn mà không đếm về 0. Có chứng từ kho sau lúc đếm thì phải đếm lại mã đó mới chốt được.'}</div>
+    : 'Đang kiểm kê: đừng bán / nhập / xuất thành phẩm. Chốt sẽ đặt lại toàn kho theo số đếm — mã có tồn mà không đếm về 0.'}${
+  p.thoi_diem ? ` Số sổ sách tính tới ${esc(veLuc(p.thoi_diem))}; chốt ghi chứng từ kho lùi về lúc đó. Có chứng từ kho giữa lúc ${
+    dem()} và lúc đó thì ${dem()} lại; chứng từ sau lúc đó không được rút từ lô mà chốt giảm.`
+    : ` Có chứng từ kho sau lúc ${dem()} thì phải ${dem()} lại mới chốt được.`}</div>
       ${veCanhBao()}
       <div class="sx-kk-loc" role="tablist">${LOC.map(([k, ten, f]) => `<button type="button" role="tab"
         class="sx-np-chip${st.loc === k ? ' sx-np-chip-on' : ''}" data-loc="${k}" aria-selected="${st.loc === k}">${
@@ -347,6 +382,8 @@ export async function render({ container, call, boot }) {
       }));
     }
     $('#kk-xem').addEventListener('click', (e) => xemTruoc(e.currentTarget));
+    const td = $('#kk-td');
+    if (td) td.addEventListener('click', () => moThoiDiem(p));
     $('#kk-in').addEventListener('click', () => inBienBan(p.name));
     const huy = $('#kk-huy');
     if (huy) {
@@ -658,6 +695,8 @@ export async function render({ container, call, boot }) {
     const dv = btp ? ' kg' : '';
     const m = openModal({ kicker: 'Kiểm kê · xem trước khi chốt', title: x.name });
     m.body.innerHTML = `
+      <div class="sx-kk-moc">Chốt sổ tại: <b>${t.thoi_diem ? `${esc(veLuc(t.thoi_diem))} — sổ sách tính tới lúc đó, chứng từ ghi lùi về lúc đó`
+    : 'lúc bấm chốt'}</b></div>
       <div class="sx-kk-tien">${t.so_ma} mã${btp ? ` · ${t.so_lo} lô` : ''} · sổ ${n(t.so_sach)} → ${btp ? 'cân' : 'đếm'} ${
   n(t.dem)}${dv} · <span class="${Math.abs(t.dem - t.so_sach) > 1e-9 ? 'sx-kk-lech' : 'sx-kk-khop'}">${
   coDau(t.dem - t.so_sach, d)}</span></div>
@@ -691,7 +730,9 @@ export async function render({ container, call, boot }) {
           t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}${
           (t.kho_am || []).length ? `; tồn âm ở kho khác đưa về 0: ${t.kho_am.map((k) => `${k.ten} ở ${k.kho} ${
             formatNumber(k.so)}`).join(', ')}` : ''}.\n`
-          + `Sinh ${t.phieu_kho} chứng từ kho. Chốt rồi không sửa trên màn này được nữa — muốn huỷ phải huỷ `
+          + `Sinh ${t.phieu_kho} chứng từ kho${t.thoi_diem ? `, ghi lùi về ${veLuc(t.thoi_diem)}${t.bat_lui
+            ? ` (riêng việc chuyển ${t.bat_lui} mã bật lô vào lô theo HSD làm lúc bấm, với tồn hiện tại)` : ''}` : ''}. `
+          + 'Chốt rồi không sửa trên màn này được nữa — muốn huỷ phải huỷ '
           + 'phiếu kiểm kê trên Desk (các chứng từ kho huỷ theo).',
         confirmLabel: 'CHỐT',
         onConfirm: async () => {

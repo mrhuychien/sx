@@ -284,3 +284,34 @@ def theo_lo(ke, ten_lo_hsd):
     for g in ra.values():
         g["truoc"], g["sau"] = _r(g["truoc"]), _r(g["sau"])
     return ra
+
+
+def phan_lo_sau(dem, dong):
+    """D195 — mã chuyển sang quản lý lô mà chốt LÙI về thời điểm chốt sổ: tồn KHÔNG LÔ hiện tại chia theo HSD — hàm
+    thuần.
+
+    Số đếm là tồn tại thời điểm chốt sổ; sau đó mã vẫn có chứng từ không lô (bán, chuyển, nhập…) — không biết hộp HSD
+    nào đi / đến. Chạy lại các chứng từ đó trên số đếm: hàng RA lấy HSD sớm nhất trước (FEFO — HSD còn hạn ở ngày
+    chứng từ trước, rồi hàng chưa rõ HSD, hết hạn sau cùng); hàng VÀO theo HSD của nó (None = chưa rõ HSD).
+      dem   {hsd: số đếm}
+      dong  [{"q": số (âm = ra), "hsd": HSD của hàng vào | None, "ngay": 'YYYY-MM-DD'}] theo thứ tự ghi sổ
+    Trả ({hsd | None: số còn}, thiếu) — thiếu > 0: có lúc ra nhiều hơn đang có (đếm thiếu, hoặc chứng từ sai).
+    """
+    con = {str(h)[:10]: float(q) for h, q in (dem or {}).items() if h and float(q or 0) > EPS}
+    thieu = 0.0
+    for d in dong or []:
+        q = float(d.get("q") or 0)
+        if q > EPS:
+            h = str(d["hsd"])[:10] if d.get("hsd") else None
+            con[h] = con.get(h, 0.0) + q
+            continue
+        can, ngay = -q, str(d.get("ngay") or "")[:10]
+        for h in sorted(con, key=lambda h: (1, "") if h is None else (2 if ngay and h < ngay else 0, h)):
+            lay = min(con[h], can)
+            con[h] -= lay
+            can -= lay
+            if can <= EPS:
+                break
+        if can > EPS:
+            thieu += can
+    return {h: _r(q) for h, q in con.items() if q > EPS}, _r(thieu)

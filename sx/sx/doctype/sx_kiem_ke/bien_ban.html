@@ -20,8 +20,9 @@
   {% if cong_ty %}<div class="ct">{{ cong_ty }}</div>{% endif %}
   <h1>Biên bản kiểm kê kho {{ "bán thành phẩm" if btp else "thành phẩm" }}</h1>
   <div class="ma">Số {{ d.name }} &nbsp;·&nbsp; Kho: {{ d.kho }} &nbsp;·&nbsp; Ngày kiểm kê {{ vn(d.ngay) }}
-    {% if d.chot_luc %}&nbsp;·&nbsp; Chốt {{ vn(d.chot_luc) }} {{ (d.chot_luc|string)[11:16] }}{% endif %}</div>
-  {% if nhap %}<div class="nhap">BẢN NHÁP — chưa chốt; số sổ sách tính tới lúc in</div>{% endif %}
+    {% if d.thoi_diem %}&nbsp;·&nbsp; <b>Chốt sổ tại {{ vn(d.thoi_diem) }} {{ (d.thoi_diem|string)[11:16] }}</b>{% endif %}
+    {% if d.chot_luc %}&nbsp;·&nbsp; {{ "Bấm chốt" if d.thoi_diem else "Chốt" }} {{ vn(d.chot_luc) }} {{ (d.chot_luc|string)[11:16] }}{% endif %}</div>
+  {% if nhap %}<div class="nhap">BẢN NHÁP — chưa chốt; số sổ sách tính tới {{ "thời điểm chốt sổ" if d.thoi_diem else "lúc in" }}</div>{% endif %}
   {% if huy %}<div class="nhap">PHIẾU ĐÃ HUỶ — các chứng từ kho của phiếu đã huỷ</div>{% endif %}
 
   {% if btp %}

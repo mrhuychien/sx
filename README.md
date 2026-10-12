@@ -320,6 +320,37 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê: chỉnh thời điểm chốt sổ — sổ sách tính tới lúc đó, chứng từ ghi lùi về lúc đó (D195)
+
+- **Ở đâu**: thẻ **Kiểm kê kho**, phiếu đang đếm → dòng **Chốt sổ tại: …** → **✎ Đổi** (thủ kho / quản lý). Chọn ngày
+  giờ (không quá hiện tại) → **LƯU THỜI ĐIỂM**; **BỎ — CHỐT THEO LÚC BẤM** = như cũ. Ngày kiểm kê theo ngày đã chọn.
+- **Đổi thời điểm không đụng số đã đếm** — chỉ tính lại số sổ sách (ERPNext) **tới** thời điểm đó: thẻ, xem trước, biên
+  bản nháp đều theo số đó.
+- **Chốt**: chứng từ kho của kiểm kê ghi lùi (ngày giờ ghi sổ = thời điểm chốt; ERPNext tính lại các chứng từ sau đó).
+  Biên bản ghi *Chốt sổ tại …* và *Bấm chốt …*.
+- **Nên đặt đúng lúc đếm** (kho đứng yên). App chặn, nói rõ chứng từ, khi:
+  - thời điểm ở tương lai; rơi vào sổ kho đã khoá (Stock Settings → Stock Frozen Up To / số ngày; Stock Closing Entry);
+    Stock Settings chỉ cho một vai ghi lùi trước chứng từ đã có mà người chốt không có vai đó — cùng điều kiện ERPNext,
+    báo trước bằng tiếng Việt;
+  - mã có chứng từ kho **giữa lúc đếm và thời điểm chốt** (trước hay sau đều vậy): số đếm không phải tồn tại thời điểm
+    đó → đếm lại mã đó, hoặc đổi thời điểm; mã chưa đếm (sắp về 0) tính từ lúc bắt đầu kiểm kê;
+  - chứng từ **sau thời điểm chốt** rút từ lô mà chốt giảm (vd bán từ lô cũ mà chốt chuyển hết lô đó sang lô HSD — chốt
+    lùi xong lô đó âm), hoặc phiếu Stock Reconciliation sau thời điểm chốt (đặt lại tồn, đè phần chốt).
+- **Mã chưa quản lý lô (chốt bật lô — D189)**: sau thời điểm chốt mã vẫn bán / nhập KHÔNG lô (lúc đó mã chưa có lô), bật
+  lô lùi về trước các chứng từ đó thì phần không lô kẹt. Nên chốt **hai nhịp**: phần chênh lệch (đếm − sổ) ghi lùi về
+  thời điểm chốt, không lô; chuyển tồn vào lô theo HSD + bật lô làm **lúc bấm chốt**, với tồn hiện tại = số đếm chạy tiếp
+  các chứng từ sau thời điểm chốt — hàng bán / xuất trừ vào HSD sớm nhất trước (FEFO, HSD còn hạn trước), hàng nhập theo
+  HSD của phiếu nhập thành phẩm, nhập không rõ HSD (chuyển về, trả lại…) vào lô tồn cũ. Xem trước liệt kê từng mã sẽ
+  chia ra sao. Sau thời điểm chốt bán nhiều hơn số đếm → chặn. Tồn ở cửa hàng / xưởng (D191) xử lý lúc bấm, số hiện tại.
+- Site **tắt** tồn âm (Stock Settings → Allow Negative Stock): ERPNext kiểm từng dòng của phiếu ghi lùi — chuyển lô / xuất
+  ở thời điểm chốt mà sau đó tồn của mã có lúc xuống thấp hơn số đó thì ERPNext có thể chặn giữa lúc chốt (cuộn lại hết,
+  không ghi gì). Khi đó chọn thời điểm muộn hơn, hoặc để trống.
+- Mã `SXKiemKe._td / kiem_thoi_diem / _lech_quanh_thoi_diem / _xung_dot_sau / _bat_lui / cac_luot`,
+  `sx.kiem_ke.phan_lo_sau`, API `dat_thoi_diem`. Test `test-kiemke.py` (chia HSD, sổ tại thời điểm, từng điều kiện chặn,
+  chốt ghi lùi, hai nhịp, lô tồn cũ, huỷ), `test-sohsd.mjs` (dòng chốt sổ, hộp đổi / bỏ, xem trước, xác nhận).
+- **DocType đổi** (thêm ô *Thời điểm chốt sổ*): `git pull` → `bench --site site1.local migrate` → `bench restart`. Build
+  **sx-150**.
+
 ## Sửa số tồn sai trên kiểm kê khi mã có phiếu Stock Reconciliation (D194)
 
 - **Lỗi**: thẻ kiểm kê / xem trước cho số sổ sách khác ERPNext — vd *Bánh đậu Sầu riêng 170g*: ERPNext tồn 6.265, thẻ

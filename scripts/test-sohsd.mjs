@@ -530,7 +530,8 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
       khong_lo: true, bat_lo: true, le_khong_lo: 0, kho_khac: [{ kho: 'Kho Cty B', so: 2, cty_khac: true }] },
   ];
   const tq = () => ({
-    kho: 'Kho TP', duoc_chot: KH.chot, hom_nay: NGAY, phieu: st.phieu, danh_muc: [], gan_day: [], canh_bao: [],
+    kho: 'Kho TP', duoc_chot: KH.chot, hom_nay: NGAY, bay_gio: '2026-10-09T10:00', phieu: st.phieu, danh_muc: [],
+    gan_day: [], canh_bao: [],
     hang: HANG.map((h) => ({ ...h, da_dem: !!st.dem[h.item], dem: st.dem[h.item] || [],
       tong_dem: (st.dem[h.item] || []).reduce((a, x) => a + x.so, 0) })),
   });
@@ -548,6 +549,7 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
     }
     if (m === 'sx.api.kiemke.het_hang') st.dem[a.item] = [{ hsd: null, so: 0 }];
     if (m === 'sx.api.kiemke.dem_lai') delete st.dem[a.item];
+    if (m === 'sx.api.kiemke.dat_thoi_diem') st.phieu = { ...st.phieu, thoi_diem: String(a.thoi_diem || '').slice(0, 16) };
     if (m === 'sx.api.kiemke.xem_truoc') {
       return { name: 'KK-1', loi: KH.loi, canh_bao: [], duoc_chot: KH.chot,
         ma: [{ item: 'TP-SEN', ten: 'Bánh sen', so_sach: 180, dem: 120, chuyen: 120, lo_cu: 2, thieu: 60, thua: 0,
@@ -557,7 +559,8 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
         { item: 'TP-RONG', ten: 'Thỏi vàng Rồng', so_sach: 50, dem: 55, chuyen: 50, lo_cu: 1, thieu: 0, thua: 5,
           bu_am: 0, thu_hoi: 0, bat_lo: true }],
         tong: { so_ma: 3, so_sach: 270, dem: 175, phieu_kho: 3, ve_0: 1, bat_lo: 1,
-          kho_am: [{ ten: 'Thỏi vàng Rồng', kho: 'Xưởng', so: -20093 }] } };
+          kho_am: [{ ten: 'Thỏi vàng Rồng', kho: 'Xưởng', so: -20093 }],
+          thoi_diem: st.phieu.thoi_diem || '', bat_lui: st.phieu.thoi_diem ? 1 : 0 } };
     }
     if (m === 'sx.api.kiemke.chot') { st.phieu = null; return { name: 'KK-1', so_ma: 1, tong_lech: -60, so_phieu_kho: 2 }; }
     // D193: dọn tồn âm thành phẩm ở Kho Xưởng sản xuất
@@ -651,6 +654,58 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   c.querySelector('[data-lai="1"]').bam();
   await choRe();
   kiem('ĐẾM LẠI → dem_lai(mã)', loiGoi('sx.api.kiemke.dem_lai')[1].item === 'TP-DO');
+  // D195: thời điểm chốt sổ — thủ kho / quản lý đổi được; không đụng số đếm, chỉ tính lại sổ sách tới lúc đó.
+  kiem('D195: dòng "Chốt sổ tại: lúc bấm chốt"; không có quyền chốt thì không có nút đổi',
+    /Chốt sổ tại: <b>lúc bấm chốt<\/b>/.test(c.innerHTML) && !c.querySelector('#kk-td'));
+  KH.chot = true;
+  await KK.render({ container: c, call, boot: {} });
+  kiem('… thủ kho / quản lý: có nút ✎ Đổi', !!c.querySelector('#kk-td'));
+  c.querySelector('#kk-td').bam();
+  let hop = MO[MO.length - 1];
+  const oTd = hop.body.querySelector('#kk-td-o');
+  const nutTd = (t) => hop.body.kids.find((k) => k.textContent === t);
+  kiem('bấm Đổi → hộp Thời điểm chốt sổ: ô ngày giờ điền sẵn lúc bắt đầu kiểm kê, không chọn quá hiện tại; nói chứng '
+    + 'từ ghi lùi, số đã đếm giữ nguyên; chưa đặt thì không có nút BỎ',
+  hop.kicker === 'Kiểm kê · KK-1' && hop.title === 'Thời điểm chốt sổ' && oTd && oTd.value === '2026-10-09T08:15'
+    && /max="2026-10-09T10:00"/.test(hop.body.innerHTML) && /lùi về/.test(hop.body.innerHTML)
+    && /giữ nguyên/.test(hop.body.innerHTML) && !nutTd('BỎ — CHỐT THEO LÚC BẤM'), hop.body.innerHTML);
+  const nGoiTd = goi.length;
+  oTd.value = '';
+  nutTd('LƯU THỜI ĐIỂM').bam();
+  kiem('… để trống mà LƯU → báo chọn ngày giờ, không gọi server', goi.length === nGoiTd
+    && TOAST.some(([t, k]) => k === 'err' && /Chọn ngày giờ chốt sổ/.test(t)));
+  oTd.value = '2026-10-09T08:30';
+  nutTd('LƯU THỜI ĐIỂM').bam();
+  await choRe();
+  kiem('… LƯU → dat_thoi_diem(phiếu, "2026-10-09 08:30") — không gửi số đếm; đóng hộp, báo sổ sách đã tính lại',
+    bang(loiGoi('sx.api.kiemke.dat_thoi_diem')[1], { name: 'KK-1', thoi_diem: '2026-10-09 08:30' }) && hop.dong
+    && TOAST.some(([t]) => /Chốt sổ tại 09\/10\/26 08:30 — số sổ sách đã tính lại/.test(t)),
+  loiGoi('sx.api.kiemke.dat_thoi_diem'));
+  kiem('… màn ghi "Chốt sổ tại: 09/10/26 08:30"; nhắc nói sổ sách tính tới lúc đó, chứng từ ghi lùi, chứng từ ở giữa thì '
+    + 'đếm lại', /Chốt sổ tại: <b>09\/10\/26 08:30<\/b>/.test(c.innerHTML)
+    && /Số sổ sách tính tới 09\/10\/26 08:30; chốt ghi chứng từ kho lùi về lúc đó\. Có chứng từ kho giữa lúc đếm và lúc đó thì đếm lại/
+      .test(c.innerHTML), c.innerHTML.match(/sx-kk-nhac">[^<]*/));
+  c.querySelector('#kk-xem').bam();
+  await choRe();
+  const xtTd = MO[MO.length - 1];
+  kiem('xem trước: "Chốt sổ tại: 09/10/26 08:30 — sổ sách tính tới lúc đó, chứng từ ghi lùi về lúc đó"',
+    /Chốt sổ tại: <b>09\/10\/26 08:30 — sổ sách tính tới lúc đó, chứng từ ghi lùi về lúc đó<\/b>/.test(xtTd.body.innerHTML),
+    xtTd.body.innerHTML.slice(0, 300));
+  xtTd.body.kids.find((k) => k.textContent === 'CHỐT KIỂM KÊ').bam();
+  kiem('… hộp xác nhận: chứng từ ghi lùi về lúc đó; riêng mã bật lô chuyển vào lô lúc bấm',
+    /Sinh 3 chứng từ kho, ghi lùi về 09\/10\/26 08:30 \(riêng việc chuyển 1 mã bật lô vào lô theo HSD làm lúc bấm, với tồn hiện tại\)\./
+      .test(HOI[HOI.length - 1].message), HOI[HOI.length - 1].message);
+  c.querySelector('#kk-td').bam();
+  hop = MO[MO.length - 1];
+  kiem('mở lại: ô điền thời điểm đang đặt; có nút BỎ', hop.body.querySelector('#kk-td-o').value === '2026-10-09T08:30'
+    && !!nutTd('BỎ — CHỐT THEO LÚC BẤM'));
+  nutTd('BỎ — CHỐT THEO LÚC BẤM').bam();
+  await choRe();
+  kiem('… BỎ → dat_thoi_diem(phiếu) không kèm thời điểm; màn về "lúc bấm chốt"',
+    bang(loiGoi('sx.api.kiemke.dat_thoi_diem')[1], { name: 'KK-1' }) && hop.dong
+    && /Chốt sổ tại: <b>lúc bấm chốt<\/b>/.test(c.innerHTML) && TOAST.some(([t]) => /Bỏ thời điểm chốt sổ/.test(t)));
+  KH.chot = false;
+  await KK.render({ container: c, call, boot: {} });
   const nhanTruoc = MO.length;
   c.querySelector('#kk-xem').bam();
   await choRe();
