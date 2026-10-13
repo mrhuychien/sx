@@ -323,6 +323,22 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sửa hoá đơn cũ mà dòng mang lô — ERPNext báo lô âm ở ngày cũ (D199)
+
+- **Lỗi**: sửa (Amend) hoá đơn ngày 14/8 (thêm thuế), gửi thì báo *Batch No H24D-HSD240627 of an Item H24 D has negative
+  stock of quantity -30.0 in the warehouse Thành phẩm - HGC*.
+- **Nguyên nhân**: bản sửa giữ ngày 14/8 (ERPNext giữ ngày của hoá đơn sửa đổi). Sửa dòng hàng trên Desk thì hộp chọn lô
+  của ERPNext tự điền lô HSD sớm nhất — lô do kiểm kê 12/10 tạo, chỉ có hàng từ lúc bật lô — nên ghi sổ ngày 14/8 thì
+  lô âm. D198 thấy dòng đã có lô nên để nguyên.
+- **Sửa** (`sx/api/lo_cu.py`): lúc gửi chứng từ ghi sổ trước lúc kiểm kê bật lô, dòng của mã đã bật lô mà mang lô (ô Batch
+  No, gói lô nháp) → **bỏ lô** (xoá gói lô nháp), ghi sổ không lô như D198; báo lại đã bỏ lô nào ở dòng nào. Gói lô đã
+  gửi, hoặc lúc huỷ chứng từ: không đụng.
+- **Làm**: `git pull` → `bench restart` → mở lại bản sửa (đang nháp) → **Gửi** lại. Hộp chọn lô có hiện khi sửa dòng
+  thì đóng đi hoặc để nguyên — lúc gửi app tự bỏ lô.
+- Test `test-kiemke.py` (bản sửa 14/8 có gói lô nháp + ô Batch No → bỏ lô, xoá gói, ghi không lô, báo lại; gói đã gửi;
+  lúc huỷ).
+- Không đổi giao diện: `git pull` → `bench restart`.
+
 ## Chứng từ lập trước lúc kiểm kê bật lô: đóng ca POS, sửa hoá đơn cũ; dọn tồn không lô còn lại (D198)
 
 - **Lỗi**: sau lần kiểm kê bật quản lý lô cho mã (D189, D191): (1) **không đóng được ca POS** — các phiếu POS lập trước

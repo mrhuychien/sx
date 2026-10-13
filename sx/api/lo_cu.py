@@ -12,6 +12,10 @@ bật lô (hoá đơn gộp từ POS: xét giờ của từng phiếu POS) → t
 giao dịch, như D189) → ghi sổ KHÔNG lô, đúng như lúc lập. Lúc bật lô của mã đọc từ nhật ký phiếu kiểm kê đã chốt
 (ds_se: dòng Item has_batch_no 0 → 1; lúc bấm chốt).
 
+D199: dòng của chứng từ đó mà lại MANG lô (sửa hoá đơn cũ trên Desk — hộp chọn lô của ERPNext tự điền lô HSD sớm nhất)
+thì lô sai chắc chắn: lô của mã chỉ có hàng từ lúc bật lô, ghi sổ ngày cũ thì ERPNext báo "Batch No … has negative
+stock". Lúc gửi: bỏ lô khỏi dòng (xoá gói lô nháp), rồi tạm tắt lô như trên; báo lại đã bỏ lô nào.
+
 Hoá đơn gộp từ POS (đóng ca) gộp MỌI phiếu POS của một khách trong ca — có thể lẫn phiếu lập sau lúc bật lô (đã có
 lô), hoặc phiếu lập sau lúc bật lô mà máy POS còn nhớ mã chưa có lô (không lô). Mã đó không tắt lô được (dòng có lô
 thành hỏng) → gán lô cho các dòng không lô: lô tồn cũ trước (D191 — hàng không lô ở kho đó lúc bật lô vào lô này), rồi
@@ -80,8 +84,9 @@ def _gop_pos(doc):
 
 
 def _phan_loai(doc):
-    """{mã: {co, truoc, sau}} — dòng của các mã đã bật lô (còn đang có lô) trong chứng từ trừ kho: co = đã gắn lô (batch
-    / bundle); truoc / sau = không lô, ghi sổ trước / từ lúc bật lô. Hoá đơn gộp từ POS: giờ của từng phiếu POS."""
+    """{mã: {co, co_truoc, truoc, sau}} — dòng của các mã đã bật lô (còn đang có lô) trong chứng từ trừ kho:
+    co / co_truoc = đã gắn lô (batch / bundle), ghi sổ từ / trước lúc bật lô; truoc / sau = không lô, ghi sổ trước / từ
+    lúc bật lô. Hoá đơn gộp từ POS: giờ của từng phiếu POS."""
     if doc.doctype not in KIEU_BAN:
         return {}
     if doc.doctype == "Sales Invoice" and not cint(doc.get("update_stock")):
@@ -103,11 +108,12 @@ def _phan_loai(doc):
         i = r.get("item_code")
         if not co_lo[i]:
             continue
-        x = ra.setdefault(i, {"co": [], "truoc": [], "sau": []})
+        x = ra.setdefault(i, {"co": [], "co_truoc": [], "truoc": [], "sau": []})
+        truoc = (pos.get(r.get("pos_invoice")) or luc) < moc[i]["luc"]
         if r.get("batch_no") or r.get("serial_and_batch_bundle"):
-            x["co"].append(r)
+            x["co_truoc" if truoc else "co"].append(r)
         else:
-            x["truoc" if (pos.get(r.get("pos_invoice")) or luc) < moc[i]["luc"] else "sau"].append(r)
+            x["truoc" if truoc else "sau"].append(r)
     return ra
 
 
@@ -115,7 +121,7 @@ def ma_tam_tat_lo(doc, pl=None):
     """Mã cần tạm tắt lô lúc gửi / huỷ chứng từ: mọi dòng của mã KHÔNG lô và ghi sổ trước lúc bật lô. Mã có dòng đã gắn
     lô thì để nguyên (tắt lô là dòng đó hỏng)."""
     pl = _phan_loai(doc) if pl is None else pl
-    return {i for i, x in pl.items() if x["truoc"] and not x["co"] and not x["sau"]}
+    return {i for i, x in pl.items() if x["truoc"] and not (x["co"] or x["co_truoc"] or x["sau"])}
 
 
 def _so_ton(r):
@@ -188,11 +194,45 @@ def _dat_lo(item, co):
     xoa_cache_ma(item)
 
 
+def _bo_lo(r):
+    """D199: bỏ lô khỏi dòng ghi sổ trước lúc bật lô — ô batch_no, gói lô nháp (xoá, như ERPNext bỏ lô khỏi dòng nháp).
+    Gói lô đã gửi thì để nguyên (trả None). Trả các lô đã bỏ."""
+    sb = r.get("serial_and_batch_bundle")
+    co_goi = bool(sb) and bool(frappe.db.exists("Serial and Batch Bundle", sb))
+    if co_goi and cint(frappe.db.get_value("Serial and Batch Bundle", sb, "docstatus")) != 0:
+        return None
+    lo = [b for b, _q in _lo_cua_dong(r)] if co_goi else []
+    if r.get("batch_no") and r.batch_no not in lo:
+        lo.append(r.batch_no)
+    r.batch_no, r.serial_and_batch_bundle, r.use_serial_batch_fields = None, None, 0
+    if co_goi:
+        frappe.delete_doc("Serial and Batch Bundle", sb, ignore_permissions=True, force=True)
+    return lo
+
+
 def tam_tat_lo(doc, method=None):
     """before_submit / before_cancel của Sales Invoice, Delivery Note: chứng từ lập trước lúc mã bật lô ghi sổ KHÔNG lô
-    — tạm tắt lô của các mã đó (bat_lai_lo bật lại ngay sau, cùng giao dịch). Lúc gửi hoá đơn gộp từ POS: gán lô cho
-    dòng không lô của các mã còn lại (_gan_lo)."""
+    — tạm tắt lô của các mã đó (bat_lai_lo bật lại ngay sau, cùng giao dịch). Lúc gửi: dòng ghi sổ trước lúc bật lô mà
+    mang lô thì bỏ lô (D199); hoá đơn gộp từ POS: gán lô cho dòng không lô của các mã còn lại (_gan_lo)."""
     pl = _phan_loai(doc)
+    bo = []
+    if cint(doc.get("docstatus")) == 1:
+        for i, x in pl.items():
+            giu = []
+            for r in x["co_truoc"]:
+                lo = _bo_lo(r)
+                if lo is None:
+                    giu.append(r)
+                    continue
+                x["truoc"].append(r)
+                bo.append(_("Dòng {0}: {1} — lô {2}").format(r.get("idx"), r.get("item_name") or i,
+                                                              ", ".join(lo) or "—"))
+            x["co_truoc"] = giu
+    if bo:
+        ngay = getdate(doc.get("posting_date")).strftime("%d/%m/%Y")
+        frappe.msgprint(_("Chứng từ ghi sổ ngày {0}, trước lúc kiểm kê bật quản lý lô cho mã — lô lúc đó chưa có hàng. "
+                          "Đã bỏ lô, ghi KHÔNG lô như lúc lập:").format(ngay) + "<br>" + "<br>".join(
+            f"• {x}" for x in bo), title=_("Bỏ lô ở chứng từ cũ"), indicator="orange")
     ma = sorted(ma_tam_tat_lo(doc, pl))
     if cint(doc.get("docstatus")) == 1 and _gop_pos(doc):
         _gan_lo(doc, {i: x for i, x in pl.items() if i not in ma})

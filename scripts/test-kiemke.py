@@ -1775,12 +1775,44 @@ kiem("GỬI bản sửa (vẫn ngày tháng 8): qua chặn thiếu lô (W06), ER
      "mã không có lô\"", SO[("TP-LC", None)] == 1 and co_lo("TP-LC") == 1
      and F.bang("Sales Invoice")[sa2.name]["docstatus"] == 1 and not any("lá cẩm" in b for b in F.BAO[n_bao:]),
      (SO[("TP-LC", None)], F.BAO[n_bao:]))
+# D199: sửa hoá đơn 14/8 trên Desk — hộp chọn lô của ERPNext tự điền lô HSD (gói lô nháp / ô batch_no). Lô đó chỉ có
+# hàng từ lúc bật lô: ghi sổ ngày 14/8 thì ERPNext báo "Batch No … has negative stock".
+sc = hd("2026-08-14 10:00:00", [lc(2), lc(1)], docstatus=1)
+sc.insert()
+F.get_doc("Sales Invoice", sc.name).cancel()
+F.bang("Serial and Batch Bundle")["SABB-9"] = {"name": "SABB-9", "docstatus": 0, "item_code": "TP-LC"}
+F.bang("Serial and Batch Entry")["sbe9"] = {"name": "sbe9", "parent": "SABB-9", "batch_no": "LC-HSD010327", "qty": -2}
+sc2 = hd("2026-08-14 10:00:00", [lc(2, serial_and_batch_bundle="SABB-9"),
+                                 lc(1, batch_no="LC-HSD010327", use_serial_batch_fields=1)], amended_from=sc.name)
+kiem("dòng MANG lô mà ghi sổ trước lúc bật lô: chưa gửi thì chưa đụng (không tắt lô)", L.ma_tam_tat_lo(sc2) == set())
+sc2.insert()
+n_bao = len(F.BAO)
+sc2.submit()
+dong9 = [(r.get("batch_no"), r.get("serial_and_batch_bundle"), r.get("use_serial_batch_fields"))
+         for r in F.bang("Sales Invoice")[sc2.name]["items"]]
+kiem("D199: GỬI bản sửa hoá đơn 14/8 mà dòng mang lô (gói lô nháp, ô Batch No) → bỏ lô, xoá gói lô nháp, ghi sổ KHÔNG lô; "
+     "lô HSD không bị trừ; cờ lô bật lại",
+     dong9 == [(None, None, 0), (None, None, 0)] and "SABB-9" not in F.bang("Serial and Batch Bundle")
+     and SO[("TP-LC", None)] == 1 and SO[("TP-LC", "LC-HSD010327")] == 50 and co_lo("TP-LC") == 1
+     and F.bang("Sales Invoice")[sc2.name]["docstatus"] == 1, (dong9, SO.get(("TP-LC", None))))
+bao9 = " ".join(F.BAO[n_bao:])
+kiem("… báo lại: ngày ghi sổ, đã bỏ lô nào ở dòng nào", "Chứng từ ghi sổ ngày 14/08/2026" in bao9
+     and "Dòng 1: Bánh lá cẩm — lô LC-HSD010327" in bao9 and "Dòng 2: Bánh lá cẩm — lô LC-HSD010327" in bao9, bao9)
+F.bang("Serial and Batch Bundle")["SABB-8"] = {"name": "SABB-8", "docstatus": 1, "item_code": "TP-LC"}
+x = hd("2026-08-14 10:00:00", [lc(1, serial_and_batch_bundle="SABB-8")], docstatus=1)
+L.tam_tat_lo(x)
+kiem("… gói lô ĐÃ GỬI thì để nguyên (không bỏ, không tắt lô)",
+     x.items[0].get("serial_and_batch_bundle") == "SABB-8" and x.flags.sx_tam_tat_lo == [] and co_lo("TP-LC") == 1)
+x = hd("2026-08-14 10:00:00", [lc(1, batch_no="LC-HSD010327")], docstatus=2)
+L.tam_tat_lo(x)
+kiem("… lúc HUỶ không bỏ lô, không tắt lô (chứng từ đã gửi có lô thì ERPNext đã ghi theo lô)",
+     x.items[0].get("batch_no") == "LC-HSD010327" and x.flags.sx_tam_tat_lo == [])
 sb = hd("2026-10-09 09:30:00", [lc(1)])
 sb.insert()
 loi = thu(sb.submit) or ""
 kiem("hoá đơn lập SAU lúc bật lô, dòng không lô → không tắt lô: chặn \"Chưa chọn lô\" như thường (chọn lô trên hoá đơn)",
      L.ma_tam_tat_lo(sb) == set() and "Chưa chọn lô" in loi and co_lo("TP-LC") == 1 and SO[("TP-LC", None)] == 1, loi)
-kiem("hoá đơn không trừ kho; mã không có trong nhật ký bật lô; dòng đã gắn lô → không đụng",
+kiem("hoá đơn không trừ kho; mã không có trong nhật ký bật lô; dòng đã gắn lô (chưa gửi — xem D199) → không đụng",
      L.ma_tam_tat_lo(hd("2026-08-20 09:00:00", [lc(1)], update_stock=0)) == set()
      and L.ma_tam_tat_lo(hd("2026-08-20 09:00:00", [{"item_code": "TP-SEN", "qty": 1, "warehouse": KHO}])) == set()
      and L.ma_tam_tat_lo(hd("2026-08-20 09:00:00", [lc(1), lc(1, batch_no="LC-HSD010327")])) == set())
@@ -1903,7 +1935,8 @@ kiem("… giá vốn (kho chưa có giá → giá của kho khác), giá trị �
      x["dong"][0]["gia"] == 12000 and x["dong"][2]["gia_tri"] == 12000 and x["dong"][3]["gia"] == 9000
      and x["tong"] == {"so_dong": 4, "so_ma": 2, "dieu_chinh": 12000} and x["duoc_don"] is False, x["tong"])
 kiem("… kèm chứng từ ghi sổ phần không lô sau lúc bật lô (để soát)",
-     x["dong"][2]["ct"] == [f"Sales Invoice {sa.name} (huỷ)", f"Sales Invoice {sa2.name}"]
+     x["dong"][2]["ct"] == [f"Sales Invoice {sa.name} (huỷ)", f"Sales Invoice {sa2.name}",
+                            f"Sales Invoice {sc.name} (huỷ)", f"Sales Invoice {sc2.name}"]
      and x["dong"][1]["ct"] == [f"Sales Invoice {sp.name}"], [r["ct"] for r in x["dong"]])
 kiem("thủ kho bấm dọn → chặn (bút toán điều chỉnh kho — chỉ quản lý)", "Chỉ quản lý" in (thu(L.don_du) or ""))
 F.vai("SX QC", u="qc@x")
@@ -1955,9 +1988,10 @@ kiem("in phiếu không phải phiếu dọn tồn không lô → chặn",
 
 for n in reversed(kq["phieu"]):
     F.get_doc("Stock Entry", n).cancel()
-for t in ("Sales Invoice", "Delivery Note", "POS Invoice", "Serial and Batch Entry"):
+for t in ("Sales Invoice", "Delivery Note", "POS Invoice", "Serial and Batch Entry", "Serial and Batch Bundle"):
     F.bang(t).clear()
-for k in [k for k, v in SLE.items() if v.get("voucher_no") in (sa.name, sa2.name, sp.name, sm.name, dn.name)]:
+for k in [k for k, v in SLE.items() if v.get("voucher_no") in (sa.name, sa2.name, sc.name, sc2.name, sp.name, sm.name,
+                                                               dn.name)]:
     SLE.pop(k)
 SLE.pop("d198c")
 SLE.pop("d198t")
