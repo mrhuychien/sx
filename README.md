@@ -323,6 +323,34 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Lập lại hoá đơn bán từ các phiếu POS đã huỷ — ca cũ không sửa đổi được nữa (D201)
+
+- **Tình huống**: ca POS ngày 12/10 không đóng được, thu ngân đã huỷ hết phiếu POS ngày 12 để làm lại. Sửa đổi (Amend)
+  phiếu POS thì ERPNext báo *POS Opening Entry … is outdated* ("ca đã hết hiệu lực"): ERPNext v16 chỉ cho lập / sửa
+  phiếu POS khi ca đang mở là ca mở trong ngày. Lập phiếu mới trên màn POS thì thành ngày 13.
+- **Lệnh** `sx.api.pos_huy.lap_lai` (chạy bằng bench, không có nút trên web): gộp các phiếu POS **đã huỷ** của một ngày
+  thành hoá đơn bán (Sales Invoice) đúng như đóng ca sẽ làm — dùng chính mã gộp của ERPNext: mỗi (POS Profile, khách) một
+  hoá đơn gộp, ghi sổ lúc phiếu POS cuối, trừ kho, thu tiền theo từng hình thức thanh toán, thuế như phiếu POS. Dòng giữ
+  số phiếu POS gốc → phiếu lập trước lúc kiểm kê bật lô ghi không lô (D198), phiếu sau lúc bật lô theo lô (D200).
+  - chỉ lấy phiếu huỷ **từ đầu ngày hôm nay** (phiếu huỷ trước đó là huỷ thật — không lập lại; đổi bằng `huy_tu`);
+  - phiếu đã có hoá đơn lập lại (đã gửi) thì bỏ qua — chạy lại an toàn; phiếu trả hàng: liệt kê, không làm;
+  - mỗi hoá đơn một điểm lưu: hoá đơn lỗi thì bỏ hoá đơn đó, báo lỗi, các hoá đơn khác vẫn lập.
+
+```bash
+cd ~/frappe-bench
+bench --site site1.local execute sx.api.pos_huy.lap_lai --kwargs "{'ngay': '2026-10-12'}"             # xem trước
+bench --site site1.local execute sx.api.pos_huy.lap_lai --kwargs "{'ngay': '2026-10-12', 'chay': 1}"   # làm thật
+# chỉ một cửa hàng: thêm 'pos_profile': '<tên POS Profile>'
+```
+
+- **Ca POS ngày 12** vẫn phải đóng trên Desk (không còn phiếu nào): POS Opening Entry ngày 12 → tạo POS Closing Entry →
+  nhập tiền đếm được → Gửi. Đóng xong mới mở ca mới cho hôm nay được.
+- Sau đó: thẻ **Kiểm kê kho → Tồn không lô còn lại của mã đã bật lô → DỌN** (quản lý), in cho kế toán.
+- Test `test-kiemke.py` (xem trước: nhóm theo POS Profile + khách, bỏ qua phiếu huỷ trước hôm nay / trả hàng; làm thật:
+  hoá đơn gộp đã gửi, giờ phiếu cuối, dòng giữ số phiếu POS, tiền theo hình thức thanh toán, ghi không lô cho phiếu trước
+  lúc bật lô; nhóm lỗi quay về điểm lưu; chạy lại không lập trùng; hoá đơn nháp không tính).
+- Không đổi giao diện, không cần migrate: `git pull` → `bench restart`.
+
 ## Đóng ca POS vắt qua lúc kiểm kê bật lô: lô không đủ thì nhập bù lô tồn cũ (D200)
 
 - **Lỗi**: đóng ca POS ngày 12/10 báo *Hoá đơn gộp từ POS — chưa gán được lô … Dòng 1: Bánh đậu xanh thượng hạng Hộp tre

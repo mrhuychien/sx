@@ -11,6 +11,7 @@ Chạy: python3 scripts/test-kiemke.py   (verify.sh gọi sẵn)
 """
 
 import calendar
+import copy
 import json
 import os
 import sys
@@ -1987,6 +1988,133 @@ kiem("… hoá đơn gộp ghi sổ TRƯỚC lúc bật lô mà có phiếu POS 
      "phiếu POS, lúc bật lô, cách làm; không nhập bù",
      "hoá đơn ghi sổ lúc 08/10 16:00, trước lúc kiểm kê SKK-LC bật lô (08/10 17:00) mà có phiếu POS đã chọn lô (POS-0)"
      in loi and "huỷ chốt" in loi and getattr(x.flags, "sx_tam_tat_lo", None) is None, loi)
+# D201: ca POS ngày 08/10 không đóng được, thu ngân đã HUỶ hết phiếu POS; ERPNext không cho sửa đổi phiếu POS của ca
+# cũ ("POS Opening Entry … is outdated") → gộp các phiếu POS đã huỷ thành hoá đơn bán ngày 08/10 như đóng ca sẽ làm.
+PH = F.nap("sx.api.pos_huy", "sx/api/pos_huy.py")
+F.bang_con("Sales Invoice", "items", "Sales Invoice Item")
+LUI, CO_LK, DIEM = [], [], {}
+
+
+def luu_diem(n):
+    """Điểm lưu như MariaDB: chụp bảng DB giả + sổ kho giả."""
+    DIEM[n] = (copy.deepcopy(F.DB), copy.deepcopy(SO_KHO))
+
+
+def ve_diem(save_point=None, **k):
+    """Quay về điểm lưu — sửa TẠI CHỖ (nơi khác giữ tham chiếu tới từng bảng / từng sổ kho)."""
+    LUI.append(save_point)
+    db, so = DIEM[save_point]
+    for t in list(F.DB):
+        F.DB[t].clear()
+        F.DB[t].update(db.get(t, {}))
+    for kh in list(SO_KHO):
+        if kh in so:
+            SO_KHO[kh].clear()
+            SO_KHO[kh].update(so[kh])
+        else:
+            SO_KHO.pop(kh)
+
+
+frappe.db.savepoint = luu_diem
+frappe.db.rollback = ve_diem
+
+
+class GopPOS(F.Document):
+    """POS Invoice Merge Log giả: gộp như ERPNext — dòng giữ số phiếu POS, giờ ghi sổ theo phiếu cuối, tiền cộng theo
+    hình thức thanh toán."""
+
+    def get_new_sales_invoice(self):
+        return F.get_doc({"doctype": "Sales Invoice", "customer": self.customer, "is_pos": 1})
+
+    def merge_pos_invoice_into(self, si, docs):
+        assert self.merge_invoices_based_on == "Customer", "gộp theo nhóm khách thì ERPNext bỏ POS Profile"
+        dong, tien = [], {}
+        for d in docs:
+            si.posting_date, si.posting_time = d.get("posting_date"), d.get("posting_time")
+            si.pos_profile, si.company = d.get("pos_profile"), d.get("company")
+            for r in d.get("items"):
+                dong.append(dict(r, idx=len(dong) + 1, pos_invoice=d.name))
+            for t in d.get("payments") or []:
+                tien[t["mode_of_payment"]] = tien.get(t["mode_of_payment"], 0) + t["amount"]
+        si.set("items", dong)
+        si.set("payments", [{"mode_of_payment": k, "amount": v} for k, v in tien.items()])
+        return si
+
+
+class HoaDonGop(ChungTuBan):
+    def before_submit(self):
+        CO_LK.append(getattr(self.flags, "ignore_links", None))
+        super().before_submit()
+
+
+F.dang_ky("POS Invoice Merge Log", GopPOS)
+F.dang_ky("Sales Invoice", HoaDonGop)
+
+
+def pos_huy(n, gio, dong, prof="PF-BD", kh="Khách lẻ", huy="2026-10-09 08:00:00", **k):
+    tien = sum(r["qty"] for r in dong) * 10000
+    F.bang("POS Invoice")[n] = dict({
+        "name": n, "docstatus": 2, "pos_profile": prof, "customer": kh, "company": "RVHG", "posting_date": "2026-10-08",
+        "posting_time": gio, "modified": huy, "is_return": 0, "grand_total": tien,
+        "items": [dict({"idx": j, "stock_qty": r["qty"]}, **r) for j, r in enumerate(dong, 1)],
+        "payments": [{"mode_of_payment": "Tiền mặt", "amount": tien}]}, **k)
+
+
+pos_huy("PSI-1", "10:00:00", [lc(2, "CH BD")])
+pos_huy("PSI-2", "15:00:00", [lc(3, "CH BD")])
+pos_huy("PSI-3", "11:00:00", [lc(1, "CH BD")], kh="Cty A")
+pos_huy("PSI-4", "09:00:00", [lc(1, "CH BD")], huy="2026-10-08 09:30:00")
+pos_huy("PSI-5", "16:00:00", [lc(-1, "CH BD")], is_return=1)
+pos_huy("PSI-6", "12:00:00", [{"item_code": "TP-NOPE", "qty": 1, "warehouse": "CH X"}], prof="PF-X")
+n_si = len(F.bang("Sales Invoice"))
+x = PH.lap_lai("2026-10-08")
+kiem("D201 xem trước: phiếu POS ngày đó đã huỷ HÔM NAY, gộp theo (POS Profile, khách) như đóng ca — số phiếu, từ / đến, "
+     "tổng tiền, mã đã bật lô (dòng trước / sau lúc bật lô); phiếu huỷ trước hôm nay (huỷ thật), phiếu trả hàng → bỏ "
+     "qua, nói lý do; chưa lập gì",
+     [(h["pos_profile"], h["khach"], h["phieu"], h["tu"], h["den"]) for h in x["hoa_don"]]
+     == [("PF-BD", "Cty A", ["PSI-3"], "2026-10-08 11:00", "2026-10-08 11:00"),
+         ("PF-BD", "Khách lẻ", ["PSI-1", "PSI-2"], "2026-10-08 10:00", "2026-10-08 15:00"),
+         ("PF-X", "Khách lẻ", ["PSI-6"], "2026-10-08 12:00", "2026-10-08 12:00")]
+     and x["hoa_don"][1]["tong"] == 50000 and x["hoa_don"][1]["so_phieu"] == 2
+     and x["hoa_don"][1]["bat_lo"] == [{"item": "TP-LC", "truoc": 2, "sau": 0}]
+     and [(b["phieu"], b["ly_do"]) for b in x["bo_qua"]]
+     == [("PSI-4", "huỷ lúc 2026-10-08 09:30, trước 2026-10-09 00:00 — coi là huỷ thật"),
+         ("PSI-5", "phiếu trả hàng — làm tay")]
+     and x["chay"] == 0 and not any("hoa_don" in h for h in x["hoa_don"]) and len(F.bang("Sales Invoice")) == n_si, x)
+kiem("… lọc một POS Profile", [h["pos_profile"] for h in PH.lap_lai("2026-10-08", pos_profile="PF-X")["hoa_don"]]
+     == ["PF-X"])
+kq = PH.lap_lai("2026-10-08", chay=1)
+h = {(g["pos_profile"], g["khach"]): g for g in kq["hoa_don"]}
+si = F.bang("Sales Invoice")[h[("PF-BD", "Khách lẻ")]["hoa_don"]]
+kiem("D201 làm thật: mỗi nhóm một hoá đơn gộp ĐÃ GỬI — ghi sổ lúc phiếu POS cuối, dòng giữ số phiếu POS, tiền cộng theo "
+     "hình thức thanh toán, trừ kho, ghi chú nguồn; bỏ kiểm tra liên kết (dòng trỏ phiếu POS đã huỷ)",
+     si["docstatus"] == 1 and si["is_consolidated"] == 1 and str(si["posting_date"]) == "2026-10-08"
+     and si["posting_time"] == "15:00:00" and si["set_posting_time"] == 1 and si["update_stock"] == 1
+     and [r["pos_invoice"] for r in si["items"]] == ["PSI-1", "PSI-2"]
+     and si["payments"] == [{"mode_of_payment": "Tiền mặt", "amount": 50000}]
+     and "Lập lại từ 2 phiếu POS đã huỷ ngày 08/10/2026 (ca không đóng được — D201): PSI-1, PSI-2" in si["remarks"]
+     and CO_LK[:2] == [True, True], (si, CO_LK))
+kiem("… phiếu POS trước lúc kiểm kê bật lô → ghi KHÔNG lô (D198) ở cửa hàng; cờ lô bật lại",
+     SO_KHO["CH BD"][("TP-LC", None)] == -6 and SO_KHO["CH BD"][("TP-LC", "LCX-TONCU")] == 5 and co_lo("TP-LC") == 1,
+     SO_KHO["CH BD"])
+kiem("… nhóm lỗi: quay về điểm lưu, báo lỗi của nhóm đó; các nhóm khác vẫn lập",
+     "hoa_don" not in h[("PF-X", "Khách lẻ")] and "TP-NOPE" in h[("PF-X", "Khách lẻ")]["loi"] and LUI == ["sx_pos_huy"]
+     and h[("PF-BD", "Cty A")].get("hoa_don"), (h, LUI))
+x = PH.lap_lai("2026-10-08", chay=1)
+kiem("chạy lại: phiếu đã lập lại → bỏ qua (nói hoá đơn nào), không lập trùng; nhóm lỗi thử lại",
+     sorted(b["phieu"] for b in x["bo_qua"] if b["ly_do"].startswith("đã lập lại ở "))
+     == ["PSI-1", "PSI-2", "PSI-3"] and [g["pos_profile"] for g in x["hoa_don"]] == ["PF-X"]
+     and "TP-NOPE" in x["hoa_don"][0]["loi"] and SO_KHO["CH BD"][("TP-LC", None)] == -6, x)
+pos_huy("PSI-7", "10:00:00", [lc(1, "CH BD")], posting_date="2026-10-09")
+F.get_doc({"doctype": "Sales Invoice", "customer": "Khách lẻ", "posting_date": "2026-10-09", "posting_time": "10:00:00",
+           "items": [dict(lc(1, "CH BD"), idx=1, pos_invoice="PSI-7")]}).insert()
+x = PH.lap_lai("2026-10-09")
+kiem("… hoá đơn NHÁP trỏ phiếu POS không tính là đã lập lại; mã bật lô: dòng của phiếu POS lập SAU lúc bật lô đếm riêng",
+     [(g["phieu"], g["bat_lo"]) for g in x["hoa_don"]] == [(["PSI-7"], [{"item": "TP-LC", "truoc": 0, "sau": 1}])], x)
+LAI_D201 = [g.get("hoa_don") for g in kq["hoa_don"] if g.get("hoa_don")]
+F.dang_ky("Sales Invoice", ChungTuBan)
+F.CON.pop(("Sales Invoice", "items"), None)
+F.bang("Sales Invoice Item").clear()
 kiem("hook nối đúng thứ tự: tạm tắt lô ĐẦU before_submit (trước chặn thiếu lô W06) / before_cancel; bật lại CUỐI "
      "on_submit / on_cancel — cả Sales Invoice và Delivery Note",
      all(H.doc_events[dt]["before_submit"][:2] == ["sx.api.lo_cu.tam_tat_lo", "sx.api.banhang.kiem_lo_ban"]
@@ -2071,7 +2199,8 @@ for n in reversed(kq["phieu"]):
 for t in ("Sales Invoice", "Delivery Note", "POS Invoice", "Serial and Batch Entry", "Serial and Batch Bundle"):
     F.bang(t).clear()
 for k in [k for k, v in SLE.items() if v.get("voucher_no") in (sa.name, sa2.name, sc.name, sc2.name, sp.name, sm.name,
-                                                               dn.name, sk.name, sq.name, sv.name, sg.name)]:
+                                                               dn.name, sk.name, sq.name, sv.name, sg.name,
+                                                               *LAI_D201)]:
     SLE.pop(k)
 SLE.pop("d198c")
 SLE.pop("d198t")
