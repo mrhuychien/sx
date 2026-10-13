@@ -385,6 +385,8 @@ main > .container {
   letter-spacing: .02em;
 }
 .sx-day-chot { color: var(--sx-danger-text); }
+/* D204: nhãn lỗi đồng bộ bấm được — nổi trên ô date trong suốt phủ cả khối ngày */
+.sx-day-tag-nut { position: relative; z-index: 1; cursor: pointer; text-decoration: underline; }
 .sx-day-cu { color: var(--sx-warning-text); }
 /* Ô date thật nằm chồng, trong suốt — bấm đâu trong khối cũng mở được lịch */
 .sx-day-mid .sx-day-input {
@@ -2077,6 +2079,9 @@ b.sx-tx-kl-loi { background: none; }
 .sx-lc-dong-1 span { color: var(--sx-warning-text); font-weight: 700; }
 .sx-lc-dong-3 span { color: var(--sx-danger-text); font-weight: 700; }
 .sx-lc-loi { flex-basis: 100%; color: var(--sx-danger-text); font-size: var(--sx-f-xs); white-space: pre-line; }
+/* D204: hộp lỗi đồng bộ mở từ thanh ngày */
+.sx-db-phan { display: flex; flex-direction: column; gap: var(--sx-s1); margin-bottom: var(--sx-s3); }
+.sx-db-goiy { font-size: var(--sx-f-sm); color: var(--sx-text-2); }
 
 /* D124 → D153 — bàn số một màn (Vào hộp Tết + Nhập kho TP): tab THÙNG/HỘP + HSD + phím số */
 .sx-sohsd { gap: var(--sx-s2); }

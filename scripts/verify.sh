@@ -205,6 +205,12 @@ node scripts/test-khoanchung.mjs > /tmp/sx-kc.log 2>&1 \
   && tail -1 /tmp/sx-kc.log \
   || { cat /tmp/sx-kc.log; loi=1; }
 
+# D204: nhãn "⚠ lỗi đồng bộ" trên thanh ngày bấm được (nổi trên ô date trong suốt) → hộp lỗi:
+# câu lỗi + cách xử lý + THỬ LẠI / KHAI GIÁ VỐN cho quản lý. CSS thật + bấm thật trong Chromium.
+node scripts/test-loidongbo.mjs > /tmp/sx-ldb.log 2>&1 \
+  && tail -1 /tmp/sx-ldb.log \
+  || { cat /tmp/sx-ldb.log; loi=1; }
+
 # D113: hai QC ghi vào hộp cùng ngày. Trước D113 lần lưu của người này XOÁ dòng của
 # người kia (ghi đè cả bảng) mà không ai biết.
 python3 scripts/test-ghihop.py > /tmp/sx-ghihop.log 2>&1 \

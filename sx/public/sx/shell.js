@@ -8,7 +8,7 @@ import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 
-const BUILD = 'sx-153';
+const BUILD = 'sx-154';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -336,6 +336,20 @@ function buildShell() {
     const inp = daybar.querySelector('#sx-day-input');
     if (inp.showPicker) inp.showPicker(); else inp.focus();
   });
+  // D204: nhãn "⚠ lỗi đồng bộ" bấm được — mở câu lỗi + cách xử lý + THỬ LẠI ngay tại chỗ,
+  // không bắt đi tìm thẻ lịch ở màn Quản lý. Nhãn nằm TRÊN ô date trong suốt (CSS z-index).
+  daybar.querySelector('#sx-day-tag').addEventListener('click', async (e) => {
+    if (e.currentTarget.dataset.loi !== '1') return;
+    e.preventDefault();
+    e.stopPropagation();          // không mở bảng chọn ngày
+    try {
+      const { moDongBo } = await import(withV('/assets/sx/sx/components/dongbo.js'));
+      moDongBo({
+        ngay: store.boot.ngay_sx, call, quanLy: !!store.boot.is_quan_ly,
+        xong: () => { store.boot = null; dayState.ngay = null; router.go(router.currentRoute()); },
+      });
+    } catch (err) { toastErr(err.message); }
+  });
   return { main, nav, daybar, header };
 }
 
@@ -367,6 +381,8 @@ function paintDayBar() {
   const db = ng.dong_bo || {};
   const loiDb = [db.gs, db.vh].some((x) => x && x.loi);
   const choDb = [db.gs, db.vh].some((x) => x && x.cho);
+  tag.dataset.loi = loiDb && !store.tuBoNho ? '1' : '';
+  tag.title = tag.dataset.loi ? 'Bấm để xem lỗi đồng bộ và cách xử lý' : '';
   // "Thứ 5, 30/07" — người ở xưởng nhớ THỨ, không nhớ ngày (bản thiết kế)
   const tenNgay = daybar.querySelector('#sx-day-ten');
   if (tenNgay && b.ngay_sx && b.ngay_sx.ngay) {
@@ -380,8 +396,10 @@ function paintDayBar() {
   if (store.tuBoNho) {
     tag.textContent = '📴 số liệu lưu trên máy';
     tag.className = 'sx-day-tag sx-day-cu';
-  } else if (loiDb) { tag.textContent = '⚠ lỗi đồng bộ — xem lịch ở Quản lý'; tag.className = 'sx-day-tag sx-day-chot'; }
-  else if (choDb) { tag.textContent = '⏳ đang đồng bộ'; tag.className = 'sx-day-tag sx-day-cu'; }
+  } else if (loiDb) {
+    tag.textContent = '⚠ lỗi đồng bộ — bấm xem';
+    tag.className = 'sx-day-tag sx-day-chot sx-day-tag-nut';
+  } else if (choDb) { tag.textContent = '⏳ đang đồng bộ'; tag.className = 'sx-day-tag sx-day-cu'; }
   else if (b.la_hom_nay) { tag.textContent = ''; tag.className = 'sx-day-tag'; }
   else { tag.textContent = '✎ ngày cũ'; tag.className = 'sx-day-tag sx-day-cu'; }
 }

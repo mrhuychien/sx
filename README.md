@@ -323,6 +323,26 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhãn "⚠ lỗi đồng bộ" trên thanh ngày bấm được — xem lỗi, cách xử lý, THỬ LẠI tại chỗ (D204)
+
+- **Trước**: nhãn chỉ nói *⚠ lỗi đồng bộ — xem lịch ở Quản lý* — người đang ở chính màn Quản lý không biết lịch ở đâu
+  (thẻ "Đồng bộ kho & lương" nằm dưới các sổ nợ), bấm vào nhãn thì chỉ mở bảng chọn ngày.
+- **Giờ**: nhãn ghi *⚠ lỗi đồng bộ — bấm xem*; bấm → hộp **Lỗi đồng bộ** của ngày đang xem:
+  - từng phần lỗi (**Báo mẻ → kho**, **Vào hộp → phiếu lương**) với câu lỗi nguyên văn;
+  - **Cách xử lý** theo loại lỗi: thiếu giá vốn → KHAI GIÁ VỐN; phiếu lương đã duyệt → huỷ duyệt rồi thử lại; mã bán
+    thành phẩm chưa có BOM → tạo BOM; kho không đủ hàng / tồn âm → kiểm tra phiếu nhập mua, chuyển kho, số báo mẻ;
+    lỗi lô; lỗi *not subscriptable* → cập nhật bản D202; lỗi khác → sửa số liệu hoặc thử lại, còn lỗi thì chụp gửi;
+  - **quản lý**: nút **KHAI GIÁ VỐN** (khi lỗi giá vốn) và **THỬ LẠI** (như ở lịch). Còn lỗi thì hộp vẽ lại câu lỗi
+    mới; hết lỗi thì đóng hộp, thanh ngày hết đỏ. Người khác: thấy lỗi + cách xử lý, không có nút (báo quản lý, hoặc
+    sửa rồi lưu lại số liệu là tự chạy lại).
+- Nhãn lỗi nổi **trên** ô chọn ngày trong suốt (CSS `sx-day-tag-nut`); bấm chỗ khác trong khối ngày vẫn mở bảng chọn
+  ngày như cũ.
+- Hộp lỗi (`components/dongbo.js`) dùng chung hộp KHAI GIÁ VỐN của thẻ lịch → `cards/lichchot.js` thêm vào import map
+  của `sx.html` (import tĩnh phải có trong map, không thì máy dùng bản cũ trong cache).
+- Test `test-loidongbo.mjs` (cách xử lý theo từng loại câu lỗi; Chromium thật với CSS thật của thanh ngày: bấm trúng
+  nhãn chứ không trúng ô date; hộp lỗi: nút theo quyền, THỬ LẠI gọi đúng phiếu ngày, vẽ lại khi còn lỗi, đóng khi hết).
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-154**.
+
 ## Sổ nợ vào hộp: nút "Ghi cho công khoán" — dòng ★ Công khoán chung (D203)
 
 - **Yêu cầu**: ở phần Nợ vào hộp (màn Ghi hộp) có nút ghi luôn số nợ cho công khoán, khi không rõ công nhân nào đóng
