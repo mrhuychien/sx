@@ -221,9 +221,22 @@ def thu(fn):
 D20, D21 = date(2026, 9, 20), date(2026, 9, 21)
 
 
+class SXBangVaoHopItem:
+    """Dòng bảng con như Frappe (BaseDocument): đọc bằng thuộc tính / .get, KHÔNG subscript được — r["x"] là
+    TypeError như trên site. Trước D202 dòng giả là dict nên r["san_pham"] lọt test, lên site thì
+    "'SXBangVaoHopItem' object is not subscriptable" và cả lần ghi phiếu lương của ngày bị rút lại."""
+
+    def __init__(self, **k):
+        self.__dict__.update(dict.fromkeys(("name", "nhan_vien", "cong_nhat", "san_pham", "so_hop", "cach_lam",
+                                            "don_gia", "thanh_tien")), **k)
+
+    def get(self, k, default=None):
+        return self.__dict__.get(k, default)
+
+
 def dong_vh(i, nv, sp, sl, cl=None):
-    return Doc(name=f"VH-{i}", nhan_vien=nv, san_pham=sp, so_hop=sl, cach_lam=cl,
-               don_gia=0, thanh_tien=0)
+    return SXBangVaoHopItem(name=f"VH-{i}", nhan_vien=nv, san_pham=sp, so_hop=sl, cach_lam=cl,
+                            don_gia=0, thanh_tien=0)
 
 
 def lam_sach():
@@ -265,14 +278,23 @@ def dung_ngay(ten, ngay, dong):
 print("-- gom dòng thiếu giá: dùng đúng luật tra giá của bảng vào hộp --")
 lam_sach()
 bg = U.don_gia_ap_dung(D20)
-thieu = G.gom_thieu_gia([
-    dong_vh(1, "NV1", "TP-A", 10),            # có giá chung
-    dong_vh(2, "NV1", "TP-B", 20),            # không có giá
-    dong_vh(3, "NV2", "TP-B", 5),             # cùng mã, người khác → cộng
-    dong_vh(4, "NV1", "TP-C", 7, "Tay"),      # C chỉ có giá Máy, không giá chung
-    dong_vh(5, "NV2", "TP-C", 3, "Máy"),      # có giá
-    dong_vh(6, "NV2", "TP-D", 4, "Tay"),      # rơi về giá chung → có giá
-], bg)
+try:
+    dong_vh(9, "NV1", "TP-B", 1)["san_pham"]
+    kiem("dòng giả như Frappe: KHÔNG subscript được", False)
+except TypeError as e:
+    kiem("dòng giả như Frappe: KHÔNG subscript được", "'SXBangVaoHopItem' object is not subscriptable" in str(e))
+try:
+    thieu = G.gom_thieu_gia([
+        dong_vh(1, "NV1", "TP-A", 10),            # có giá chung
+        dong_vh(2, "NV1", "TP-B", 20),            # không có giá
+        dong_vh(3, "NV2", "TP-B", 5),             # cùng mã, người khác → cộng
+        dong_vh(4, "NV1", "TP-C", 7, "Tay"),      # C chỉ có giá Máy, không giá chung
+        dong_vh(5, "NV2", "TP-C", 3, "Máy"),      # có giá
+        dong_vh(6, "NV2", "TP-D", 4, "Tay"),      # rơi về giá chung → có giá
+    ], bg)
+except TypeError as e:
+    kiem("D202: gom dòng thiếu giá đọc được dòng bảng con của Frappe", False, str(e))
+    sys.exit(1)
 kiem("chỉ đúng hai (mã, cách làm) thiếu giá",
      set(thieu) == {("TP-B", ""), ("TP-C", "Tay")}, str(sorted(thieu)))
 kiem("cộng số hộp, đếm người KHÁC NHAU",

@@ -34,18 +34,22 @@ def gom_thieu_gia(dong, bang_gia):
 
     Hàm thuần: tra bằng đúng hàm mà bảng vào hộp dùng lúc tính tiền, nên "thiếu giá"
     ở đây và "tính 0 đồng" ở bảng không bao giờ lệch nhau.
+
+    `dong` là dòng bảng con của Frappe (bang.dong) — CHỈ đọc bằng r.get(...): dòng con
+    không subscript được, r["san_pham"] là TypeError "'SXBangVaoHopItem' object is not
+    subscriptable" → cả lần ghi phiếu lương của ngày bị rút lại (D202).
     """
     ra = {}
     for r in dong:
-        if not r.get("san_pham") or cint(r.get("so_hop")) <= 0:
+        sp, so = r.get("san_pham"), cint(r.get("so_hop"))
+        if not sp or so <= 0:
             continue
         if cint(r.get("cong_nhat")):
             continue   # công nhật không trả khoán → không có gì để nợ giá (D101)
-        if tra_don_gia(bang_gia, r["san_pham"], r.get("cach_lam")) is not None:
+        if tra_don_gia(bang_gia, sp, r.get("cach_lam")) is not None:
             continue
-        g = ra.setdefault((r["san_pham"], r.get("cach_lam") or ""),
-                          {"so_hop": 0, "nguoi": set()})
-        g["so_hop"] += cint(r["so_hop"])
+        g = ra.setdefault((sp, r.get("cach_lam") or ""), {"so_hop": 0, "nguoi": set()})
+        g["so_hop"] += so
         g["nguoi"].add(r.get("nhan_vien"))
     return ra
 

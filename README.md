@@ -323,6 +323,24 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sửa lỗi ghi phiếu lương ở Ghi hộp: 'SXBangVaoHopItem' object is not subscriptable (D202)
+
+- **Lỗi**: màn Ghi hộp báo *⚠ Lỗi ghi phiếu lương: 'SXBangVaoHopItem' object is not subscriptable*. Ngày nào bảng vào hộp
+  có **mã chưa khai đơn giá** (hoặc cách làm chưa có giá) là dính.
+- **Nguyên nhân**: hàm gom mã thiếu đơn giá để ghi sổ nợ đơn giá (`sx/api/nogia.py` `gom_thieu_gia`, từ D99) đọc dòng
+  bảng vào hộp bằng `r["san_pham"]` — dòng bảng con của Frappe không đọc kiểu đó được (chỉ `r.get(...)` / `r.san_pham`).
+  Lỗi giữa chừng nên cả lần đồng bộ phiếu lương của ngày bị rút lại (D123: ghi lương + nợ giá chung một điểm lưu):
+  **phiếu lương khoán ngày đó không được ghi / cập nhật**, sổ nợ đơn giá cũng không. Số chấm trên bảng vào hộp vẫn còn
+  nguyên, không mất gì. Test cũ dùng dòng giả kiểu dict (đọc `r["…"]` được) nên không bắt được.
+- **Sửa**: đọc dòng bằng `r.get(...)`. Đã rà mọi chỗ khác đọc dòng bảng con bằng `r["…"]` — không còn chỗ nào.
+- **Bản vá** `d202_dong_bo_lai_vao_hop` (chạy lúc migrate): ngày đang mang đúng câu lỗi này được **ghi lại phiếu lương
+  ngay** (bằng mã đã sửa) — không phải bấm Thử lại từng ngày. Ngày lỗi khác không đụng. Còn ngày nào báo lỗi khác thì
+  vẫn như cũ: thẻ **Lịch** (Quản lý) → bấm ngày → **THỬ LẠI**.
+- Test: `test-nogia.py` và `test-dongbo.py` dùng dòng giả **giống dòng bảng con của Frappe** (không đọc `r["…"]` được);
+  `test-dongbo.py` chạy hàm gom nợ giá **thật** thay hàm giả; bản vá: ghi lại lương + nợ giá ngày dính lỗi, không đụng
+  ngày lỗi khác.
+- Không đổi giao diện. Cập nhật: `git pull` → `bench --site site1.local migrate` → `bench restart`.
+
 ## Lập lại hoá đơn bán từ các phiếu POS đã huỷ — ca cũ không sửa đổi được nữa (D201)
 
 - **Tình huống**: ca POS ngày 12/10 không đóng được, thu ngân đã huỷ hết phiếu POS ngày 12 để làm lại. Sửa đổi (Amend)

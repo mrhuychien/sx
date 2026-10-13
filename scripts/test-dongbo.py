@@ -14,6 +14,7 @@ Nạp sx/api/dongbo.py THẬT; frappe + các module khác là giả có trạng 
 Chạy: python3 scripts/test-dongbo.py   (verify.sh gọi sẵn)
 """
 
+import ast
 import copy
 import importlib.util
 import json
@@ -36,6 +37,17 @@ class D(dict):
 
     def __setattr__(self, k, v):
         self[k] = v
+
+
+class SXBangVaoHopItem:
+    """Dòng bảng con như Frappe (BaseDocument): đọc bằng thuộc tính / .get, KHÔNG subscript được (D202)."""
+
+    def __init__(self, **k):
+        self.__dict__.update(dict.fromkeys(("nhan_vien", "cong_nhat", "san_pham", "cach_lam", "so_hop",
+                                            "thanh_tien")), **k)
+
+    def get(self, k, default=None):
+        return self.__dict__.get(k, default)
 
 
 ST = {}          # trạng thái "DB" — savepoint chụp / khôi phục toàn bộ dict này
@@ -120,6 +132,10 @@ def get_all(dt, filters=None, fields=None, pluck=None, or_filters=None, limit=No
         return [D(x) for x in ST["no"] if x["ngay_sx"] == filters["ngay_sx"]
                 and x["trang_thai"] == filters["trang_thai"]]
     if dt == "SX Ngay San Xuat":
+        if "loi_dong_bo_vh" in (filters or {}):      # bản vá D202: lọc theo câu lỗi (like %…%)
+            moc = filters["loi_dong_bo_vh"][1].strip("%")
+            return [n["name"] for n in ST["ngay"].values()
+                    if n["docstatus"] < 2 and moc in (n.get("loi_dong_bo_vh") or "")]
         ra = [n for n in ST["ngay"].values() if n["docstatus"] < 2
               and (n.get("can_dong_bo_gs") or n.get("can_dong_bo_vh"))]
         return [n["name"] for n in ra]
@@ -151,7 +167,8 @@ frappe.log_error = lambda **k: None
 frappe.get_traceback = lambda: ""
 frappe.db = types.SimpleNamespace(
     get_value=get_value, set_value=set_value, savepoint=savepoint, rollback=rollback,
-    exists=lambda dt, n=None: n in ST["ngay"], sql=lambda *a, **k: None, commit=lambda: None)
+    exists=lambda dt, n=None: n in ST["ngay"], sql=lambda *a, **k: None, commit=lambda: None,
+    has_column=lambda dt, c: True)
 frappe.__dict__["_"] = lambda s: s
 fu = types.ModuleType("frappe.utils")
 fu.flt = lambda v, p=None: round(float(v or 0), p) if p is not None else float(v or 0)
@@ -228,17 +245,21 @@ ng.CHO = "Chờ giá"
 ng.huy_no_gia = lambda n: [x.update(trang_thai="Đã huỷ") for x in ST["no"] if x["ngay_sx"] == n]
 
 
-def gom_thieu(dong, gia):
-    ra = {}
-    for r in dong:
-        if r.san_pham not in gia and not r.get("cong_nhat"):
-            g = ra.setdefault((r.san_pham, ""), {"so_hop": 0, "nguoi": set()})
-            g["so_hop"] += r.so_hop
-            g["nguoi"].add(r.nhan_vien)
-    return ra
 
 
-ng.gom_thieu_gia = gom_thieu
+def ham_that(tep, ten, **g):
+    """ĐÚNG mã một hàm thuần trong tệp nguồn (không nạp cả module nặng) — test chạy mã thật."""
+    goc = open(tep, encoding="utf-8").read()
+    fn = next(n for n in ast.parse(goc).body if isinstance(n, ast.FunctionDef) and n.name == ten)
+    ns = dict(g)
+    exec(compile(ast.Module([fn], []), tep, "exec"), ns)
+    return ns[ten]
+
+
+# D202: gom nợ giá bằng hàm THẬT trên dòng giống dòng bảng con Frappe — hàm giả đọc bằng thuộc tính nên che mất
+# lỗi r["san_pham"] của hàm thật ("'SXBangVaoHopItem' object is not subscriptable" → rút lại cả lần ghi lương).
+ng.gom_thieu_gia = ham_that("sx/api/nogia.py", "gom_thieu_gia", cint=lambda v: int(float(v or 0)),
+                            tra_don_gia=ham_that("sx/utils.py", "tra_don_gia"))
 sys.modules["sx.api.nogia"] = ng
 ut = types.ModuleType("sx.utils")
 ut.get_bom_active = lambda i: i if i in BOM else None
@@ -256,7 +277,7 @@ def sinh_ma_lo(item, ngay):
 ut.sinh_ma_lo = sinh_ma_lo
 ut.topo_rank_by_bom = lambda ds: {"DH": 0, "BOT-NEN": 0, "BB": 1, "BD": 1}
 ut.bang_don_gia = lambda ngay: "BDG-1"
-ut.don_gia_ap_dung = lambda ngay: {"SEN": 1000}
+ut.don_gia_ap_dung = lambda ngay: {("SEN", ""): 1000.0}
 sys.modules["sx.utils"] = ut
 ro = types.ModuleType("sx.config.roles")
 ro.guard_card = lambda c: None
@@ -398,9 +419,9 @@ kiem("khai giá xong → lần sau ghi được", dong_bo() == [] and [e["kg"] f
 print("\n-- vào hộp: phiếu lương + nợ giá --")
 lam_sach()
 ngay()
-ST["bang"] = D(name="BVH-1", dong=[D(nhan_vien="An", san_pham="SEN", so_hop=100, thanh_tien=100000),
-                                   D(nhan_vien="Bình", san_pham="MOI", so_hop=30, thanh_tien=0),
-                                   D(cong_nhat=1, san_pham="MOI", so_hop=20, thanh_tien=0)])
+ST["bang"] = D(name="BVH-1", dong=[SXBangVaoHopItem(nhan_vien="An", san_pham="SEN", so_hop=100, thanh_tien=100000),
+                                   SXBangVaoHopItem(nhan_vien="Bình", san_pham="MOI", so_hop=30, thanh_tien=0),
+                                   SXBangVaoHopItem(cong_nhat=1, san_pham="MOI", so_hop=20, thanh_tien=0)])
 doc = get_doc("SX Ngay San Xuat", "SXN-1")
 kiem("không lỗi", B.dong_bo_vaohop(doc) == [])
 n = ST["ngay"]["SXN-1"]
@@ -408,13 +429,13 @@ kiem("ghi phiếu lương các người trong bảng", ST["luong"][-1] == ["An",
 kiem("tổng ngày (cả công nhật) + tiền", n["tong_hop_tp"] == 150 and n["tong_luong_sp"] == 100000, n)
 kiem("nợ giá mã chưa có giá (không tính công nhật)", [(x.san_pham, x.so_hop, x.trang_thai)
                                                      for x in ST["no"]] == [("MOI", 30, "Chờ giá")])
-ST["bang"]["dong"] = [D(nhan_vien="An", san_pham="SEN", so_hop=120, thanh_tien=120000),
-                      D(nhan_vien="An", san_pham="MOI", so_hop=10, thanh_tien=0)]
+ST["bang"]["dong"] = [SXBangVaoHopItem(nhan_vien="An", san_pham="SEN", so_hop=120, thanh_tien=120000),
+                      SXBangVaoHopItem(nhan_vien="An", san_pham="MOI", so_hop=10, thanh_tien=0)]
 B.dong_bo_vaohop(get_doc("SX Ngay San Xuat", "SXN-1"))
 kiem("người không còn trong bảng → gỡ ngày khỏi phiếu lương của họ", ST["go"][-1] == ["Bình"], ST["go"])
 kiem("nợ giá CẬP NHẬT tại chỗ, không huỷ-tạo lại", [(x.name, x.so_hop, x.trang_thai) for x in ST["no"]]
      == [("NO-1", 10, "Chờ giá")], ST["no"])
-ST["bang"]["dong"] = [D(nhan_vien="An", san_pham="SEN", so_hop=120, thanh_tien=120000)]
+ST["bang"]["dong"] = [SXBangVaoHopItem(nhan_vien="An", san_pham="SEN", so_hop=120, thanh_tien=120000)]
 B.dong_bo_vaohop(get_doc("SX Ngay San Xuat", "SXN-1"))
 kiem("hết thiếu giá → huỷ nợ", ST["no"][0]["trang_thai"] == "Đã huỷ")
 ST["luong_hong"] = "Phiếu lương PL-An tháng 10 ĐÃ DUYỆT"
@@ -423,6 +444,25 @@ loi = B.dong_bo_vaohop(get_doc("SX Ngay San Xuat", "SXN-1"))
 kiem("phiếu lương đã duyệt → lỗi rõ ràng", loi == ["Phiếu lương PL-An tháng 10 ĐÃ DUYỆT"], loi)
 kiem("… và không để nửa vời (tổng / danh sách lương giữ như trước)",
      ST["ngay"]["SXN-1"]["salary_products_json"] == truoc["salary_products_json"])
+
+print("\n-- D202: ngày đã dính lỗi 'not subscriptable' → bản vá ghi lại phiếu lương --")
+lam_sach()
+ngay("SXN-1").update(can_dong_bo_vh=1, loi_dong_bo_vh="'SXBangVaoHopItem' object is not subscriptable")
+ngay("SXN-2").update(can_dong_bo_vh=1, loi_dong_bo_vh="Phiếu lương PL-An tháng 10 ĐÃ DUYỆT")
+ngay("SXN-3")
+ST["bang"] = D(name="BVH-1", dong=[SXBangVaoHopItem(nhan_vien="An", san_pham="SEN", so_hop=50, thanh_tien=50000),
+                                   SXBangVaoHopItem(nhan_vien="An", san_pham="MOI", so_hop=30, thanh_tien=0)])
+nap("sx.patches.d202_dong_bo_lai_vao_hop", "sx/patches/d202_dong_bo_lai_vao_hop.py").execute()
+n1, n2 = ST["ngay"]["SXN-1"], ST["ngay"]["SXN-2"]
+kiem("ngày dính lỗi D202: ghi lại phiếu lương, hết lỗi, hết dấu chờ",
+     ST["luong"] == [["An"]] and n1["loi_dong_bo_vh"] is None and n1["can_dong_bo_vh"] == 0
+     and n1["tong_luong_sp"] == 50000 and n1.get("dong_bo_luc"), n1)
+kiem("… nợ đơn giá mã chưa có giá được ghi", [(x.san_pham, x.so_hop, x.ngay_sx) for x in ST["no"]]
+     == [("MOI", 30, "SXN-1")], ST["no"])
+kiem("ngày lỗi khác / ngày không lỗi KHÔNG đụng (thử lại ngày đang lỗi là việc của người)",
+     (n2["loi_dong_bo_vh"], n2["can_dong_bo_vh"], ST["ngay"]["SXN-3"].get("dong_bo_luc"))
+     == ("Phiếu lương PL-An tháng 10 ĐÃ DUYỆT", 1, None))
+kiem("bản vá có trong patches.txt", "sx.patches.d202_dong_bo_lai_vao_hop" in open("sx/patches.txt").read())
 
 print("\n-- dấu chờ, chạy, lỗi, thử lại --")
 lam_sach()
