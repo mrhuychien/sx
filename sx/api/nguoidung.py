@@ -20,6 +20,13 @@ lý cấp QR mới.
 Danh sách role gán được bị đóng cứng trong ROLE_CHO_PHEP. Quản lý xưởng tạo được QC,
 thủ kho, người ghi sổ — KHÔNG tạo được System Manager. Một màn "tạo user" mà gán được
 role tuỳ ý là một cửa leo thang quyền, dù người bấm là ai.
+
+═══ KIỂU TÀI KHOẢN (D197) ═══
+Frappe tự tính kiểu tài khoản mỗi lần lưu User (User.set_system_user): có role nào vào
+được Desk thì System User, không thì Website User. Role SX ở xưởng (trừ Quản lý) không
+vào Desk, nên tài khoản của QC, thủ kho, ghi sổ… là WEBSITE USER — vẫn dùng portal /sx
+bình thường. Danh sách vì thế lọc theo ROLE của app, KHÔNG lọc theo kiểu tài khoản (lọc
+System User là bỏ sót đúng những người cần quản lý nhất).
 """
 
 import hashlib
@@ -30,8 +37,8 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, cint, get_url, now_datetime
 
-from sx.config.roles import (BAO_VE, CO_DIEN, GHI_SO, HANH_CHINH, QC_TET, QUAN_LY, THU_KHO, VAO_HOP,
-                             guard_card)
+from sx.config.roles import (BAO_VE, CO_DIEN, GHI_SO, HANH_CHINH, QC, QC_GOI, QC_TET, QUAN_LY, THU_KHO,
+                             VAO_HOP, guard_card)
 
 # Role gán được từ màn này. QUAN_LY có trong danh sách vì xưởng cần người thay ca,
 # nhưng không có role nào của Frappe lõi — xem docstring.
@@ -45,6 +52,10 @@ ROLE_CHO_PHEP = {
     CO_DIEN: "Cơ điện",
     HANH_CHINH: "Hành chính – Văn thư",
     BAO_VE: "Bảo vệ",
+    # D197: QC chế biến / QC đóng gói (module QC) cũng là người ở xưởng, không vào Desk — trước đây phải tạo tay trên
+    # Desk và không hiện ở danh sách này.
+    QC: "QC chế biến",
+    QC_GOI: "QC đóng gói",
 }
 
 # Mã QR sống bao lâu. Đủ để in thẻ hôm nay, phát cho ca sau; không đủ để một tờ giấy
@@ -186,18 +197,19 @@ def doi_ma_lay_user(ma):
 
 @frappe.whitelist()
 def danh_sach():
-    """Tài khoản portal đang có, kèm role SX và lần đăng nhập gần nhất."""
+    """Tài khoản portal đang có, kèm role SX và lần đăng nhập gần nhất. Mọi tài khoản giữ role của app — System
+    lẫn Website User (D197: tài khoản chỉ có role xưởng là Website User, xem docstring)."""
     _kiem_quyen()
     ds = frappe.get_all(
         "User",
-        filters={"user_type": "System User", "name": ("not in", ["Administrator", "Guest"])},
+        filters={"name": ("not in", ["Administrator", "Guest"])},
         fields=["name", "full_name", "username", "mobile_no", "enabled", "last_login"],
         order_by="full_name asc",
         limit_page_length=0,
     )
     vai = {}
     for r in frappe.get_all(
-        "Has Role", filters={"role": ("in", list(ROLE_CHO_PHEP))},
+        "Has Role", filters={"role": ("in", list(ROLE_CHO_PHEP)), "parenttype": "User"},
         fields=["parent", "role"], limit_page_length=0,
     ):
         vai.setdefault(r.parent, []).append(r.role)
@@ -240,10 +252,7 @@ def tao_user(sdt, ho_ten=None, role=VAO_HOP):
         "mobile_no": so,
         "first_name": ten,
         "enabled": 1,
-        # System User vì role SX đang chạy trên site là role của System User
-        # (desk_access=0 nên vẫn không vào được Desk). Website User dùng bộ quyền
-        # khác hẳn, đổi kiểu ở đây là QC đăng nhập được mà không ghi được gì.
-        "user_type": "System User",
+        # Không đặt user_type: Frappe tự tính lúc lưu (role vào Desk → System User, không thì Website User — D197).
         "send_welcome_email": 0,
         "new_password": mk,
         "roles": [{"role": role}],

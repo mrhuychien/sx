@@ -219,8 +219,11 @@ tận tay. QC quét QR là vào thẳng portal, không gõ gì.
 - **Mật khẩu là đường vào lâu dài**, in cùng trên thẻ, dùng mãi.
 - Mật khẩu và QR **chỉ hiện đúng một lần** ngay sau khi tạo (Frappe lưu băm, không ai
   đọc lại được). Lỡ đóng thì bấm **Cấp lại** — mật khẩu mới, thẻ mới.
-- Chỉ gán được **role của app này** (QC vào hộp / Ghi sổ / Thủ kho / Quản lý). Không
-  tạo được System Manager, và không sửa được tài khoản không thuộc app.
+- Chỉ gán được **role của app này** (QC vào hộp / Ghi sổ / Thủ kho / Quản lý / QC vào hộp Tết / Cơ điện / Hành
+  chính – Văn thư / Bảo vệ / QC chế biến / QC đóng gói). Không tạo được System Manager, và không sửa được tài khoản
+  không thuộc app.
+- Tài khoản chỉ có vai ở xưởng (không vào Desk) Frappe tự xếp là **Website User** — vẫn dùng portal bình thường;
+  danh sách hiện mọi tài khoản giữ vai của app, cả tài khoản đã khoá (D197).
 - Tên miền ghép vào email giả khai ở `SX Settings → Tên miền cho email tài khoản`
   (bỏ trống = `sx.local`). **Đừng dùng tên miền thật đang nhận thư.**
 
@@ -319,6 +322,22 @@ bao bì đã trừ, nợ BOM / nợ vào hộp của phiếu → *Đã huỷ*, s
 bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ chứng từ xuất trước. Duyệt lại
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
+
+## Sửa thẻ Tài khoản portal không hiện danh sách tài khoản (D197)
+
+- **Lỗi**: thẻ *Quản lý → Tài khoản portal* không hiện (hoặc hiện thiếu) các tài khoản QC vào hộp, thủ kho, ghi sổ… —
+  nên cũng không có nút **CẤP LẠI** / **khoá** của họ. Tài khoản mới tạo hiện ra một lúc rồi mất khi tải lại thẻ.
+- **Nguyên nhân**: Frappe (v15/v16) tự tính kiểu tài khoản mỗi lần lưu User — có role vào được Desk thì *System User*,
+  không thì *Website User*. Vai ở xưởng (trừ Quản lý) không vào Desk, nên tài khoản của họ là Website User; danh sách
+  lại chỉ lấy System User. Test cũ dùng Frappe giả không tính lại kiểu tài khoản nên không thấy.
+- **Sửa** (`sx/api/nguoidung.py`): danh sách lấy mọi tài khoản giữ vai của app (System lẫn Website User, cả tài khoản
+  đã khoá), bỏ lọc theo kiểu tài khoản. Tạo tài khoản không đặt kiểu nữa (Frappe tự tính).
+- **Thêm vai** gán được ở thẻ: **QC chế biến** (`SX QC`) và **QC đóng gói** (`SX QC Packing`) — người ở xưởng, không
+  vào Desk; trước đây phải tạo tay trên Desk và không hiện ở danh sách. ISO Manager / Production Manager vẫn tạo trên
+  Desk (quyền rộng).
+- Test `test-nguoidung.py`: Frappe giả nay tính kiểu tài khoản như Frappe thật; tài khoản Website User hiện trong danh
+  sách, cấp lại được; tài khoản đã khoá vẫn hiện; vai QC chế biến / đóng gói.
+- Không đổi giao diện: `git pull` → `bench restart`.
 
 ## Kiểm kê: huỷ chốt, mở lại phiếu đang đếm — giữ nguyên số đã đếm (D196)
 

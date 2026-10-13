@@ -89,6 +89,19 @@ def set_value(dt, name, field, val=None, **kw):
                 r[field] = val
 
 
+# Frappe v16 (User.validate → set_system_user): kiểu tài khoản TỰ TÍNH mỗi lần lưu — có role vào được Desk thì
+# System User, không thì Website User, bất kể nơi gọi đặt gì. Role SX ở xưởng không vào Desk (D105: desk_access 0,
+# trừ Quản lý) → tài khoản QC / thủ kho / ghi sổ là Website User. Bản giả trước D197 giữ nguyên "System User" nơi gọi
+# đặt nên không thấy danh sách bỏ sót họ.
+VAO_DESK = {"SX Quan Ly", "System Manager"}
+
+
+def _kieu_tai_khoan(u):
+    co = {r["role"] for r in u.get("roles") or []} | {
+        h["role"] for h in DB["Has Role"] if h["parent"] == u.get("name")}
+    u["user_type"] = "System User" if co & VAO_DESK else "Website User"
+
+
 class Doc(D):
     """Giữ THAM CHIẾU tới hàng gốc: db_set trong Frappe ghi thẳng xuống DB, nên bản
     giả cũng phải ghi xuyên xuống, không thì test tưởng app không đánh dấu gì."""
@@ -101,12 +114,16 @@ class Doc(D):
     def insert(s):
         dt = s["doctype"]
         s.setdefault("name", s.get("email") or f"{dt}-{len(DB.setdefault(dt, [])) + 1}")
+        if dt == "User":
+            _kieu_tai_khoan(s)
         DB.setdefault(dt, []).append(s)
         for r in s.get("roles") or []:
-            DB["Has Role"].append({"parent": s["name"], "role": r["role"]})
+            DB["Has Role"].append({"parent": s["name"], "parenttype": "User", "role": r["role"]})
         return s
 
     def save(s):
+        if s.get("doctype") == "User" or s.get("user_type"):
+            _kieu_tai_khoan(s)
         return s
 
     def db_set(s, f, v, **kw):
@@ -160,6 +177,7 @@ roles.QUAN_LY, roles.GHI_SO = "SX Quan Ly", "SX Ghi So"
 roles.VAO_HOP, roles.THU_KHO = "SX Vao Hop", "SX Thu Kho"
 roles.QC_TET = "SX QC Tet"
 roles.CO_DIEN, roles.HANH_CHINH, roles.BAO_VE = "SX Co Dien", "SX Hanh Chinh", "SX Bao Ve"   # W42 (C24)
+roles.QC, roles.QC_GOI = "SX QC", "SX QC Packing"                                            # D197
 roles.guard_card = lambda c: None
 api = types.ModuleType("sx.api")
 api.__path__ = []
@@ -276,7 +294,7 @@ except Throw:
 
 DB["User"].append({"name": "sep@congty.com", "full_name": "Sếp", "enabled": 1,
                    "user_type": "System User"})
-DB["Has Role"].append({"parent": "sep@congty.com", "role": "System Manager"})
+DB["Has Role"].append({"parent": "sep@congty.com", "parenttype": "User", "role": "System Manager"})
 for ten, ham in [("cap_lai", lambda: nd.cap_lai("sep@congty.com")),
                  ("bat_tat", lambda: nd.bat_tat("sep@congty.com", 0))]:
     try:
@@ -285,7 +303,7 @@ for ten, ham in [("cap_lai", lambda: nd.cap_lai("sep@congty.com")),
     except Throw as e:
         kiem(f"{ten} lên tài khoản ngoài app bị chặn", True, str(e)[:45])
 
-DB["Has Role"].append({"parent": "sep@congty.com", "role": "SX Quan Ly"})
+DB["Has Role"].append({"parent": "sep@congty.com", "parenttype": "User", "role": "SX Quan Ly"})
 try:
     nd.cap_lai("sep@congty.com")
     kiem("có role SX nhưng KIÊM System Manager -> vẫn chặn", False)
@@ -300,7 +318,7 @@ except Throw as e:
     kiem("số đã có tài khoản bị chặn", True, str(e)[:45])
 
 frappe.session.user = r["user"]
-DB["Has Role"].append({"parent": r["user"], "role": "SX Vao Hop"})
+DB["Has Role"].append({"parent": r["user"], "parenttype": "User", "role": "SX Vao Hop"})
 try:
     nd.bat_tat(r["user"], 0)
     kiem("tự khoá mình phải bị chặn", False)
@@ -319,10 +337,29 @@ print("\n-- danh sách chỉ bày tài khoản CỦA APP --")
 set_value("User", r["user"], "enabled", 1)
 DB["User"].append({"name": "ngoai@congty.com", "full_name": "Người ngoài", "enabled": 1,
                    "user_type": "System User"})
-ds = nd.danh_sach()["rows"]
-ten_ds = {x["user"] for x in ds}
-kiem("tài khoản QC có trong danh sách", r["user"] in ten_ds)
-kiem("tài khoản không có role SX bị loại", "ngoai@congty.com" not in ten_ds)
+DB["Has Role"].append({"parent": "Trang SX", "parenttype": "Page", "role": "SX Vao Hop"})   # role gắn cho Page
+kiem("tài khoản QC vào hộp (chỉ role xưởng) là Website User như Frappe tính",
+     get_value("User", r["user"], "user_type") == "Website User", get_value("User", r["user"], "user_type"))
+rq = nd.tao_user("0977111222", "Trần Văn QC", "SX QC")
+rp = nd.tao_user("0977333444", "Lê Thị Gói", "SX QC Packing")
+rk = nd.tao_user("0977555666", "Phạm Thủ Kho", "SX Thu Kho")
+set_value("User", rk["user"], "enabled", 0)
+ds = nd.danh_sach()
+ten_ds = {x["user"]: x for x in ds["rows"]}
+kiem("D197: tài khoản QC vào hộp (Website User) CÓ trong danh sách — trước đây lọc System User nên mất",
+     r["user"] in ten_ds, str(sorted(ten_ds)))
+kiem("… QC chế biến, QC đóng gói tạo được ở đây, hiện đúng vai",
+     ten_ds.get(rq["user"], {}).get("nhan_roles") == "QC chế biến"
+     and ten_ds.get(rp["user"], {}).get("nhan_roles") == "QC đóng gói"
+     and {"ma": "SX QC", "ten": "QC chế biến"} in ds["roles"] and {"ma": "SX QC Packing", "ten": "QC đóng gói"} in ds["roles"],
+     str([ten_ds.get(rq["user"]), ten_ds.get(rp["user"])]))
+kiem("… tài khoản đã khoá vẫn hiện (để mở lại), ghi đã khoá",
+     rk["user"] in ten_ds and ten_ds[rk["user"]]["bat"] is False)
+kiem("… quản lý (System User) vẫn hiện", "sep@congty.com" in ten_ds)
+kiem("tài khoản không có role SX bị loại; role gắn cho trang (Page) không đẻ dòng ma",
+     "ngoai@congty.com" not in ten_ds and "Trang SX" not in ten_ds)
+kq = nd.cap_lai(rq["user"])
+kiem("cấp lại tài khoản Website User được (mật khẩu mới, QR mới)", bool(kq.get("mat_khau")) and "k=" in kq["link"])
 
 print("NGUOIDUNG-FAIL ({} ca)".format(hong) if hong else "NGUOIDUNG-OK")
 sys.exit(1 if hong else 0)
