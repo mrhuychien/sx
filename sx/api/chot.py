@@ -345,6 +345,8 @@ def _ghi_luong_khoan(doc, bang):
     for r in bang.dong:
         if cint(r.get("cong_nhat")):
             continue   # D101: hộp công nhật đóng — sản lượng, không phải lương khoán
+        if cint(r.get("khoan_chung")):
+            continue   # D203: công khoán chung — tiền khoán của tổ, không vào phiếu lương của ai
         if not r.san_pham:
             frappe.throw(_("Dòng {0}: chưa chọn mã hàng.").format(r.idx))
         key = (r.nhan_vien, r.san_pham, r.cach_lam or "")

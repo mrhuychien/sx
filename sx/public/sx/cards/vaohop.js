@@ -16,6 +16,11 @@ import { moQuet } from '/assets/sx/sx/components/quet.js';
 // màn hình + ranh giới API (sx/api/portal.py); trong DB là cờ cong_nhat.
 const CONG_NHAT = 'CONG_NHAT';
 const NV_CONG_NHAT = { name: CONG_NHAT, employee_name: 'Công nhật' };
+// Dòng CÔNG KHOÁN CHUNG (D203): hộp kho đã nhận mà không rõ ai đóng, ghi từ thẻ Sổ nợ vào
+// hộp ("Ghi cho công khoán"). Tính khoán theo đơn giá nhưng không gắn người — tổ tự chia.
+// Ở đây chỉ hiện / sửa số / xoá; không chấm thêm (không có nút +), không chấm ăn.
+const KHOAN_CHUNG = 'KHOAN_CHUNG';
+const KHONG_NGUOI = [CONG_NHAT, KHOAN_CHUNG];
 
 export async function render({ container, boot, call, ensureNgay }) {
   container.className = 'sx-card';
@@ -46,6 +51,7 @@ export async function render({ container, boot, call, ensureNgay }) {
   const tenNgan = {};
   nhanVien.forEach((nv) => { tenNgan[nv.name] = nv.ten_hien_thi || nv.employee_name || nv.name; });
   tenNgan[CONG_NHAT] = '★ Công nhật';
+  tenNgan[KHOAN_CHUNG] = '★ Công khoán chung';
 
   // Bố cục theo bản thiết kế "Xưởng SX - App (1a)" (D40):
   //   [tổng sản lượng hôm nay]              [đã nhập N/43]
@@ -124,10 +130,10 @@ export async function render({ container, boot, call, ensureNgay }) {
       if (!nhom.has(r.nhan_vien)) nhom.set(r.nhan_vien, { ten: tenNV(r), dong: [] });
       nhom.get(r.nhan_vien).dong.push({ ...r, _i: i });
     });
-    // Công nhật xuống cuối — bảng đọc theo người, công nhật không phải một người.
+    // Công khoán chung rồi công nhật xuống cuối — bảng đọc theo người, hai dòng này không phải người.
+    const hang = (k) => ({ [KHOAN_CHUNG]: 1, [CONG_NHAT]: 2 }[k] || 0);
     return [...nhom.entries()]
-      .sort(([ka, a], [kb, b]) => ((ka === CONG_NHAT) - (kb === CONG_NHAT))
-        || a.ten.localeCompare(b.ten, 'vi'))
+      .sort(([ka, a], [kb, b]) => (hang(ka) - hang(kb)) || a.ten.localeCompare(b.ten, 'vi'))
       .map(([, g]) => g);
   }
 
@@ -141,18 +147,20 @@ export async function render({ container, boot, call, ensureNgay }) {
     theoNguoi().forEach((g) => {
       g.dong.forEach((r) => {
         const cn = r.nhan_vien === CONG_NHAT;
-        html += `<div class="sx-vh-row${cn ? ' sx-vh-row-cn' : ''}">
+        const kc = r.nhan_vien === KHOAN_CHUNG;
+        html += `<div class="sx-vh-row${cn ? ' sx-vh-row-cn' : ''}${kc ? ' sx-vh-row-kc' : ''}">
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(g.ten)}</div>
             <div class="sx-vh-meta">${esc(tenSPKhoan(r.san_pham) || '—')}${
               r.cach_lam ? ` · ${esc(r.cach_lam)}` : ''}${cn ? ' · không tính khoán' : ''}${
+              kc ? ' · tính khoán, tổ tự chia' : ''}${
               thayHet && r.nguoi_ghi ? ` · ghi: ${esc(String(r.nguoi_ghi).split('@')[0])}` : ''}</div>
           </div>
           <button type="button" class="sx-vh-sl" data-i="${r._i}"${daChot ? ' disabled' : ''}
             >${esc(formatNumber(r.so_hop))}</button>
-          ${daChot ? '' : `
+          ${daChot ? '' : `${kc ? '<span class="sx-vh-trong" aria-hidden="true"></span>' : `
             <button type="button" class="sx-vh-them" data-nv="${esc(r.nhan_vien)}"
-              aria-label="Ghi thêm sản phẩm cho ${esc(g.ten)}" title="Ghi thêm loại khác">+</button>
+              aria-label="Ghi thêm sản phẩm cho ${esc(g.ten)}" title="Ghi thêm loại khác">+</button>`}
             <button type="button" class="sx-vh-del" data-i="${r._i}"
               aria-label="Xoá dòng ${esc(g.ten)}">✕</button>`}
         </div>`;
@@ -162,16 +170,19 @@ export async function render({ container, boot, call, ensureNgay }) {
 
     const tongHop = rows.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
-    const soNguoi = new Set(rows.map((r) => r.nhan_vien).filter((n) => n !== CONG_NHAT)).size;
+    const soNguoi = new Set(rows.map((r) => r.nhan_vien).filter((n) => !KHONG_NGUOI.includes(n))).size;
     const hopCN = rows.filter((r) => r.nhan_vien === CONG_NHAT)
+      .reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
+    const hopKC = rows.filter((r) => r.nhan_vien === KHOAN_CHUNG)
       .reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     container.querySelector('#sx-vh-tonghop').textContent = formatNumber(tongHop);
     // Không hiện tiền ở màn nhập (D43) — giữ ô rỗng để bố cục không nhảy
     container.querySelector('#sx-vh-tongtien').textContent = '';
     container.querySelector('#sx-vh-donecount').textContent = soNguoi;
     footer.innerHTML = `<span class="sx-field-label">Tổng</span>
-      <span>${formatNumber(tongHop)} sp${hopCN
-        ? ` <span class="sx-muted">(công nhật ${formatNumber(hopCN)})</span>` : ''}</span>`;
+      <span>${formatNumber(tongHop)} sp${hopCN || hopKC
+        ? ` <span class="sx-muted">(${[hopKC ? `công khoán chung ${formatNumber(hopKC)}` : '',
+          hopCN ? `công nhật ${formatNumber(hopCN)}` : ''].filter(Boolean).join(' · ')})</span>` : ''}</span>`;
 
     // Dải SKU: mỗi loại công việc một ô, cuộn ngang — nhìn ra ngay hôm nay chạy loại gì
     const theoAct = {};
@@ -220,7 +231,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       kicker: `Sửa · ${tenSPKhoan(r.san_pham) || ''}`,
       title: tenNV(r),
       unitLabel: 'Số lượng',
-      titleActions: r.nhan_vien === CONG_NHAT ? null : nutAnCa({ name: r.nhan_vien }, anCa, save),
+      titleActions: KHONG_NGUOI.includes(r.nhan_vien) ? null : nutAnCa({ name: r.nhan_vien }, anCa, save),
       initial: r.so_hop,
       onOk: async (v) => {
         const sl = Math.round(v);

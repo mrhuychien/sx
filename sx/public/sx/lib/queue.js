@@ -63,6 +63,9 @@ const LY_DO_CHAN = {
     'Lập phiếu nhận phải ghi lên server để thủ kho thấy nên phải có mạng.',
   'sx.api.khotp.tai_tu_vao_hop':
     'Tải từ bảng vào hộp phải đọc số trên server nên phải có mạng.',
+  // D203: số nợ phải đối chiếu đúng lúc ghi — xếp hàng rồi gửi sau là có thể trả khoán cho số đã có người chấm bù.
+  'sx.api.khotp.ghi_no_khoan_chung':
+    'Ghi cho công khoán phải đối chiếu sổ nợ trên server đúng lúc ghi nên phải có mạng. Có mạng rồi bấm lại.',
   'sx.api.khotp.sua_phieu':
     'Sửa phiếu nhận cần ghi lên phiếu trên server nên phải có mạng.',
   'sx.api.khotp.duyet_phieu':

@@ -323,6 +323,36 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Sổ nợ vào hộp: nút "Ghi cho công khoán" — dòng ★ Công khoán chung (D203)
+
+- **Yêu cầu**: ở phần Nợ vào hộp (màn Ghi hộp) có nút ghi luôn số nợ cho công khoán, khi không rõ công nhân nào đóng
+  số hộp đó. Chọn cách **dòng chung, không gắn tên**: tính sản lượng và tiền khoán theo đơn giá, không vào phiếu lương
+  của ai — tổ tự chia; báo cáo hiện một dòng "Công khoán chung" riêng; ghi xong nợ tự trừ.
+- **Thẻ Sổ nợ vào hộp**: mỗi mã có nút **★ Ghi N hộp cho công khoán** (QC vào hộp, quản lý). N = số nợ còn lại của mã,
+  làm tròn lên hộp nguyên. Bấm → hộp xác nhận nói rõ ghi vào **ngày đang xem** trên thanh ngày; mã có nhiều mức giá
+  (cách làm) thì chọn cách làm (hiện đơn giá và thành tiền), chỉ một mức thì tự chọn; mã chưa khai giá vẫn ghi được
+  (tạm 0 đồng, vào Sổ nợ đơn giá như dòng khoán thường) → **GHI** → bảng vào hộp ngày đó có thêm một dòng
+  **★ Công khoán chung**, nợ của mã về 0, cả màn vẽ lại.
+- **Server** `sx.api.khotp.ghi_no_khoan_chung(ngay_sx, item, so_hop, cach_lam)`: đối soát nợ trước rồi mới đọc số;
+  số trên màn khác số nợ hiện tại (vừa có người chấm bù / kho vừa nhận thêm) → dừng, bảo mở lại thẻ — không ghi một con
+  số người bấm chưa thấy. Chặn ngày chưa tới, ngày quá xa khoản nợ (ngoài khoảng đối soát 30 ngày). Ghi xong mà nợ
+  không về 0 → báo lỗi, rút lại cả lần ghi (không để bấm lần hai trả khoán hai lần cho cùng số hộp). Mất mạng: báo
+  phải có mạng, KHÔNG xếp hàng gửi sau (gửi muộn là có thể trả khoán cho số vừa có người chấm bù).
+- **Dòng chung** (`SX Bang Vao Hop Item.khoan_chung`, mã giả `KHOAN_CHUNG` ở màn hình như `CONG_NHAT` của D101): không
+  gắn người; tính tiền khoán theo bảng đơn giá; **không ghi phiếu lương** (D69/D123 bỏ qua dòng này); không chấm ăn ca.
+  Màn Ghi hộp: xếp sau các công nhân, trước công nhật; ghi "tính khoán, tổ tự chia"; sửa số / xoá được, không có nút +;
+  không tính vào "Đã nhập N người"; dòng Tổng tách "công khoán chung N · công nhật M"; tin "Copy sản lượng gửi nhóm" có
+  dòng ★ Công khoán chung. Ghi nhầm: xoá dòng đó ở màn Ghi hộp → nợ hiện lại.
+- **Báo cáo**: Quản lý → Năng suất vào hộp có dòng **★ Công khoán chung — tổ tự chia** (số hộp + tiền) cuối bảng;
+  Lịch → chi tiết ngày: dòng riêng trong khối "Theo người", chip "công khoán chung N hộp" (không tính là một người);
+  Truy xuất: tên "Công khoán chung".
+- **Sửa kèm (đối soát nợ vào hộp)**: phần nợ đã **Bỏ qua** (hàng trả về nhập lại…) nay được trừ khỏi "kho đã nhận" khi
+  đối soát. Trước đây phần đó nằm mãi trong phần thiếu: chấm bù đủ số nợ còn mở mà nợ không giảm.
+- Test: `test-novaohop.py` (dòng chung trong bảng, phiếu lương, sổ nợ đơn giá, mã giả ở API lưu bảng, ghi từ sổ nợ —
+  số lệch, ngày, quyền, cách làm, nợ không về 0, đối soát trước, Bỏ qua trong / ngoài khoảng), `test-lich.py`,
+  `test-truyxuat.py`, `test-khoanchung.mjs` (Chromium thật: hai thẻ, bấm nút, đọc lời gọi API).
+- Có trường mới (DocType): `git pull` → `bench --site site1.local migrate` → `bench restart`. Build **sx-153**.
+
 ## Sửa lỗi ghi phiếu lương ở Ghi hộp: 'SXBangVaoHopItem' object is not subscriptable (D202)
 
 - **Lỗi**: màn Ghi hộp báo *⚠ Lỗi ghi phiếu lương: 'SXBangVaoHopItem' object is not subscriptable*. Ngày nào bảng vào hộp

@@ -74,7 +74,7 @@ def _dong_vao_hop(ten_ngay):
         "SX Bang Vao Hop Item",
         filters={"parent": ("in", list(bang)), "parenttype": "SX Bang Vao Hop"},
         fields=["parent", "nhan_vien", "ten_nhan_vien", "san_pham", "cach_lam", "so_hop",
-                "cong_nhat", "nguoi_ghi"]), bang
+                "cong_nhat", "khoan_chung", "nguoi_ghi"]), bang
 
 
 def _dong_cua_toi(dong):
@@ -227,7 +227,7 @@ def _ct_vao_hop(d, ra):
         ra["chips"].append({1: _("đang đồng bộ lương"), 2: _("đã vào phiếu lương"),
                             3: _("lỗi đồng bộ lương")}[tt])
     ten = _ten_hang(r.san_pham for r in dong)
-    theo_ma, theo_nguoi, cn = {}, {}, 0
+    theo_ma, theo_nguoi, cn, kc = {}, {}, 0, 0
     for r in dong:
         sl = cint(r.so_hop)
         g = theo_ma.setdefault(r.san_pham, {"khoan": 0, "cn": 0})
@@ -236,23 +236,28 @@ def _ct_vao_hop(d, ra):
             cn += sl
             continue
         g["khoan"] += sl
-        p = theo_nguoi.setdefault(r.nhan_vien, {"ten": r.ten_nhan_vien or r.nhan_vien,
-                                                "sl": 0, "ma": []})
+        if cint(r.get("khoan_chung")):
+            kc += sl            # D203: không gắn người → khoá None, một dòng riêng cuối khối "Theo người"
+        p = theo_nguoi.setdefault(r.nhan_vien, {
+            "ten": _("★ Công khoán chung") if cint(r.get("khoan_chung")) else r.ten_nhan_vien or r.nhan_vien,
+            "sl": 0, "ma": []})
         p["sl"] += sl
         p["ma"].append(f"{ten.get(r.san_pham, r.san_pham)}{' · ' + r.cach_lam if r.cach_lam else ''}"
                        f" {sl}")
     ra["so"] = sum(cint(r.so_hop) for r in dong)
     if cn:
         ra["chips"].append(_("công nhật {0} hộp").format(cn))
-    if theo_nguoi:
-        ra["chips"].append(_("{0} người").format(len(theo_nguoi)))
+    if kc:
+        ra["chips"].append(_("công khoán chung {0} hộp").format(kc))
+    if [k for k in theo_nguoi if k]:
+        ra["chips"].append(_("{0} người").format(len([k for k in theo_nguoi if k])))
     ra["khoi"].append(_khoi(_("Theo mã hàng"), [
         {"trai": ten.get(ma, ma), "phai": g["khoan"] + g["cn"],
          "phu": _("khoán {0} · công nhật {1}").format(g["khoan"], g["cn"]) if g["cn"] else None}
         for ma, g in sorted(theo_ma.items(), key=lambda x: -(x[1]["khoan"] + x[1]["cn"]))]))
     ra["khoi"].append(_khoi(_("Theo người"), [
         {"trai": p["ten"], "phai": p["sl"], "phu": ", ".join(p["ma"])}
-        for p in sorted(theo_nguoi.values(), key=lambda x: x["ten"])]))
+        for _k, p in sorted(theo_nguoi.items(), key=lambda x: (x[0] is None, x[1]["ten"] or ""))]))
 
 
 def _ct_ghi_so(d, ra):

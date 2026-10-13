@@ -502,6 +502,181 @@ kiem("bỏ qua không lý do → chặn", "lý do" in (thu(lambda: K.bo_qua_no_v
 K.bo_qua_no_vao_hop(n, "hàng trả về nhập lại")
 kiem("quản lý bỏ qua có lý do", (NO[-1].trang_thai, NO[-1].ly_do) == ("Bỏ qua", "hàng trả về nhập lại"))
 
+# ═══ 3b. D203: công khoán chung ════════════════════════════════════════
+print("\n-- D203: dòng công khoán chung trong bảng vào hộp --")
+lam_sach()
+b = bang_vh({"nhan_vien": "NV1", "san_pham": "TP-A", "so_hop": 100},
+            {"khoan_chung": 1, "nhan_vien": "NV2", "san_pham": "TP-A", "so_hop": 30},
+            {"cong_nhat": 1, "san_pham": "TP-A", "so_hop": 50},
+            {"khoan_chung": 1, "san_pham": "TP-MOI", "so_hop": 4})
+kc = [r for r in b.dong if r.khoan_chung]
+kiem("dòng công khoán chung KHÔNG gắn người (kể cả khi gửi lên có tên)", all(r.nhan_vien is None for r in kc))
+kiem("công khoán chung tính tiền khoán theo đơn giá (khác công nhật)",
+     [(r.san_pham, r.don_gia, r.thanh_tien) for r in kc] == [("TP-A", 1000.0, 30000.0), ("TP-MOI", 0, 0)]
+     and b.tong_tien == 130000.0 and b.tong_hop == 184, str([(r.san_pham, r.thanh_tien) for r in kc]))
+kiem("thứ tự: người → công khoán chung → công nhật",
+     [("kc" if r.khoan_chung else "cn" if r.cong_nhat else r.nhan_vien) for r in b.dong] == ["NV1", "kc", "kc", "cn"])
+kiem("dòng vừa công nhật vừa công khoán chung → chặn", "chỉ được một" in (thu(lambda: bang_vh(
+    {"cong_nhat": 1, "khoan_chung": 1, "san_pham": "TP-A", "so_hop": 5}, ten="NSX-9")) or ""))
+t = NG.gom_thieu_gia(b.dong, ut.don_gia_ap_dung())
+kiem("công khoán chung mã chưa có giá → VÀO sổ nợ đơn giá (tiền khoán của tổ còn phải trả)",
+     set(t) == {("TP-MOI", "")} and t[("TP-MOI", "")]["so_hop"] == 4, str(t))
+DA_GHI.clear()
+C._ghi_luong_khoan(Doc(ngay=HOM_NAY), b)
+kiem("phiếu lương chỉ có người làm khoán — công khoán chung không vào phiếu lương của ai",
+     set(DA_GHI) == {"NV1"} and [r.so_luong for r in DA_GHI["NV1"].chi_tiet] == [100], str(set(DA_GHI)))
+
+print("\n-- D203: API màn Ghi hộp: mã giả KHOAN_CHUNG ↔ cờ khoan_chung --")
+lam_sach()
+NGAY.append(Doc(name="NSX-2", ngay=HOM_NAY, docstatus=0, chot_vaohop=0))
+PT._chan_neu_chot = lambda *a: None
+VAI.clear(); VAI.add("SX Vao Hop")
+kq = PT.luu_bang_vao_hop("NSX-2", json.dumps([
+    {"nhan_vien": "NV1", "san_pham": "TP-A", "so_hop": 10},
+    {"nhan_vien": BVH.KHOAN_CHUNG, "san_pham": "TP-A", "so_hop": 7}]),
+    an_ca=json.dumps([{"nhan_vien": BVH.KHOAN_CHUNG, "an_ca": 1}]))
+luu = MOI["d"]
+kiem("lưu: mã giả thành cờ khoan_chung, không lưu người, không phải công nhật",
+     [(r.nhan_vien, r.cong_nhat, r.khoan_chung) for r in luu.dong] == [("NV1", 0, 0), (None, 0, 1)],
+     str([(r.nhan_vien, r.cong_nhat, r.khoan_chung) for r in luu.dong]))
+kiem("lưu: công khoán chung không được chấm ăn ca", not luu.an_ca)
+kiem("trả về: dòng chung mang lại mã giả + tên cho màn hình",
+     [(r["nhan_vien"], r["ten_nhan_vien"], r["khoan_chung"]) for r in kq["dong"]]
+     == [("NV1", None, 0), (BVH.KHOAN_CHUNG, "Công khoán chung", 1)], str(kq["dong"]))
+luu["docstatus"] = 0                                 # bảng nháp đã lưu — lần lưu sau tìm thấy nó
+for i, r in enumerate(luu.dong):
+    r["name"] = f"R{i}"
+rows = [{"name": "R0", "nhan_vien": "NV1", "san_pham": "TP-A", "so_hop": 10},
+        {"name": "R1", "nhan_vien": BVH.KHOAN_CHUNG, "san_pham": "TP-A", "so_hop": 9}]
+PT.luu_bang_vao_hop("NSX-2", json.dumps(rows), biet=json.dumps(["R0", "R1"]))
+kiem("sửa số dòng chung từ màn Ghi hộp: vẫn là dòng chung, đúng số mới",
+     [(r.name, r.khoan_chung, r.nhan_vien, r.so_hop) for r in luu.dong] == [("R0", 0, "NV1", 10), ("R1", 1, None, 9)])
+PT.luu_bang_vao_hop("NSX-2", json.dumps(rows[:1]), biet=json.dumps(["R0"]))
+kiem("máy chưa biết dòng chung (vừa ghi từ thẻ sổ nợ) → lưu KHÔNG xoá mất nó",
+     [r.name for r in luu.dong] == ["R0", "R1"])
+PT.luu_bang_vao_hop("NSX-2", json.dumps(rows[:1]), biet=json.dumps(["R0", "R1"]))
+kiem("máy đã biết mà bỏ dòng chung (bấm ✕) → xoá", [r.name for r in luu.dong] == ["R0"])
+
+print("\n-- D203: Sổ nợ vào hộp → Ghi cho công khoán --")
+BVH.SXBangVaoHop.save = BangMoi.save                 # bảng đã có của ngày: lưu như Frappe (validate rồi ghi)
+
+
+def no_ma(item):
+    return [(x.trang_thai, x.con_lai) for x in NO if x.item == item]
+
+
+def dung_no():
+    lam_sach()
+    bang_vh({"nhan_vien": "NV1", "san_pham": "TP-A", "so_hop": 100}, ngay=HOM_NAY - timedelta(days=3))
+    duyet(phieu({"item": "TP-A", "so_dem": 110}, ngay=HOM_NAY - timedelta(days=2)))
+    duyet(phieu({"item": "TP-A", "so_dem": 7.2}, ngay=HOM_NAY - timedelta(days=1)))
+    NGAY.append(Doc(name="NSX-H", ngay=HOM_NAY, docstatus=0))
+
+
+dung_no()
+VAI.clear(); VAI.add("SX Vao Hop")
+s_ = K.so_no_vao_hop(str(HOM_NAY))
+g = s_["nhom"][0]
+kiem("thẻ sổ nợ: số hộp nguyên phải ghi (17,2 → 18, làm tròn LÊN), giá chung theo bảng đơn giá, QC được ghi",
+     (g["so_hop"], g["gia_chung"], g["cach_lam"], s_["duoc_ghi_kc"]) == (18, 1000.0, [], True),
+     str((g["so_hop"], g["gia_chung"], g["cach_lam"], s_["duoc_ghi_kc"])))
+loi = thu(lambda: K.ghi_no_khoan_chung("NSX-H", "TP-A", 17))
+kiem("số trên màn khác số nợ hiện tại → dừng, không ghi", "vừa đổi" in (loi or "") and not any(
+    r.get("khoan_chung") for b_ in BANG.values() for r in b_.dong), loi or "")
+MOI.clear()
+kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 18)
+bh = MOI["d"]
+kiem("chưa có bảng ngày đó → lập bảng, một dòng ★ công khoán chung đúng số, ghi người bấm",
+     [(r.khoan_chung, r.nhan_vien, r.san_pham, r.so_hop, r.nguoi_ghi) for r in bh.dong]
+     == [(1, None, "TP-A", 18, "ql@x")] and bh.ngay_sx == "NSX-H", str(bh.dong))
+kiem("… tính khoán theo đơn giá, trả về cho màn hình",
+     (kq["so_hop"], kq["don_gia"], kq["thanh_tien"], kq["ngay"]) == (18, 1000.0, 18000.0, str(HOM_NAY)), str(kq))
+kiem("… và nợ của mã về 0, đóng 'Đã chấm bù'", no_ma("TP-A") == [("Đã chấm bù", 0), ("Đã chấm bù", 0)],
+     str(no_ma("TP-A")))
+kiem("bấm lại (thẻ cũ) → không còn nợ, không ghi thêm dòng chung thứ hai",
+     "không còn nợ" in (thu(lambda: K.ghi_no_khoan_chung("NSX-H", "TP-A", 18)) or "")
+     and len([r for r in bh.dong if r.khoan_chung]) == 1)
+
+dung_no()
+bang_vh({"nhan_vien": "NV2", "san_pham": "TP-B", "so_hop": 1}, ten="NSX-T")
+NGAY[-1]["ngay"] = HOM_NAY + timedelta(days=1)
+kiem("ngày chưa tới → chặn", "chưa tới" in (thu(lambda: K.ghi_no_khoan_chung("NSX-T", "TP-A", 18)) or ""))
+bang_vh({"nhan_vien": "NV2", "san_pham": "TP-B", "so_hop": 1}, ten="NSX-X")
+NGAY[-1]["ngay"] = HOM_NAY - timedelta(days=40)
+kiem("ngày quá xa khoản nợ (ngoài khoảng đối soát) → chặn, nói khoảng ngày được",
+     "quá xa" in (thu(lambda: K.ghi_no_khoan_chung("NSX-X", "TP-A", 18)) or ""))
+BANG["BVH-NSX-1"].dong.append(Doc(nhan_vien="NV2", san_pham="TP-A", so_hop=10))    # chấm bù, sổ nợ chưa đối soát
+kiem("thẻ đang hiện nợ cũ (18) mà đã có người chấm bù 10 → đối soát trước, báo còn 8, không ghi thừa",
+     "còn 8 hộp" in (thu(lambda: K.ghi_no_khoan_chung("NSX-H", "TP-A", 18)) or ""))
+VAI.clear(); VAI.add("SX Thu Kho")
+kiem("thủ kho không ghi được (không phải người ghi hộp)",
+     "không có quyền" in (thu(lambda: K.ghi_no_khoan_chung("NSX-H", "TP-A", 8)) or ""))
+VAI.clear(); VAI.add("SX Quan Ly")
+
+dung_no()
+goc_ds = K.doi_soat_no_vao_hop
+K.doi_soat_no_vao_hop = lambda: []                   # giả sử đối soát không trừ được (sổ nợ lệch)
+loi = thu(lambda: K.ghi_no_khoan_chung("NSX-H", "TP-A", 18))
+K.doi_soat_no_vao_hop = goc_ds
+kiem("ghi xong mà nợ không về 0 → báo lỗi (cả lần ghi bị rút lại), không để bấm lần hai trả khoán hai lần",
+     "vẫn còn 17.2" in (loi or ""), loi or "")
+
+print("\n-- D203: mã có nhiều cách làm --")
+dung_no()
+BANG_GIA.clear()
+BANG_GIA.update({("TP-A", "Máy"): 800.0, ("TP-A", "Tay"): 1200.0})
+g = K.so_no_vao_hop(str(HOM_NAY))["nhom"][0]
+kiem("thẻ sổ nợ kèm các cách làm + giá, không có giá chung",
+     (g["cach_lam"], g["gia_chung"]) == ([{"ten": "Máy", "don_gia": 800.0}, {"ten": "Tay", "don_gia": 1200.0}], None),
+     str(g["cach_lam"]))
+kiem("không chọn cách làm → chặn (mỗi cách một đơn giá)",
+     "chọn cách làm" in (thu(lambda: K.ghi_no_khoan_chung("NSX-H", "TP-A", 18)) or ""))
+kiem("cách làm không có trong bảng đơn giá → chặn",
+     "không có cách làm" in (thu(lambda: K.ghi_no_khoan_chung("NSX-H", "TP-A", 18, "Xyz")) or ""))
+kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 18, "Tay")
+kiem("chọn Tay → dòng chung cách làm Tay, giá 1200", (kq["cach_lam"], kq["thanh_tien"]) == ("Tay", 21600.0), str(kq))
+dung_no()
+BANG_GIA.clear()
+BANG_GIA.update({("TP-A", "Máy"): 800.0})
+kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 18)
+kiem("chỉ một cách làm, không giá chung → tự chọn", (kq["cach_lam"], kq["don_gia"]) == ("Máy", 800.0), str(kq))
+dung_no()
+BANG_GIA.clear()
+kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 18)
+kiem("mã chưa khai giá → vẫn ghi (0 đồng, vào sổ nợ đơn giá như dòng khoán)",
+     (kq["so_hop"], kq["thanh_tien"]) == (18, 0.0) and no_ma("TP-A")[-1] == ("Đã chấm bù", 0), str(kq))
+BANG_GIA.clear()
+BANG_GIA.update({("TP-A", ""): 1000.0})
+
+print("\n-- D203: nợ đã Bỏ qua không chặn việc trừ nợ còn lại --")
+lam_sach()
+bang_vh({"nhan_vien": "NV1", "san_pham": "TP-A", "so_hop": 100}, ngay=HOM_NAY - timedelta(days=3))
+duyet(phieu({"item": "TP-A", "so_dem": 110}, ngay=HOM_NAY - timedelta(days=2)))     # nợ 10
+NO.append(Doc(name="NV-CU", item="TP-A", ten="Bánh A", so_luong=30, con_lai=30, trang_thai="Bỏ qua",
+              ly_do="hàng trả về", ngay=HOM_NAY - timedelta(days=40), phieu_nhap="PN-CU"))
+K.doi_soat_no_vao_hop()
+kiem("nợ Bỏ qua NGOÀI khoảng đối soát (phiếu nhập không còn trong 'đã nhận') → không trừ, nợ mở giữ nguyên",
+     no_ma("TP-A")[0] == ("Chờ chấm", 10), str(no_ma("TP-A")))
+lam_sach()
+bang_vh({"nhan_vien": "NV1", "san_pham": "TP-A", "so_hop": 100}, ngay=HOM_NAY - timedelta(days=3))
+duyet(phieu({"item": "TP-A", "so_dem": 130}, ngay=HOM_NAY - timedelta(days=2)))     # nợ A 30
+duyet(phieu({"item": "TP-A", "so_dem": 20}, ngay=HOM_NAY - timedelta(days=1)))      # nợ B 20
+K.bo_qua_no_vao_hop(NO[0].name, "hàng trả về nhập lại")
+BANG["BVH-NSX-1"].dong.append(Doc(nhan_vien="NV2", san_pham="TP-A", so_hop=20))
+K.doi_soat_no_vao_hop()
+kiem("chấm bù đủ phần nợ còn mở (20) → nợ đó đóng, dù có nợ khác đã Bỏ qua trong khoảng",
+     no_ma("TP-A") == [("Bỏ qua", 30), ("Đã chấm bù", 0)], str(no_ma("TP-A")))
+lam_sach()
+bang_vh({"nhan_vien": "NV1", "san_pham": "TP-A", "so_hop": 100}, ngay=HOM_NAY - timedelta(days=3))
+duyet(phieu({"item": "TP-A", "so_dem": 130}, ngay=HOM_NAY - timedelta(days=2)))
+K.bo_qua_no_vao_hop(NO[0].name, "hàng trả về nhập lại")
+duyet(phieu({"item": "TP-A", "so_dem": 20}, ngay=HOM_NAY - timedelta(days=1)))
+NGAY.append(Doc(name="NSX-H", ngay=HOM_NAY, docstatus=0))
+kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 20)
+kiem("… và Ghi cho công khoán trả hết nợ còn mở (không vướng phần Bỏ qua)",
+     kq["so_hop"] == 20 and no_ma("TP-A") == [("Bỏ qua", 30), ("Đã chấm bù", 0)], str(no_ma("TP-A")))
+VAI.clear(); VAI.add("SX Quan Ly")
+
 # ═══ 4. Dây nối ══════════════════════════════════════════════════════════
 print("\n-- dây nối --")
 kiem("card nợ vào hộp ở màn Ghi hộp và Quản lý",
@@ -517,6 +692,10 @@ vh = open("sx/public/sx/cards/vaohop.js", encoding="utf-8").read()
 kiem("màn Ghi hộp có nút chấm CÔNG NHẬT, cùng mã giả với server",
      f"const CONG_NHAT = '{BVH.CONG_NHAT}'" in vh and "sx-vh-congnhat" in vh)
 kiem("công nhật không có nút ăn ca", "cn ? null : nutAnCa" in vh)
+kiem("màn Ghi hộp biết mã giả công khoán chung, cùng mã với server",
+     f"const KHOAN_CHUNG = '{BVH.KHOAN_CHUNG}'" in vh)
+kiem("thẻ sổ nợ ghi vào NGÀY ĐANG XEM (ensureNgay) và tra giá theo ngày đó",
+     "ctx.ensureNgay()" in card and "ngay: ngayXem" in card)
 nk = open("sx/public/sx/cards/nhapkhotp.js", encoding="utf-8").read()
 kiem("màn nhập kho báo phần vượt trước khi duyệt", "Nhận VƯỢT số đã chấm" in nk)
 dt = json.load(open("sx/sx/doctype/sx_no_vao_hop/sx_no_vao_hop.json", encoding="utf-8"))
@@ -526,6 +705,7 @@ it = {f["fieldname"]: f for f in json.load(open(
     "sx/sx/doctype/sx_bang_vao_hop_item/sx_bang_vao_hop_item.json"))["fields"]}
 kiem("dòng vào hộp có cờ công nhật; người không bắt buộc ở tầng DocType",
      "cong_nhat" in it and not it["nhan_vien"].get("reqd"))
+kiem("dòng vào hộp có cờ công khoán chung (D203)", it.get("khoan_chung", {}).get("fieldtype") == "Check")
 
 print("NOVAOHOP-OK" if not hong else f"NOVAOHOP: {hong} HỎNG")
 sys.exit(1 if hong else 0)

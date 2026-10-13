@@ -180,6 +180,24 @@ kiem("chips: đã vào phiếu lương, công nhật, số người",
      c["chips"] == ["đã vào phiếu lương", "công nhật 50 hộp", "2 người"], str(c["chips"]))
 kiem("ngày trống: không khối nào, không lỗi", L.chi_tiet("vaohop", "2026-10-20")["khoi"] == [])
 
+print("\n-- D203: dòng công khoán chung --")
+BANG["SX Ngay San Xuat"].append({"name": "N5", "ngay": D(2026, 10, 5), "docstatus": 0})
+BANG["SX Bang Vao Hop"].append({"name": "B5", "ngay_sx": "N5", "docstatus": 0})
+BANG["SX Bang Vao Hop Item"] += [
+    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV1", "ten_nhan_vien": "An",
+     "san_pham": "TP-SEN", "so_hop": 60, "cong_nhat": 0, "khoan_chung": 0, "nguoi_ghi": "qc1@x"},
+    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": None, "ten_nhan_vien": None,
+     "san_pham": "TP-SEN", "so_hop": 18, "cong_nhat": 0, "khoan_chung": 1, "nguoi_ghi": "qc1@x"}]
+c = L.chi_tiet("vaohop", "2026-10-05")
+ng = next(k for k in c["khoi"] if k["ten"] == "Theo người")["dong"]
+mh = next(k for k in c["khoi"] if k["ten"] == "Theo mã hàng")["dong"]
+kiem("chi tiết theo người: ★ Công khoán chung là một dòng riêng CUỐI khối, không mang tên ai",
+     [(x["trai"], x["phai"]) for x in ng] == [("An", 60), ("★ Công khoán chung", 18)], str(ng))
+kiem("chips: công khoán chung có số hộp riêng, KHÔNG tính là một người",
+     "công khoán chung 18 hộp" in c["chips"] and "1 người" in c["chips"], str(c["chips"]))
+kiem("theo mã: công khoán chung tính vào phần KHOÁN", mh[0]["phai"] == 78 and mh[0]["phu"] is None, str(mh))
+kiem("ô lịch: công khoán chung cộng vào sản lượng ngày", L.thang("vaohop", 2026, 10)["ngay"]["2026-10-05"]["so"] == 78)
+
 print("\n-- D113: mỗi QC chỉ thấy phần mình ghi --")
 kiem("QC1 không thấy 40 hộp QC2 ghi (tổng ngày 1 vẫn 230)",
      L.thang("vaohop", 2026, 10)["ngay"]["2026-10-01"]["so"] == 230)

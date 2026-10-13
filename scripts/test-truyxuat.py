@@ -112,6 +112,8 @@ BANG = {
         D(parent="VH-5", parenttype="SX Bang Vao Hop", ten_nhan_vien="Lan", san_pham="TP-SEN", so_hop=200),
         D(parent="VH-5", parenttype="SX Bang Vao Hop", ten_nhan_vien="Lan", san_pham="TP-SEN", so_hop=100),
         D(parent="VH-5", parenttype="SX Bang Vao Hop", cong_nhat=1, ten_nhan_vien=None, san_pham="TP-SEN", so_hop=50),
+        D(parent="VH-5", parenttype="SX Bang Vao Hop", khoan_chung=1, ten_nhan_vien=None, san_pham="TP-SEN",
+          so_hop=18),
         D(parent="VH-5", parenttype="SX Bang Vao Hop", ten_nhan_vien="Hùng", san_pham="TP-KHAC", so_hop=100),
     ],
     "SX Phieu Nhap TP": [D(name="PN-2", ngay="2026-10-06", docstatus=1, nguoi_duyet="thukho@x",
@@ -425,9 +427,9 @@ kiem("có ngày rang, ngày làm bột, ngày vào hộp, ngày nhập kho",
      {"2026-10-02", "2026-10-03", "2026-10-05", "2026-10-06"} <= set(ng), sorted(ng))
 kiem("ngày ngoài cửa sổ vào hộp (01/10) không lẫn vào", "2026-10-01" not in ng)
 vh = {x["ten"]: x["so_hop"] for x in ng["2026-10-05"]["vao_hop"]}
-kiem("vào hộp gộp theo người, công nhật riêng, mã khác không lẫn",
-     vh == {"Lan": 300, "Công nhật": 50}, vh)
-kiem("bảng của phiếu ngày đã huỷ không tính", sum(vh.values()) == 350)
+kiem("vào hộp gộp theo người, công nhật / công khoán chung (D203) riêng, mã khác không lẫn",
+     vh == {"Lan": 300, "Công nhật": 50, "Công khoán chung": 18}, vh)
+kiem("bảng của phiếu ngày đã huỷ không tính", sum(vh.values()) == 368)
 qc5 = ng["2026-10-05"]["qc"]
 kiem("QC Không đạt hiện theo câu của luật sự cố (số mục + nhãn), lượt đã huỷ bỏ qua",
      len(qc5) == 1 and qc5[0]["khong_dat"] == ["Mục 1a Vệ sinh đầu ca: xưởng, bề mặt, thiết bị sạch khô: Không đạt"]

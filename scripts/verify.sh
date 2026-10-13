@@ -199,6 +199,12 @@ node scripts/test-copy.mjs > /tmp/sx-copy.log 2>&1 \
   && tail -1 /tmp/sx-copy.log \
   || { cat /tmp/sx-copy.log; loi=1; }
 
+# D203: dòng ★ Công khoán chung (tiền khoán không gắn người) ở màn Ghi hộp + nút "Ghi cho công khoán"
+# ở thẻ Sổ nợ vào hộp — bấm thật trong Chromium, đọc lại lời gọi API (số, cách làm, ngày, mã giả).
+node scripts/test-khoanchung.mjs > /tmp/sx-kc.log 2>&1 \
+  && tail -1 /tmp/sx-kc.log \
+  || { cat /tmp/sx-kc.log; loi=1; }
+
 # D113: hai QC ghi vào hộp cùng ngày. Trước D113 lần lưu của người này XOÁ dòng của
 # người kia (ghi đè cả bảng) mà không ai biết.
 python3 scripts/test-ghihop.py > /tmp/sx-ghihop.log 2>&1 \

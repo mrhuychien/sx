@@ -9,6 +9,11 @@ from sx.utils import don_gia_ap_dung, tra_don_gia
 # một "người" trong danh sách để QC chấm cùng một cách; trong DB thì dòng đó có
 # nhan_vien rỗng + cong_nhat = 1. Chuyển đổi chỉ ở sx/api/portal.py.
 CONG_NHAT = "CONG_NHAT"
+# Mã giả cho dòng CÔNG KHOÁN CHUNG (D203): hộp kho đã nhận mà không rõ công nhân nào đóng
+# (Sổ nợ vào hộp → "Ghi cho công khoán"). Tính sản lượng + tiền khoán theo đơn giá như
+# một dòng khoán, nhưng KHÔNG gắn người → không vào phiếu lương của ai; tổ tự chia.
+# Trong DB: nhan_vien rỗng + khoan_chung = 1.
+KHOAN_CHUNG = "KHOAN_CHUNG"
 
 
 class SXBangVaoHop(Document):
@@ -39,11 +44,13 @@ class SXBangVaoHop(Document):
                 ten[nv] = frappe.db.get_value("Employee", nv, "employee_name") or nv
             return ten[nv]
 
+        def _hang(r):
+            # Người trước, rồi công khoán chung, công nhật cuối: bảng đọc theo người.
+            return 2 if cint(r.cong_nhat) else 1 if cint(r.get("khoan_chung")) else 0
+
         dong = sorted(
             self.dong,
-            # Công nhật xuống cuối: bảng đọc theo người, công nhật không phải người.
-            key=lambda r: (1 if cint(r.cong_nhat) else 0,
-                           "" if cint(r.cong_nhat) else _ten(r.nhan_vien),
+            key=lambda r: (_hang(r), _ten(r.nhan_vien) if not _hang(r) else "",
                            r.san_pham or "", r.cach_lam or ""),
         )
         for i, r in enumerate(dong, start=1):
@@ -51,13 +58,18 @@ class SXBangVaoHop(Document):
         self.dong = dong
 
     def validate_nguoi(self):
-        """Dòng khoán phải có người; dòng công nhật thì KHÔNG gắn người (D101).
+        """Dòng khoán phải có người; dòng công nhật (D101) và công khoán chung (D203)
+        thì KHÔNG gắn người.
 
         Công nhật gắn tên một người là lương khoán của người đó tự dưng có thêm
-        hộp — đúng cái lỗi mà tách công nhật ra để tránh.
+        hộp — đúng cái lỗi mà tách công nhật ra để tránh. Công khoán chung cũng vậy:
+        là hộp CHƯA RÕ của ai, gắn tên ai là trả hết cho người đó.
         """
         for r in self.dong:
-            if cint(r.cong_nhat):
+            if cint(r.cong_nhat) and cint(r.get("khoan_chung")):
+                frappe.throw(_("Dòng {0}: vừa công nhật vừa công khoán chung — chỉ được một.")
+                             .format(r.idx))
+            if cint(r.cong_nhat) or cint(r.get("khoan_chung")):
                 r.nhan_vien = None
                 r.ten_nhan_vien = None
             elif not r.nhan_vien:

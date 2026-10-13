@@ -812,9 +812,10 @@ def _vao_hop(item, tu, den):
             "SX Bang Vao Hop Item",
             filters={"parent": ("in", list(bang)), "parenttype": "SX Bang Vao Hop",
                      "san_pham": item},
-            fields=["parent", "nhan_vien", "ten_nhan_vien", "cong_nhat", "so_hop"]):
+            fields=["parent", "nhan_vien", "ten_nhan_vien", "cong_nhat", "khoan_chung", "so_hop"]):
         d = bang.get(r.parent)
-        ten = _("Công nhật") if r.cong_nhat else (r.ten_nhan_vien or r.nhan_vien or "?")
+        ten = (_("Công nhật") if cint(r.cong_nhat) else _("Công khoán chung") if cint(r.get("khoan_chung"))
+               else (r.ten_nhan_vien or r.nhan_vien or "?"))
         k = (d, ten)
         gop[k] = gop.get(k, 0) + cint(r.so_hop)
     ra = {}

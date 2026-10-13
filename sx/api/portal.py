@@ -17,7 +17,7 @@ from sx.config.roles import (
     user_roles,
     view_cards,
 )
-from sx.sx.doctype.sx_bang_vao_hop.sx_bang_vao_hop import CONG_NHAT
+from sx.sx.doctype.sx_bang_vao_hop.sx_bang_vao_hop import CONG_NHAT, KHOAN_CHUNG
 from sx.utils import (
     bang_don_gia,
     dat_ten_hien_thi,
@@ -280,6 +280,15 @@ def _cua_toi(r, u=None):
     return _xem_het_vao_hop() or r.get("nguoi_ghi") == (u or frappe.session.user)
 
 
+def _ma_gia(r):
+    """Mã giả của dòng không gắn người ở ranh giới API: CONG_NHAT (D101) / KHOAN_CHUNG (D203) / None."""
+    if cint(r.get("cong_nhat")):
+        return CONG_NHAT
+    if cint(r.get("khoan_chung")):
+        return KHOAN_CHUNG
+    return None
+
+
 def _bang_summary(ngay_sx):
     ten = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": ("<", 2)}, "name"
@@ -296,11 +305,14 @@ def _bang_summary(ngay_sx):
         "tong_hop": sum(cint(r.so_hop) for r in dong),
         "tong_tien": sum(flt(r.thanh_tien) for r in dong),
         "dong": [
-            # Dòng công nhật đi ra với mã giả CONG_NHAT (D101) — màn Ghi hộp coi nó
-            # như một "người" để chấm cùng một cách, và gửi lại đúng mã đó.
-            {"nhan_vien": CONG_NHAT if cint(r.get("cong_nhat")) else r.nhan_vien,
-             "ten_nhan_vien": _("Công nhật") if cint(r.get("cong_nhat")) else r.ten_nhan_vien,
+            # Dòng công nhật đi ra với mã giả CONG_NHAT (D101), công khoán chung với
+            # KHOAN_CHUNG (D203) — màn Ghi hộp coi nó như một "người" để chấm cùng một
+            # cách, và gửi lại đúng mã đó.
+            {"nhan_vien": _ma_gia(r) or r.nhan_vien,
+             "ten_nhan_vien": {CONG_NHAT: _("Công nhật"), KHOAN_CHUNG: _("Công khoán chung")}.get(
+                 _ma_gia(r), r.ten_nhan_vien),
              "cong_nhat": cint(r.get("cong_nhat")),
+             "khoan_chung": cint(r.get("khoan_chung")),
              "san_pham": r.san_pham, "cach_lam": r.cach_lam, "so_hop": r.so_hop,
              "don_gia": r.don_gia, "thanh_tien": r.thanh_tien,
              # name = mã dòng: máy gửi lại để server biết sửa / xoá ĐÚNG dòng nào.
@@ -552,8 +564,9 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None, biet=None):
     now = frappe.utils.now_datetime()
     sua, them = {}, []
 
-    def _khoa(nv, cn, sp, cl, sl):
-        return (None if cn else nv, 1 if cn else 0, sp or None, cl or None, cint(sl))
+    def _khoa(nv, gia, sp, cl, sl):
+        """gia = mã giả (CONG_NHAT / KHOAN_CHUNG) của dòng không gắn người, None = dòng của người."""
+        return (None if gia else nv, gia, sp or None, cl or None, cint(sl))
 
     # Dòng CỦA MÌNH mà máy CHƯA biết — thường là bản hàng chờ vừa gửi lại khi có
     # mạng (máy vẫn giữ các dòng đó mà chưa có mã). Dòng không mã trùng y hệt một
@@ -562,12 +575,13 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None, biet=None):
     if biet is not None:
         for r in doc.dong:
             if r.name and r.name not in biet and _cua_toi(r, u):
-                k = _khoa(r.nhan_vien, cint(r.get("cong_nhat")), r.san_pham, r.cach_lam, r.so_hop)
+                k = _khoa(r.nhan_vien, _ma_gia(r), r.san_pham, r.cach_lam, r.so_hop)
                 la.setdefault(k, []).append(r.name)
     for r in frappe.parse_json(rows) or []:
-        cn = r.get("nhan_vien") == CONG_NHAT or cint(r.get("cong_nhat"))
-        vals = {"nhan_vien": None if cn else r.get("nhan_vien"),
-                "cong_nhat": 1 if cn else 0,
+        gia = r.get("nhan_vien") if r.get("nhan_vien") in (CONG_NHAT, KHOAN_CHUNG) else _ma_gia(r)
+        vals = {"nhan_vien": None if gia else r.get("nhan_vien"),
+                "cong_nhat": 1 if gia == CONG_NHAT else 0,
+                "khoan_chung": 1 if gia == KHOAN_CHUNG else 0,
                 "san_pham": r.get("san_pham") or None,
                 "cach_lam": r.get("cach_lam") or None,
                 "so_hop": cint(r.get("so_hop"))}
@@ -575,9 +589,9 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None, biet=None):
             sua[r["name"]] = vals
         elif r.get("name"):
             continue      # mã dòng không phải của mình / đã mất: KHÔNG tạo bản sao
-        elif la.get(_khoa(vals["nhan_vien"], cn, vals["san_pham"], vals["cach_lam"],
+        elif la.get(_khoa(vals["nhan_vien"], gia, vals["san_pham"], vals["cach_lam"],
                           vals["so_hop"])):
-            la[_khoa(vals["nhan_vien"], cn, vals["san_pham"], vals["cach_lam"],
+            la[_khoa(vals["nhan_vien"], gia, vals["san_pham"], vals["cach_lam"],
                      vals["so_hop"])].pop()      # đã có trên server — giữ nguyên
         else:
             them.append(dict(vals, nguoi_ghi=u, ghi_luc=now))
@@ -598,8 +612,8 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None, biet=None):
         hien = {r.nhan_vien: r for r in (doc.get("an_ca") or [])}
         for r in frappe.parse_json(an_ca) or []:
             nv = r.get("nhan_vien")
-            if not nv or nv == CONG_NHAT:
-                continue   # công nhật không phải một người — không chấm ăn ở đây
+            if not nv or nv in (CONG_NHAT, KHOAN_CHUNG):
+                continue   # công nhật / công khoán chung không phải một người — không chấm ăn
             hien[nv] = {"nhan_vien": nv, "an_ca": cint(r.get("an_ca")),
                         "an_dem": cint(r.get("an_dem"))}
         doc.set("an_ca", [])
@@ -654,7 +668,7 @@ def dashboard(tu_ngay=None, den_ngay=None):
                 "SX Bang Vao Hop Item",
                 filters={"parent": ("in", bang), "parenttype": "SX Bang Vao Hop"},
                 fields=["nhan_vien", "ten_nhan_vien", "san_pham", "cach_lam",
-                        "so_hop", "thanh_tien", "cong_nhat"],
+                        "so_hop", "thanh_tien", "cong_nhat", "khoan_chung"],
             )
             gop_sku, gop_nv = {}, {}
             for r in rows:
@@ -666,14 +680,18 @@ def dashboard(tu_ngay=None, den_ngay=None):
                 s["so_hop"] += cint(r.so_hop)
                 if cint(r.cong_nhat):
                     continue   # năng suất là theo NGƯỜI — công nhật không vào bảng này
+                # D203: công khoán chung — tiền khoán của TỔ (chưa rõ người), một dòng riêng cuối bảng.
+                kc = cint(r.get("khoan_chung"))
                 g = gop_nv.setdefault(
-                    r.nhan_vien,
-                    {"nhan_vien": r.nhan_vien, "ten": r.ten_nhan_vien, "so_hop": 0, "tien": 0.0},
+                    KHOAN_CHUNG if kc else r.nhan_vien,
+                    {"nhan_vien": KHOAN_CHUNG if kc else r.nhan_vien,
+                     "ten": _("★ Công khoán chung — tổ tự chia") if kc else r.ten_nhan_vien,
+                     "so_hop": 0, "tien": 0.0},
                 )
                 g["so_hop"] += cint(r.so_hop)
                 g["tien"] += flt(r.thanh_tien)
             san_luong_sku = sorted(gop_sku.values(), key=lambda x: -x["so_hop"])
-            nang_suat = sorted(gop_nv.values(), key=lambda x: -x["so_hop"])
+            nang_suat = sorted(gop_nv.values(), key=lambda x: (x["nhan_vien"] == KHOAN_CHUNG, -x["so_hop"]))
 
         # D87: đọc từ sổ sự cố chung. Phiếu ngày cũ (trước D87) đã được patch
         # chuyển sang nên không phải đọc hai nguồn rồi gộp.

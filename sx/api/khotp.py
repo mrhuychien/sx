@@ -20,12 +20,13 @@ không phải của ràng buộc lúc nhập liệu.
 """
 
 import json
+import math
 
 import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, nowdate
 
-from sx.config.roles import QUAN_LY, guard_card, is_super, user_roles
+from sx.config.roles import CARD_ROLES, QUAN_LY, guard_card, is_super, user_roles
 from sx.utils import get_bom_active, get_settings, items_tp, nap_bom, nho, nhom_tp
 
 # Khoảng ngày dùng CHUNG cho "còn được nhập": danh sách chờ nhận, nút tải, và
@@ -1083,11 +1084,16 @@ def doi_soat_no_vao_hop():
     tu_min = min(tu_cua.values())
     nhan_ds = _nhan_theo_ngay(tu_min, list(theo_ma))
     cham_ds = _cham_theo_ngay(tu_min, hom_nay, list(theo_ma))
+    # D203: phần nợ đã BỎ QUA (hàng trả về nhập lại…) không bao giờ được chấm — trừ khỏi "đã nhận". Trước D203
+    # nó nằm mãi trong phần thiếu: chấm bù (hay ghi công khoán chung) đủ số nợ đang mở mà nợ không giảm.
+    bo_qua = frappe.get_all(NO_VH, filters={"trang_thai": "Bỏ qua", "item": ("in", list(theo_ma))},
+                            fields=["item", "ngay", "con_lai"])
     for item, ds_no in theo_ma.items():
         tu = tu_cua[item]
         da_nhan = sum(q for (ng, it, q) in nhan_ds if it == item and ng >= tu)
         da_cham = sum(q for (ng, it, q) in cham_ds if it == item and ng >= tu)
-        thieu = max(0.0, flt(da_nhan) - flt(da_cham))
+        da_bo = sum(flt(x.con_lai) for x in bo_qua if x.item == item and getdate(x.ngay) >= tu)
+        thieu = max(0.0, flt(da_nhan) - flt(da_cham) - flt(da_bo))
         giam = sum(flt(x.con_lai) for x in ds_no) - thieu
         for x in ds_no:
             if giam <= 1e-6:
@@ -1109,11 +1115,27 @@ def _duoc_bo_qua_no_vh():
     return is_super(roles) or QUAN_LY in roles
 
 
+def _duoc_ghi_kc():
+    """Ghi công khoán chung (D203) = ghi vào bảng vào hộp — ai được ghi hộp thì được (QC vào hộp, quản lý)."""
+    roles = user_roles()
+    return is_super(roles) or bool(roles & set(CARD_ROLES.get("vaohop", [])))
+
+
+def _hop_no(q):
+    """Số hộp nguyên phải ghi để trả hết `q` hộp nợ (số đếm kho có thể lẻ theo đơn vị quy đổi) — làm tròn LÊN."""
+    return int(math.ceil(flt(q) - 1e-6)) if flt(q) > 1e-6 else 0
+
+
 @frappe.whitelist()
-def so_no_vao_hop():
+def so_no_vao_hop(ngay=None):
     """Nợ đang mở, gom theo mã hàng. CHỈ ĐỌC (D121): đối soát chạy lúc QC lưu bảng
     vào hộp (doi_soat_sau_cham) — trước đây mỗi lần mở thẻ là ghi database, khoá
-    dòng nợ trong khi người khác đang làm, và chậm cả màn."""
+    dòng nợ trong khi người khác đang làm, và chậm cả màn.
+
+    D203: kèm số hộp nguyên còn nợ (`so_hop`) và các mức giá của mã theo bảng đơn giá áp dụng cho `ngay` (ngày
+    đang xem trên màn — nút "Ghi cho công khoán" ghi vào ngày đó): `cach_lam` [{ten, don_gia}], `gia_chung`."""
+    from sx.utils import don_gia_ap_dung
+
     guard_card("novaohop")
     ds = frappe.get_all(NO_VH, filters={"trang_thai": "Chờ chấm"},
                         fields=["name", "item", "ten", "so_luong", "con_lai", "ngay",
@@ -1128,10 +1150,76 @@ def so_no_vao_hop():
         g["dong"].append({"name": x.name, "ngay": str(x.ngay), "so_luong": flt(x.so_luong),
                           "con_lai": flt(x.con_lai), "phieu_nhap": x.phieu_nhap})
     ra = list(nhom.values())
+    bang = don_gia_ap_dung(getdate(ngay or nowdate())) if ra else {}
     for g in ra:
         g["so_ngay"] = (hom_nay - getdate(g["dong"][0]["ngay"])).days
+        g["so_hop"] = _hop_no(g["con_lai"])
+        g["cach_lam"] = [{"ten": cl, "don_gia": flt(gia)} for (sp, cl), gia in sorted(bang.items())
+                         if sp == g["item"] and cl]
+        g["gia_chung"] = flt(bang[(g["item"], "")]) if (g["item"], "") in bang else None
     ra.sort(key=lambda g: -g["so_ngay"])
-    return {"nhom": ra, "tong_dong": len(ds), "duoc_bo_qua": _duoc_bo_qua_no_vh()}
+    return {"nhom": ra, "tong_dong": len(ds), "duoc_bo_qua": _duoc_bo_qua_no_vh(),
+            "duoc_ghi_kc": _duoc_ghi_kc()}
+
+
+@frappe.whitelist()
+def ghi_no_khoan_chung(ngay_sx, item, so_hop, cach_lam=None):
+    """Sổ nợ vào hộp → "Ghi cho công khoán" (D203): ghi TOÀN BỘ nợ đang mở của một mã thành MỘT dòng ★ Công khoán
+    chung trong bảng vào hộp của ngày `ngay_sx` (ngày đang xem) — hộp kho đã nhận mà không rõ công nhân nào đóng.
+
+    Dòng chung tính sản lượng + tiền khoán theo bảng đơn giá như dòng khoán, nhưng KHÔNG gắn người → không vào
+    phiếu lương của ai; tổ tự chia. Lưu bảng là nợ tự trừ (như QC chấm bù tay). Ghi xong nợ mã đó PHẢI về 0 —
+    không thì không ghi gì (bấm lại lần nữa là trả khoán hai lần cho cùng số hộp).
+    `so_hop` = số máy đang hiện: nợ đã đổi (người khác vừa chấm bù / kho vừa nhận thêm) thì dừng, không ghi một
+    con số người bấm chưa thấy."""
+    from sx.api.portal import _chan_neu_chot
+    from sx.utils import don_gia_ap_dung
+
+    guard_card("vaohop")
+    _chan_neu_chot(ngay_sx, "vaohop", _("ghi công khoán chung"))
+    ngay = getdate(frappe.db.get_value("SX Ngay San Xuat", ngay_sx, "ngay"))
+    if ngay > getdate(nowdate()):
+        frappe.throw(_("Ngày {0} chưa tới — chọn hôm nay hoặc ngày đã qua.").format(ngay.strftime("%d/%m/%Y")))
+    doi_soat_no_vao_hop()                       # nợ đúng tới lúc bấm
+    ds = frappe.get_all(NO_VH, filters={"trang_thai": "Chờ chấm", "item": item},
+                        fields=["name", "ten", "ngay", "con_lai"], order_by="ngay asc, creation asc")
+    ten = (ds[0].ten if ds else None) or frappe.db.get_value("Item", item, "item_name") or item
+    can = _hop_no(sum(flt(x.con_lai) for x in ds))
+    if not can:
+        frappe.throw(_("{0} không còn nợ vào hộp — có thể vừa được chấm bù. Mở lại thẻ.").format(ten))
+    if cint(so_hop) != can:
+        frappe.throw(_("Nợ vào hộp của {0} vừa đổi: còn {1} hộp (màn đang hiện {2}). Mở lại thẻ rồi bấm lại.")
+                     .format(ten, can, cint(so_hop)))
+    tu = getdate(add_days(getdate(ds[0].ngay), -SO_NGAY_TRAN + 1))
+    if ngay < tu:
+        frappe.throw(_("Ngày {0} quá xa khoản nợ cũ nhất ({1}) — chọn ngày từ {2} tới hôm nay.").format(
+            ngay.strftime("%d/%m/%Y"), getdate(ds[0].ngay).strftime("%d/%m/%Y"), tu.strftime("%d/%m/%Y")))
+
+    bang = don_gia_ap_dung(ngay)
+    cach = sorted({cl for (sp, cl) in bang if sp == item and cl})
+    cl = cach_lam or None
+    if cl and cl not in cach:
+        frappe.throw(_("{0}: bảng đơn giá ngày {1} không có cách làm {2}.").format(ten, ngay.strftime("%d/%m/%Y"), cl))
+    if not cl and cach and (item, "") not in bang:
+        if len(cach) > 1:
+            frappe.throw(_("{0} có {1} cách làm, mỗi cách một đơn giá — chọn cách làm.").format(ten, len(cach)))
+        cl = cach[0]
+
+    ten_bang = frappe.db.get_value("SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": 0}, "name")
+    doc = frappe.get_doc("SX Bang Vao Hop", ten_bang) if ten_bang else frappe.new_doc("SX Bang Vao Hop")
+    doc.ngay_sx = ngay_sx
+    r = doc.append("dong", {"khoan_chung": 1, "san_pham": item, "cach_lam": cl, "so_hop": can,
+                            "nguoi_ghi": frappe.session.user, "ghi_luc": frappe.utils.now_datetime()})
+    doc.flags.ignore_permissions = True
+    doc.save()                                  # hook: trừ nợ (doi_soat_sau_cham) + đồng bộ lương (D123)
+    doi_soat_no_vao_hop()                       # chạy lại cho chắc — đã đúng thì không đổi gì
+    con = sum(flt(x.con_lai) for x in frappe.get_all(
+        NO_VH, filters={"trang_thai": "Chờ chấm", "item": item}, fields=["con_lai"]))
+    if con > 1e-6:
+        frappe.throw(_("Ghi {0} hộp {1} mà nợ vẫn còn {2} — chưa ghi gì. Báo quản lý xem lại sổ nợ vào hộp.")
+                     .format(can, ten, flt(con, 3)))
+    return {"item": item, "ten": ten, "so_hop": can, "cach_lam": cl, "ngay": str(ngay),
+            "don_gia": flt(r.get("don_gia")), "thanh_tien": flt(r.get("thanh_tien"))}
 
 
 @frappe.whitelist()

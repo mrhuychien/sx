@@ -1923,6 +1923,10 @@ main > .container {
 }
 .sx-vh-congnhat span { font-size: var(--sx-f-xs); color: var(--sx-text-2); font-weight: 500; }
 .sx-vh-row.sx-vh-row-cn { background: var(--sx-surface-2); }
+/* D203: dòng ★ Công khoán chung — không gắn người, không có nút "+" (chỗ trống giữ thẳng cột ✕) */
+.sx-vh-row.sx-vh-row-kc { background: var(--sx-season-glow); }
+.sx-vh-trong { min-width: var(--sx-tap); flex: none; }
+.sx-nvh-gia { margin: var(--sx-s2) 0; }
 
 /* ── D108: lịch tháng (Ghi hộp / Ghi sổ / Nhập kho) ─────────────────────── */
 .sx-lich { padding: 0; overflow: hidden; }
