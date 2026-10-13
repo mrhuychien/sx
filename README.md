@@ -323,6 +323,32 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Đóng ca POS vắt qua lúc kiểm kê bật lô: lô không đủ thì nhập bù lô tồn cũ (D200)
+
+- **Lỗi**: đóng ca POS ngày 12/10 báo *Hoá đơn gộp từ POS — chưa gán được lô … Dòng 1: Bánh đậu xanh thượng hạng Hộp tre
+  675g (phiếu POS ACC-PSINV-2026-01737, kho CH Bạch Đằng - HGC) — không lô nào ở kho đủ 8*.
+- **Nguyên nhân**: ca có cả phiếu POS lập trước lúc bật lô (không lô) lẫn phiếu sau lúc bật lô (máy POS bắt chọn lô) nên
+  mã không tắt lô được (D198) — phải ghi theo lô. Lúc bật lô, tồn KHÔNG lô của cửa hàng vào lô tồn cũ đúng theo SỔ — sổ
+  chưa trừ các phiếu POS trong ca (chưa đóng ca), và cửa hàng có thể đã bán âm từ trước. Cửa hàng thực bán nhiều hơn sổ
+  thì lô thiếu; lô thì ERPNext không cho âm (bật *Allow Negative Stock* cũng không được).
+- **Sửa** (`sx/api/lo_cu.py`): hoá đơn gộp từ POS **vắt qua lúc bật lô** (có phiếu POS lập trước lúc bật lô):
+  - dòng không lô: lấy lô đủ số (lô tồn cũ trước, rồi HSD sớm nhất); không lô nào đủ → **nhập bù phần thiếu vào lô tồn
+    cũ** của cửa hàng; lô của các dòng đã chọn lô trên POS bị lấy quá tồn → nhập bù phần thiếu vào đúng lô đó;
+  - phiếu POS lập trước lúc bật lô bán ở **chính kho đã kiểm kê**: số đếm đã trừ phần đó → nhập bù đủ số vào lô tồn cũ
+    rồi bán ra (không trừ hai lần — trước đây chặn);
+  - phiếu nhập bù: Material Receipt ghi sổ **1 giây trước giờ hoá đơn gộp**, theo giá vốn, ghi chú như phiếu dọn tồn không
+    lô (có số hoá đơn) → hiện ở thẻ **Kiểm kê kho → Tồn không lô còn lại của mã đã bật lô → Đã dọn**, in cho kế toán.
+    Huỷ lần đóng ca (huỷ hoá đơn gộp) thì phiếu nhập bù huỷ theo.
+  - hoá đơn gộp chỉ có phiếu POS lập **sau** lúc bật lô mà lô không đủ: không nhập bù (bán quá tồn lô là sai thật) —
+    chặn, nói lô nào còn bao nhiêu.
+  - hoá đơn gộp ghi sổ **trước** lúc bật lô mà có phiếu POS đã chọn lô (phiếu lập trong lúc kiểm kê bị huỷ chốt rồi chốt
+    lại): không ghi được theo lô ở giờ đó — chặn, nói phiếu POS và cách làm.
+- **Làm**: `git pull` → `bench restart` → mở POS Closing Entry bị lỗi → **Retry**.
+- Test `test-kiemke.py` (cửa hàng thiếu lô → nhập bù đúng phần thiếu; ca chỉ có dòng đã chọn lô; kho đã kiểm kê → nhập
+  bù đủ số; lô tồn cũ chưa có → tạo; huỷ hoá đơn gộp → huỷ phiếu nhập bù; phiếu sau lúc bật lô bán quá tồn → chặn;
+  hoá đơn trước lúc bật lô có phiếu đã chọn lô → chặn).
+- Không đổi giao diện: `git pull` → `bench restart`.
+
 ## Sửa hoá đơn cũ mà dòng mang lô — ERPNext báo lô âm ở ngày cũ (D199)
 
 - **Lỗi**: sửa (Amend) hoá đơn ngày 14/8 (thêm thuế), gửi thì báo *Batch No H24D-HSD240627 of an Item H24 D has negative

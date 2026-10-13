@@ -1647,7 +1647,7 @@ kiem("phiếu kiểm kê đã huỷ không tính", L.moc_bat_lo() == {})
 
 # Mã bật lô qua kiểm kê SKK-LC lúc 08/10 17:00 (Kho TP đếm; cửa hàng CH Le có tồn không lô → lô tồn cũ LC-TONCU).
 for i, ten, pre in (("TP-LC", "Bánh lá cẩm", "LC"), ("TP-LD", "Bánh lá dứa", "LD"), ("TP-LE", "Bánh lẻ", "LE"),
-                    ("TP-LH", "Bánh lá hẹ", "LH")):
+                    ("TP-LH", "Bánh lá hẹ", "LH"), ("TP-LG", "Bánh lá gai", "LG")):
     F.bang("Item")[i] = {"name": i, "item_name": ten, "stock_uom": "Hộp", "custom_sx_nhom": "TP", "disabled": 0,
                          "has_batch_no": 1, "shelf_life_in_days": 270, "custom_batch_prefix": pre}
 KKB["SKK-LC"] = {"name": "SKK-LC", "docstatus": 1, "kho": KHO, "chot_luc": "2026-10-08 17:00:00", "ds_se": json.dumps([
@@ -1656,7 +1656,8 @@ KKB["SKK-LC"] = {"name": "SKK-LC", "docstatus": 1, "kho": KHO, "chot_luc": "2026
     {"dt": "Item", "name": "TP-LD", "has_batch_no": [0, 1]}, {"dt": "Item", "name": "TP-LE", "has_batch_no": [0, 1]},
     {"dt": "Stock Entry", "name": "SE-LC2"}])}
 KKB["SKK-LC9"] = {"name": "SKK-LC9", "docstatus": 1, "kho": "CH Le", "chot_luc": "2026-10-09 09:00:00",
-                  "ds_se": json.dumps([{"dt": "Item", "name": "TP-LC", "has_batch_no": [0, 1]}])}
+                  "ds_se": json.dumps([{"dt": "Item", "name": "TP-LC", "has_batch_no": [0, 1]},
+                                       {"dt": "Item", "name": "TP-LG", "has_batch_no": [0, 1]}])}
 KKB["SKK-LC0"] = {"name": "SKK-LC0", "docstatus": 2, "kho": KHO, "chot_luc": "2026-10-07 10:00:00",
                   "ds_se": json.dumps([{"dt": "Item", "name": "TP-LH", "has_batch_no": [0, 1]}])}
 for b, i, hsd, th in (("LCX-TONCU", "TP-LC", None, 0), ("LC-HSD010327", "TP-LC", "2027-03-01", 0),
@@ -1682,7 +1683,8 @@ frappe.local.__dict__.pop("sx_moc_bat_lo", None)
 frappe.local.__dict__.pop("sx_nho", None)
 m = L.moc_bat_lo()
 kiem("nhiều phiếu bật lô cùng mã → lần SỚM NHẤT; mã vốn có lô (1 → 0 → 1) không tính; phiếu kho của lần chốt (để soát)",
-     set(m) == {"TP-LC", "TP-LD"} and m["TP-LC"]["phieu"] == "SKK-LC" and str(m["TP-LC"]["luc"]) == "2026-10-08 17:00:00"
+     set(m) == {"TP-LC", "TP-LD", "TP-LG"} and m["TP-LC"]["phieu"] == "SKK-LC" and m["TP-LG"]["phieu"] == "SKK-LC9"
+     and str(m["TP-LC"]["luc"]) == "2026-10-08 17:00:00"
      and m["TP-LC"]["lo_cu"] == "LCX-TONCU" and m["TP-LD"]["lo_cu"] is None and m["TP-LC"]["kho"] == KHO
      and m["TP-LC"]["se"] == {"SE-LC1", "SE-LC2"}, m)
 
@@ -1880,10 +1882,12 @@ for n, b, q in (("d198n", "LC-HSD010327", 20), ("d198x", "LCX-TONCU", -5)):    #
 C._so_lo = so_lo_gia
 loi = thu(lambda: hd("2026-10-08 18:00:00", [lc(10, "CH Le", pos_invoice="POS-3")], is_consolidated=1).insert().submit())
 kiem("tồn lô tính tới GIỜ GHI SỔ hoá đơn (nhập sau đó không tính) — không lô nào đủ → chặn, nói dòng, phiếu POS, kho, số",
-     "Dòng 1: Bánh lá cẩm (phiếu POS POS-3, kho CH Le) — không lô nào ở kho đủ 10 (bỏ" in (loi or ""), loi)
+     "Dòng 1: Bánh lá cẩm (phiếu POS POS-3, kho CH Le) — không lô nào ở kho đủ 10 (lô bán được: LCX-TONCU 3, "
+     "LC-HSD010327 4)" in (loi or ""), loi)
 loi = thu(lambda: hd("2026-10-08 18:00:00", [lc(6, "CH Le", pos_invoice="POS-3")], is_consolidated=1).insert().submit())
 kiem("… và không quá tồn HIỆN TẠI (lô tồn cũ lúc đó 8 nhưng giờ còn 3 — đã bán sau đó)",
-     "không lô nào ở kho đủ 6 (bỏ" in (loi or ""), loi)
+     "không lô nào ở kho đủ 6 (lô bán được: LCX-TONCU 3, LC-HSD010327 4)" in (loi or "")
+     and "bán quá tồn lô" in loi, loi)
 C._so_lo = SO_LO_CU
 SO_KHO["CH Le"][("TP-LC", "LC-HSD010327")] -= 20
 SLE.pop("d198n")
@@ -1901,12 +1905,88 @@ so_truoc = {k: dict(v) for k, v in SO_KHO.items()}
 sk = hd("2026-10-08 18:00:00", [lc(2, pos_invoice="POS-1"), lc(1, pos_invoice="POS-3", serial_and_batch_bundle="SABB-2")],
         is_consolidated=1)
 sk.insert()
-loi = thu(sk.submit) or ""
-kiem("ca lẫn ở CHÍNH kho đã kiểm kê: phiếu POS trước lúc bật lô không gán lô (số đếm đã trừ — gán là trừ hai lần) → "
-     "chặn, nói phiếu kiểm kê, cách tách; không ghi sổ, cờ lô giữ",
-     "Hoá đơn gộp từ POS — chưa gán được lô" in loi and "Dòng 1: Bánh lá cẩm (phiếu POS POS-1, kho Kho TP)" in loi
-     and "kiểm kê SKK-LC bật lô" in loi and "số đếm đã trừ" in loi and "huỷ các phiếu POS lập SAU lúc bật lô" in loi
-     and SO_KHO == so_truoc and co_lo("TP-LC") == 1 and F.bang("Sales Invoice")[sk.name]["docstatus"] == 0, loi)
+n_se = len(F.bang("Stock Entry"))
+sk.submit()
+bu_ = [e for n, e in F.bang("Stock Entry").items() if f"hoá đơn gộp POS {sk.name} " in (e.get("remarks") or "")]
+kiem("D200 — ca lẫn ở CHÍNH kho đã kiểm kê: phiếu POS trước lúc bật lô (số đếm đã trừ phần đó) → nhập bù đủ số vào lô "
+     "tồn cũ ngay trước giờ hoá đơn rồi bán ra: lô không đổi, không trừ hai lần; dòng đã chọn lô bán như thường",
+     F.bang("Sales Invoice")[sk.name]["docstatus"] == 1 and len(bu_) == 1 and len(F.bang("Stock Entry")) == n_se + 1
+     and [(r["item_code"], r["t_warehouse"], r["batch_no"], r["qty"]) for r in bu_[0]["items"]]
+     == [("TP-LC", KHO, "LCX-TONCU", 2)] and bu_[0]["posting_time"] == "17:59:59"
+     and str(bu_[0]["posting_date"]) == "2026-10-08" and SO[("TP-LC", "LCX-TONCU")] == 0
+     and SO[("TP-LC", "LC-HSD010327")] == so_truoc[KHO][("TP-LC", "LC-HSD010327")] - 1
+     and F.bang("Sales Invoice")[sk.name]["items"][0]["batch_no"] == "LCX-TONCU" and co_lo("TP-LC") == 1,
+     (bu_, F.bang("Sales Invoice")[sk.name]["items"]))
+# D200 — cửa hàng (CH BD): phiếu POS lập trước lúc bật lô (không lô) + phiếu sau lúc bật lô đã chọn lô tồn cũ; sổ cửa
+# hàng chỉ có 5 trong lô tồn cũ mà ca bán 8 + 6 → lô không đủ (lô không được âm).
+SO_KHO["CH BD"] = {("TP-LC", "LCX-TONCU"): 5}
+F.bang("POS Invoice")["POS-4"] = {"name": "POS-4", "posting_date": "2026-10-08", "posting_time": "18:30:00"}
+F.bang("Serial and Batch Bundle")["SABB-4"] = {"name": "SABB-4", "docstatus": 1, "item_code": "TP-LC"}
+F.bang("Serial and Batch Entry")["sbe4"] = {"name": "sbe4", "parent": "SABB-4", "batch_no": "LCX-TONCU", "qty": -2}
+sq = hd("2026-10-08 19:00:00", [lc(8, "CH BD", pos_invoice="POS-1"),
+                                lc(2, "CH BD", pos_invoice="POS-4", serial_and_batch_bundle="SABB-4")], is_consolidated=1)
+sq.insert()
+n_bao = len(F.BAO)
+sq.submit()
+bu_ = [e for n, e in F.bang("Stock Entry").items() if f"hoá đơn gộp POS {sq.name} " in (e.get("remarks") or "")]
+kiem("D200 — đóng ca vắt qua lúc bật lô, lô tồn cũ ở cửa hàng không đủ (sổ thiếu hàng so với thực bán): NHẬP BÙ phần "
+     "thiếu vào lô tồn cũ 1 giây trước giờ hoá đơn (lô còn 3 sau dòng đã chọn lô, phiếu trước lúc bật lô cần 8 → bù 5) "
+     "rồi ghi sổ theo lô — đóng ca được, lô về 0 không âm",
+     F.bang("Sales Invoice")[sq.name]["docstatus"] == 1 and len(bu_) == 1
+     and [(r["item_code"], r["t_warehouse"], r["batch_no"], r["qty"]) for r in bu_[0]["items"]]
+     == [("TP-LC", "CH BD", "LCX-TONCU", 5)] and bu_[0]["posting_time"] == "18:59:59"
+     and bu_[0]["items"][0]["basic_rate"] == 12000 and SO_KHO["CH BD"][("TP-LC", "LCX-TONCU")] == 0
+     and F.bang("Sales Invoice")[sq.name]["items"][0]["batch_no"] == "LCX-TONCU" and co_lo("TP-LC") == 1,
+     (bu_, SO_KHO["CH BD"]))
+kiem("… ghi chú như phiếu dọn tồn không lô (có mã lần dọn, số hoá đơn) — in lại được; báo lại đã nhập bù",
+     bu_[0]["remarks"].startswith("Dọn tồn không lô sau bật lô [DL-") and "Nhập bù lô" in " ".join(F.BAO[n_bao:])
+     and "TP-LC · CH BD · LCX-TONCU: +5" in " ".join(F.BAO[n_bao:]), F.BAO[n_bao:])
+F.get_doc("Sales Invoice", sq.name).cancel()
+kiem("… HUỶ hoá đơn gộp (huỷ lần đóng ca): huỷ luôn phiếu nhập bù — lô tồn cũ về như trước",
+     F.bang("Sales Invoice")[sq.name]["docstatus"] == 2 and F.bang("Stock Entry")[bu_[0]["name"]]["docstatus"] == 2
+     and SO_KHO["CH BD"][("TP-LC", "LCX-TONCU")] == 5, SO_KHO["CH BD"])
+F.bang("POS Invoice")["POS-0"] = {"name": "POS-0", "posting_date": "2026-10-08", "posting_time": "15:00:00"}
+F.bang("Serial and Batch Bundle")["SABB-7"] = {"name": "SABB-7", "docstatus": 1, "item_code": "TP-LC"}
+F.bang("Serial and Batch Entry")["sbe7"] = {"name": "sbe7", "parent": "SABB-7", "batch_no": "LCX-TONCU", "qty": -2}
+F.bang("Serial and Batch Bundle")["SABB-5"] = {"name": "SABB-5", "docstatus": 1, "item_code": "TP-LC"}
+F.bang("Serial and Batch Entry")["sbe5"] = {"name": "sbe5", "parent": "SABB-5", "batch_no": "LCX-TONCU", "qty": -6}
+sv = hd("2026-10-08 19:00:00", [lc(2, "CH BD", pos_invoice="POS-0", serial_and_batch_bundle="SABB-7"),
+                                lc(6, "CH BD", pos_invoice="POS-4", serial_and_batch_bundle="SABB-5")], is_consolidated=1)
+sv.insert()
+sv.submit()
+bu_ = [e for n, e in F.bang("Stock Entry").items() if f"hoá đơn gộp POS {sv.name} " in (e.get("remarks") or "")]
+kiem("… ca chỉ có dòng đã chọn lô (phiếu POS đã chọn lô TRƯỚC lúc bật lô — kiểm kê huỷ chốt rồi chốt lại — và sau): "
+     "lô các dòng đó lấy quá tồn (2 + 6 > 5) → nhập bù 3",
+     F.bang("Sales Invoice")[sv.name]["docstatus"] == 1 and len(bu_) == 1
+     and [(r["batch_no"], r["qty"]) for r in bu_[0]["items"]] == [("LCX-TONCU", 3)]
+     and SO_KHO["CH BD"][("TP-LC", "LCX-TONCU")] == 0, (bu_, SO_KHO["CH BD"]))
+F.get_doc("Sales Invoice", sv.name).cancel()
+# mã TP-LG bật lô ở phiếu SKK-LC9 (09/10 09:00, kho CH Le — kho đã kiểm kê của mã đó), chưa có lô tồn cũ.
+F.bang("Batch")["LG-HSD010327"] = {"name": "LG-HSD010327", "batch_id": "LG-HSD010327", "item": "TP-LG",
+                                   "expiry_date": "2027-03-01", "custom_kiem_ke": "SKK-LC9"}
+SO_KHO["CH Le"][("TP-LG", "LG-HSD010327")] = 5
+F.bang("POS Invoice")["POS-5"] = {"name": "POS-5", "posting_date": "2026-10-09", "posting_time": "09:30:00"}
+F.bang("Serial and Batch Bundle")["SABB-6"] = {"name": "SABB-6", "docstatus": 1, "item_code": "TP-LG"}
+F.bang("Serial and Batch Entry")["sbe6"] = {"name": "sbe6", "parent": "SABB-6", "batch_no": "LG-HSD010327", "qty": -1}
+sg = hd("2026-10-09 09:30:00", [{"item_code": "TP-LG", "qty": 2, "warehouse": "CH Le", "pos_invoice": "POS-1"},
+                                {"item_code": "TP-LG", "qty": 1, "warehouse": "CH Le", "pos_invoice": "POS-5",
+                                 "serial_and_batch_bundle": "SABB-6"}], is_consolidated=1)
+sg.insert()
+sg.submit()
+kiem("… lô tồn cũ chưa có thì tạo khi nhập bù — gắn phiếu kiểm kê bật lô của mã (miễn BM.08.04), ghi rõ nguồn",
+     F.bang("Sales Invoice")[sg.name]["docstatus"] == 1 and F.bang("Batch")["LG-TONCU"]["item"] == "TP-LG"
+     and F.bang("Batch")["LG-TONCU"]["custom_kiem_ke"] == "SKK-LC9"
+     and "nhập bù lúc đóng ca POS" in F.bang("Batch")["LG-TONCU"]["description"]
+     and SO_KHO["CH Le"][("TP-LG", "LG-TONCU")] == 0 and SO_KHO["CH Le"][("TP-LG", "LG-HSD010327")] == 4,
+     F.bang("Batch").get("LG-TONCU"))
+x = hd("2026-10-08 16:00:00", [lc(1, "CH BD", pos_invoice="POS-1"),
+                               lc(2, "CH BD", pos_invoice="POS-0", serial_and_batch_bundle="SABB-7")],
+       is_consolidated=1, docstatus=1)
+loi = thu(lambda: L.tam_tat_lo(x)) or ""
+kiem("… hoá đơn gộp ghi sổ TRƯỚC lúc bật lô mà có phiếu POS đã chọn lô (lập trong lúc kiểm kê bị huỷ chốt) → chặn, nói "
+     "phiếu POS, lúc bật lô, cách làm; không nhập bù",
+     "hoá đơn ghi sổ lúc 08/10 16:00, trước lúc kiểm kê SKK-LC bật lô (08/10 17:00) mà có phiếu POS đã chọn lô (POS-0)"
+     in loi and "huỷ chốt" in loi and getattr(x.flags, "sx_tam_tat_lo", None) is None, loi)
 kiem("hook nối đúng thứ tự: tạm tắt lô ĐẦU before_submit (trước chặn thiếu lô W06) / before_cancel; bật lại CUỐI "
      "on_submit / on_cancel — cả Sales Invoice và Delivery Note",
      all(H.doc_events[dt]["before_submit"][:2] == ["sx.api.lo_cu.tam_tat_lo", "sx.api.banhang.kiem_lo_ban"]
@@ -1972,7 +2052,7 @@ kiem("… trả kết quả: lần dọn, số dòng / mã, dòng còn âm vì l
 x = L.ds_du()
 kiem("xem lại: còn đúng dòng thiếu lô; lần dọn vừa rồi trong danh sách đã dọn (in lại được)",
      [(r["kho"], r["so"], r["lay"], r["thieu"]) for r in x["dong"]] == [("CH Ba", -3, [], 3)]
-     and x["lan_truoc"][0]["lan"] == "DL-091026-100000" and sorted(x["lan_truoc"][0]["phieu"]) == sorted(kq["phieu"])
+     and x["lan_truoc"][0]["lan"] == "DL-091026-100000" and set(kq["phieu"]) <= set(x["lan_truoc"][0]["phieu"])
      and x["duoc_don"] is True, (x["dong"], x["lan_truoc"]))
 SO_KHO["CH Ba"][("TP-LC", None)] = 0
 kiem("hết phần không lô → dọn báo không còn gì", "Không còn tồn không lô" in (thu(L.don_du) or ""))
@@ -1991,19 +2071,19 @@ for n in reversed(kq["phieu"]):
 for t in ("Sales Invoice", "Delivery Note", "POS Invoice", "Serial and Batch Entry", "Serial and Batch Bundle"):
     F.bang(t).clear()
 for k in [k for k, v in SLE.items() if v.get("voucher_no") in (sa.name, sa2.name, sc.name, sc2.name, sp.name, sm.name,
-                                                               dn.name)]:
+                                                               dn.name, sk.name, sq.name, sv.name, sg.name)]:
     SLE.pop(k)
 SLE.pop("d198c")
 SLE.pop("d198t")
 for k in ("SKK-LC", "SKK-LC9", "SKK-LC0"):
     KKB.pop(k)
-for i in ("TP-LC", "TP-LD", "TP-LE", "TP-LH"):
+for i in ("TP-LC", "TP-LD", "TP-LE", "TP-LH", "TP-LG"):
     F.bang("Item").pop(i)
-for b in [b for b, v in F.bang("Batch").items() if v.get("item") in ("TP-LC", "TP-LD")]:
+for b in [b for b, v in F.bang("Batch").items() if v.get("item") in ("TP-LC", "TP-LD", "TP-LG")]:
     F.bang("Batch").pop(b)
 for n in ("blc1", "blc2", "blc3", "blc4", "bld1"):
     F.bang("Bin").pop(n)
-for k in ("CH Le", "CH Ba", "CH Khac"):
+for k in ("CH Le", "CH Ba", "CH Khac", "CH BD"):
     SO_KHO.pop(k)
 for k in [k for k in SO if k[0] == "TP-LC"]:
     SO.pop(k)

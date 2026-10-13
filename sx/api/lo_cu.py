@@ -20,8 +20,9 @@ Hoá đơn gộp từ POS (đóng ca) gộp MỌI phiếu POS của một khách
 lô), hoặc phiếu lập sau lúc bật lô mà máy POS còn nhớ mã chưa có lô (không lô). Mã đó không tắt lô được (dòng có lô
 thành hỏng) → gán lô cho các dòng không lô: lô tồn cũ trước (D191 — hàng không lô ở kho đó lúc bật lô vào lô này), rồi
 HSD sớm nhất; một lô đủ số cả dòng, tính theo tồn lúc ghi sổ hoá đơn. Không ai chọn lô lúc đóng ca — để trống thì không
-đóng ca được. Riêng phiếu POS lập TRƯỚC lúc bật lô bán ở chính kho đã kiểm kê: số đếm đã trừ phần đó, gán lô là trừ hai
-lần → chặn, nói cách tách.
+đóng ca được. D200: hoá đơn vắt qua lúc bật lô mà lô không đủ (sổ cửa hàng thiếu hàng so với thực bán — lô không được
+âm) → nhập bù phần thiếu vào lô ngay trước giờ ghi sổ hoá đơn; phiếu POS trước lúc bật lô bán ở chính kho đã kiểm kê
+(số đếm đã trừ) → nhập bù đủ số rồi bán ra. Xem _gan_lo.
 
 Ghi sổ muộn như vậy để lại phần KHÔNG LÔ khác 0 sau lúc bật lô (lúc bật, phần không lô đã về 0 / vào lô theo số lúc
 đó). "Dọn tồn không lô" (quản lý — thẻ Kiểm kê) đưa phần đó về 0:
@@ -34,7 +35,7 @@ Danh sách in cho kế toán đọc lại từ chính các phiếu đã ghi.
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import frappe
 from frappe import _
@@ -139,52 +140,133 @@ def _lo_cua_dong(r):
 
 
 def _gan_lo(doc, pl):
-    """Hoá đơn gộp từ POS: gán lô cho dòng KHÔNG lô của mã không tắt lô được (xem đầu tệp). Mỗi dòng một lô đủ số cả
-    dòng: lô tồn cũ trước, rồi HSD sớm nhất — bỏ lô đang thu hồi, lô hết hạn ở ngày ghi sổ; tồn của lô lấy số nhỏ hơn
-    giữa lúc ghi sổ hoá đơn và hiện tại, trừ phần các dòng khác trong hoá đơn đã lấy. Dòng không gán được → chặn, nói
-    lý do."""
+    """Hoá đơn gộp từ POS: dòng KHÔNG lô của mã không tắt lô được → gán lô. Mỗi dòng một lô đủ số cả dòng: lô tồn cũ
+    trước, rồi HSD sớm nhất — bỏ lô đang thu hồi, lô hết hạn ở ngày ghi sổ; tồn của lô lấy số nhỏ hơn giữa lúc ghi sổ
+    hoá đơn và hiện tại, trừ phần các dòng đã chọn lô trong hoá đơn lấy.
+
+    D200 — hoá đơn VẮT QUA lúc bật lô (có phiếu POS lập trước lúc bật lô): hàng đã bán trong ca ra khỏi tồn cũ của cửa
+    hàng, mà tồn cũ đó lúc bật lô vào lô tồn cũ đúng theo SỔ (chưa trừ các phiếu POS chưa đóng ca). Lô không đủ (dòng
+    không lô, hoặc lô các dòng đã chọn bị lấy quá) nghĩa là sổ cửa hàng thiếu hàng so với thực bán (bán âm từ trước —
+    lô thì ERPNext không cho âm) → NHẬP BÙ phần thiếu vào lô ngay trước giờ ghi sổ hoá đơn (_nhap_bu). Phiếu POS lập
+    trước lúc bật lô bán ở chính kho đã kiểm kê: số đếm đã trừ phần đó → nhập bù đủ số vào lô tồn cũ rồi bán ra (không
+    trừ hai lần). Hoá đơn chỉ có phiếu sau lúc bật lô thì không nhập bù (bán âm lô là sai thật — chặn, nói lý do)."""
     from sx.api.kiemke import so_vn
     from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import _so_lo, ma_lo_ton_cu
 
     moc = moc_bat_lo()
     luc, ngay = _luc(doc), getdate(doc.get("posting_date"))
-    loi = []
+    loi, bu = [], []
     for i in sorted(pl):
-        x = pl[i]
+        x, m = pl[i], moc[i]
         dong = sorted(x["truoc"] + x["sau"], key=lambda r: cint(r.get("idx")))
-        if not dong:
+        co_lo = x["co"] + x["co_truoc"]
+        vat = bool(x["truoc"] or x["co_truoc"])
+        if not dong and not (vat and co_lo):
             continue
-        lo_cu = moc[i].get("lo_cu") or ma_lo_ton_cu(i)
+        if vat and luc < m["luc"]:
+            loi.append(_("{0}: hoá đơn ghi sổ lúc {1}, trước lúc kiểm kê {2} bật lô ({3}) mà có phiếu POS đã chọn lô "
+                         "({4}) — lô lúc đó chưa có hàng (phiếu POS lập trong lúc kiểm kê bị huỷ chốt?). Huỷ lần đóng "
+                         "ca, huỷ các phiếu POS đó rồi lập lại, đóng ca lại.").format(
+                (dong + co_lo)[0].get("item_name") or i, luc.strftime("%d/%m %H:%M"), m["phieu"],
+                m["luc"].strftime("%d/%m %H:%M"), ", ".join(sorted({r.get("pos_invoice") or "—" for r in co_lo}))))
+            continue
+        lo_cu = m.get("lo_cu") or ma_lo_ton_cu(i)
         truoc = {id(r) for r in x["truoc"]}
         con = {}
-        for w in {r.get("warehouse") for r in dong + x["co"]}:
+        for w in {r.get("warehouse") for r in dong + co_lo}:
             nay = {r.b: flt(r.q) for r in _so_lo(w, [i]) if r.b and r.item == i}
             con[w] = {r.b: min(flt(r.q), nay.get(r.b, 0.0)) for r in _so_lo(w, [i], luc) if r.b and r.item == i}
-        for r in x["co"]:
+        for r in co_lo:
             for b, q in _lo_cua_dong(r):
                 con[r.get("warehouse")][b] = con[r.get("warehouse")].get(b, 0.0) - q
+        if vat:
+            for w, lots in con.items():
+                for b, q in lots.items():
+                    if q < -EPS:
+                        bu.append((i, w, b, -q))
+                        lots[b] = 0.0
         for r in dong:
             w, can = r.get("warehouse"), _so_ton(r)
             if can <= EPS:
                 continue
-            nhan = _("Dòng {0}: {1} (phiếu POS {2}, kho {3})").format(
-                r.get("idx"), r.get("item_name") or i, r.get("pos_invoice") or "—", w)
-            if id(r) in truoc and w == moc[i]["kho"]:
-                loi.append(nhan + _(" — lập trước lúc kiểm kê {0} bật lô, bán ở chính kho đã kiểm kê: số đếm đã trừ "
-                                    "phần này, gán lô là trừ hai lần.").format(moc[i]["phieu"]))
+            if id(r) in truoc and w == m["kho"]:
+                bu.append((i, w, lo_cu, can))           # số đếm đã trừ: nhập bù đủ số rồi bán ra
+                r.batch_no, r.use_serial_batch_fields = lo_cu, 1
                 continue
             chon = _lay_lo(i, [(b, q) for b, q in con[w].items() if q >= can - EPS], can, lo_cu, ngay)
-            if not chon:
-                loi.append(nhan + _(" — không lô nào ở kho đủ {0} (bỏ lô thu hồi, lô hết hạn).").format(so_vn(can)))
+            if chon:
+                b = chon[0]["batch"]
+            elif vat:
+                b = lo_cu
+                thieu = flt(can - max(con[w].get(b, 0.0), 0.0), 6)
+                bu.append((i, w, b, thieu))
+                con[w][b] = con[w].get(b, 0.0) + thieu
+            else:
+                con_lai = ", ".join(f"{b} {so_vn(q)}" for b, q in _lo_dung(
+                    [(b, q) for b, q in con[w].items() if q > EPS], lo_cu, ngay))
+                loi.append(_("Dòng {0}: {1} (phiếu POS {2}, kho {3}) — không lô nào ở kho đủ {4} (lô bán được: {5}). "
+                             "Phiếu POS lập sau lúc bật lô mà bán quá tồn lô — kiểm tra tồn lô ở kho đó (nhập / chuyển "
+                             "hàng vào) rồi đóng ca lại.").format(
+                    r.get("idx"), r.get("item_name") or i, r.get("pos_invoice") or "—", w, so_vn(can),
+                    con_lai or _("không còn lô nào")))
                 continue
-            r.batch_no, r.use_serial_batch_fields = chon[0]["batch"], 1
-            con[w][r.batch_no] -= can
+            r.batch_no, r.use_serial_batch_fields = b, 1
+            con[w][b] = con[w].get(b, 0.0) - can
     if loi:
         frappe.throw(_("Hoá đơn gộp từ POS — chưa gán được lô cho mã đã bật quản lý lô:") + "<br>" + "<br>".join(
-            f"• {x}" for x in loi) + "<br><br>" + _(
-            "Kho đã kiểm kê: huỷ lần đóng ca này, huỷ các phiếu POS lập SAU lúc bật lô của mã đó (lập lại sau), đóng "
-            "ca lại — phiếu lập trước lúc bật lô sẽ ghi không lô. Thiếu lô: kiểm tra tồn lô ở kho rồi đóng ca lại."),
-            title=_("Không gán được lô"))
+            f"• {x}" for x in loi), title=_("Không gán được lô"))
+    if bu:
+        _nhap_bu(doc, bu)
+
+
+def _nhap_bu(doc, bu):
+    """D200: một phiếu Material Receipt nhập bù vào lô (bu: [(mã, kho, lô, số)]) ghi sổ 1 giây trước hoá đơn gộp — ghi
+    chú như phiếu dọn tồn không lô, có số hoá đơn: in lại / huỷ theo hoá đơn được. Lô tồn cũ chưa có thì tạo."""
+    from sx.api.kiemke import so_vn
+    from sx.api.mfg import gia_von_hien, loai_phieu_kho, tao_batch
+
+    gop = {}
+    for i, w, b, q in bu:
+        gop[(i, w, b)] = gop.get((i, w, b), 0.0) + q
+    lan = now_datetime().strftime("DL-%d%m%y-%H%M%S")
+    moc = moc_bat_lo()
+    for i, _w, b in gop:
+        if not frappe.db.exists("Batch", b):
+            tao_batch(i, b)
+            frappe.db.set_value("Batch", b, "description", _(
+                "Tồn KHÔNG LÔ chưa rõ HSD (nhập bù lúc đóng ca POS — {0}).").format(lan), update_modified=False)
+            frappe.db.set_value("Batch", b, "custom_kiem_ke", moc[i]["phieu"], update_modified=False)
+    gio = _luc(doc) - timedelta(seconds=1)
+    se = frappe.new_doc("Stock Entry")
+    se.purpose = "Material Receipt"
+    se.stock_entry_type = loai_phieu_kho("Material Receipt")
+    se.company = doc.get("company")
+    se.set_posting_time = 1
+    se.posting_date = gio.date().isoformat()
+    se.posting_time = gio.strftime("%H:%M:%S")
+    se.remarks = _("{0} [{1}]: nhập bù lô cho hoá đơn gộp POS {2} — bán quanh lúc kiểm kê bật lô nhiều hơn tồn lô trên "
+                   "sổ (hoặc phần đã trừ trong số đếm).").format(GHI_CHU, lan, doc.name)
+    for (i, w, b), q in sorted(gop.items()):
+        g = flt(gia_von_hien(i, w))
+        se.append("items", dict({"item_code": i, "t_warehouse": w, "qty": flt(q, 6), "use_serial_batch_fields": 1,
+                                 "batch_no": b}, **({"basic_rate": g} if g > 0 else {"allow_zero_valuation_rate": 1})))
+    se.flags.ignore_permissions = True
+    se.insert()
+    se.submit()
+    doc.flags.sx_nhap_bu = se.name
+    frappe.msgprint(_("Nhập bù lô ({0}) trước giờ ghi sổ hoá đơn gộp — cửa hàng bán nhiều hơn tồn lô trên sổ:").format(
+        se.name) + "<br>" + "<br>".join(f"• {i} · {w} · {b}: +{so_vn(q)}" for (i, w, b), q in sorted(gop.items())),
+        title=_("Nhập bù lô khi đóng ca"), indicator="orange")
+
+
+def _huy_nhap_bu(doc):
+    """Huỷ hoá đơn gộp (huỷ lần đóng ca) → huỷ luôn phiếu nhập bù lô của nó (_nhap_bu) — đóng ca lại sẽ tính lại."""
+    for n in frappe.get_all("Stock Entry", filters={"docstatus": 1, "remarks": ("like", f"{GHI_CHU} [%"),
+                                                    "purpose": "Material Receipt"}, fields=["name", "remarks"]):
+        if f"hoá đơn gộp POS {doc.name} " in (n.remarks or ""):
+            se = frappe.get_doc("Stock Entry", n.name)
+            se.flags.ignore_permissions = True
+            se.cancel()
 
 
 def _dat_lo(item, co):
@@ -242,10 +324,13 @@ def tam_tat_lo(doc, method=None):
 
 
 def bat_lai_lo(doc, method=None):
-    """on_submit / on_cancel: bật lại lô cho các mã tam_tat_lo đã tắt."""
+    """on_submit / on_cancel: bật lại lô cho các mã tam_tat_lo đã tắt. Huỷ hoá đơn gộp từ POS: huỷ phiếu nhập bù lô của
+    nó (D200)."""
     for i in getattr(doc.flags, "sx_tam_tat_lo", None) or []:
         _dat_lo(i, 1)
     doc.flags.sx_tam_tat_lo = []
+    if cint(doc.get("docstatus")) == 2 and doc.doctype == "Sales Invoice" and cint(doc.get("is_consolidated")):
+        _huy_nhap_bu(doc)
 
 
 # ─────────────────────────────────────────── dọn phần không lô còn lại ──
@@ -266,20 +351,28 @@ def _chung_tu_gay_ra(item, kho, m):
     return ra
 
 
-def _lay_lo(item, lots, can, lo_cu, ngay=None):
-    """Lấy `can` từ các lô của mã ở một kho: lô tồn cũ trước, rồi HSD sớm nhất (bỏ lô đang thu hồi; có `ngay` thì bỏ cả
-    lô hết hạn trước ngày đó — ERPNext chặn bán lô hết hạn). [{batch, so}]."""
+def _lo_dung(lots, lo_cu, ngay=None):
+    """[(lô, số)] dùng được để xuất, theo thứ tự lấy: lô tồn cũ trước, rồi HSD sớm nhất — bỏ lô đang thu hồi; có `ngay`
+    thì bỏ cả lô hết hạn trước ngày đó (ERPNext chặn bán lô hết hạn)."""
     ten = [b for b, _q in lots]
     info = {b.name: b for b in frappe.get_all(
         "Batch", filters={"name": ("in", ten or [""])}, fields=["name", "expiry_date", "custom_thu_hoi"])}
-    thu_tu = sorted(lots, key=lambda x: (x[0] != lo_cu, str((info.get(x[0]) or {}).get("expiry_date") or "9999"), x[0]))
     ra = []
-    for b, q in thu_tu:
-        if can <= EPS:
-            break
+    for b, q in sorted(lots, key=lambda x: (x[0] != lo_cu, str((info.get(x[0]) or {}).get("expiry_date") or "9999"),
+                                            x[0])):
         hsd = (info.get(b) or {}).get("expiry_date")
         if cint((info.get(b) or {}).get("custom_thu_hoi")) or (ngay and hsd and getdate(hsd) < getdate(ngay)):
             continue
+        ra.append((b, q))
+    return ra
+
+
+def _lay_lo(item, lots, can, lo_cu, ngay=None):
+    """Lấy `can` từ các lô của mã ở một kho theo thứ tự _lo_dung. [{batch, so}]."""
+    ra = []
+    for b, q in _lo_dung(lots, lo_cu, ngay):
+        if can <= EPS:
+            break
         lay = min(q, can)
         ra.append({"batch": b, "so": flt(lay, 6)})
         can -= lay
