@@ -12,6 +12,8 @@
 // ghi chứng từ kho lùi về lúc đó (mã bật lô: chênh lệch ghi lùi, chuyển vào lô lúc bấm). Để trống = lúc bấm chốt.
 // D196: "Huỷ chốt, mở lại đếm tiếp" — phiếu chốt nhầm / chốt khi chưa đếm xong (phiếu chốt mới nhất của kho): huỷ mọi
 // chứng từ kho của lần chốt rồi mở lại phiếu đang đếm với đúng các dòng đã đếm. Thủ kho / quản lý, bắt buộc lý do.
+// D198: "Tồn không lô còn lại của mã đã bật lô" — chứng từ lập trước lúc bật lô (đóng ca POS muộn, hoá đơn cũ huỷ / sửa)
+// ghi sổ không lô; quản lý dọn phần đó về 0 (kho đã kiểm kê: điều chỉnh; kho khác: đổi với lô tồn cũ), in cho kế toán.
 // BÁN THÀNH PHẨM (D155): Kho BTP / Kho xưởng — hàng rời tính kg, lô theo ngày làm / lô rang, không có HSD: CÂN
 // TỪNG LÔ. Lô đã cân thì số cân thay số sổ của lô đó; lô chưa cân giữ nguyên.
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
@@ -227,11 +229,82 @@ export async function render({ container, call, boot }) {
     if (hc) hc.addEventListener('click', () => moHuyChot(hc.dataset.name));
     const am = $('#kk-am');
     if (am) am.addEventListener('click', (e) => moDonAm(e.currentTarget));
+    const du = $('#kk-du');
+    if (du) du.addEventListener('click', (e) => moDonDu(e.currentTarget));
   }
 
   // D193: chỉ thành phẩm — tồn âm ở Kho Xưởng sản xuất (không phải kho đang kiểm kê).
   const veNutAm = () => (laBtp() ? '' : `<button type="button" class="sx-btn sx-btn-ghost" id="kk-am">
-    Tồn âm thành phẩm ở Kho Xưởng sản xuất</button>`);
+    Tồn âm thành phẩm ở Kho Xưởng sản xuất</button>
+    <button type="button" class="sx-btn sx-btn-ghost" id="kk-du">Tồn không lô còn lại của mã đã bật lô</button>`);
+
+  // D198: phần không lô do chứng từ lập trước lúc bật lô ghi sổ / huỷ sau đó (sx/api/lo_cu.py).
+  async function moDonDu(nut) {
+    if (nut) nut.disabled = true;
+    let x;
+    try { x = await call('sx.api.lo_cu.ds_du'); } catch (e) { toastErr(e.message); return; } finally {
+      if (nut) nut.disabled = false;
+    }
+    const t = x.tong;
+    const m = openModal({ kicker: 'Mã đã bật quản lý lô', title: 'Tồn không lô còn lại' });
+    const viec = (r) => (r.cach === 'dieu_chinh'
+      ? `kho đã kiểm kê — điều chỉnh: ${r.so < 0 ? 'nhập bù' : 'xuất'} ${formatNumber(Math.abs(r.so))} không lô (giá trị ${
+        formatNumber(r.gia_tri)} đ)`
+      : (r.so < 0
+        ? `đổi với lô: lấy ${r.lay.map((l) => `${l.batch} ${formatNumber(l.so)}`).join(', ') || '—'}${
+          r.thieu > 0 ? ` · lô không đủ, còn âm ${formatNumber(r.thieu)}` : ''}`
+        : `đổi với lô: vào lô tồn cũ ${r.vao}`));
+    const dong = x.dong.map((r) => `
+        <div class="sx-vh-row" style="cursor:default"><div class="sx-vh-who">
+          <div class="sx-vh-name">${esc(r.ten)} · ${esc(r.kho)}</div>
+          <div class="sx-vh-meta">${esc(viec(r))}</div>
+          ${r.ct.length ? `<div class="sx-vh-meta">do ${esc(r.ct.slice(0, 5).join(', '))}${r.ct.length > 5 ? ' …' : ''}</div>` : ''}
+        </div><span class="sx-nv-qty">${r.so > 0 ? '+' : ''}${formatNumber(r.so)} → 0</span></div>`).join('');
+    m.body.innerHTML = `
+      <div class="sx-muted">Phiếu lập khi mã chưa quản lý lô (phiếu POS đóng ca muộn, hoá đơn cũ huỷ / sửa) ghi sổ KHÔNG lô
+        sau lúc kiểm kê bật lô — để lại phần không lô khác 0. <b>DỌN</b>: kho đã kiểm kê thì điều chỉnh về 0 (số đếm là tồn
+        thật — bút toán điều chỉnh kho, báo kế toán); kho khác (cửa hàng…) đổi với lô tồn cũ / lô HSD sớm nhất, không đổi
+        tổng tồn.</div>
+      ${x.dong.length ? `<div class="sx-kk-tien">${t.so_ma} mã · ${t.so_dong} dòng${t.dieu_chinh ? ` · điều chỉnh ${
+  formatNumber(t.dieu_chinh)} đ` : ''}</div>
+      <div class="sx-vh-list">${dong}</div>` : '<div class="sx-muted">Không còn tồn không lô nào của mã đã bật lô.</div>'}
+      ${x.lan_truoc.length ? `<div class="sx-field-label">Đã dọn — bấm để in danh sách</div>
+      <div class="sx-vh-list">${x.lan_truoc.map((g, i) => `
+        <div class="sx-vh-row" data-indu="${i}" role="button" tabindex="0" style="cursor:pointer">
+          <div class="sx-vh-who"><div class="sx-vh-name">${esc(g.lan)} · ${esc(veNgayDu(g.ngay))}</div>
+            <div class="sx-vh-meta">${esc(g.phieu.join(', '))}</div></div><span class="sx-nv-qty">🖨</span></div>`).join('')}</div>` : ''}`;
+    m.body.querySelectorAll('[data-indu]').forEach((b) => b.addEventListener('click', () => inDonDu(
+      x.lan_truoc[Number(b.dataset.indu)].phieu)));
+    if (x.dong.length && x.duoc_don) {
+      const b = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'DỌN TỒN KHÔNG LÔ');
+      b.type = 'button';
+      b.addEventListener('click', () => confirm2Step({
+        title: 'Dọn tồn không lô của mã đã bật lô',
+        message: `Đưa ${t.so_dong} dòng (${t.so_ma} mã) phần không lô về 0: kho đã kiểm kê điều chỉnh${t.dieu_chinh
+          ? ` (giá trị ${formatNumber(t.dieu_chinh)} đ — báo kế toán)` : ''}, kho khác đổi với lô. Muốn huỷ thì huỷ các phiếu `
+          + 'kho trên Desk.',
+        confirmLabel: 'DỌN',
+        onConfirm: async () => {
+          try {
+            const kq = await call('sx.api.lo_cu.don_du');
+            m.close();
+            toast(`Đã dọn ${kq.so_dong} dòng: ${kq.phieu.join(', ')}.${kq.con_thieu.length
+              ? ` Còn âm (lô không đủ): ${kq.con_thieu.map((c) => `${c.ten} ở ${c.kho} ${formatNumber(c.so)}`).join(', ')}.` : ''}`);
+            inDonDu(kq.phieu);
+          } catch (e) { toastErr(e.message); throw e; }
+        },
+      }));
+      m.body.appendChild(b);
+    } else if (x.dong.length) {
+      m.body.appendChild(el('div', 'sx-muted', 'Chỉ quản lý dọn được (có bút toán điều chỉnh kho).'));
+    }
+  }
+
+  async function inDonDu(phieu) {
+    try {
+      inHtml('Dọn tồn không lô', await call('sx.api.lo_cu.bien_ban', { phieu: JSON.stringify(phieu) }));
+    } catch (e) { toastErr(e.message); }
+  }
 
   // D195: thời điểm chốt sổ — không đụng số đã đếm, chỉ tính lại số sổ sách tới lúc đó.
   function moThoiDiem(p) {

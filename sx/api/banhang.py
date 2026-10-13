@@ -36,9 +36,11 @@ def kiem_lo_ban(doc, method=None):
     if not _bat(get_settings()):
         return
     tp = {i.name for i in items_tp(["name"])}
+    # D198: mã tạm tắt lô vì chứng từ lập trước lúc mã được bật lô (sx.api.lo_cu) — ghi không lô, không chặn / nhắc.
+    tam = set(getattr(doc.flags, "sx_tam_tat_lo", None) or [])
     thieu, khong_lo = [], []
     for r in doc.get("items") or []:
-        if r.item_code not in tp or flt(r.get("qty")) <= 0:
+        if r.item_code not in tp or flt(r.get("qty")) <= 0 or r.item_code in tam:
             continue
         if not cint(frappe.get_cached_value("Item", r.item_code, "has_batch_no")):
             khong_lo.append(r)

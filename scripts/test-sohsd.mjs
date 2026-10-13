@@ -584,6 +584,27 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
         so_luong: 20096, gia_tri: 241116000 };
     }
     if (m === 'sx.api.tonam.bien_ban') return '<div>danh sách</div>';
+    // D198: tồn không lô còn lại của mã đã bật lô
+    if (m === 'sx.api.lo_cu.ds_du') {
+      if (st.da_don_du) {
+        return { dong: [], duoc_don: KH.chot, tong: { so_dong: 0, so_ma: 0, dieu_chinh: 0 },
+          lan_truoc: [{ lan: 'DL-091026-100000', ngay: '2026-10-09', phieu: ['SE-21', 'SE-22'] }] };
+      }
+      return { duoc_don: KH.chot, lan_truoc: [], tong: { so_dong: 3, so_ma: 2, dieu_chinh: 12000 },
+        dong: [
+          { item: 'TP-LC', ten: 'Bánh lá cẩm', kho: 'CH Ba', so: -5, cach: 'doi_lo',
+            lay: [{ batch: 'LC-HSD010327', so: 2 }], vao: null, thieu: 3, gia: 12000, gia_tri: 60000, ct: [] },
+          { item: 'TP-LC', ten: 'Bánh lá cẩm', kho: 'Kho TP', so: 1, cach: 'dieu_chinh', lay: [], vao: null, thieu: 0,
+            gia: 12000, gia_tri: 12000, ct: ['Sales Invoice SI-1 (huỷ)', 'Sales Invoice SI-2'] },
+          { item: 'TP-LD', ten: 'Bánh lá dứa', kho: 'CH Le', so: 2, cach: 'doi_lo', lay: [], vao: 'LD-TONCU', thieu: 0,
+            gia: 9000, gia_tri: 18000, ct: ['DN-1', 'DN-2', 'DN-3', 'DN-4', 'DN-5', 'DN-6'] }] };
+    }
+    if (m === 'sx.api.lo_cu.don_du') {
+      st.da_don_du = true;
+      return { lan: 'DL-091026-100000', phieu: ['SE-21', 'SE-22'], so_dong: 3, so_ma: 2,
+        con_thieu: [{ ten: 'Bánh lá cẩm', kho: 'CH Ba', so: 3 }] };
+    }
+    if (m === 'sx.api.lo_cu.bien_ban') return '<div>danh sách không lô</div>';
     return tq();
   };
   const loiGoi = (m) => goi.filter((g) => g[0] === m).pop();
@@ -824,6 +845,57 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
     bang(loiGoi('sx.api.kiemke.huy_chot')[1], { name: 'KK-1', ly_do: 'chốt nhầm khi chưa đếm xong' }) && hcHop.dong
     && /Kiểm kê KK-2/.test(c.innerHTML) && TOAST.some(([t]) => /Đã huỷ chốt KK-1 — mở lại phiếu KK-2 với số đã đếm/.test(t)),
   loiGoi('sx.api.kiemke.huy_chot'));
+
+  // D198: phần không lô còn lại của mã đã bật lô (chứng từ lập trước lúc bật lô ghi sổ / huỷ sau đó).
+  const nutDu = c.querySelector('#kk-du');
+  kiem('D198: thẻ thành phẩm có nút "Tồn không lô còn lại của mã đã bật lô" (cả lúc đang đếm)',
+    !!nutDu && /Tồn không lô còn lại của mã đã bật lô/.test(nutDu.textContent));
+  KH.chot = false;
+  nutDu.bam();
+  await choRe();
+  let du = MO[MO.length - 1];
+  kiem('… bấm → xem từng (mã, kho): kho đã kiểm kê điều chỉnh (nhập bù / xuất, giá trị); kho khác đổi với lô (lấy lô nào, '
+    + 'lô không đủ còn âm bao nhiêu; dương vào lô tồn cũ); số → 0; chứng từ gây ra (5 cái đầu …); tổng',
+  !!loiGoi('sx.api.lo_cu.ds_du') && du.kicker === 'Mã đã bật quản lý lô' && du.title === 'Tồn không lô còn lại'
+    && /Bánh lá cẩm · CH Ba/.test(du.body.innerHTML)
+    && /đổi với lô: lấy LC-HSD010327 2 · lô không đủ, còn âm 3/.test(du.body.innerHTML)
+    && /kho đã kiểm kê — điều chỉnh: xuất 1 không lô \(giá trị 12\.000 đ\)/.test(du.body.innerHTML)
+    && /đổi với lô: vào lô tồn cũ LD-TONCU/.test(du.body.innerHTML) && /-5 → 0/.test(du.body.innerHTML)
+    && /\+1 → 0/.test(du.body.innerHTML) && /do Sales Invoice SI-1 \(huỷ\), Sales Invoice SI-2</.test(du.body.innerHTML)
+    && /do DN-1, DN-2, DN-3, DN-4, DN-5 …/.test(du.body.innerHTML)
+    && /2 mã · 3 dòng · điều chỉnh 12\.000 đ/.test(du.body.innerHTML), du.body.innerHTML.slice(0, 900));
+  kiem('… không phải quản lý: không có nút DỌN, nói chỉ quản lý dọn được',
+    !du.body.kids.some((k) => k.textContent === 'DỌN TỒN KHÔNG LÔ')
+    && du.body.kids.some((k) => /Chỉ quản lý dọn được/.test(k.textContent)));
+  KH.chot = true;
+  nutDu.bam();
+  await choRe();
+  du = MO[MO.length - 1];
+  const nutDonDu = du.body.kids.find((k) => k.textContent === 'DỌN TỒN KHÔNG LÔ');
+  kiem('… quản lý: có nút DỌN TỒN KHÔNG LÔ', !!nutDonDu);
+  nutDonDu.bam();
+  kiem('… hộp xác nhận nói số dòng / mã, giá trị điều chỉnh (báo kế toán), đổi với lô, cách huỷ',
+    /^Đưa 3 dòng \(2 mã\) phần không lô về 0: kho đã kiểm kê điều chỉnh \(giá trị 12\.000 đ — báo kế toán\), kho khác đổi với lô\. Muốn huỷ thì huỷ các phiếu kho trên Desk\.$/
+      .test(HOI[HOI.length - 1].message), HOI[HOI.length - 1].message);
+  await HOI[HOI.length - 1].onConfirm();
+  await choRe();
+  kiem('… xác nhận → gọi don_du, đóng hộp, báo đã dọn + dòng còn âm vì lô không đủ, in danh sách các phiếu vừa ghi',
+    !!loiGoi('sx.api.lo_cu.don_du') && du.dong
+    && TOAST.some(([t]) => t === 'Đã dọn 3 dòng: SE-21, SE-22. Còn âm (lô không đủ): Bánh lá cẩm ở CH Ba 3.')
+    && loiGoi('sx.api.lo_cu.bien_ban')[1].phieu === JSON.stringify(['SE-21', 'SE-22']), TOAST.slice(-2));
+  nutDu.bam();
+  await choRe();
+  du = MO[MO.length - 1];
+  const nGoi = goi.length;
+  const lanDu = du.body.querySelector('[data-indu="0"]');
+  kiem('… mở lại: không còn dòng nào, không có nút DỌN; lần dọn trước (mã lần, ngày, phiếu) bấm để in lại',
+    /Không còn tồn không lô nào của mã đã bật lô/.test(du.body.innerHTML)
+    && /DL-091026-100000 · 09\/10\/26/.test(du.body.innerHTML) && /SE-21, SE-22/.test(du.body.innerHTML)
+    && !du.body.kids.some((k) => k.textContent === 'DỌN TỒN KHÔNG LÔ') && !!lanDu, du.body.innerHTML);
+  lanDu.bam();
+  await choRe();
+  kiem('… bấm lần dọn trước → in lại đúng các phiếu của lần đó',
+    goi.length === nGoi + 1 && loiGoi('sx.api.lo_cu.bien_ban')[1].phieu === JSON.stringify(['SE-21', 'SE-22']));
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -928,7 +1000,8 @@ console.log('\n-- Kiểm kê bán thành phẩm (D155): chọn kho, cân từng 
   c.querySelector('#kk-bat').bam();
   await choRe();
   kiem('BẮT ĐẦU → mở phiếu cho đúng kho / loại', bang(loiGoi('sx.api.kiemke.bat_dau')[1], { kho: 'Kho BTP', loai: BTP }));
-  kiem('bán thành phẩm: không có nút tồn âm thành phẩm (D193 chỉ thành phẩm)', !c.querySelector('#kk-am'));
+  kiem('bán thành phẩm: không có nút tồn âm thành phẩm (D193), tồn không lô của mã bật lô (D198) — chỉ thành phẩm',
+    !c.querySelector('#kk-am') && !c.querySelector('#kk-du'));
   kiem('đang cân: nhóm theo chuyền, mỗi lô một ô CÂN; lô thu hồi chỉ ghi, không bấm được; tồn không lô báo riêng',
     /sx-kk-nhom">Bột nền/.test(c.innerHTML) && /sx-kk-nhom">Đường hoán/.test(c.innerHTML)
     && !!c.querySelector('[data-lo="0:1"]') && !!c.querySelector('[data-lo="0:2"]') && !c.querySelector('[data-lo="0:0"]')

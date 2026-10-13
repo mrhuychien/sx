@@ -47,14 +47,21 @@ doc_events = {
     # W26 (D136): hàng trả về nhập kho riêng; lô thu hồi bị khoá xuất — kiểm cả lúc
     # on_submit vì lô do ERPNext tự chọn chỉ có bundle trong on_submit.
     # W08 (D137): lô thành phẩm chưa duyệt kiểm tra xuất xưởng BM.08.04 → không bán.
+    # D198: chứng từ lập TRƯỚC lúc mã được kiểm kê bật lô (phiếu POS gộp lúc đóng ca, hoá đơn cũ huỷ / sửa) ghi sổ
+    # KHÔNG lô như lúc lập — tạm tắt lô đứng ĐẦU before_submit / before_cancel, bật lại đứng CUỐI on_submit / on_cancel.
     "Sales Invoice": {"validate": ["sx.api.thuhoi.kho_tra_ve", "sx.qc.kiem_xe.validate"],
-                      "before_submit": ["sx.api.banhang.kiem_lo_ban", "sx.api.thuhoi.kiem_xuat",
-                                        "sx.api.xuatxuong.kiem_ban", "sx.qc.kiem_xe.before_submit"],
-                      "on_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"]},
+                      "before_submit": ["sx.api.lo_cu.tam_tat_lo", "sx.api.banhang.kiem_lo_ban",
+                                        "sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban",
+                                        "sx.qc.kiem_xe.before_submit"],
+                      "on_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban", "sx.api.lo_cu.bat_lai_lo"],
+                      "before_cancel": "sx.api.lo_cu.tam_tat_lo",
+                      "on_cancel": "sx.api.lo_cu.bat_lai_lo"},
     "Delivery Note": {"validate": "sx.api.thuhoi.kho_tra_ve",
-                      "before_submit": ["sx.api.banhang.kiem_lo_ban", "sx.api.thuhoi.kiem_xuat",
-                                        "sx.api.xuatxuong.kiem_ban"],
-                      "on_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"]},
+                      "before_submit": ["sx.api.lo_cu.tam_tat_lo", "sx.api.banhang.kiem_lo_ban",
+                                        "sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"],
+                      "on_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban", "sx.api.lo_cu.bat_lai_lo"],
+                      "before_cancel": "sx.api.lo_cu.tam_tat_lo",
+                      "on_cancel": "sx.api.lo_cu.bat_lai_lo"},
     "POS Invoice": {"before_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"],
                     "on_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"]},
     "Stock Entry": {"before_submit": "sx.api.thuhoi.kiem_xuat",

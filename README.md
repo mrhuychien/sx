@@ -323,6 +323,41 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Chứng từ lập trước lúc kiểm kê bật lô: đóng ca POS, sửa hoá đơn cũ; dọn tồn không lô còn lại (D198)
+
+- **Lỗi**: sau lần kiểm kê bật quản lý lô cho mã (D189, D191): (1) **không đóng được ca POS** — các phiếu POS lập trước
+  lúc bật lô, lúc đóng ca mới gộp thành hoá đơn trừ kho, dòng không có lô; (2) **huỷ hoá đơn cũ (vd tháng 8) để sửa**
+  rồi gửi lại thì báo cần có lô.
+- **Nguyên nhân**: từ lúc bật lô mọi phiếu xuất của mã phải có lô. ERPNext đòi lô (tự chọn lô thì ở giờ ghi sổ của
+  chứng từ lô chưa có hàng — hoá đơn gộp từ POS ghi sổ đúng giờ phiếu POS), chặn thiếu lô của app (W06) báo "Chưa chọn
+  lô". Chứng từ lập khi mã chưa có lô thì không có lô nào đúng để chọn.
+- **Sửa** (`sx/api/lo_cu.py`, hook của Sales Invoice / Delivery Note):
+  - chứng từ trừ kho mà mọi dòng của mã đã bật lô đều **không lô và ghi sổ trước lúc bật lô** (hoá đơn gộp từ POS: xét
+    giờ từng phiếu POS) → lúc gửi / huỷ, mã **tạm tắt lô rồi bật lại ngay**, cùng giao dịch → ghi sổ không lô, đúng như
+    lúc lập. Lúc bật lô của mã đọc từ phiếu kiểm kê đã chốt (lúc bấm chốt).
+  - hoá đơn gộp từ POS **lẫn** phiếu lập sau lúc bật lô (đã có lô, hoặc máy POS còn nhớ mã chưa có lô) → không tắt lô
+    được; **gán lô** cho dòng không lô: lô tồn cũ trước, rồi HSD sớm nhất (bỏ lô thu hồi, lô hết hạn), một lô đủ số cả
+    dòng theo tồn lúc ghi sổ. Riêng phiếu POS lập trước lúc bật lô mà bán ở **chính kho đã kiểm kê**: số đếm đã trừ phần
+    đó, gán lô là trừ hai lần → chặn, nói cách tách (huỷ lần đóng ca, huỷ các phiếu POS lập sau lúc bật lô, đóng ca lại,
+    lập lại các phiếu đó).
+  - chứng từ lập **sau** lúc bật lô vẫn phải chọn lô như thường (W06 không đổi).
+- **Phần không lô còn lại**: ghi sổ muộn như vậy để lại tồn KHÔNG lô khác 0 sau lúc bật lô. Thẻ **Kiểm kê kho** → nút
+  **Tồn không lô còn lại của mã đã bật lô** → xem từng (mã, kho), chứng từ gây ra → **DỌN TỒN KHÔNG LÔ** (quản lý):
+  - kho đã kiểm kê: **điều chỉnh** phần không lô về 0 (số đếm là tồn thật lúc chốt — bút toán điều chỉnh kho, báo kế
+    toán);
+  - kho khác (cửa hàng…): **đổi với lô** — âm thì lấy từ lô tồn cũ (thiếu thì lô HSD sớm nhất), dương thì vào lô tồn cũ;
+    không đổi tổng tồn. Lô không đủ thì báo dòng còn âm.
+  - in danh sách cho kế toán; lần dọn trước bấm in lại được. Muốn huỷ thì huỷ các phiếu kho trên Desk.
+- **Làm sau khi cập nhật**: đóng ca POS lại (POS Closing Entry bị lỗi → *Retry*), huỷ / sửa / gửi lại các hoá đơn cũ như
+  thường; xong hết rồi mới **DỌN** tồn không lô (chứng từ cũ gửi sau lúc dọn lại để ra phần mới — dọn lại được).
+- Site tắt tồn âm: chứng từ ghi lùi trước lúc bật lô làm phiếu "xuất tồn không lô" của lần chốt âm tạm — ERPNext báo
+  *Insufficient Stock* chỉ vào phiếu kho của kiểm kê. Bật tạm *Allow Negative Stock* (Stock Settings) lúc đóng ca / gửi
+  lại, chờ ERPNext tính lại giá (Repost Item Valuation) xong rồi tắt.
+- Test `test-kiemke.py` (lúc bật lô từ nhật ký chốt; hoá đơn tháng 8 huỷ / gửi lại; Delivery Note; hoá đơn gộp POS —
+  giờ từng phiếu POS, ca lẫn gán lô, kho đã kiểm kê chặn, tồn lô lúc ghi sổ; thứ tự hook; dọn tồn không lô, in),
+  `test-sohsd.mjs` (nút, xem, chỉ quản lý dọn, xác nhận, in lại).
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-152**.
+
 ## Sửa thẻ Tài khoản portal không hiện danh sách tài khoản (D197)
 
 - **Lỗi**: thẻ *Quản lý → Tài khoản portal* không hiện (hoặc hiện thiếu) các tài khoản QC vào hộp, thủ kho, ghi sổ… —
