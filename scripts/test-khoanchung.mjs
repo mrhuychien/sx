@@ -140,8 +140,13 @@ window.SAN_SANG = true;
   const nhom = (x) => ({ nhom: [{ item: 'TP-SEN', ten: 'Bánh sen', con_lai: 29.5, so_hop: 30, so_ngay: 1,
     dong: [{ name: 'NV-1', ngay: '2026-10-12', so_luong: 30, con_lai: 29.5, phieu_nhap: 'PN-1' }],
     cach_lam: [], gia_chung: null, ...x }], tong_dong: 1, duoc_bo_qua: false, duoc_ghi_kc: true });
+  // D208: thẻ gập sẵn — mở ra (như người bấm dòng gập) rồi mới tới nút trong danh sách.
   const mo = async (no) => {
-    await p.evaluate(async (n) => { window.CALLS = []; window.REFRESH = 0; await window.veNo(n); }, no);
+    await p.evaluate(async (n) => {
+      window.CALLS = []; window.REFRESH = 0; await window.veNo(n);
+      const d = document.querySelector('#no details.sx-no-gap');
+      if (d) d.open = true;
+    }, no);
   };
   const okNut = () => p.$('.sx-modal .sx-btn-primary');
   const goiGhi = async () => (await p.evaluate(() => window.CALLS))

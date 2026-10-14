@@ -323,6 +323,24 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Thẻ sổ nợ và Lô cũ chưa có HSD gập sẵn — bấm mới xổ danh sách (D208)
+
+- **Trước**: thẻ Sổ nợ BOM, Sổ nợ đơn giá, Nợ vào hộp và Lô cũ chưa có HSD (màn Quản lý, Ghi hộp, Nhập kho) xổ hết
+  danh sách — mỗi mã một khối, mỗi lần nhập một dòng, 56 lô cũ mỗi lô một ô ngày — đẩy cả màn xuống.
+- **Giờ**: mỗi thẻ gập thành **một dòng**: tiêu đề như cũ (số mã / số lô) + dòng nhắc việc gấp nhất —
+  **xanh** = làm được ngay (mã đã có BOM → hạch toán bù; mã đã có giá → áp giá; lô đã điền sẵn HSD gợi ý → soát rồi
+  GHI), **đỏ** = nợ quá hạn (BOM / đơn giá quá 7 ngày, vào hộp quá 3 ngày), lô giá vốn 0, lô mã chưa khai hạn dùng;
+  rồi *cũ nhất N ngày*. Bấm dòng đó (hoặc Enter) mới xổ danh sách, bấm lần nữa gập lại.
+- Đang làm trong thẻ (Bỏ qua, Hạch toán bù, Áp giá, GHI HSD, + Lô đã hết hàng) thì thẻ vẽ lại **vẫn mở**. Ghi cho công
+  khoán vẽ lại cả màn Ghi hộp — thẻ Nợ vào hộp mở sẵn ngay sau đó để ghi tiếp mã khác. Mở lại màn / tải lại trang
+  thì gập như mặc định. Hết nợ thì thẻ vẫn tự ẩn như cũ.
+- Khung gập dùng chung `components/gapno.js` (`<details>` gốc như hộp nhắc QC D186 — bàn phím, trình đọc màn hình
+  hiểu sẵn); thêm vào import map của `sx.html`.
+- Test `test-gapno.mjs` (Chromium + CSS thật: gập mặc định, cao một dòng, nhắc đúng chữ đúng màu, bấm / Enter mở, mũi
+  xoay, vẽ lại sau thao tác vẫn mở, mở sẵn đúng một lần sau Ghi cho công khoán, hết nợ tự ẩn, điện thoại 360px không
+  tràn ngang); `test-khoanchung.mjs` mở thẻ trước khi bấm nút trong danh sách.
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-155**.
+
 ## Lệnh dọn âm trong lịch sử lô — lô còn hàng mà POS vẫn báo "has negative stock" (D207)
 
 - **Lỗi** (14/10/2026, POS CH Tuệ Tĩnh): *The Batch TH170-TONCU of the item TH170 has negative stock in the warehouse

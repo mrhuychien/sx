@@ -13,13 +13,18 @@
 // đơn giá, không vào phiếu lương của ai (tổ tự chia). Đó LÀ một lần chấm bù: nợ tự trừ.
 //
 // Không nợ gì thì card TỰ ẨN.
+//
+// D208: GẬP sẵn thành một dòng (số mã, số hộp + mã quá lâu), bấm mới xổ danh sách. Ghi cho công khoán
+// vẽ lại CẢ màn — thẻ mới vẽ ngay sau đó mở sẵn, để ghi tiếp mã khác không phải mở lại.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber, formatVND, nhanNgay } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal } from '/assets/sx/sx/components/modal.js';
+import { khungNo, cuNhat } from '/assets/sx/sx/components/gapno.js';
 
 const NGAY_LAU = 3;   // chấm sót quá 3 ngày thì người ta không còn nhớ ai làm
+let moDen = 0;        // vừa ghi công khoán (cả màn vẽ lại): thẻ vẽ trước mốc này thì mở sẵn — một lần
 
 export async function render({ container, call, boot, ensureNgay, refresh }) {
   container.className = 'sx-card';
@@ -33,21 +38,25 @@ export async function render({ container, call, boot, ensureNgay, refresh }) {
   } catch (e) {
     return;   // chưa migrate / không có quyền: ẩn card, đừng làm hỏng cả màn
   }
-  ve(container, dl, call, { lay, boot, ensureNgay, refresh });
+  const mo = Date.now() < moDen ? true : null;
+  moDen = 0;
+  ve(container, dl, call, { lay, boot, ensureNgay, refresh }, mo);
 }
 
-function ve(container, dl, call, ctx) {
+function ve(container, dl, call, ctx, mo = null) {
   const lai = async () => {
     try { ve(container, await ctx.lay(), call, ctx); } catch (e) { /* giữ bản cũ */ }
   };
-  container.innerHTML = '';
-  if (!dl || !dl.nhom || !dl.nhom.length) { container.style.display = 'none'; return; }
+  if (!dl || !dl.nhom || !dl.nhom.length) { container.innerHTML = ''; container.style.display = 'none'; return; }
   container.style.display = '';
 
   const tong = dl.nhom.reduce((a, g) => a + Number(g.con_lai || 0), 0);
-  container.appendChild(el('div', 'sx-field-label',
-    `Nợ vào hộp — ${dl.nhom.length} mã, ${formatNumber(tong)} hộp chưa chấm`));
-  container.appendChild(el('div', 'sx-muted',
+  const lau = dl.nhom.filter((g) => g.so_ngay > NGAY_LAU).length;
+  const than = khungNo(container, `Nợ vào hộp — ${dl.nhom.length} mã, ${formatNumber(tong)} hộp chưa chấm`, [
+    lau && { chu: `${lau} mã quá ${NGAY_LAU} ngày — hỏi tổ sớm`, loai: 'gap' },
+    cuNhat(dl.nhom),
+  ], mo);
+  than.appendChild(el('div', 'sx-muted',
     'Kho đã nhận nhiều hơn số chấm vào hộp. Chấm bù ở màn Ghi hộp — cho đúng công '
     + 'nhân, hoặc dòng ★ CÔNG NHẬT nếu công nhật đóng. Chấm xong nợ tự trừ.'
     + (dl.duoc_ghi_kc ? ' Không rõ ai đóng: bấm ★ Ghi cho công khoán — một dòng chung, tổ tự chia.' : '')));
@@ -84,7 +93,7 @@ function ve(container, dl, call, ctx) {
       }
       box.appendChild(h);
     });
-    container.appendChild(box);
+    than.appendChild(box);
   });
 }
 
@@ -136,8 +145,8 @@ function moGhiKC(g, call, ctx, lai) {
       toast(`Đã ghi ${formatNumber(r.so_hop)} hộp ${r.ten} cho ★ Công khoán chung`
         + `${r.thanh_tien ? ` — ${formatVND(r.thanh_tien)}` : ''}.`);
       m.close();
-      // Cả màn vẽ lại: dòng chung hiện ngay ở bảng ghi hôm nay, thẻ nợ bớt mã này.
-      if (ctx.refresh) ctx.refresh(); else await lai();
+      // Cả màn vẽ lại: dòng chung hiện ngay ở bảng ghi hôm nay, thẻ nợ bớt mã này (vẫn mở — D208).
+      if (ctx.refresh) { moDen = Date.now() + 15000; ctx.refresh(); } else await lai();
     } catch (e) { ok.disabled = false; toastErr(e.message); }
   });
   m.body.appendChild(ok);

@@ -9,11 +9,14 @@
 //
 // Không có khoản nợ nào thì card TỰ ẨN — một thẻ "không nợ gì" nằm trên màn mỗi
 // ngày sẽ dạy mắt bỏ qua đúng vùng đó.
+//
+// D208: GẬP sẵn thành một dòng (số mã + việc làm được ngay / nợ quá lâu), bấm mới xổ danh sách.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step, openModal } from '/assets/sx/sx/components/modal.js';
+import { khungNo, cuNhat } from '/assets/sx/sx/components/gapno.js';
 
 export async function render({ container, call }) {
   container.className = 'sx-card';
@@ -33,12 +36,20 @@ function ve(container, dl, call) {
   const lai = async () => {
     try { ve(container, await call('sx.api.khotp.so_no_bom'), call); } catch (e) { /* giữ bản cũ */ }
   };
-  container.innerHTML = '';
-  if (!dl.nhom.length) { container.style.display = 'none'; return; }
+  if (!dl.nhom.length) { container.innerHTML = ''; container.style.display = 'none'; return; }
+  container.style.display = '';
 
-  container.appendChild(el('div', 'sx-field-label',
-    `Sổ nợ BOM — ${dl.nhom.length} mã, ${dl.tong_dong} lần nhập`));
-  container.appendChild(el('div', 'sx-muted',
+  const dem = (f) => dl.nhom.filter(f).length;
+  const coBom = dem((g) => g.co_bom);
+  const lau = dem((g) => g.lau && !g.co_bom);
+  const gia0 = dem((g) => g.gia_0);
+  const than = khungNo(container, `Sổ nợ BOM — ${dl.nhom.length} mã, ${dl.tong_dong} lần nhập`, [
+    coBom && { chu: `✓ ${coBom} mã đã có BOM — hạch toán bù được ngay`, loai: 'lam' },
+    lau && { chu: `${lau} mã nợ quá ${dl.ngay_no_lau} ngày`, loai: 'gap' },
+    gia0 && { chu: `${gia0} mã lô giá vốn 0`, loai: 'gap' },
+    cuNhat(dl.nhom),
+  ]);
+  than.appendChild(el('div', 'sx-muted',
     'Đã nhập kho khi CHƯA có định mức: hàng đã vào kho, bột và bao bì chưa bị trừ. '
     + 'Tạo BOM cho mã đó rồi bấm Hạch toán bù.'));
 
@@ -94,11 +105,11 @@ function ve(container, dl, call) {
       nut.appendChild(bu);
       box.appendChild(nut);
     }
-    container.appendChild(box);
+    than.appendChild(box);
   });
 
   if (!dl.duoc_xu_ly) {
-    container.appendChild(el('div', 'sx-muted',
+    than.appendChild(el('div', 'sx-muted',
       'Chỉ quản lý hạch toán bù / bỏ qua được — báo quản lý khi đã có BOM.'));
   }
 }

@@ -5,11 +5,15 @@
 // bấm GHI. Lô còn tồn đứng trước; lô đã bán hết vẫn nên ghi (để tra khách đã mua).
 //
 // Không còn lô nào thì card TỰ ẨN.
+//
+// D208: GẬP sẵn thành một dòng (số lô + bao nhiêu lô đã có HSD gợi ý), bấm mới xổ danh sách — cùng
+// kiểu ba thẻ sổ nợ. Vẽ lại sau GHI / "+ Lô đã hết hàng" vẫn giữ đang mở.
 
-import { el, esc } from '/assets/sx/sx/lib/dom.js';
+import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step } from '/assets/sx/sx/components/modal.js';
+import { khungNo } from '/assets/sx/sx/components/gapno.js';
 
 const ngay = (iso) => {
   const d = String(iso || '').slice(0, 10).split('-');
@@ -33,9 +37,13 @@ export async function render({ container, call }) {
   function ve(dl) {
     const hsd = {};
     dl.rows.forEach((r) => { hsd[r.batch] = r.goi_y || ''; });
-    container.innerHTML = `
-      <div class="sx-field-label">Lô cũ chưa có HSD — ${dl.con_ton} lô còn tồn${
-        dl.het_hang ? ` · ${dl.het_hang} lô đã hết hàng` : ''}</div>
+    const goiY = dl.rows.filter((r) => r.goi_y).length;
+    const than = khungNo(container, `Lô cũ chưa có HSD — ${dl.con_ton} lô còn tồn${
+      dl.het_hang ? ` · ${dl.het_hang} lô đã hết hàng` : ''}`, [
+      goiY && { chu: `${goiY} lô đã điền sẵn HSD gợi ý — soát theo bao bì rồi GHI`, loai: 'lam' },
+      dl.rows.length > goiY && { chu: `${dl.rows.length - goiY} lô mã chưa khai hạn dùng — nhập HSD tay`, loai: 'gap' },
+    ]);
+    than.innerHTML = `
       <div class="sx-muted">Lô nhập trước khi lô mang HSD: truy xuất theo HSD in trên hộp
         không ra. Soát HSD theo bao bì (đã điền sẵn = NSX + hạn dùng) rồi bấm GHI. Hàng còn
         trong kho thì nên dùng thẻ <b>Kiểm kê kho thành phẩm</b>: đếm theo HSD in trên hộp —

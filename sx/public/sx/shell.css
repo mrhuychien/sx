@@ -1917,6 +1917,25 @@ main > .container {
 .sx-nobom-nut { display: flex; gap: var(--sx-s2); flex-wrap: wrap; }
 .sx-nobom-dong .sx-btn { white-space: nowrap; flex: none; }
 
+/* ── D208: thẻ sổ nợ / lô cũ chưa HSD GẬP sẵn — một dòng tóm tắt, bấm mới xổ danh sách ── */
+.sx-no-tom {
+  display: flex; flex-direction: column; justify-content: center; gap: 2px; position: relative;
+  min-height: var(--sx-tap); padding-right: 32px; cursor: pointer; list-style: none; user-select: none;
+}
+.sx-no-tom::-webkit-details-marker { display: none; }
+/* mũi chỉ hướng: gập ▸ / mở ▾ — hình dạng đổi, không chỉ đổi màu (như .sx-fold, hộp nhắc QC) */
+.sx-no-tom::after {
+  content: "▸"; position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  color: var(--sx-text-3); font-size: var(--sx-f-lg); transition: transform var(--sx-t-fast);
+}
+.sx-no-gap[open] > .sx-no-tom::after { transform: translateY(-50%) rotate(90deg); }
+.sx-no-gap[open] > .sx-no-tom { margin-bottom: var(--sx-s3); }
+.sx-no-nhac { font-size: var(--sx-f-xs); color: var(--sx-text-2); }
+.sx-no-nhac-lam { color: var(--sx-success-text); font-weight: 700; }
+.sx-no-nhac-gap { color: var(--sx-danger-text); font-weight: 700; }
+/* thân xổ ra = bố cục thẻ cũ (cột, cách s3) — danh sách bên trong không đổi */
+.sx-no-than { display: flex; flex-direction: column; gap: var(--sx-s3); }
+
 /* ── D101: dòng CÔNG NHẬT ở màn Ghi hộp ─────────────────────────────────── */
 .sx-vh-congnhat {
   width: 100%; margin-top: var(--sx-s2);

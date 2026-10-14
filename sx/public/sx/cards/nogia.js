@@ -9,11 +9,14 @@
 // xuất, card chỉ chỉ ra phải khai ở bảng nào.
 //
 // Không có khoản nợ nào thì card TỰ ẨN.
+//
+// D208: GẬP sẵn thành một dòng (số mã + mã áp giá được ngay / nợ quá lâu), bấm mới xổ danh sách.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
 import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { confirm2Step, openModal } from '/assets/sx/sx/components/modal.js';
+import { khungNo, cuNhat } from '/assets/sx/sx/components/gapno.js';
 
 export async function render({ container, call }) {
   container.className = 'sx-card';
@@ -33,12 +36,17 @@ function ve(container, dl, call) {
   const lai = async () => {
     try { ve(container, await call('sx.api.nogia.so_no_gia'), call); } catch (e) { /* giữ bản cũ */ }
   };
-  container.innerHTML = '';
-  if (!dl.nhom.length) { container.style.display = 'none'; return; }
+  if (!dl.nhom.length) { container.innerHTML = ''; container.style.display = 'none'; return; }
+  container.style.display = '';
 
-  container.appendChild(el('div', 'sx-field-label',
-    `Sổ nợ đơn giá — ${dl.nhom.length} mã, ${dl.tong_dong} ngày`));
-  container.appendChild(el('div', 'sx-muted',
+  const coGia = dl.nhom.filter((g) => g.co_gia).length;
+  const lau = dl.nhom.filter((g) => g.lau && !g.co_gia).length;
+  const than = khungNo(container, `Sổ nợ đơn giá — ${dl.nhom.length} mã, ${dl.tong_dong} ngày`, [
+    coGia && { chu: `✓ ${coGia} mã đã có giá — áp giá được ngay`, loai: 'lam' },
+    lau && { chu: `${lau} mã nợ quá ${dl.ngay_no_lau} ngày`, loai: 'gap' },
+    cuNhat(dl.nhom),
+  ]);
+  than.appendChild(el('div', 'sx-muted',
     'Đã chốt vào hộp khi mã CHƯA có đơn giá: lương khoán đang 0 đồng trong phiếu lương. '
     + 'Khai giá ở bảng đơn giá rồi bấm Áp giá.'));
 
@@ -93,7 +101,7 @@ function ve(container, dl, call) {
     }));
     nut.appendChild(ap);
     box.appendChild(nut);
-    container.appendChild(box);
+    than.appendChild(box);
   });
 }
 
