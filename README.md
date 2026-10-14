@@ -323,6 +323,21 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê bán thành phẩm: bỏ cảnh báo "N ngày chưa chốt" sai — báo theo trạng thái đồng bộ (D211)
+
+- **Lỗi** (tìm ra khi rà code các màn để tìm chỗ chậm): thẻ Kiểm kê, kho **bán thành phẩm**, lúc nào cũng báo *N ngày
+  sản xuất chưa chốt Ghi sổ / Vào hộp … Chốt … trước rồi cân* — kể cả khi mọi ngày đã khớp kho.
+- **Nguyên nhân**: cảnh báo đọc cờ `chot_ghiso` / `chot_vaohop` của phiếu ngày. Từ D123 không còn bước chốt (số liệu
+  tự đồng bộ vào kho sau mỗi lần lưu) nên không ai đặt hai cờ đó nữa → ngày nào cũng bị coi là "chưa chốt", và câu
+  nhắc bảo đi làm một bước không còn tồn tại.
+- **Sửa** (`sx/api/kiemke.py` `_canh_bao`): báo theo **trạng thái đồng bộ thật** (`can_dong_bo_gs/vh`,
+  `loi_dong_bo_gs/vh` — như nhãn trên thanh ngày): *N ngày Ghi sổ / Vào hộp chưa đồng bộ vào kho (dd/mm…)* + cách xử
+  lý — đang chờ thì đợi vài phút; có LỖI thì xem lịch **Đồng bộ kho & lương** (màn Quản lý), sửa rồi THỬ LẠI. Ngày
+  sau hôm nay, phiếu ngày đã huỷ: không nhắc. Cùng hàm dùng cho XEM TRƯỚC khi chốt kiểm kê.
+- Test `test-kiemke.py` (ngày đã đồng bộ không bị báo; chờ / lỗi đồng bộ báo đúng chỗ xử lý; không câu nào còn bảo
+  "chốt"), `test-sohsd.mjs`.
+- Không đổi DocType: `git pull` → `bench restart`.
+
 ## Đo tốc độ tải: thêm `?do=1` vào địa chỉ (D210)
 
 - Thấy chậm thì mở màn đó với `?do=1`, ví dụ `…/sx?do=1#/nhapkho`. Vẽ xong màn thì hiện **bảng đo** ở chân màn →

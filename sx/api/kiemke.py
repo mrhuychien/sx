@@ -148,21 +148,31 @@ def _canh_bao(kho, loai=TP):
         return ra
     if kho != get_settings().get("kho_btp"):
         return ra                     # kho xưởng: tầng 1 ghi sổ ngay lúc bấm công đoạn
-    # Tầng 2 / 3 vào sổ lúc CHỐT NGÀY (D55): chưa chốt thì hàng trong Kho BTP chưa khớp sổ.
-    ngay = frappe.get_all("SX Ngay San Xuat", filters={"docstatus": 0, "ngay": ("<=", nowdate())},
-                          fields=["name", "ngay", "chot_ghiso", "chot_vaohop"], order_by="ngay")
+    # Tầng 2 / 3 vào sổ qua ĐỒNG BỘ sau mỗi lần lưu (D123 — không còn chốt ngày, sx/api/dongbo.py): ngày còn chờ / lỗi
+    # đồng bộ thì hàng trong Kho BTP chưa khớp sổ. D211: trước đây đọc cờ chot_ghiso / chot_vaohop — từ D123 không ai
+    # đặt nữa, nên NGÀY NÀO cũng bị báo "chưa chốt" và bảo đi chốt (bước không còn).
+    ngay = frappe.get_all("SX Ngay San Xuat", filters={"docstatus": ("<", 2), "ngay": ("<=", nowdate())},
+                          or_filters=[["can_dong_bo_gs", "=", 1], ["can_dong_bo_vh", "=", 1]],
+                          fields=["name", "ngay", "can_dong_bo_gs", "can_dong_bo_vh", "loi_dong_bo_gs",
+                                  "loi_dong_bo_vh"], order_by="ngay")
 
     def ds(xs):
         return ", ".join(getdate(x.ngay).strftime("%d/%m") for x in xs[:4]) + (" …" if len(xs) > 4 else "")
 
-    gs = [n for n in ngay if not cint(n.chot_ghiso)]
-    vh = [n for n in ngay if not cint(n.chot_vaohop)]
+    def xu_ly(xs, p):
+        if any(x.get(f"loi_dong_bo_{p}") for x in xs):
+            return _("Có ngày bị LỖI đồng bộ — xem lịch Đồng bộ kho & lương (màn Quản lý), sửa rồi bấm THỬ LẠI")
+        return _("Đang chờ đồng bộ — đợi vài phút cho xong")
+
+    gs = [n for n in ngay if cint(n.can_dong_bo_gs)]
+    vh = [n for n in ngay if cint(n.can_dong_bo_vh)]
     if gs:
-        ra.append(_("{0} ngày sản xuất chưa chốt Ghi sổ ({1}): mẻ hôm đó chưa vào sổ — bột bánh / bột đậu chưa nhập, "
-                    "bột nền / đường hoán chưa trừ; cân lúc này sẽ lệch. Chốt Ghi sổ trước rồi cân.").format(len(gs), ds(gs)))
+        ra.append(_("{0} ngày Ghi sổ chưa đồng bộ vào kho ({1}): mẻ hôm đó chưa vào sổ — bột bánh / bột đậu chưa nhập, "
+                    "bột nền / đường hoán chưa trừ; cân lúc này sẽ lệch. {2}, rồi cân.").format(len(gs), ds(gs),
+                                                                                         xu_ly(gs, "gs")))
     if vh:
-        ra.append(_("{0} ngày chưa chốt Vào hộp ({1}): bột đã vào hộp chưa trừ sổ — cân thấy ít hơn sổ là thành THIẾU. "
-                    "Chốt Vào hộp trước rồi cân.").format(len(vh), ds(vh)))
+        ra.append(_("{0} ngày Vào hộp chưa đồng bộ vào kho ({1}): bột đã vào hộp chưa trừ sổ — cân thấy ít hơn sổ là "
+                    "thành THIẾU. {2}, rồi cân.").format(len(vh), ds(vh), xu_ly(vh, "vh")))
     return ra
 
 

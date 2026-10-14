@@ -959,7 +959,7 @@ console.log('\n-- Kiểm kê bán thành phẩm (D155): chọn kho, cân từng 
         da_dem: xong.length > 0, tong_dem: xong.reduce((a, l) => a + l.can, 0),
         lech: xong.reduce((a, l) => a + l.can - l.so, 0), con_chua: lo.filter((l) => l.can == null && !l.thu_hoi).length };
     });
-    return { ...chung, phieu: st.phieu, hang, canh_bao: ['1 ngày chưa chốt Vào hộp (08/10): bột đã vào hộp chưa trừ sổ.'],
+    return { ...chung, phieu: st.phieu, hang, canh_bao: ['1 ngày Vào hộp chưa đồng bộ vào kho (08/10): bột đã vào hộp chưa trừ sổ.'],
       danh_muc: st.phieu ? [{ item: 'BOT-BANH', ten: 'Bột bánh sen', dvt: 'Kg', nhom: 'Bột bánh', khong_lo: false },
         { item: 'DUONG-MOI', ten: 'Đường hoán mới', dvt: 'Kg', nhom: 'Đường hoán', khong_lo: true }] : [] };
   };
@@ -997,7 +997,7 @@ console.log('\n-- Kiểm kê bán thành phẩm (D155): chọn kho, cân từng 
   kiem('chọn Bán thành phẩm → tải Kho BTP; màn chưa mở phiếu: số mã / lô trên sổ + cảnh báo chốt ngày',
     bang(loiGoi('sx.api.kiemke.tong_quan')[1], { kho: 'Kho BTP', loai: BTP })
     && /Kiểm kê kho bán thành phẩm/.test(c.innerHTML) && /2 mã · 3 lô trên sổ Kho BTP/.test(c.innerHTML)
-    && /chưa chốt Vào hộp/.test(c.innerHTML), c.textContent.slice(0, 300));
+    && /Vào hộp chưa đồng bộ vào kho/.test(c.innerHTML), c.textContent.slice(0, 300));
   kiem('… máy nhớ kho vừa chọn', kho.get('sx-kk-kho') === JSON.stringify({ kho: 'Kho BTP', loai: BTP }), kho.get('sx-kk-kho'));
   c = new E('div');
   await KK.render({ container: c, call, boot: {} });

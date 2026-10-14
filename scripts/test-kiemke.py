@@ -854,8 +854,12 @@ SOB.update({("BOT-NEN", "R-011026"): 40, ("BOT-NEN", "R-051026"): 25.5, ("BOT-NE
             ("DUONG-HOAN", None): 30})
 SOX.update({("DO-U", "R-011026-U"): 8})
 F.bang("Bin")["b3"] = {"name": "b3", "item_code": "BOT-NEN", "warehouse": "Kho BTP", "valuation_rate": 30000}
-F.bang("SX Ngay San Xuat")["NSX-1"] = {"name": "NSX-1", "ngay": "2026-10-08", "docstatus": 0, "chot_ghiso": 1,
-                                       "chot_vaohop": 0}
+# D211: cảnh báo theo trạng thái ĐỒNG BỘ (D123 bỏ chốt — cờ chot_* không ai đặt nữa). NSX-0: ngày cũ "chưa chốt" kiểu
+# trước D123 nhưng đã đồng bộ xong → KHÔNG được báo (trước D211 ngày nào cũng bị báo).
+F.bang("SX Ngay San Xuat")["NSX-0"] = {"name": "NSX-0", "ngay": "2026-10-07", "docstatus": 0, "chot_ghiso": 0,
+                                       "chot_vaohop": 0, "can_dong_bo_gs": 0, "can_dong_bo_vh": 0}
+F.bang("SX Ngay San Xuat")["NSX-1"] = {"name": "NSX-1", "ngay": "2026-10-08", "docstatus": 0, "chot_ghiso": 0,
+                                       "chot_vaohop": 0, "can_dong_bo_gs": 0, "can_dong_bo_vh": 1}
 
 F.vai("SX Thu Kho", u="kho@x")
 tq = A.tong_quan()
@@ -874,17 +878,26 @@ kiem("bột nền: lô theo ngày (cũ trước), lô thu hồi đánh dấu; t�
      and bn["nhom"] == "Bột nền" and not bn["khong_lo"] and not bn["da_dem"], bn)
 kiem("đường hoán (mã không lô): một dòng lô None", hang(tq, "DUONG-HOAN")["khong_lo"]
      and [l["batch"] for l in hang(tq, "DUONG-HOAN")["lo"]] == [None], hang(tq, "DUONG-HOAN"))
-kiem("cảnh báo: ngày sản xuất chưa chốt Vào hộp (bột chưa trừ sổ) — không chặn",
-     any("chưa chốt Vào hộp (08/10)" in c for c in tq["canh_bao"]) and not any("Ghi sổ" in c for c in tq["canh_bao"]),
-     tq["canh_bao"])
-F.bang("SX Ngay San Xuat")["NSX-2"] = {"name": "NSX-2", "ngay": "2026-10-09", "docstatus": 0, "chot_ghiso": 0,
-                                       "chot_vaohop": 0}
-kiem("… chưa chốt Ghi sổ cũng báo", any("chưa chốt Ghi sổ (09/10)" in c for c in A.tong_quan("Kho BTP", BTP_)["canh_bao"]))
+kiem("cảnh báo: ngày Vào hộp còn chờ đồng bộ (bột chưa trừ sổ) — không chặn; bảo đợi đồng bộ, không bảo đi chốt",
+     tq["canh_bao"] == ["1 ngày Vào hộp chưa đồng bộ vào kho (08/10): bột đã vào hộp chưa trừ sổ — cân thấy ít hơn sổ "
+                        "là thành THIẾU. Đang chờ đồng bộ — đợi vài phút cho xong, rồi cân."], tq["canh_bao"])
+kiem("D211: ngày đã đồng bộ xong (dù cờ chốt cũ = 0) KHÔNG bị báo; không câu nào còn bảo \"chốt\"",
+     not any("07/10" in c or "chốt" in c for c in tq["canh_bao"]), tq["canh_bao"])
+F.bang("SX Ngay San Xuat")["NSX-2"] = {"name": "NSX-2", "ngay": "2026-10-09", "docstatus": 0, "can_dong_bo_gs": 1,
+                                       "can_dong_bo_vh": 0, "loi_dong_bo_gs": "Thiếu giá vốn: Đường kính"}
+cb = A.tong_quan("Kho BTP", BTP_)["canh_bao"]
+kiem("… Ghi sổ chưa đồng bộ cũng báo; có LỖI thì chỉ đúng chỗ xử lý (lịch Đồng bộ, THỬ LẠI)",
+     any(c.startswith("1 ngày Ghi sổ chưa đồng bộ vào kho (09/10)") and "LỖI đồng bộ" in c and "THỬ LẠI" in c
+         for c in cb) and any("Vào hộp chưa đồng bộ vào kho (08/10)" in c for c in cb), cb)
 F.bang("SX Ngay San Xuat").pop("NSX-2")
-F.bang("SX Ngay San Xuat")["NSX-3"] = {"name": "NSX-3", "ngay": "2026-10-12", "docstatus": 0, "chot_ghiso": 0,
-                                       "chot_vaohop": 0}
-kiem("… phiếu ngày lập trước cho ngày SAU hôm nay thì không nhắc",
-     not any("12/10" in c for c in A.tong_quan("Kho BTP", BTP_)["canh_bao"]))
+F.bang("SX Ngay San Xuat")["NSX-3"] = {"name": "NSX-3", "ngay": "2026-10-12", "docstatus": 0, "can_dong_bo_gs": 1,
+                                       "can_dong_bo_vh": 1}
+F.bang("SX Ngay San Xuat")["NSX-4"] = {"name": "NSX-4", "ngay": "2026-10-06", "docstatus": 2, "can_dong_bo_gs": 1,
+                                       "can_dong_bo_vh": 1}
+cb = A.tong_quan("Kho BTP", BTP_)["canh_bao"]
+kiem("… phiếu ngày lập trước cho ngày SAU hôm nay, phiếu ngày đã huỷ: không nhắc",
+     not any("12/10" in c or "06/10" in c for c in cb), cb)
+F.bang("SX Ngay San Xuat").pop("NSX-4")
 tx = A.tong_quan("Kho Xuong", BTP_)
 kiem("kho xưởng: không cảnh báo chốt ngày (tầng 1 ghi sổ ngay); đỗ ủ hiện ở đó",
      not tx["canh_bao"] and [x["item"] for x in tx["hang"]] == ["DO-U"] and tx["hang"][0]["nhom"] == "Đỗ ủ / đỗ vỡ", tx)
