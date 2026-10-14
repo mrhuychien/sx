@@ -17,15 +17,28 @@ export function khungNo(container, tieuDe, nhac = [], mo = null) {
   const cu = container.firstElementChild;
   const box = el('details', 'sx-no-gap');
   box.open = mo == null ? !!(cu && cu.tagName === 'DETAILS' && cu.open) : !!mo;
-  const ds = nhac.filter((x) => x && x.chu);
-  box.appendChild(el('summary', 'sx-no-tom', `<span class="sx-field-label">${esc(tieuDe)}</span>${ds.length
-    ? `<span class="sx-no-nhac">${ds.map((x) => `<span${x.loai ? ` class="sx-no-nhac-${x.loai}"` : ''}>${
-      esc(x.chu)}</span>`).join(' · ')}</span>` : ''}`));
+  box.appendChild(el('summary', 'sx-no-tom', tomHtml(tieuDe, nhac)));
   const than = el('div', 'sx-no-than');
   box.appendChild(than);
   container.innerHTML = '';
   container.appendChild(box);
   return than;
+}
+
+/** Bản CHUỖI của khungNo — cho thẻ vẽ cả khối bằng innerHTML rồi tìm phần tử bằng querySelector (Kiểm kê, D209):
+ * trả `<details>` bọc sẵn `thanHtml`. Giữ trạng thái mở theo khung đang có trong `container` (lần đầu: gập). */
+export function khungNoHtml(container, tieuDe, nhac, thanHtml) {
+  const cu = container.querySelector('.sx-no-gap');
+  return `<details class="sx-no-gap"${cu && cu.open ? ' open' : ''}><summary class="sx-no-tom">${tomHtml(tieuDe, nhac)
+  }</summary><div class="sx-no-than">${thanHtml}</div></details>`;
+}
+
+// Dòng gập: tiêu đề kiểu nhãn + các mẩu nhắc nối bằng " · " (mục rỗng / 0 bị bỏ). Chữ đi qua esc().
+function tomHtml(tieuDe, nhac = []) {
+  const ds = nhac.filter((x) => x && x.chu);
+  return `<span class="sx-field-label">${esc(tieuDe)}</span>${ds.length
+    ? `<span class="sx-no-nhac">${ds.map((x) => `<span${x.loai ? ` class="sx-no-nhac-${x.loai}"` : ''}>${
+      esc(x.chu)}</span>`).join(' · ')}</span>` : ''}`;
 }
 
 /** Dòng nhắc "cũ nhất N ngày" của cả sổ (so_ngay = tuổi khoản nợ cũ nhất của từng mã). */

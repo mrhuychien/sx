@@ -111,7 +111,7 @@ const tep = (rel) => join(tam, `${rel.replace(/\//g, '__').replace(/\.js$/, '')}
 const doiDuong = (src) => src.replace(/from '\/assets\/sx\/sx\/([^']+)'/g,
   (_, rel) => `from '${pathToFileURL(tep(rel)).href}'`);
 for (const rel of ['lib/dom.js', 'lib/format.js', 'components/soluong.js', 'components/numpad.js',
-  'cards/nhapkhotp.js', 'cards/vaohoptet.js', 'cards/kiemke.js']) {
+  'components/gapno.js', 'cards/nhapkhotp.js', 'cards/vaohoptet.js', 'cards/kiemke.js']) {
   writeFileSync(tep(rel), doiDuong(readFileSync(GOC + rel, 'utf8')));
 }
 writeFileSync(tep('components/modal.js'), 'export const openModal = (o) => globalThis.__gia.openModal(o);\n'
@@ -615,8 +615,14 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   kiem('D188: nói rõ chốt = đặt lại toàn bộ kho thành phẩm, mỗi loại mỗi HSD một lô, mã không đếm về 0',
     /đặt lại toàn bộ kho thành phẩm/.test(c.innerHTML) && /mỗi loại, mỗi HSD một lô/.test(c.innerHTML)
     && /mã không đếm về 0/.test(c.innerHTML));
+  const tomKK = () => (c.innerHTML.match(/<summary class="sx-no-tom">([\s\S]*?)<\/summary>/) || [])[1] || '';
+  kiem('D209: thẻ GẬP sẵn (details không open); dòng gập: tên thẻ + mã còn hàng chưa ghi HSD (đỏ)',
+    /^<details class="sx-no-gap"><summary/.test(c.innerHTML) && tomKK().includes('Kiểm kê kho thành phẩm')
+    && tomKK().includes('<span class="sx-no-nhac-gap">4 mã còn hàng chưa ghi HSD</span>'), tomKK());
   c.querySelector('#kk-bat').bam();
   await choRe();
+  kiem('D209: đang đếm → dòng gập nói phiếu đang đếm dở + tiến độ (xanh)',
+    tomKK().includes('<span class="sx-no-nhac-lam">Đang đếm dở phiếu KK-1 — Đã đếm 0/4 mã</span>'), tomKK());
   kiem('BẮT ĐẦU → phiếu đang đếm, mã chưa đếm có nút + HSD / Không còn',
     !!c.querySelector('[data-them="0"]') && !!c.querySelector('[data-het="1"]'), c.innerHTML.slice(0, 200));
   kiem('… mã có tồn chưa đếm ghi "chưa đếm — chốt về 0"; nhắc đang kiểm kê nói chốt đặt lại toàn kho',

@@ -17,6 +17,8 @@
 // BÁN THÀNH PHẨM (D155): Kho BTP / Kho xưởng — hàng rời tính kg, lô theo ngày làm / lô rang, không có HSD: CÂN
 // TỪNG LÔ. Lô đã cân thì số cân thay số sổ của lô đó; lô chưa cân giữ nguyên.
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
+// D209: GẬP sẵn thành một dòng (kho + đang đếm dở bao nhiêu / mã chưa ghi HSD / chốt gần nhất), bấm mới xổ — như
+// các thẻ sổ nợ (D208). Vẽ lại khi lưu, đổi kho, gõ tìm… giữ nguyên đang mở.
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
@@ -26,6 +28,7 @@ import { openNumpad } from '/assets/sx/sx/components/numpad.js';
 import { moTaUom } from '/assets/sx/sx/components/soluong.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
 import { moSoHsd, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js';
+import { khungNoHtml } from '/assets/sx/sx/components/gapno.js';
 
 const BTP = 'Bán thành phẩm';
 const NHO_KHO = 'sx-kk-kho';            // kho đang kiểm của máy này — mở lại thẻ vào đúng kho đó
@@ -139,6 +142,32 @@ export async function render({ container, call, boot }) {
 
   const veCanhBao = () => (dl.canh_bao || []).map((c) => `<div class="sx-kk-nhac">⚠ ${esc(c)}</div>`).join('');
 
+  // Tiến độ phiếu đang đếm — dùng ở dòng gập và đầu danh sách.
+  function tienDo() {
+    if (!laBtp()) return `Đã đếm ${dl.hang.filter((x) => x.da_dem).length}/${dl.hang.length} mã`;
+    const lo = dl.hang.flatMap((x) => x.lo.filter((l) => !l.thu_hoi));
+    return `Đã cân ${lo.filter((l) => l.can != null).length}/${lo.length} lô`;
+  }
+
+  // D209: dòng nhắc khi thẻ gập — đang đếm dở (xanh: mở ra đếm tiếp), mã còn hàng chưa ghi HSD (đỏ), chốt gần nhất.
+  function nhacGap() {
+    const chot = (dl.gan_day || []).find((g) => g.trang_thai === 'Đã chốt');
+    const lanChot = chot && { chu: `chốt gần nhất ${veNgayDu(chot.ngay)}` };
+    if (dl.phieu) {
+      const n = (dl.canh_bao || []).length;
+      return [{ chu: `Đang ${dem()} dở phiếu ${dl.phieu.name} — ${tienDo()}`, loai: 'lam' },
+        n && { chu: `⚠ ${n} lưu ý trước khi chốt`, loai: 'gap' }];
+    }
+    if (laBtp()) {
+      const soLo = dl.hang.reduce((a, x) => a + x.lo.filter((l) => !l.thu_hoi).length, 0);
+      return [{ chu: `${dl.hang.length} mã · ${soLo} lô trên sổ` }, lanChot];
+    }
+    const co = dl.hang.filter((x) => x.so_sach > 0);
+    const chua = co.filter((x) => x.chua_hsd > 0).length;
+    return [chua ? { chu: `${chua} mã còn hàng chưa ghi HSD`, loai: 'gap' }
+      : { chu: `${co.length} mã đang có hàng — lô nào cũng đã có HSD` }, lanChot];
+  }
+
   // ─────────────────────────── chưa có phiếu đang đếm ───────────────────────────
   function veChuaMo() {
     let tom;
@@ -152,9 +181,8 @@ export async function render({ container, call, boot }) {
         chua.reduce((a, x) => a + x.chua_hsd, 0))} sp</div>`
         : `<div class="sx-muted">${co.length} mã đang có hàng trong ${esc(dl.kho)} — lô nào cũng đã có HSD.</div>`;
     }
-    container.innerHTML = `
+    container.innerHTML = khungNoHtml(container, tieuDe(), nhacGap(), `
       ${veKho()}
-      <div class="sx-field-label">${tieuDe()}</div>
       <div class="sx-muted">${laBtp()
     ? 'Cân từng lô (kg) rồi chốt: lô đã cân thì số cân thay số sổ của lô đó, lô chưa cân giữ nguyên; thừa / thiếu ghi điều chỉnh kho.'
     : `Đếm số thùng / hộp từng loại theo HSD in trên hộp rồi chốt. Chốt = <b>đặt lại toàn bộ kho thành phẩm</b>
@@ -163,7 +191,7 @@ export async function render({ container, call, boot }) {
       ${veCanhBao()}
       <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-bat">BẮT ĐẦU KIỂM KÊ</button>
       ${veGanDay()}
-      ${veNutAm()}`;
+      ${veNutAm()}`);
     $('#kk-bat').addEventListener('click', (e) => lam(() => call('sx.api.kiemke.bat_dau', khoNay()), e.currentTarget));
     ganKho();
     ganGanDay();
@@ -401,13 +429,7 @@ export async function render({ container, call, boot }) {
     const ds = hang.map((x, i) => [x, i]).filter(([x]) => fn(x)
       && (!q || x.ten.toLowerCase().includes(q) || x.item.toLowerCase().includes(q)
         || (x.lo || []).some((l) => String(l.batch || '').toLowerCase().includes(q))));
-    let tien;
-    if (laBtp()) {
-      const lo = hang.flatMap((x) => x.lo.filter((l) => !l.thu_hoi));
-      tien = `Đã cân ${lo.filter((l) => l.can != null).length}/${lo.length} lô`;
-    } else {
-      tien = `Đã đếm ${daDem.length}/${hang.length} mã`;
-    }
+    const tien = tienDo();
     let nhom = null;
     const khoi = ds.map(([x, i]) => {
       let dau = '';
@@ -417,7 +439,7 @@ export async function render({ container, call, boot }) {
       }
       return dau + (laBtp() ? veMaBtp(x, i) : veMa(x, i));
     }).join('');
-    container.innerHTML = `
+    container.innerHTML = khungNoHtml(container, tieuDe(), nhacGap(), `
       ${veKho()}
       <div class="sx-field-label">Kiểm kê ${esc(p.name)} · bắt đầu ${esc(veNgayDu(p.bat_dau_luc))} ${
   esc(String(p.bat_dau_luc).slice(11, 16))} · ${esc(dl.kho)}</div>
@@ -451,7 +473,7 @@ export async function render({ container, call, boot }) {
         ${p.duoc_huy ? '<button type="button" class="sx-btn sx-btn-ghost" id="kk-huy">Bỏ phiếu kiểm kê</button>' : ''}
       </div>
       ${veGanDay()}
-      ${veNutAm()}`;
+      ${veNutAm()}`);
 
     ganKho();
     container.querySelectorAll('[data-loc]').forEach((b) => b.addEventListener('click', () => {

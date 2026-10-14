@@ -323,6 +323,22 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Thẻ Kiểm kê kho gập sẵn — bấm mới xổ (D209)
+
+- Thẻ **Kiểm kê kho** (màn Nhập kho, Quản lý) gập thành một dòng như các thẻ sổ nợ (D208): tên thẻ theo kho đang
+  chọn (thành phẩm / bán thành phẩm / kho xưởng) + dòng nhắc —
+  - đang có phiếu đếm dở: **xanh** *Đang đếm dở phiếu KK-… — Đã đếm X/Y mã* (bán thành phẩm: *Đã cân X/Y lô*), kèm
+    *⚠ N lưu ý trước khi chốt* (đỏ) nếu có;
+  - không có phiếu: thành phẩm *N mã còn hàng chưa ghi HSD* (đỏ) hoặc *N mã đang có hàng — lô nào cũng đã có HSD*;
+    bán thành phẩm *N mã · M lô trên sổ*; rồi *chốt gần nhất dd/mm/yy* (bỏ qua phiếu đã huỷ chốt).
+- Bấm dòng đó mới xổ ra chọn kho, BẮT ĐẦU KIỂM KÊ, danh sách mã, biên bản đã chốt, nút dọn tồn âm / tồn không lô. Đang
+  đếm thì mọi lần vẽ lại (lưu một dòng, Không còn, Đếm lại, đổi kho, gõ tìm, đổi thời điểm chốt sổ) **vẫn mở**, con
+  trỏ vẫn ở ô tìm. Mở lại màn thì gập — dòng nhắc vẫn nói đang đếm dở để biết mà mở.
+- Thẻ vẽ cả khối bằng chuỗi HTML nên dùng bản chuỗi của khung gập: `khungNoHtml` trong `components/gapno.js`.
+- Test: `test-gapno.mjs` thêm ca Kiểm kê (Chromium: gập mặc định, BẮT ĐẦU / gõ tìm vẫn mở, mở lại màn thì gập, dòng
+  nhắc theo từng trạng thái); `test-sohsd.mjs` (DOM giả) kiểm dòng gập trước / sau BẮT ĐẦU — các ca cũ giữ nguyên.
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-156**.
+
 ## Thẻ sổ nợ và Lô cũ chưa có HSD gập sẵn — bấm mới xổ danh sách (D208)
 
 - **Trước**: thẻ Sổ nợ BOM, Sổ nợ đơn giá, Nợ vào hộp và Lô cũ chưa có HSD (màn Quản lý, Ghi hộp, Nhập kho) xổ hết

@@ -32,12 +32,13 @@ const PUB = join(GOC, 'sx/public/sx');
 const TRANG = `<!doctype html><meta charset="utf-8">
 <link rel="stylesheet" href="/assets/sx/sx/shell.css">
 <body><div class="sx-app"><div class="sx-view" id="khung">
-  <div id="bom"></div><div id="gia"></div><div id="vh"></div><div id="lo"></div></div></div>
+  <div id="bom"></div><div id="gia"></div><div id="vh"></div><div id="lo"></div><div id="kk"></div></div></div>
 <script type="module">
 import * as BOM from '/assets/sx/sx/cards/nobom.js';
 import * as GIA from '/assets/sx/sx/cards/nogia.js';
 import * as VH from '/assets/sx/sx/cards/novaohop.js';
 import * as LO from '/assets/sx/sx/cards/lohsd.js';
+import * as KK from '/assets/sx/sx/cards/kiemke.js';
 window.CALLS = [];
 window.REFRESH = 0;
 const call = async (m, a) => {
@@ -54,9 +55,13 @@ const call = async (m, a) => {
     return {};
   }
   if (m === 'sx.api.khotp.ghi_no_khoan_chung') return { so_hop: a.so_hop, ten: 'Bánh sen', thanh_tien: 30000 };
+  if (m === 'sx.api.kiemke.bat_dau') {
+    D.kk.phieu = { name: 'KK-2026-0004', bat_dau_luc: '2026-10-14 09:30', duoc_huy: true };
+  }
+  if (m.startsWith('sx.api.kiemke.')) return structuredClone(D.kk);
   return {};
 };
-const MOD = { bom: BOM, gia: GIA, vh: VH, lo: LO };
+const MOD = { bom: BOM, gia: GIA, vh: VH, lo: LO, kk: KK };
 const ngay = { name: 'N1', ngay: '2026-10-14', docstatus: 0 };
 const boot = { ngay_xem: '2026-10-14', la_hom_nay: true, ngay_sx: ngay };
 // Vẽ (lại) một thẻ vào ô MỚI — như shell gắn thẻ khi mở màn / vẽ lại cả màn.
@@ -103,6 +108,17 @@ const DL = {
       goi_y: '2027-02-03' },
     { batch: 'TRE-OLD1', ten: 'Hộp tre 675g', nsx: '2026-07-20', co_nsx: false, ton: 2, dvt: 'Hộp', goi_y: null }] },
 };
+// Kiểm kê kho thành phẩm: 10 mã (đủ để hiện ô tìm khi đang đếm), 2 mã còn hàng chưa ghi HSD, lần chốt 12/10.
+DL.kk = { kho: 'Kho TP - HGC', loai: 'Thành phẩm', duoc_chot: true, hom_nay: '2026-10-14', bay_gio: '2026-10-14T10:00',
+  phieu: null, canh_bao: [], danh_muc: [],
+  cac_kho: [{ kho: 'Kho TP - HGC', loai: 'Thành phẩm', nhan: 'Thành phẩm' }],
+  // mới nhất trước: phiếu 13/10 đã HUỶ chốt — "chốt gần nhất" phải là 12/10
+  gan_day: [{ name: 'KK-2026-0003', ngay: '2026-10-13', trang_thai: 'Đã huỷ', so_ma: 40, tong_so_sach: 1000,
+    tong_dem: 900, tong_lech: -100 }, { name: 'KK-2026-0002', ngay: '2026-10-12', trang_thai: 'Đã chốt', so_ma: 40,
+    tong_so_sach: 1000, tong_dem: 990, tong_lech: -10 }],
+  hang: Array.from({ length: 10 }, (_, i) => ({ item: `TP-${i}`, ten: i === 3 ? 'Bánh sen' : `Bánh số ${i}`,
+    dvt: 'Hộp', uoms: [], so_sach: 10 + i, chua_hsd: i < 2 ? 5 : 0, thu_hoi: 0, khong_lo: false,
+    theo_hsd: [{ hsd: '2027-04-01', so: 5 + i }], da_dem: false, dem: [], tong_dem: 0 })) };
 DL.lo_ca = { ...DL.lo, rows: [...DL.lo.rows, { batch: 'TCT-OLD9', ten: 'Bánh TCT', nsx: '2026-06-01', co_nsx: true,
   ton: 0, dvt: 'Hộp', goi_y: '2026-12-01' }] };
 
@@ -127,7 +143,7 @@ p.on('pageerror', (e) => loi.push(e.message));
 await p.goto(`http://127.0.0.1:${srv.address().port}/`);
 await p.waitForFunction(() => window.SAN_SANG, null, { timeout: 10000 });
 await p.evaluate((d) => { window.DL = d; }, DL);
-const veHet = () => p.evaluate(async () => { for (const k of ['bom', 'gia', 'vh', 'lo']) await window.ve(k); });
+const veHet = () => p.evaluate(async () => { for (const k of ['bom', 'gia', 'vh', 'lo', 'kk']) await window.ve(k); });
 await veHet();
 
 // Đọc một thẻ: đang mở?, tiêu đề, các mẩu nhắc (chữ + lớp), cao bao nhiêu, danh sách có hiện không.
@@ -243,6 +259,38 @@ kiem('lần vẽ sau đó → gập như mặc định (chỉ mở sẵn một l
 await p.evaluate(() => window.ve('bom'));
 kiem('mở lại màn (ô mới, không thao tác gì) → gập như mặc định', !(await doc('bom')).mo);
 
+console.log('\n-- Kiểm kê kho (D209): gập sẵn, đang đếm / gõ tìm vẫn mở --');
+let kk = await doc('kk');
+kiem('Kiểm kê gập sẵn, cao một dòng; tiêu đề kho; nhắc mã chưa ghi HSD (đỏ) + lần chốt gần nhất (bỏ phiếu huỷ)',
+  kk.co && !kk.mo && kk.cao <= 120 && kk.tieuDe === 'Kiểm kê kho thành phẩm' && JSON.stringify(kk.nhac)
+  === JSON.stringify([['2 mã còn hàng chưa ghi HSD', 'sx-no-nhac-gap'], ['chốt gần nhất 12/10/26', '']])
+  && !(await p.isVisible('#kk #kk-bat')), JSON.stringify(kk));
+await p.click('#kk summary.sx-no-tom');
+kiem('bấm → xổ ra: nút BẮT ĐẦU KIỂM KÊ, danh sách đã chốt', (await doc('kk')).mo && await p.isVisible('#kk #kk-bat')
+  && (await p.$$('#kk [data-bb]')).length === 2);
+await p.click('#kk #kk-bat');
+await p.waitForFunction(() => !!document.querySelector('#kk [data-them]'), null, { timeout: 3000 }).catch(() => {});
+kk = await doc('kk');
+kiem('BẮT ĐẦU (thẻ vẽ lại cả khối) → VẪN MỞ, danh sách mã hiện; dòng gập: đang đếm dở phiếu + tiến độ (xanh)',
+  kk.mo && (await p.$$('#kk [data-them]')).length === 10 && JSON.stringify(kk.nhac)
+  === JSON.stringify([['Đang đếm dở phiếu KK-2026-0004 — Đã đếm 0/10 mã', 'sx-no-nhac-lam']]), JSON.stringify(kk));
+await p.fill('#kk #kk-tim', '');
+await p.type('#kk #kk-tim', 'sen');
+const tim = await p.evaluate(() => ({ dangGo: document.activeElement && document.activeElement.id,
+  gt: document.querySelector('#kk #kk-tim').value, ma: document.querySelectorAll('#kk [data-them]').length }));
+kk = await doc('kk');
+kiem('gõ tìm (mỗi phím vẽ lại cả thẻ): vẫn mở, con trỏ vẫn ở ô tìm, lọc đúng 1 mã', kk.mo && tim.dangGo === 'kk-tim'
+  && tim.gt === 'sen' && tim.ma === 1, JSON.stringify(tim));
+await p.evaluate(() => window.ve('kk'));
+kk = await doc('kk');
+kiem('mở lại màn (ô mới) khi đang đếm dở → gập, dòng nhắc vẫn nói đang đếm dở để biết mà mở', !kk.mo
+  && kk.nhac.length === 1 && kk.nhac[0][0].startsWith('Đang đếm dở phiếu KK-2026-0004'), JSON.stringify(kk.nhac));
+await p.evaluate(() => { window.DL.kk.phieu = null; window.DL.kk.hang.forEach((h) => { h.chua_hsd = 0; }); });
+await p.evaluate(() => window.ve('kk'));
+kk = await doc('kk');
+kiem('không phiếu đang đếm, mọi lô có HSD → nhắc thường (không đỏ)', JSON.stringify(kk.nhac) === JSON.stringify([
+  ['10 mã đang có hàng — lô nào cũng đã có HSD', ''], ['chốt gần nhất 12/10/26', '']]), JSON.stringify(kk.nhac));
+
 console.log('\n-- hết nợ: thẻ tự ẩn như cũ --');
 await p.evaluate(() => { window.DL.bom = { nhom: [], tong_dong: 0, duoc_xu_ly: true, ngay_no_lau: 7 };
   window.DL.vh = { ...window.DL.vh, nhom: [] }; });
@@ -254,7 +302,7 @@ console.log('\n-- điện thoại (360px): dòng gập không tràn ngang --');
 await p.setViewportSize({ width: 360, height: 800 });
 await p.evaluate((d) => { window.DL = d; }, DL);
 await veHet();
-const tran = await p.evaluate(() => ['bom', 'gia', 'vh', 'lo'].map((k) => {
+const tran = await p.evaluate(() => ['bom', 'gia', 'vh', 'lo', 'kk'].map((k) => {
   const c = document.getElementById(k);
   return [k, c.scrollWidth - c.clientWidth, document.documentElement.scrollWidth - window.innerWidth];
 }));
