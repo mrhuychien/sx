@@ -32,13 +32,14 @@ const PUB = join(GOC, 'sx/public/sx');
 const TRANG = `<!doctype html><meta charset="utf-8">
 <link rel="stylesheet" href="/assets/sx/sx/shell.css">
 <body><div class="sx-app"><div class="sx-view" id="khung">
-  <div id="bom"></div><div id="gia"></div><div id="vh"></div><div id="lo"></div><div id="kk"></div></div></div>
+  <div id="bom"></div><div id="gia"></div><div id="vh"></div><div id="lo"></div><div id="kk"></div><div id="nk"></div></div></div>
 <script type="module">
 import * as BOM from '/assets/sx/sx/cards/nobom.js';
 import * as GIA from '/assets/sx/sx/cards/nogia.js';
 import * as VH from '/assets/sx/sx/cards/novaohop.js';
 import * as LO from '/assets/sx/sx/cards/lohsd.js';
 import * as KK from '/assets/sx/sx/cards/kiemke.js';
+import * as NK from '/assets/sx/sx/cards/nhapkhotp.js';
 window.CALLS = [];
 window.REFRESH = 0;
 const call = async (m, a) => {
@@ -59,9 +60,22 @@ const call = async (m, a) => {
     D.kk.phieu = { name: 'KK-2026-0004', bat_dau_luc: '2026-10-14 09:30', duoc_huy: true };
   }
   if (m.startsWith('sx.api.kiemke.')) return structuredClone(D.kk);
+  // D214: phiếu nhập — không có phiếu nháp; phiếu đã duyệt chia trang 10 / trang như máy chủ thật.
+  if (m === 'sx.api.khotp.phieu_dang_mo') {
+    return { nhap: null, kho_tp: 'Kho TP - HGC', cho_nhan: [], danh_muc: [{ item: 'TP-A', ten: 'Bánh A', dvt: 'Hộp' }] };
+  }
+  if (m === 'sx.api.khotp.ds_phieu_nhap') {
+    const tong = D.nk.length;
+    const so = Math.max(1, Math.ceil(tong / 10));
+    const t = Math.min(Math.max(Number(a.trang) || 1, 1), so);
+    return { ds: D.nk.slice((t - 1) * 10, t * 10), tong, trang: t, so_trang: so, moi_trang: 10 };
+  }
+  if (m === 'sx.api.khotp.chi_tiet_phieu') {
+    return { name: a.name, ngay: '2026-10-14', nguoi_duyet: 'thukho', kho_dich: 'Kho TP - HGC', dong: [] };
+  }
   return {};
 };
-const MOD = { bom: BOM, gia: GIA, vh: VH, lo: LO, kk: KK };
+const MOD = { bom: BOM, gia: GIA, vh: VH, lo: LO, kk: KK, nk: NK };
 const ngay = { name: 'N1', ngay: '2026-10-14', docstatus: 0 };
 const boot = { ngay_xem: '2026-10-14', la_hom_nay: true, ngay_sx: ngay };
 // Vẽ (lại) một thẻ vào ô MỚI — như shell gắn thẻ khi mở màn / vẽ lại cả màn.
@@ -119,6 +133,9 @@ DL.kk = { kho: 'Kho TP - HGC', loai: 'Thành phẩm', duoc_chot: true, hom_nay: 
   hang: Array.from({ length: 10 }, (_, i) => ({ item: `TP-${i}`, ten: i === 3 ? 'Bánh sen' : `Bánh số ${i}`,
     dvt: 'Hộp', uoms: [], so_sach: 10 + i, chua_hsd: i < 2 ? 5 : 0, thu_hoi: 0, khong_lo: false,
     theo_hsd: [{ hsd: '2027-04-01', so: 5 + i }], da_dem: false, dem: [], tong_dem: 0 })) };
+// 23 phiếu đã duyệt, mới nhất trước (máy chủ xếp creation desc).
+DL.nk = Array.from({ length: 23 }, (_, i) => ({ name: `PD-${String(23 - i).padStart(2, '0')}`, ngay: '2026-10-14',
+  tong_dem: 100 + i, tong_lech: i === 0 ? -2 : 0, nguoi_duyet: 'thukho' }));
 DL.lo_ca = { ...DL.lo, rows: [...DL.lo.rows, { batch: 'TCT-OLD9', ten: 'Bánh TCT', nsx: '2026-06-01', co_nsx: true,
   ton: 0, dvt: 'Hộp', goi_y: '2026-12-01' }] };
 
@@ -143,7 +160,9 @@ p.on('pageerror', (e) => loi.push(e.message));
 await p.goto(`http://127.0.0.1:${srv.address().port}/`);
 await p.waitForFunction(() => window.SAN_SANG, null, { timeout: 10000 });
 await p.evaluate((d) => { window.DL = d; }, DL);
-const veHet = () => p.evaluate(async () => { for (const k of ['bom', 'gia', 'vh', 'lo', 'kk']) await window.ve(k); });
+const veHet = () => p.evaluate(async () => {
+  for (const k of ['bom', 'gia', 'vh', 'lo', 'kk', 'nk']) await window.ve(k);
+});
 await veHet();
 
 // Đọc một thẻ: đang mở?, tiêu đề, các mẩu nhắc (chữ + lớp), cao bao nhiêu, danh sách có hiện không.
@@ -291,6 +310,68 @@ kk = await doc('kk');
 kiem('không phiếu đang đếm, mọi lô có HSD → nhắc thường (không đỏ)', JSON.stringify(kk.nhac) === JSON.stringify([
   ['10 mã đang có hàng — lô nào cũng đã có HSD', ''], ['chốt gần nhất 12/10/26', '']]), JSON.stringify(kk.nhac));
 
+console.log('\n-- Nhập kho (D214): phiếu đã duyệt gập sẵn, chia trang --');
+await p.evaluate(() => window.ve('nk'));
+const nk = () => p.evaluate(() => {
+  const d = document.querySelector('#nk #sx-nk-gan');
+  if (!d) return null;
+  const tg = d.querySelector('.sx-nk-trang');
+  const nut = (k) => d.querySelector(`[data-trang]${k}`);
+  return { mo: d.open, tieuDe: d.querySelector('summary .sx-field-label').textContent,
+    nhac: d.querySelector('summary .sx-no-nhac').textContent.trim(),
+    dong: [...d.querySelectorAll('[data-phieu]')].map((r) => r.dataset.phieu),
+    hien: [...d.querySelectorAll('[data-phieu]')].some((r) => r.checkVisibility()),
+    trang: tg ? tg.querySelector('.sx-muted').textContent : '',
+    moiKhoa: tg ? tg.querySelectorAll('button')[0].disabled : null,
+    cuKhoa: tg ? tg.querySelectorAll('button')[1].disabled : null, coNut: !!nut('') };
+});
+let g = await nk();
+kiem('gập sẵn: dòng gập nói tổng số phiếu + phiếu mới nhất; danh sách ẩn', g && !g.mo && !g.hien
+  && g.tieuDe === 'Phiếu đã duyệt — 23 phiếu' && g.nhac === 'mới nhất PD-23 · 14/10', JSON.stringify(g));
+await p.click('#nk #sx-nk-gan > summary');
+g = await nk();
+kiem('bấm → xổ trang 1: 10 phiếu mới nhất, "Trang 1/3", ‹ Mới hơn khoá, Cũ hơn › mở', g.mo && g.hien
+  && g.dong.join() === Array.from({ length: 10 }, (_, i) => `PD-${23 - i}`).join() && g.trang === 'Trang 1/3'
+  && g.moiKhoa && !g.cuKhoa, JSON.stringify(g));
+await p.evaluate(() => { window.CALLS = []; });
+await p.click('#nk [data-trang]:not([disabled])');
+await p.waitForFunction(() => document.querySelector('#nk .sx-nk-trang .sx-muted').textContent === 'Trang 2/3',
+  null, { timeout: 3000 }).catch(() => {});
+g = await nk();
+kiem('Cũ hơn › → hỏi máy chủ trang 2; khối VẪN MỞ; 10 phiếu kế tiếp; hai nút đều mở; dòng gập nói đang xem trang',
+  g.mo && g.dong[0] === 'PD-13' && g.dong[9] === 'PD-04' && g.trang === 'Trang 2/3' && !g.moiKhoa && !g.cuKhoa
+  && g.nhac === 'đang xem trang 2/3' && JSON.stringify((await p.evaluate(() => window.CALLS))
+    .filter(([m]) => m === 'sx.api.khotp.ds_phieu_nhap').map(([, a]) => a)) === '[{"trang":2}]', JSON.stringify(g));
+await p.click('#nk .sx-nk-trang button:last-child');
+await p.waitForFunction(() => document.querySelector('#nk .sx-nk-trang .sx-muted').textContent === 'Trang 3/3',
+  null, { timeout: 3000 }).catch(() => {});
+g = await nk();
+kiem('trang cuối: 3 phiếu cũ nhất, Cũ hơn › khoá', g.mo && g.dong.join() === 'PD-03,PD-02,PD-01' && g.cuKhoa
+  && !g.moiKhoa, JSON.stringify(g));
+await p.click('#nk .sx-nk-trang button:first-child');
+await p.waitForFunction(() => document.querySelector('#nk .sx-nk-trang .sx-muted').textContent === 'Trang 2/3',
+  null, { timeout: 3000 }).catch(() => {});
+kiem('‹ Mới hơn → về trang 2', (await nk()).trang === 'Trang 2/3');
+await p.click('#nk [data-phieu="PD-10"]');
+await p.waitForSelector('.sx-modal', { timeout: 3000 }).catch(() => {});
+kiem('bấm một phiếu (trang 2) → mở chi tiết đúng phiếu (xem / huỷ như cũ)',
+  (await p.evaluate(() => window.CALLS)).some(([m, a]) => m === 'sx.api.khotp.chi_tiet_phieu' && a.name === 'PD-10')
+  && ((await p.textContent('.sx-modal')) || '').includes('PD-10'));
+await p.evaluate(() => document.querySelector('.sx-modal-close').click());
+await p.evaluate(() => window.ve('nk'));
+kiem('mở lại màn → gập, về trang 1', !(await nk()).mo && (await nk()).nhac.startsWith('mới nhất PD-23'));
+await p.evaluate(() => { window.DL.nk = window.DL.nk.slice(0, 7); });
+await p.evaluate(() => window.ve('nk'));
+await p.click('#nk #sx-nk-gan > summary');
+g = await nk();
+kiem('ít hơn một trang (7 phiếu): không có nút sang trang', g.mo && g.dong.length === 7 && !g.coNut && !g.trang,
+  JSON.stringify(g));
+await p.evaluate(() => { window.DL.nk = []; });
+await p.evaluate(() => window.ve('nk'));
+kiem('chưa có phiếu đã duyệt nào: không vẽ khối', (await nk()) === null);
+await p.evaluate(() => { window.DL.nk = Array.from({ length: 23 }, (_, i) => ({ name: `PD-${String(23 - i)
+  .padStart(2, '0')}`, ngay: '2026-10-14', tong_dem: 100 + i, tong_lech: 0, nguoi_duyet: 'thukho' })); });
+
 console.log('\n-- hết nợ: thẻ tự ẩn như cũ --');
 await p.evaluate(() => { window.DL.bom = { nhom: [], tong_dong: 0, duoc_xu_ly: true, ngay_no_lau: 7 };
   window.DL.vh = { ...window.DL.vh, nhom: [] }; });
@@ -302,7 +383,9 @@ console.log('\n-- điện thoại (360px): dòng gập không tràn ngang --');
 await p.setViewportSize({ width: 360, height: 800 });
 await p.evaluate((d) => { window.DL = d; }, DL);
 await veHet();
-const tran = await p.evaluate(() => ['bom', 'gia', 'vh', 'lo', 'kk'].map((k) => {
+await p.evaluate(() => window.ve('nk'));
+await p.click('#nk #sx-nk-gan > summary');
+const tran = await p.evaluate(() => ['bom', 'gia', 'vh', 'lo', 'kk', 'nk'].map((k) => {
   const c = document.getElementById(k);
   return [k, c.scrollWidth - c.clientWidth, document.documentElement.scrollWidth - window.innerWidth];
 }));

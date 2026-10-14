@@ -87,9 +87,14 @@ def _khop(h, f):
     return True
 
 
-def get_all(dt, filters=None, fields=None, pluck=None, **k):
+def get_all(dt, filters=None, fields=None, pluck=None, order_by=None, limit_start=0, limit_page_length=None,
+            limit=None, **k):
     src = {"SX Phieu Nhap TP": list(PHIEU.values()), "Stock Entry Detail": SED}.get(dt, [])
     ra = [Doc(h) for h in src if _khop(h, filters)]
+    if order_by == "creation desc":                       # D214: như MariaDB — mới nhất trước
+        ra.sort(key=lambda h: str(h.get("creation") or ""), reverse=True)
+    n = limit_page_length or limit
+    ra = ra[int(limit_start or 0):][:n] if n else ra[int(limit_start or 0):]
     return [h.get(pluck) for h in ra] if pluck else ra
 
 
@@ -115,7 +120,8 @@ frappe.get_all = get_all
 frappe.get_doc = lambda dt, n=None: PHIEU[n]
 frappe.new_doc = lambda dt: PhieuDoc(doctype=dt, dong=[])
 frappe.db = types.SimpleNamespace(get_value=_get_value, rollback=lambda: None,
-                                  set_value=lambda *a, **k: None)
+                                  set_value=lambda *a, **k: None,
+                                  count=lambda dt, f=None: len(get_all(dt, f)))
 frappe.__dict__["_"] = lambda s: s
 fu = types.ModuleType("frappe.utils")
 fu.flt = lambda v, p=None: round(float(v or 0), p) if p is not None else float(v or 0)
@@ -278,6 +284,34 @@ kiem("đang có phiếu nháp khác → vẫn huỷ, KHÔNG đẻ phiếu nháp 
      loi is None and kq.get("phieu_moi") is None
      and sum(1 for p in PHIEU.values() if p.docstatus == 0) == 1 and MSG)
 kiem("màn hình biết đang có phiếu nháp (ẩn nút lập lại)", K.chi_tiet_phieu("PN-1")["co_nhap"])
+
+print("\n-- D214: phiếu đã duyệt chia trang --")
+PHIEU.clear()
+for i in range(1, 24):                                     # 23 phiếu đã duyệt, PD-01 cũ nhất … PD-23 mới nhất
+    PHIEU[f"PD-{i:02d}"] = PhieuDoc(name=f"PD-{i:02d}", docstatus=1, ngay=f"2026-10-{1 + i % 28:02d}",
+                                    creation=f"2026-10-14 08:{i:02d}:00", tong_dem=i * 10, tong_lech=0,
+                                    nguoi_duyet="thukho@x", dong=[])
+PHIEU["PN-NHAP"] = PhieuDoc(name="PN-NHAP", docstatus=0, creation="2026-10-14 09:00:00", dong=[])
+PHIEU["PN-HUY"] = PhieuDoc(name="PN-HUY", docstatus=2, creation="2026-10-14 09:01:00", dong=[])
+t1 = K.ds_phieu_nhap(1)
+ok = ([x["name"] for x in t1["ds"]] == [f"PD-{i:02d}" for i in range(23, 13, -1)]
+      and (t1["tong"], t1["trang"], t1["so_trang"], t1["moi_trang"]) == (23, 1, 3, 10))
+kiem("trang 1: đúng 10 phiếu ĐÃ DUYỆT (bỏ phiếu nháp / đã huỷ), mới nhất trước; tổng 23, 3 trang", ok,
+     "" if ok else str(t1))
+t3 = K.ds_phieu_nhap(3)
+ok = [x["name"] for x in t3["ds"]] == ["PD-03", "PD-02", "PD-01"]
+kiem("trang cuối: 3 phiếu cũ nhất", ok, "" if ok else str(t3["ds"]))
+kiem("trang ngoài khoảng (vừa huỷ bớt phiếu) → kéo về trang cuối; trang rỗng / âm → trang 1",
+     K.ds_phieu_nhap(9)["trang"] == 3 and K.ds_phieu_nhap("")["trang"] == 1 and K.ds_phieu_nhap(-2)["trang"] == 1)
+kiem("cỡ trang chặn ở 50 (gửi 1000 cũng chỉ 50); ngày trả về dạng chuỗi",
+     K.ds_phieu_nhap(1, 1000)["moi_trang"] == 50 and isinstance(t1["ds"][0]["ngay"], str))
+PHIEU.clear()
+t0 = K.ds_phieu_nhap(1)
+ok = t0["ds"] == [] and t0["so_trang"] == 1
+kiem("chưa có phiếu nào: danh sách rỗng, 1 trang (màn không vẽ khối)", ok, "" if ok else str(t0))
+VAI.clear(); VAI.add("SX Ghi So")
+kiem("không có quyền thẻ Nhập kho → chặn", thu(lambda: K.ds_phieu_nhap(1))[1] is not None)
+VAI.clear(); VAI.add("SX Thu Kho")
 
 print("\n-- màn hình --")
 js = open("sx/public/sx/cards/nhapkhotp.js", encoding="utf-8").read()

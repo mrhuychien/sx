@@ -2202,3 +2202,8 @@ b.sx-tx-kl-loi { background: none; }
   margin: 0; padding: 0 var(--sx-s3) var(--sx-s3); overflow: auto; font-family: var(--sx-mono);
   font-size: var(--sx-f-xs); line-height: 1.5; white-space: pre; color: var(--sx-text);
 }
+
+/* ── D214: phiếu đã duyệt ở thẻ Nhập kho — khối gập trong thẻ (dùng khung .sx-no-gap của D208) + nút sang trang ── */
+.sx-nk-gan { border-top: 1px solid var(--sx-line); padding-top: var(--sx-s2); }
+.sx-nk-trang { display: flex; align-items: center; justify-content: space-between; gap: var(--sx-s2); }
+.sx-nk-trang .sx-btn { flex: none; }

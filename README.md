@@ -323,6 +323,20 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhập kho: danh sách phiếu đã duyệt gập sẵn, chia trang (D214)
+
+- **Trước**: thẻ Nhập kho chỉ hiện **5 phiếu đã duyệt mới nhất**, luôn xổ sẵn; phiếu cũ hơn không xem được ở portal.
+- **Giờ**: khối **Phiếu đã duyệt — N phiếu** GẬP sẵn (cùng kiểu thẻ sổ nợ D208) — dòng gập nói tổng số phiếu và phiếu
+  mới nhất; bấm mới xổ. **10 phiếu / trang**, mới nhất trước; nút **‹ Mới hơn · Trang x/y · Cũ hơn ›** (đầu / cuối thì
+  khoá nút đó; ít hơn một trang thì không có nút). Sang trang vẫn giữ khối mở. Bấm một phiếu ở trang nào cũng mở chi
+  tiết để xem / huỷ như cũ (D104). Mở lại màn thì gập, về trang 1.
+- Máy chủ: `sx.api.khotp.ds_phieu_nhap(trang, moi_trang)` — chỉ phiếu đã duyệt, `creation desc`; trang ngoài khoảng
+  (vừa huỷ bớt phiếu) kéo về trang gần nhất; cỡ trang tối đa 50. `phieu_gan_day` giữ lại cho máy còn bản cũ.
+- Test `test-huyphieu.py` (chia trang: lọc đúng, thứ tự, trang cuối, kéo trang, chặn cỡ, quyền), `test-gapno.mjs`
+  (Chromium: gập mặc định, sang trang giữ mở + hỏi đúng trang, nút khoá đúng, bấm phiếu mở chi tiết, ít hơn một trang
+  / chưa có phiếu), `test-sohsd.mjs`.
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-160**.
+
 ## Ghi hộp: "Copy sản lượng gửi nhóm" bỏ ★ Công khoán chung (D213)
 
 - Tin *Copy sản lượng gửi nhóm* ở màn Ghi hộp **không còn dòng ★ Công khoán chung** (như dòng ★ Công nhật): tin là để

@@ -30,16 +30,20 @@ export async function render({ container, call, refresh, boot }) {
     container.innerHTML = `<div class="sx-error-box">${esc(e.message)}</div>`;
     return;
   }
-  const ganDay = await call('sx.api.khotp.phieu_gan_day').catch(() => []);
+  // D214: phiếu đã duyệt CHIA TRANG (10 / trang), khối gập sẵn — trang 1 tải cùng thẻ (dòng gập nói có bao
+  // nhiêu phiếu).
+  const ganDay = await call('sx.api.khotp.ds_phieu_nhap', { trang: 1 }).catch(() => null);
 
   // D104: bấm một phiếu đã duyệt → xem chi tiết, thủ kho huỷ được ngay tại đây.
   // Gắn MỘT lần trên khung card (bắt sự kiện nổi lên), vì hai nhánh dưới vẽ lại
-  // innerHTML và listener gắn trên từng dòng sẽ mất theo.
+  // innerHTML và listener gắn trên từng dòng sẽ mất theo. D214: nút sang trang cũng vậy.
   if (!container.dataset.ganDay) {
     container.dataset.ganDay = '1';
     container.addEventListener('click', (e) => {
       const dong = e.target.closest('[data-phieu]');
-      if (dong) moPhieuDaDuyet(dong.dataset.phieu, call, refresh);
+      if (dong) { moPhieuDaDuyet(dong.dataset.phieu, call, refresh); return; }
+      const nut = e.target.closest('[data-trang]');
+      if (nut) sangTrang(container, call, Number(nut.dataset.trang), nut);
     });
   }
 
@@ -825,18 +829,49 @@ function veNgay(iso) {
   return d.length === 3 ? `${d[2]}/${d[1]}` : String(iso || '');
 }
 
-function veGanDay(ds) {
-  if (!ds || !ds.length) return '';
-  return `
-    <div class="sx-field-label">Phiếu đã duyệt gần đây — bấm để xem / huỷ</div>
-    <div class="sx-vh-list">${ds.map((g) => `
-      <div class="sx-vh-row" data-phieu="${esc(g.name)}" role="button" tabindex="0"
-        style="cursor:pointer">
-        <div class="sx-vh-who">
-          <div class="sx-vh-name">${esc(g.name)}</div>
-          <div class="sx-vh-meta">${esc(veNgay(g.ngay))} · ${esc(g.nguoi_duyet || '')}${
-            g.tong_lech ? ` · lệch ${g.tong_lech > 0 ? '+' : ''}${formatNumber(g.tong_lech)}` : ''}</div>
-        </div>
-        <span class="sx-nv-qty">${formatNumber(g.tong_dem)}</span>
-      </div>`).join('')}</div>`;
+// D214: phiếu đã duyệt — khối GẬP sẵn (như các thẻ sổ nợ, D208), bấm mới xổ; 10 phiếu / trang, ‹ Mới hơn · Cũ hơn ›.
+// `mo` = vẽ lại khi đang xem (sang trang) thì giữ mở. g = {ds, tong, trang, so_trang} của ds_phieu_nhap.
+function veGanDay(g, mo = false) {
+  if (!g || !g.ds || !g.ds.length) return '';
+  const dau = g.ds[0];
+  const nhac = g.trang === 1 ? `mới nhất ${dau.name} · ${veNgay(dau.ngay)}` : `đang xem trang ${g.trang}/${g.so_trang}`;
+  return `<details class="sx-no-gap sx-nk-gan" id="sx-nk-gan"${mo ? ' open' : ''}>
+    <summary class="sx-no-tom"><span class="sx-field-label">Phiếu đã duyệt — ${formatNumber(g.tong)} phiếu</span>
+      <span class="sx-no-nhac"><span>${esc(nhac)}</span></span></summary>
+    <div class="sx-no-than">
+      <div class="sx-muted">Bấm một phiếu để xem / huỷ.</div>
+      <div class="sx-vh-list">${g.ds.map((x) => `
+        <div class="sx-vh-row" data-phieu="${esc(x.name)}" role="button" tabindex="0"
+          style="cursor:pointer">
+          <div class="sx-vh-who">
+            <div class="sx-vh-name">${esc(x.name)}</div>
+            <div class="sx-vh-meta">${esc(veNgay(x.ngay))} · ${esc(x.nguoi_duyet || '')}${
+              x.tong_lech ? ` · lệch ${x.tong_lech > 0 ? '+' : ''}${formatNumber(x.tong_lech)}` : ''}</div>
+          </div>
+          <span class="sx-nv-qty">${formatNumber(x.tong_dem)}</span>
+        </div>`).join('')}</div>
+      ${g.so_trang > 1 ? `<div class="sx-nk-trang">
+        <button type="button" class="sx-btn sx-btn-ghost" data-trang="${g.trang - 1}"${g.trang <= 1 ? ' disabled' : ''}
+          >‹ Mới hơn</button>
+        <span class="sx-muted">Trang ${g.trang}/${g.so_trang}</span>
+        <button type="button" class="sx-btn sx-btn-ghost" data-trang="${g.trang + 1}"${
+  g.trang >= g.so_trang ? ' disabled' : ''}>Cũ hơn ›</button>
+      </div>` : ''}
+    </div>
+  </details>`;
+}
+
+// Sang trang: hỏi máy chủ trang đó, vẽ lại khối (giữ mở). Máy chủ kéo trang ngoài khoảng về trang gần nhất.
+async function sangTrang(container, call, trang, nut) {
+  nut.disabled = true;
+  let g;
+  try {
+    g = await call('sx.api.khotp.ds_phieu_nhap', { trang });
+  } catch (e) {
+    nut.disabled = false;
+    toastErr(e.message);
+    return;
+  }
+  const cu = container.querySelector('#sx-nk-gan');
+  if (cu) cu.outerHTML = veGanDay(g, true) || '';
 }

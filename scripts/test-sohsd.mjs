@@ -317,7 +317,7 @@ async function moNhapKho(r) {
   const call = async (method, args) => {
     GOI.push([method, args]);
     if (method === 'sx.api.khotp.phieu_dang_mo') return r;
-    if (method === 'sx.api.khotp.phieu_gan_day') return [];
+    if (method === 'sx.api.khotp.ds_phieu_nhap') return { ds: [], tong: 0, trang: 1, so_trang: 1 };
     if (method === 'sx.api.khotp.sua_phieu') return { dong: [] };
     return {};
   };

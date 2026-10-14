@@ -291,6 +291,7 @@ def chi_tiet_phieu(name):
 
 @frappe.whitelist()
 def phieu_gan_day(limit=5):
+    """5 phiếu đã duyệt mới nhất — giữ cho máy còn bản trước D214 (bản mới dùng ds_phieu_nhap, chia trang)."""
     guard_card("nhapkhotp")
     return [
         {**g, "ngay": str(g["ngay"])}
@@ -300,6 +301,26 @@ def phieu_gan_day(limit=5):
             order_by="creation desc", limit=cint(limit) or 5,
         )
     ]
+
+
+MOI_TRANG = 10
+
+
+@frappe.whitelist()
+def ds_phieu_nhap(trang=1, moi_trang=MOI_TRANG):
+    """Phiếu nhập kho ĐÃ DUYỆT, mới nhất trước, CHIA TRANG (D214) — thẻ Nhập kho, khối gập "Phiếu đã duyệt": bấm một
+    phiếu để xem / huỷ (D104). Trang ngoài khoảng thì kéo về trang gần nhất (vừa huỷ bớt phiếu, số trang co lại).
+    {ds, tong, trang, so_trang, moi_trang}."""
+    guard_card("nhapkhotp")
+    moi = min(max(cint(moi_trang) or MOI_TRANG, 1), 50)
+    tong = frappe.db.count("SX Phieu Nhap TP", {"docstatus": 1})
+    so_trang = max(1, -(-tong // moi))
+    t = min(max(cint(trang) or 1, 1), so_trang)
+    ds = frappe.get_all("SX Phieu Nhap TP", filters={"docstatus": 1},
+                        fields=["name", "ngay", "tong_dem", "tong_lech", "nguoi_duyet"],
+                        order_by="creation desc", limit_start=(t - 1) * moi, limit_page_length=moi)
+    return {"ds": [{**g, "ngay": str(g["ngay"])} for g in ds], "tong": tong, "trang": t, "so_trang": so_trang,
+            "moi_trang": moi}
 
 
 @frappe.whitelist()
