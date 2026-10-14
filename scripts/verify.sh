@@ -217,6 +217,12 @@ python3 scripts/test-vaerpnext.py > /tmp/sx-va.log 2>&1 \
   && tail -1 /tmp/sx-va.log \
   || { cat /tmp/sx-va.log; loi=1; }
 
+# D207: dọn âm trong lịch sử lô (bench sx.api.lo_am.don) — cộng dồn đúng hai nguồn ERPNext kiểm âm lô, nhập N trước
+# điểm âm đầu + xuất N lúc lô hết âm; phiếu giả chặn y như ERPNext (lô hết hạn, kiểm kê ghi sau, âm lịch sử).
+python3 scripts/test-loam.py > /tmp/sx-loam.log 2>&1 \
+  && tail -1 /tmp/sx-loam.log \
+  || { cat /tmp/sx-loam.log; loi=1; }
+
 # D113: hai QC ghi vào hộp cùng ngày. Trước D113 lần lưu của người này XOÁ dòng của
 # người kia (ghi đè cả bảng) mà không ai biết.
 python3 scripts/test-ghihop.py > /tmp/sx-ghihop.log 2>&1 \

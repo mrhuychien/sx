@@ -323,6 +323,42 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Lệnh dọn âm trong lịch sử lô — lô còn hàng mà POS vẫn báo "has negative stock" (D207)
+
+- **Lỗi** (14/10/2026, POS CH Tuệ Tĩnh): *The Batch TH170-TONCU of the item TH170 has negative stock in the warehouse
+  … as of 12-10-2026 14:36:08. Please add a stock quantity of 3.0 …* — lô hiện còn 63.
+- **Nguyên nhân — cách ERPNext 16 kiểm lô**: mỗi lần xuất một lô, ERPNext cộng dồn **mọi** dòng của lô ở kho đó từ
+  đầu tới nay theo (giờ ghi sổ, giờ tạo); một điểm âm trong **quá khứ** là chặn, dù hôm nay lô còn hàng. Điểm âm như
+  thế do chứng từ **ghi lùi giờ** (ngày kiểm kê bật lô: hoá đơn bán ghi lúc 14:36 còn lô tồn cũ vào sổ muộn hơn) hoặc
+  huỷ phiếu nhập cũ (ERPNext không kiểm khi huỷ phiếu nhập). Chữa nhanh: Stock Settings → tick *Allow Negative Stock
+  for Batch* — ERPNext bỏ qua điểm âm cũ (giờ ghi phiếu vẫn kiểm lô đủ hàng như thường).
+- **Lệnh dọn** (`sx/api/lo_am.py`, chạy bằng bench, không gọi từ web): mỗi (mã, kho, lô) có điểm âm, âm sâu nhất −N
+  → **phiếu nhập N** vào lô ghi 1 giây trước điểm âm đầu + **phiếu xuất N** ghi đúng lúc lô hết âm lần cuối. Giữa hai
+  phiếu lô có thêm N → hết điểm âm; sau đó y như cũ → **tồn hiện tại không đổi**. Giá nhập = giá vốn hiện tại của mã
+  ở kho, phiếu xuất ERPNext tự tính → chênh giá trị gần như 0. Diễn giải của từng phiếu ghi rõ lô, điểm âm, chứng từ
+  gây âm, lần chạy. Lệnh **in báo cáo tiếng Việt** (không in JSON — bench in giá trị trả về thành `\uXXXX` khó đọc):
+  từng lô — điểm âm, chứng từ gây âm, tồn tới hôm nay, cặp phiếu sẽ ghi / đã ghi (✓) / lỗi (✗); lô không dọn kèm lý
+  do; dòng **Bước tiếp**.
+  ```
+  bench --site site1.local execute sx.api.lo_am.don                          # xem trước, không ghi gì
+  bench --site site1.local execute sx.api.lo_am.don --kwargs "{'chay': 1}"   # làm thật
+  # chỉ một mã / kho / lô: thêm 'item': 'TH170', 'kho': '<tên kho>', 'lo': 'TH170-TONCU' vào kwargs
+  ```
+- **Không dọn, chỉ báo** (*Không dọn — phải xử lý tay*): lô **đang âm tới hiện tại** (thiếu hàng thật — kiểm kê lại
+  / nhập bù tay; kể cả lô chỉ hết âm nhờ phiếu ghi ngày tương lai); lô có phiếu **Stock Reconciliation ghi sau điểm
+  âm** (ERPNext không cho ghi lùi trước phiếu đó — huỷ phiếu đó trước). Lô hết hạn vẫn dọn được (tạm bỏ HSD lúc ghi
+  như D190). Mỗi lô một điểm lưu: lô nào ERPNext từ chối (khoá sổ kho, khoá kỳ kế toán…) thì cuộn lại riêng lô đó,
+  in câu lỗi, lô khác vẫn dọn. Chạy lại an toàn.
+- **Bước tiếp** cuối báo cáo: hết âm (chạy không lọc) → **bỏ tick lại** *Allow Negative Stock for Batch*; còn lô chưa
+  dọn được → giữ tick tới khi xử lý xong, không thì các lô đó không bán được. Gọi từ code: `sx.api.lo_am.xu_ly` (cùng
+  tham số, trả dict).
+- Test `test-loam.py`: SQLite thật cho hai nguồn ERPNext cộng khi kiểm lô (gói lô + sổ kho cũ có batch_no), phiếu
+  kho giả chặn y như ERPNext (lô hết hạn, kiểm kê ghi sau, lô không đủ lúc ghi, điểm âm lịch sử); ca TH170-TONCU thật,
+  hai điểm âm (sâu trước / sâu sau), giờ lẻ giây, dòng đã huỷ / Pick List, cùng giờ ghi sổ, hết âm ở tương lai, lỗi
+  một lô; báo cáo in (xem trước / làm thật / đã sạch); chạy lại không sinh thêm phiếu; cuối cùng bán thử được mà không
+  cần tick.
+- Không đổi DocType: `git pull` → `bench restart` → chạy lệnh trên.
+
 ## Ghi hộp: xoá bản ghi báo "Cannot delete or cancel … is linked with SX No Don Gia" (D206)
 
 - **Lỗi**: màn Ghi hộp xoá bản ghi → *Cannot delete or cancel because SX Bang Vao Hop VH-2026-00004 is linked with SX
