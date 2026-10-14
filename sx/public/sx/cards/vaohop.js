@@ -31,10 +31,6 @@ export async function render({ container, boot, call, ensureNgay }) {
   // nhận từ server — server chỉ xoá dòng nằm trong đây, nên hai QC ghi cùng lúc
   // không xoá mất dòng của nhau.
   let biet = rows.map((r) => r.name).filter(Boolean);
-  // D212: ★ Công khoán chung do NGƯỜI KHÁC ghi (quản lý bấm "Ghi cho công khoán"…) là của cả tổ — hiện CHỈ XEM và vào
-  // tin gửi nhóm; không nằm trong `rows` nên không gửi lại khi lưu (D113: QC chỉ sửa / xoá dòng mình ghi).
-  const layChung = (b) => ((b && b.chung_khac) || []).map((r) => ({ ...r, _xem: true }));
-  let chungKhac = layChung(boot.bang_vao_hop);
   const thayHet = !!(boot.bang_vao_hop ? boot.bang_vao_hop.xem_het : boot.is_quan_ly);
   const itemsTp = boot.items_tp || [];
   // D68: ghi thẳng theo MÃ HÀNG, không còn Activity Type. Cùng một mã làm tay hay
@@ -80,9 +76,7 @@ export async function render({ container, boot, call, ensureNgay }) {
     </div>
     ${boot.canh_bao_nhan_vien ? `<div class="sx-warn-text">⚠ ${esc(boot.canh_bao_nhan_vien)}</div>` : ''}
     ${daChot ? '<div class="sx-muted">Đã chốt — chỉ xem. Muốn sửa: bấm HUỶ CHỐT NGÀY bên thẻ Chốt ngày.</div>' : ''}
-    ${thayHet ? '' : `<div class="sx-muted">Bạn đang thấy phần <b>mình ghi</b>. QC khác ghi riêng phần của họ; tổng cả
-      ngày xem ở màn Quản lý.${chungKhac.length ? ' Riêng ★ Công khoán chung (của cả tổ) thấy cả dòng người khác ghi '
-    + '— chỉ xem.' : ''}</div>`}
+    ${thayHet ? '' : '<div class="sx-muted">Bạn đang thấy phần <b>mình ghi</b>. QC khác ghi riêng phần của họ; tổng cả ngày xem ở màn Quản lý.</div>'}
     <div class="sx-vh-strip" id="sx-vh-strip"></div>
     ${daChot ? '' : `
       <div class="sx-field-label" id="sx-vh-nhan">Chấm hộp cho công nhân</div>
@@ -136,10 +130,6 @@ export async function render({ container, boot, call, ensureNgay }) {
       if (!nhom.has(r.nhan_vien)) nhom.set(r.nhan_vien, { ten: tenNV(r), dong: [] });
       nhom.get(r.nhan_vien).dong.push({ ...r, _i: i });
     });
-    chungKhac.forEach((r) => {
-      if (!nhom.has(r.nhan_vien)) nhom.set(r.nhan_vien, { ten: tenNV(r), dong: [] });
-      nhom.get(r.nhan_vien).dong.push({ ...r });
-    });
     // Công khoán chung rồi công nhật xuống cuối — bảng đọc theo người, hai dòng này không phải người.
     const hang = (k) => ({ [KHOAN_CHUNG]: 1, [CONG_NHAT]: 2 }[k] || 0);
     return [...nhom.entries()]
@@ -158,25 +148,13 @@ export async function render({ container, boot, call, ensureNgay }) {
       g.dong.forEach((r) => {
         const cn = r.nhan_vien === CONG_NHAT;
         const kc = r.nhan_vien === KHOAN_CHUNG;
-        const ai = r.nguoi_ghi ? esc(String(r.nguoi_ghi).split('@')[0]) : '';
-        if (r._xem) {                      // D212: công khoán chung người khác ghi — chỉ xem
-          html += `<div class="sx-vh-row sx-vh-row-kc sx-vh-row-xem">
-            <div class="sx-vh-who">
-              <div class="sx-vh-name">${esc(g.ten)}</div>
-              <div class="sx-vh-meta">${esc(tenSPKhoan(r.san_pham) || '—')}${r.cach_lam ? ` · ${esc(r.cach_lam)}` : ''
-              } · tính khoán, tổ tự chia${ai ? ` · ghi: ${ai}` : ''} · chỉ xem</div>
-            </div>
-            <button type="button" class="sx-vh-sl" disabled>${esc(formatNumber(r.so_hop))}</button>
-            ${daChot ? '' : '<span class="sx-vh-trong" aria-hidden="true"></span>'.repeat(2)}
-          </div>`;
-          return;
-        }
         html += `<div class="sx-vh-row${cn ? ' sx-vh-row-cn' : ''}${kc ? ' sx-vh-row-kc' : ''}">
           <div class="sx-vh-who">
             <div class="sx-vh-name">${esc(g.ten)}</div>
             <div class="sx-vh-meta">${esc(tenSPKhoan(r.san_pham) || '—')}${
               r.cach_lam ? ` · ${esc(r.cach_lam)}` : ''}${cn ? ' · không tính khoán' : ''}${
-              kc ? ' · tính khoán, tổ tự chia' : ''}${thayHet && ai ? ` · ghi: ${ai}` : ''}</div>
+              kc ? ' · tính khoán, tổ tự chia' : ''}${
+              thayHet && r.nguoi_ghi ? ` · ghi: ${esc(String(r.nguoi_ghi).split('@')[0])}` : ''}</div>
           </div>
           <button type="button" class="sx-vh-sl" data-i="${r._i}"${daChot ? ' disabled' : ''}
             >${esc(formatNumber(r.so_hop))}</button>
@@ -197,17 +175,14 @@ export async function render({ container, boot, call, ensureNgay }) {
       .reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const hopKC = rows.filter((r) => r.nhan_vien === KHOAN_CHUNG)
       .reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
-    const hopKCKhac = chungKhac.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     container.querySelector('#sx-vh-tonghop').textContent = formatNumber(tongHop);
     // Không hiện tiền ở màn nhập (D43) — giữ ô rỗng để bố cục không nhảy
     container.querySelector('#sx-vh-tongtien').textContent = '';
     container.querySelector('#sx-vh-donecount').textContent = soNguoi;
     footer.innerHTML = `<span class="sx-field-label">Tổng</span>
-      <span>${formatNumber(tongHop)} sp${hopCN || hopKC || hopKCKhac
+      <span>${formatNumber(tongHop)} sp${hopCN || hopKC
         ? ` <span class="sx-muted">(${[hopKC ? `công khoán chung ${formatNumber(hopKC)}` : '',
-          hopCN ? `công nhật ${formatNumber(hopCN)}` : '',
-          hopKCKhac ? `+ ${formatNumber(hopKCKhac)} công khoán chung người khác ghi` : '']
-          .filter(Boolean).join(' · ')})</span>` : ''}</span>`;
+          hopCN ? `công nhật ${formatNumber(hopCN)}` : ''].filter(Boolean).join(' · ')})</span>` : ''}</span>`;
 
     // Dải SKU: mỗi loại công việc một ô, cuộn ngang — nhìn ra ngay hôm nay chạy loại gì
     const theoAct = {};
@@ -234,7 +209,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       tbody.querySelectorAll('.sx-vh-del').forEach((btn) => {
         btn.addEventListener('click', async () => { rows.splice(Number(btn.dataset.i), 1); await save(); });
       });
-      tbody.querySelectorAll('.sx-vh-sl[data-i]').forEach((btn) => {
+      tbody.querySelectorAll('.sx-vh-sl').forEach((btn) => {
         btn.addEventListener('click', () => suaSoLuong(Number(btn.dataset.i)));
       });
       tbody.querySelectorAll('.sx-vh-them').forEach((btn) => {
@@ -315,7 +290,6 @@ export async function render({ container, boot, call, ensureNgay }) {
       rows.length = 0;
       (r && r.dong ? r.dong : []).forEach((x) => rows.push(x));
       biet = rows.map((x) => x.name).filter(Boolean);
-      chungKhac = layChung(r);
       Object.keys(anCa).forEach((k) => delete anCa[k]);
       ((r && r.an_ca) || []).forEach((x) => {
         anCa[x.nhan_vien] = { an_ca: Number(x.an_ca) || 0, an_dem: Number(x.an_dem) || 0 };
@@ -635,10 +609,10 @@ function openCachLamPicker(ten, sp, onPick) {
  *  render(), nơi có danh mục mã hàng. (Trước đây hàm này gọi thẳng `tenSP` vốn chỉ
  *  sống TRONG render() → bấm nút là lỗi "tenSP is not defined", không copy gì.) */
 export function vanBanSanLuong(nhomVao, ngay, tenSP) {
-  // Bỏ dòng CÔNG NHẬT: tin gửi nhóm là để từng công nhân khoán đối chiếu số của
-  // mình — công nhật không phải một người, cũng không ai đối chiếu dòng đó.
+  // Bỏ dòng CÔNG NHẬT và ★ CÔNG KHOÁN CHUNG (D213): tin gửi nhóm là để từng công nhân
+  // khoán đối chiếu số của mình — hai dòng đó không phải một người; tổng tin cũng không cộng.
   const nhom = nhomVao
-    .map((g) => ({ ...g, dong: g.dong.filter((r) => r.nhan_vien !== CONG_NHAT) }))
+    .map((g) => ({ ...g, dong: g.dong.filter((r) => !KHONG_NGUOI.includes(r.nhan_vien)) }))
     .filter((g) => g.dong.length);
   const d = (ngay || '').split('-');
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
@@ -651,8 +625,8 @@ export function vanBanSanLuong(nhomVao, ngay, tenSP) {
 }
 
 function copySanLuong(nhom, ngay, tenSP) {
-  if (!nhom.some((g) => g.dong.some((r) => r.nhan_vien !== CONG_NHAT))) {
-    toastErr('Chưa có dòng công khoán nào để copy.'); return;
+  if (!nhom.some((g) => g.dong.some((r) => !KHONG_NGUOI.includes(r.nhan_vien)))) {
+    toastErr('Chưa có dòng công khoán của công nhân nào để copy.'); return;
   }
   chepVaoClipboard(vanBanSanLuong(nhom, ngay, tenSP));
 }

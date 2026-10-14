@@ -323,21 +323,18 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
-## Ghi hộp: "Copy sản lượng gửi nhóm" thiếu ★ Công khoán chung (D212)
+## Ghi hộp: "Copy sản lượng gửi nhóm" bỏ ★ Công khoán chung (D213)
 
-- **Lỗi**: bấm *Copy sản lượng gửi nhóm* ở màn Ghi hộp, tin gửi nhóm không có dòng **★ Công khoán chung**.
-- **Nguyên nhân**: từ D113 mỗi QC chỉ nhận về dòng **mình ghi** (để hai QC ghi cùng ngày không đè mất dòng của nhau).
-  Dòng công khoán chung thường do người khác ghi — quản lý bấm *Ghi cho công khoán* ở thẻ Sổ nợ vào hộp — nên QC
-  không thấy nó: danh sách không có, tin gửi nhóm không có. Tổ không biết còn phần chung để chia, QC còn dễ chấm bù
-  trùng số hộp đã ghi cho công khoán.
-- **Sửa**: máy chủ (`_bang_summary`) trả thêm `chung_khac` = các dòng ★ Công khoán chung **người khác ghi** (quản lý:
-  rỗng — đã thấy hết). Màn Ghi hộp hiện các dòng đó **chỉ xem**: số không bấm sửa được, không có ✕, ghi rõ *ghi:
-  <người> · chỉ xem*; **có trong tin gửi nhóm** (tổng tin tính cả phần đó). Không gửi lại khi lưu → quy tắc D113 giữ
-  nguyên (QC chỉ sửa / xoá dòng mình). Tổng ở chân bảng vẫn là phần mình ghi, kèm *+ N công khoán chung người khác ghi*.
-- Test `test-ghihop.py` (QC thấy dòng chung của quản lý / QC khác trong `chung_khac`, không thấy dòng thường của
-  người khác; quản lý không bị lặp; lưu không làm mất dòng chung), `test-khoanchung.mjs` (Chromium: dòng chỉ xem không
-  ✕, bấm số không mở bàn số, tin copy có dòng chung + tổng đúng, lưu không gửi dòng chỉ xem, số cập nhật sau lưu).
-- Không đổi DocType: `git pull` → `bench restart`. Build **sx-158**.
+- Tin *Copy sản lượng gửi nhóm* ở màn Ghi hộp **không còn dòng ★ Công khoán chung** (như dòng ★ Công nhật): tin là để
+  từng công nhân khoán đối chiếu số của mình; dòng chung không phải một người. **Tổng** trong tin chỉ cộng phần của
+  người. Chỉ còn dòng chung / công nhật (chưa ghi cho công nhân nào) thì báo *Chưa có dòng công khoán của công nhân nào
+  để copy*, không chép tin rỗng.
+- Danh sách và tổng ở màn Ghi hộp, báo cáo, phiếu lương: không đổi.
+- **D212 đã gỡ**: D212 hiểu nhầm yêu cầu thành "thêm dòng chung vào tin copy" (và cho QC thấy dòng chung người khác ghi,
+  chỉ xem) — làm ngược ý. D213 gỡ toàn bộ D212 (máy chủ không trả `chung_khac` nữa, màn Ghi hộp như trước D212).
+- Test `test-khoanchung.mjs` (văn bản gửi nhóm không có dòng chung, tổng 120 thay 150; bấm Copy thật trong Chromium;
+  chỉ còn dòng chung thì báo, không chép).
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-159**.
 
 ## Kiểm kê bán thành phẩm: bỏ cảnh báo "N ngày chưa chốt" sai — báo theo trạng thái đồng bộ (D211)
 
@@ -519,8 +516,8 @@ không thành `…-2`.
 - **Dòng chung** (`SX Bang Vao Hop Item.khoan_chung`, mã giả `KHOAN_CHUNG` ở màn hình như `CONG_NHAT` của D101): không
   gắn người; tính tiền khoán theo bảng đơn giá; **không ghi phiếu lương** (D69/D123 bỏ qua dòng này); không chấm ăn ca.
   Màn Ghi hộp: xếp sau các công nhân, trước công nhật; ghi "tính khoán, tổ tự chia"; sửa số / xoá được, không có nút +;
-  không tính vào "Đã nhập N người"; dòng Tổng tách "công khoán chung N · công nhật M"; tin "Copy sản lượng gửi nhóm" có
-  dòng ★ Công khoán chung. Ghi nhầm: xoá dòng đó ở màn Ghi hộp → nợ hiện lại.
+  không tính vào "Đã nhập N người"; dòng Tổng tách "công khoán chung N · công nhật M"; tin "Copy sản lượng gửi nhóm"
+  KHÔNG có dòng ★ Công khoán chung (D213). Ghi nhầm: xoá dòng đó ở màn Ghi hộp → nợ hiện lại.
 - **Báo cáo**: Quản lý → Năng suất vào hộp có dòng **★ Công khoán chung — tổ tự chia** (số hộp + tiền) cuối bảng;
   Lịch → chi tiết ngày: dòng riêng trong khối "Theo người", chip "công khoán chung N hộp" (không tính là một người);
   Truy xuất: tên "Công khoán chung".

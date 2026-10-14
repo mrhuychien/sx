@@ -289,20 +289,6 @@ def _ma_gia(r):
     return None
 
 
-def _dong_ra(r):
-    """Một dòng bảng vào hộp ra máy. Dòng công nhật đi ra với mã giả CONG_NHAT (D101), công khoán chung với KHOAN_CHUNG
-    (D203) — màn Ghi hộp coi nó như một "người" để chấm cùng một cách, và gửi lại đúng mã đó."""
-    return {"nhan_vien": _ma_gia(r) or r.nhan_vien,
-            "ten_nhan_vien": {CONG_NHAT: _("Công nhật"), KHOAN_CHUNG: _("Công khoán chung")}.get(
-                _ma_gia(r), r.ten_nhan_vien),
-            "cong_nhat": cint(r.get("cong_nhat")),
-            "khoan_chung": cint(r.get("khoan_chung")),
-            "san_pham": r.san_pham, "cach_lam": r.cach_lam, "so_hop": r.so_hop,
-            "don_gia": r.don_gia, "thanh_tien": r.thanh_tien,
-            # name = mã dòng: máy gửi lại để server biết sửa / xoá ĐÚNG dòng nào.
-            "name": r.name, "nguoi_ghi": r.get("nguoi_ghi")}
-
-
 def _bang_summary(ngay_sx):
     ten = frappe.db.get_value(
         "SX Bang Vao Hop", {"ngay_sx": ngay_sx, "docstatus": ("<", 2)}, "name"
@@ -318,12 +304,21 @@ def _bang_summary(ngay_sx):
         "xem_het": _xem_het_vao_hop(),
         "tong_hop": sum(cint(r.so_hop) for r in dong),
         "tong_tien": sum(flt(r.thanh_tien) for r in dong),
-        "dong": [_dong_ra(r) for r in dong],
-        # D212: dòng ★ Công khoán chung là của CẢ TỔ — QC thấy cả dòng người khác ghi (thường là quản lý bấm "Ghi cho
-        # công khoán"), CHỈ XEM: không gửi lại khi lưu, không sửa / xoá được (D113 giữ nguyên). Không thấy thì tin gửi
-        # nhóm thiếu phần chung để tổ chia, và QC dễ chấm bù trùng số hộp đã ghi cho công khoán. Quản lý: rỗng (mọi
-        # dòng đã nằm trong `dong`).
-        "chung_khac": [_dong_ra(r) for r in doc.dong if cint(r.get("khoan_chung")) and not _cua_toi(r)],
+        "dong": [
+            # Dòng công nhật đi ra với mã giả CONG_NHAT (D101), công khoán chung với
+            # KHOAN_CHUNG (D203) — màn Ghi hộp coi nó như một "người" để chấm cùng một
+            # cách, và gửi lại đúng mã đó.
+            {"nhan_vien": _ma_gia(r) or r.nhan_vien,
+             "ten_nhan_vien": {CONG_NHAT: _("Công nhật"), KHOAN_CHUNG: _("Công khoán chung")}.get(
+                 _ma_gia(r), r.ten_nhan_vien),
+             "cong_nhat": cint(r.get("cong_nhat")),
+             "khoan_chung": cint(r.get("khoan_chung")),
+             "san_pham": r.san_pham, "cach_lam": r.cach_lam, "so_hop": r.so_hop,
+             "don_gia": r.don_gia, "thanh_tien": r.thanh_tien,
+             # name = mã dòng: máy gửi lại để server biết sửa / xoá ĐÚNG dòng nào.
+             "name": r.name, "nguoi_ghi": r.get("nguoi_ghi")}
+            for r in dong
+        ],
         "an_ca": [
             {"nhan_vien": r.nhan_vien, "an_ca": cint(r.an_ca), "an_dem": cint(r.an_dem)}
             for r in (doc.get("an_ca") or [])
