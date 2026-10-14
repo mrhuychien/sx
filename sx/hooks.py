@@ -7,7 +7,9 @@ app_license = "MIT"
 required_apps = ["frappe", "erpnext"]
 
 # D205: vá lỗi ERPNext trong tiến trình (sx/va_erpnext.py) — áp một lần mỗi tiến trình web / worker.
-before_request = ["sx.va_erpnext.va"]
+# D210: sx.do_toc đo thời gian máy chủ + SQL CHỈ khi trình duyệt xin đo (?do=1 / X-Sx-Do) → header Server-Timing.
+before_request = ["sx.va_erpnext.va", "sx.do_toc.bat_dau"]
+after_request = ["sx.do_toc.ket_thuc"]
 before_job = ["sx.va_erpnext.va"]
 
 # ═══ DocType Events ═══

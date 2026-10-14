@@ -10,6 +10,7 @@ không đụng gì.
 Chạy: python3 scripts/test-vaerpnext.py   (verify.sh gọi sẵn)
 """
 
+import ast
 import importlib.util
 import os
 import sys
@@ -255,8 +256,12 @@ except Exception as e:
     kiem("bản vá hỏng thì ghi Error Log, KHÔNG làm hỏng yêu cầu (hook chạy trước mọi yêu cầu)", False, e)
 V._va_update_stock = goc_va
 hk = open("sx/hooks.py", encoding="utf-8").read()
-kiem("hook before_request + before_job gọi sx.va_erpnext.va",
-     'before_request = ["sx.va_erpnext.va"]' in hk and 'before_job = ["sx.va_erpnext.va"]' in hk)
+# Đọc danh sách hook (D210 thêm sx.do_toc.bat_dau vào before_request) — bản vá phải đứng ĐẦU, chạy trước mọi hook khác.
+DS_HOOK = {t.id: ast.literal_eval(n.value) for n in ast.parse(hk).body if isinstance(n, ast.Assign)
+           and isinstance(n.value, ast.List) for t in n.targets if isinstance(t, ast.Name)}
+kiem("hook before_request (đứng đầu) + before_job gọi sx.va_erpnext.va",
+     DS_HOOK.get("before_request", [None])[0] == "sx.va_erpnext.va"
+     and "sx.va_erpnext.va" in DS_HOOK.get("before_job", []))
 
 print("VAERPNEXT-OK" if not hong else f"VAERPNEXT: {hong} HỎNG")
 sys.exit(1 if hong else 0)

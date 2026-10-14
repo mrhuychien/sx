@@ -2,6 +2,7 @@
 // + HÀNG CHỜ GỬI khi offline (D37).
 
 import { guiLai, lyDoChan, onQueue, trangThai, xepHang, xepHangDuoc } from './queue.js';
+import { DO } from './do.js';
 
 export {
   cuaToi as hangChoCuaToi, danhSach as hangCho, onQueue, trangThai as trangThaiHang,
@@ -53,6 +54,7 @@ async function goiThang(method, args = {}) {
         'Content-Type': 'application/json',
         'X-Frappe-CSRF-Token': (window.SX_CONTEXT || {}).csrfToken || '',
         Accept: 'application/json',
+        ...(DO ? { 'X-Sx-Do': '1' } : {}),   // D210: xin máy chủ ghi Server-Timing (thời gian + SQL)
       },
       body: JSON.stringify(args),
     });

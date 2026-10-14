@@ -7,8 +7,9 @@ import * as router from '/assets/sx/sx/lib/router.js';
 import { toastErr } from '/assets/sx/sx/components/toast.js';
 import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
+import { batDauMan, doThe, xongMan } from '/assets/sx/sx/lib/do.js';
 
-const BUILD = 'sx-156';
+const BUILD = 'sx-157';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 
@@ -183,8 +184,8 @@ async function mountCard(name, container) {
   const wrap = el('div', 'sx-card-slot');
   container.appendChild(wrap);
   try {
-    const mod = await import(withV(path));
-    await mod.render(cardApi(wrap));
+    // D210: ?do=1 thì ghi lúc nạp mã / vẽ xong của từng thẻ; không thì y như cũ (nạp rồi vẽ).
+    await doThe(name, () => import(withV(path)), (mod) => mod.render(cardApi(wrap)));
   } catch (e) {
     // Một thẻ hỏng không được kéo sập cả màn (chạy song song thì càng phải vậy).
     wrap.innerHTML = '';
@@ -471,12 +472,14 @@ router.onRender(async (route, loader) => {
   if (!views.includes(viewName)) { markActive(`#/${landing}`); }
   else { markActive(`#/${viewName}`); }
   main.innerHTML = '<div class="sx-boot-loading">Đang tải…</div>';
+  batDauMan(viewName);
   try {
     if (!store.boot) await store.refresh(viewName);
     if (views.includes(viewName)) await store.damBao(viewName);
     dayState.ngay = store.boot.ngay_sx || dayState.ngay;
     paintDayBar();
     await loader(main);
+    xongMan(BUILD);              // D210: ?do=1 — hiện bảng đo (không chặn gì)
   } catch (e) {
     main.innerHTML = '';
     const err = el('div', 'sx-error-box');

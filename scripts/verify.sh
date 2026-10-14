@@ -217,6 +217,15 @@ node scripts/test-gapno.mjs > /tmp/sx-gapno.log 2>&1 \
   && tail -1 /tmp/sx-gapno.log \
   || { cat /tmp/sx-gapno.log; loi=1; }
 
+# D210: đo tốc độ tải (?do=1) — hook máy chủ ghi Server-Timing (thời gian, số câu + thời gian SQL) CHỈ khi được xin,
+# không bao giờ ném lỗi, gỡ bộ đếm sau mỗi yêu cầu; bảng đo của portal trong Chromium thật (máy chủ giả).
+python3 scripts/test-dotoc.py > /tmp/sx-dotoc.log 2>&1 \
+  && tail -1 /tmp/sx-dotoc.log \
+  || { cat /tmp/sx-dotoc.log; loi=1; }
+node scripts/test-dotoc.mjs > /tmp/sx-dotoc-js.log 2>&1 \
+  && tail -1 /tmp/sx-dotoc-js.log \
+  || { cat /tmp/sx-dotoc-js.log; loi=1; }
+
 # D205: vá ERPNext trong tiến trình (sx/va_erpnext.py) — chạy ĐÚNG mã update_stock của ERPNext 16.15.1:
 # trước vá sập ở POS (mã có lô, không kèm phiếu), sau vá chọn lô như thường; có phiếu thật thì không đụng.
 python3 scripts/test-vaerpnext.py > /tmp/sx-va.log 2>&1 \

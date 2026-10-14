@@ -2188,3 +2188,17 @@ b.sx-tx-kl-loi { background: none; }
 /* D137 (W08): trạng thái kiểm tra xuất xưởng trên dòng phiếu nhập kho */
 .sx-nk-xx { display: block; margin-top: 2px; font-size: var(--sx-f-xs); font-weight: 600; color: var(--sx-warning-text); }
 .sx-nk-xx-ok { color: var(--sx-success-text, #15803d); }
+
+/* ── D210: bảng đo tốc độ (?do=1) — chân màn, trên thanh tab, dưới hộp thoại; chữ đều để cột thẳng hàng ── */
+.sx-do {
+  position: fixed; left: var(--sx-s2); right: var(--sx-s2); bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 1050; max-height: 45vh; display: flex; flex-direction: column;
+  background: var(--sx-surface); border: 1px solid var(--sx-line); border-radius: var(--sx-radius-lg);
+  box-shadow: var(--sx-shadow-lg);
+}
+.sx-do-dau { display: flex; align-items: center; gap: var(--sx-s2); padding: var(--sx-s2) var(--sx-s3); }
+.sx-do-dau b { margin-right: auto; }
+.sx-do-chu {
+  margin: 0; padding: 0 var(--sx-s3) var(--sx-s3); overflow: auto; font-family: var(--sx-mono);
+  font-size: var(--sx-f-xs); line-height: 1.5; white-space: pre; color: var(--sx-text);
+}

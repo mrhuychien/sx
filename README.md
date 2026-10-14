@@ -323,6 +323,27 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Đo tốc độ tải: thêm `?do=1` vào địa chỉ (D210)
+
+- Thấy chậm thì mở màn đó với `?do=1`, ví dụ `…/sx?do=1#/nhapkho`. Vẽ xong màn thì hiện **bảng đo** ở chân màn →
+  bấm **CHÉP** rồi dán gửi. Chuyển sang màn khác thì bảng cập nhật cho màn đó. Không có `?do=1` thì không đo gì.
+- Bảng có:
+  - **Trang HTML** (lần mở trang đầu): nhận xong sau bao lâu; máy chủ xử lý bao lâu, trong đó SQL bao nhiêu câu, bao
+    lâu.
+  - **Màn vẽ đủ** sau bao lâu.
+  - **JS/CSS**: số tệp — tải mới / hỏi lại máy chủ (304) / lấy từ bộ nhớ đệm của máy; tệp chậm nhất.
+  - **API**: từng lời gọi, chậm nhất trước — tổng · máy chủ · SQL (số câu, thời gian) · cỡ.
+  - **Thẻ**: vẽ xong lúc nào, nạp mã bao lâu; thẻ lỗi ghi LỖI.
+- Đọc bảng: *tổng* ≫ *máy chủ* → đường truyền; *máy chủ* ≫ *SQL* → xử lý Python; SQL **nhiều câu** → truy vấn lặp
+  từng dòng; SQL **ít câu mà lâu** → câu nặng / thiếu chỉ mục; JS/CSS lần nào cũng "tải mới" → bộ nhớ đệm không ăn.
+- Máy chủ: hook `before_request` / `after_request` (`sx/do_toc.py`) — CHỈ khi trình duyệt xin đo (header `X-Sx-Do`
+  từ portal, hoặc `?do=1` trên trang): đo thời gian, đếm SQL (bọc `execute_query` của đúng yêu cầu đó, gỡ ra ngay
+  sau), ghi header `Server-Timing`. Yêu cầu bình thường không đo, không thêm gì. Hook không bao giờ ném lỗi.
+- Test `test-dotoc.py` (không xin thì không đo; đếm cả câu SQL lỗi; gỡ bộ đếm; không có request / db / response vẫn
+  không lỗi), `test-dotoc.mjs` (Chromium: không `?do=1` thì không gửi header, không bảng; có thì đủ dòng, đúng số,
+  CHÉP được, chuyển màn không lẫn số màn trước, tự chờ thẻ còn đang vẽ).
+- Đổi hooks: `git pull` → `bench --site site1.local migrate` (xoá cache hooks) → `bench restart`. Build **sx-157**.
+
 ## Thẻ Kiểm kê kho gập sẵn — bấm mới xổ (D209)
 
 - Thẻ **Kiểm kê kho** (màn Nhập kho, Quản lý) gập thành một dòng như các thẻ sổ nợ (D208): tên thẻ theo kho đang

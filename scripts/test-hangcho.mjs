@@ -84,11 +84,17 @@ console.log('\n-- lỗi máy chủ đọc được (lib/api.js, D182) --');
 const { mkdtempSync } = await import('node:fs');
 const thu = mkdtempSync(join(tmpdir(), 'api-'));
 writeFileSync(join(thu, 'queue.mjs'), readFileSync('sx/public/sx/lib/queue.js', 'utf8'));
-writeFileSync(join(thu, 'api.mjs'), readFileSync('sx/public/sx/lib/api.js', 'utf8').replaceAll("'./queue.js'", "'./queue.mjs'"));
+writeFileSync(join(thu, 'do.mjs'), readFileSync('sx/public/sx/lib/do.js', 'utf8'));
+writeFileSync(join(thu, 'api.mjs'), readFileSync('sx/public/sx/lib/api.js', 'utf8')
+  .replaceAll("'./queue.js'", "'./queue.mjs'").replaceAll("'./do.js'", "'./do.mjs'"));
 window.addEventListener = () => {};
 const traLoi = { status: 413, ok: false, body: null };
-globalThis.fetch = async () => ({ status: traLoi.status, ok: traLoi.ok,
-  json: async () => { if (!traLoi.body) throw new Error('không phải JSON'); return traLoi.body; } });
+const dauGui = [];
+globalThis.fetch = async (url, o) => {
+  dauGui.push(o.headers);
+  return { status: traLoi.status, ok: traLoi.ok,
+    json: async () => { if (!traLoi.body) throw new Error('không phải JSON'); return traLoi.body; } };
+};
 const API = await import(`file://${join(thu, 'api.mjs')}`);
 rmSync(thu, { recursive: true });
 const loiCua = async () => { try { await API.call('sx.api.qc_tailieu.nap_tep', {}); return ''; } catch (e) { return e.message; } };
@@ -98,6 +104,8 @@ Object.assign(traLoi, { status: 417, body: { exception: 'frappe.exceptions.Valid
 kiem('lỗi nghiệp vụ khác vẫn bóc đúng câu của server', (await loiCua()) === 'Nội dung tệp không khớp đuôi .pdf.');
 Object.assign(traLoi, { status: 200, ok: true, body: { message: { khoa: 'tl:1' } } });
 kiem('thành công trả message', (await API.call('x', {})).khoa === 'tl:1');
+kiem('D210: không có ?do=1 → không xin máy chủ đo (không header X-Sx-Do)',
+  dauGui.length === 3 && dauGui.every((h) => !('X-Sx-Do' in h)), JSON.stringify(dauGui[0]));
 
 console.log(hong ? `HANGCHO-FAIL (${hong} ca)` : 'HANGCHO-OK');
 process.exit(hong ? 1 : 0);
