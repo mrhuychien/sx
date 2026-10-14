@@ -211,6 +211,12 @@ node scripts/test-loidongbo.mjs > /tmp/sx-ldb.log 2>&1 \
   && tail -1 /tmp/sx-ldb.log \
   || { cat /tmp/sx-ldb.log; loi=1; }
 
+# D205: vá ERPNext trong tiến trình (sx/va_erpnext.py) — chạy ĐÚNG mã update_stock của ERPNext 16.15.1:
+# trước vá sập ở POS (mã có lô, không kèm phiếu), sau vá chọn lô như thường; có phiếu thật thì không đụng.
+python3 scripts/test-vaerpnext.py > /tmp/sx-va.log 2>&1 \
+  && tail -1 /tmp/sx-va.log \
+  || { cat /tmp/sx-va.log; loi=1; }
+
 # D113: hai QC ghi vào hộp cùng ngày. Trước D113 lần lưu của người này XOÁ dòng của
 # người kia (ghi đè cả bảng) mà không ai biết.
 python3 scripts/test-ghihop.py > /tmp/sx-ghihop.log 2>&1 \

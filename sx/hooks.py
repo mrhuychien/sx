@@ -6,6 +6,10 @@ app_email = "mrhuychien@gmail.com"
 app_license = "MIT"
 required_apps = ["frappe", "erpnext"]
 
+# D205: vá lỗi ERPNext trong tiến trình (sx/va_erpnext.py) — áp một lần mỗi tiến trình web / worker.
+before_request = ["sx.va_erpnext.va"]
+before_job = ["sx.va_erpnext.va"]
+
 # ═══ DocType Events ═══
 doc_events = {
     # D120: BOM / Item đổi giữa request -> bỏ bộ nhớ tạm get_bom_active / items_tp.

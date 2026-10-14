@@ -323,6 +323,27 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## POS: thêm mã có lô vào giỏ bị lỗi 'NoneType' object has no attribute 'get' — vá ERPNext tại chỗ (D205)
+
+- **Lỗi** (14/10/2026, CH Tuệ Tĩnh, mã TH170): vào POS bán hàng →
+  `erpnext/stock/get_item_details.py update_stock: doc.get("selling_price_list")` →
+  *AttributeError: 'NoneType' object has no attribute 'get'*.
+- **Nguyên nhân — lỗi của ERPNext** (16.15.1; bản 16.50 vẫn còn): Stock Settings bật *Auto Create Serial and Batch
+  Bundle For Outward* thì với phiếu POS, mã **có lô**, ERPNext tự chọn lô; trong vòng chọn lô nó đọc bảng giá từ
+  *phiếu* mà không xét có phiếu hay không. Lệnh `get_item_details` gọi từ màn POS chỉ kèm `ctx` (không kèm phiếu) →
+  sập. Mã chưa bật lô không đi vào đoạn này nên trước kiểm kê 12/10 không ai gặp; từ khi kiểm kê bật lô cho thành
+  phẩm (D189) thì mã nào có lô cũng dính.
+- **Vá** (`sx/va_erpnext.py`, không sửa code ERPNext): hook `before_request` / `before_job` bọc `update_stock` một
+  lần mỗi tiến trình — không kèm phiếu thì đưa vào **phiếu tạm rỗng mang bảng giá đang bán** (đúng như có phiếu mà
+  phiếu chưa có dòng). ERPNext chọn lô như thường (theo cách chọn ở Stock Settings), tra giá theo lô theo bảng giá
+  đó. Có phiếu thật thì không đụng. Hook không bao giờ ném lỗi ra (hỏng thì ghi Error Log) — nó chạy trước mọi yêu cầu.
+- Test `test-vaerpnext.py` chạy **nguyên văn** mã `update_stock` của ERPNext 16.15.1: trước vá tái hiện đúng lỗi;
+  sau vá tự chọn lô, giá theo lô theo đúng bảng giá, có phiếu thật thì để nguyên; nhánh số serial cũng hết sập; vá
+  một lần, không bọc chồng; vá hỏng không làm hỏng yêu cầu.
+- Chưa cập nhật kịp mà cần bán ngay: Stock Settings → bỏ tick *Auto Create Serial and Batch Bundle For Outward* → POS
+  hết lỗi nhưng thu ngân phải **tự chọn lô** cho từng mã có lô. Cập nhật xong thì tick lại.
+- Cập nhật: `git pull` → `bench --site site1.local migrate` (xoá cache hooks) → `bench restart`.
+
 ## Nhãn "⚠ lỗi đồng bộ" trên thanh ngày bấm được — xem lỗi, cách xử lý, THỬ LẠI tại chỗ (D204)
 
 - **Trước**: nhãn chỉ nói *⚠ lỗi đồng bộ — xem lịch ở Quản lý* — người đang ở chính màn Quản lý không biết lịch ở đâu
