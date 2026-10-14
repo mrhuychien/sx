@@ -323,6 +323,22 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ghi hộp: "Copy sản lượng gửi nhóm" thiếu ★ Công khoán chung (D212)
+
+- **Lỗi**: bấm *Copy sản lượng gửi nhóm* ở màn Ghi hộp, tin gửi nhóm không có dòng **★ Công khoán chung**.
+- **Nguyên nhân**: từ D113 mỗi QC chỉ nhận về dòng **mình ghi** (để hai QC ghi cùng ngày không đè mất dòng của nhau).
+  Dòng công khoán chung thường do người khác ghi — quản lý bấm *Ghi cho công khoán* ở thẻ Sổ nợ vào hộp — nên QC
+  không thấy nó: danh sách không có, tin gửi nhóm không có. Tổ không biết còn phần chung để chia, QC còn dễ chấm bù
+  trùng số hộp đã ghi cho công khoán.
+- **Sửa**: máy chủ (`_bang_summary`) trả thêm `chung_khac` = các dòng ★ Công khoán chung **người khác ghi** (quản lý:
+  rỗng — đã thấy hết). Màn Ghi hộp hiện các dòng đó **chỉ xem**: số không bấm sửa được, không có ✕, ghi rõ *ghi:
+  <người> · chỉ xem*; **có trong tin gửi nhóm** (tổng tin tính cả phần đó). Không gửi lại khi lưu → quy tắc D113 giữ
+  nguyên (QC chỉ sửa / xoá dòng mình). Tổng ở chân bảng vẫn là phần mình ghi, kèm *+ N công khoán chung người khác ghi*.
+- Test `test-ghihop.py` (QC thấy dòng chung của quản lý / QC khác trong `chung_khac`, không thấy dòng thường của
+  người khác; quản lý không bị lặp; lưu không làm mất dòng chung), `test-khoanchung.mjs` (Chromium: dòng chỉ xem không
+  ✕, bấm số không mở bàn số, tin copy có dòng chung + tổng đúng, lưu không gửi dòng chỉ xem, số cập nhật sau lưu).
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-158**.
+
 ## Kiểm kê bán thành phẩm: bỏ cảnh báo "N ngày chưa chốt" sai — báo theo trạng thái đồng bộ (D211)
 
 - **Lỗi** (tìm ra khi rà code các màn để tìm chỗ chậm): thẻ Kiểm kê, kho **bán thành phẩm**, lúc nào cũng báo *N ngày

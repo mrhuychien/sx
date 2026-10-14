@@ -260,6 +260,37 @@ luu([dong(r["nhan_vien"], r["san_pham"], r["so_hop"], r["name"]) for r in PT._ba
 an = {r["nhan_vien"] for r in BANG["BVH-1"]["an_ca"]}
 kiem("A bỏ chấm NV1 → chỉ NV1 mất, NV5 của B còn", an == {"NV5"}, str(an))
 
+print("\n-- D212: ★ Công khoán chung người khác ghi — QC thấy, chỉ xem --")
+la("ql@x", "SX Quan Ly")
+q = PT._bang_summary("NSX-1")
+luu([dong(r["nhan_vien"], r["san_pham"], r["so_hop"], r["name"]) for r in q["dong"]]
+    + [dong("KHOAN_CHUNG", "SEN", 30)], biet=[r["name"] for r in q["dong"]])   # như "Ghi cho công khoán"
+kc = [r for r in tat_ca() if r.get("khoan_chung")]
+kiem("quản lý ghi một dòng công khoán chung (người ghi = quản lý)", len(kc) == 1 and kc[0]["nguoi_ghi"] == "ql@x", kc)
+q = PT._bang_summary("NSX-1")
+kiem("quản lý: dòng chung nằm trong 'dong' (sửa được), 'chung_khac' rỗng — không hiện hai lần",
+     any(r["nhan_vien"] == "KHOAN_CHUNG" for r in q["dong"]) and q["chung_khac"] == [])
+la("qcA@x")
+a = PT._bang_summary("NSX-1")
+kiem("QC A: dòng chung của quản lý KHÔNG nằm trong 'dong' (không sửa / xoá được, D113)",
+     not any(r["nhan_vien"] == "KHOAN_CHUNG" for r in a["dong"]))
+kiem("… mà nằm trong 'chung_khac' — đủ mã giả, số, người ghi, tên", [(r["nhan_vien"], r["san_pham"], r["so_hop"],
+     r["nguoi_ghi"], r["ten_nhan_vien"], r["khoan_chung"]) for r in a["chung_khac"]]
+     == [("KHOAN_CHUNG", "SEN", 30, "ql@x", "Công khoán chung", 1)], a["chung_khac"])
+kiem("… tổng của A vẫn chỉ là phần A ghi", a["tong_hop"] == sum(r["so_hop"] for r in a["dong"]))
+kiem("dòng THƯỜNG của người khác không lọt vào 'chung_khac'", all(r["khoan_chung"] for r in a["chung_khac"]))
+a = luu([dong(r["nhan_vien"], r["san_pham"], r["so_hop"], r["name"]) for r in a["dong"]]
+        + [dong("KHOAN_CHUNG", "SEN", 5)], biet=[r["name"] for r in a["dong"]])
+kiem("A lưu (máy không gửi dòng chỉ xem) → dòng chung của quản lý còn nguyên",
+     [r["so_hop"] for r in tat_ca() if r.get("khoan_chung") and r["nguoi_ghi"] == "ql@x"] == [30])
+kiem("A tự ghi dòng chung → nằm trong 'dong' của A; 'chung_khac' vẫn chỉ dòng của quản lý (không lặp)",
+     [r["so_hop"] for r in a["dong"] if r["nhan_vien"] == "KHOAN_CHUNG"] == [5]
+     and [r["so_hop"] for r in a["chung_khac"]] == [30], (a["dong"], a["chung_khac"]))
+la("qcB@x")
+b = PT._bang_summary("NSX-1")
+kiem("QC B thấy cả hai dòng chung (của quản lý và của A) — chỉ xem",
+     sorted(r["so_hop"] for r in b["chung_khac"]) == [5, 30], b["chung_khac"])
+
 print("\n-- dây nối --")
 js = open("sx/public/sx/cards/vaohop.js", encoding="utf-8").read()
 kiem("màn Ghi hộp gửi mã dòng + 'biet'", "biet: JSON.stringify(biet)" in js and "name: x.name || null" in js)

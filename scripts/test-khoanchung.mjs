@@ -51,7 +51,7 @@ if (!existsSync(CHROME) || !existsSync(PW)) {
   console.log('\n-- trình duyệt thật: BỎ QUA (máy này không có Chromium) --');
 } else {
   const PUB = join(GOC, 'sx/public/sx');
-  const TRANG = `<!doctype html><meta charset="utf-8"><body><div id="vh"></div><div id="no"></div>
+  const TRANG = `<!doctype html><meta charset="utf-8"><body><div id="vh"></div><div id="no"></div><div id="vh2"></div>
 <script type="module">
 import { render as veVH } from '/assets/sx/sx/cards/vaohop.js';
 import { render as veNo } from '/assets/sx/sx/cards/novaohop.js';
@@ -60,7 +60,9 @@ window.REFRESH = 0;
 window.LOI = null;
 const call = async (m, a) => {
   window.CALLS.push([m, a]);
-  if (m === 'sx.api.portal.luu_bang_vao_hop') return { dong: JSON.parse(a.rows), an_ca: [] };
+  if (m === 'sx.api.portal.luu_bang_vao_hop') {
+    return { dong: JSON.parse(a.rows), an_ca: [], chung_khac: window.CHUNG || [] };
+  }
   if (m === 'sx.api.khotp.so_no_vao_hop') return window.NO;
   if (m === 'sx.api.khotp.ghi_no_khoan_chung') {
     if (window.LOI) throw new Error(window.LOI);
@@ -83,6 +85,16 @@ window.veNo = async (no) => {
   const c = document.getElementById('no');
   c.innerHTML = '';
   await veNo({ container: c, call, boot, ensureNgay: async () => ngay, refresh: () => { window.REFRESH += 1; } });
+};
+// D212: QC (không xem hết) — dòng ★ Công khoán chung do QUẢN LÝ ghi về trong chung_khac (chỉ xem).
+window.CHUNG = [];
+window.veVH2 = async () => {
+  window.CHUNG = [{ name: 'R9', nhan_vien: 'KHOAN_CHUNG', ten_nhan_vien: 'Công khoán chung', khoan_chung: 1,
+    san_pham: 'TP-SEN', so_hop: 30, nguoi_ghi: 'quanly@x' }];
+  const b2 = { ...boot, bang_vao_hop: { xem_het: false, an_ca: [], chung_khac: window.CHUNG,
+    dong: [{ name: 'R1', nhan_vien: 'NV1', ten_nhan_vien: 'Nguyễn Thị An', san_pham: 'TP-SEN', so_hop: 120,
+      nguoi_ghi: 'qc@x' }] } };
+  await veVH({ container: document.getElementById('vh2'), boot: b2, call, ensureNgay: async () => ngay });
 };
 window.SAN_SANG = true;
 </script>`;
@@ -209,6 +221,41 @@ window.SAN_SANG = true;
 
   await mo({ ...nhom({ gia_chung: 1000 }), duoc_ghi_kc: false });
   kiem('không có quyền ghi hộp → không có nút', !(await p.$('#no .sx-nvh-kc')));
+
+  console.log('\n-- D212: QC thấy ★ Công khoán chung do người khác ghi — chỉ xem, có trong tin gửi nhóm --');
+  await p.evaluate(() => { window.CALLS = []; return window.veVH2(); });
+  const ds2 = await p.$$eval('#vh2 .sx-vh-row', (rs) => rs.map((r) => ({
+    ten: r.querySelector('.sx-vh-name').textContent.trim(), meta: r.querySelector('.sx-vh-meta').textContent,
+    xem: r.classList.contains('sx-vh-row-xem'), xoa: r.querySelectorAll('.sx-vh-del').length,
+    soKhoa: r.querySelector('.sx-vh-sl').disabled })));
+  kiem('danh sách: người của QC + dòng chung của quản lý (cuối), dòng chung CHỈ XEM: không ✕, số không bấm được, '
+    + 'nói ai ghi', ds2.length === 2 && ds2[0].ten === 'An' && !ds2[0].xem && ds2[0].xoa === 1
+    && ds2[1].ten === '★ Công khoán chung' && ds2[1].xem && ds2[1].xoa === 0 && ds2[1].soKhoa
+    && ds2[1].meta.includes('ghi: quanly') && ds2[1].meta.includes('chỉ xem'), JSON.stringify(ds2));
+  kiem('ghi chú đầu thẻ nói rõ: riêng công khoán chung thấy cả dòng người khác ghi',
+    (await p.textContent('#vh2')).includes('Riêng ★ Công khoán chung (của cả tổ) thấy cả dòng người khác ghi'));
+  const chan2 = (await p.textContent('#vh2 #sx-vh-footer')).replace(/\s+/g, ' ');
+  kiem('tổng vẫn là phần mình ghi (120), kèm "+ 30 công khoán chung người khác ghi"',
+    chan2.includes('120 sp') && chan2.includes('+ 30 công khoán chung người khác ghi'), chan2);
+  await p.click('#vh2 .sx-vh-row-xem .sx-vh-sl', { force: true });
+  kiem('bấm số của dòng chỉ xem: không mở bàn số', !(await p.$('.sx-modal')));
+  await p.click('#vh2 #sx-vh-copy');
+  await p.waitForTimeout(400);
+  const clip2 = await p.evaluate(() => navigator.clipboard.readText());
+  kiem('COPY gửi nhóm CÓ dòng công khoán chung người khác ghi, tổng tính cả phần đó',
+    clip2.includes('An (Bánh đậu xanh sen: 120)') && clip2.includes('★ Công khoán chung (Bánh đậu xanh sen: 30)')
+    && clip2.trim().endsWith('— Tổng: 150 sản phẩm'), JSON.stringify(clip2));
+  // Trong lúc đó quản lý sửa dòng chung thành 40 → câu trả lời của lần lưu mang số mới.
+  await p.evaluate(() => { window.CHUNG = [{ ...window.CHUNG[0], so_hop: 40 }]; });
+  await p.click('#vh2 .sx-vh-row:not(.sx-vh-row-xem) .sx-vh-del');
+  await p.waitForTimeout(250);
+  const luu2 = (await p.evaluate(() => window.CALLS)).filter(([m]) => m === 'sx.api.portal.luu_bang_vao_hop').pop();
+  kiem('lưu (xoá dòng của mình): KHÔNG gửi dòng chỉ xem, không đưa mã R9 vào "biet"',
+    luu2 && JSON.parse(luu2[1].rows).length === 0 && !JSON.parse(luu2[1].biet).includes('R9'),
+    luu2 && JSON.stringify(luu2[1]));
+  kiem('lưu xong: dòng chung chỉ xem vẫn hiện, số theo câu trả lời MỚI của máy chủ (40)',
+    (await p.$$('#vh2 .sx-vh-row-xem')).length === 1
+    && (await p.textContent('#vh2 .sx-vh-row-xem .sx-vh-sl')).trim() === '40');
 
   await b.close();
   srv.close();
