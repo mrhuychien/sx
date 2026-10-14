@@ -94,6 +94,25 @@ def huy_no_gia(ngay_sx):
     return ds
 
 
+def go_lien_ket_no_gia(bang_vao_hop=None, ngay_sx=None):
+    """Bảng vào hộp / phiếu ngày SẮP BỊ XOÁ (D206): gỡ các dòng nợ đơn giá trỏ vào nó — không thì Frappe chặn xoá
+    ("Cannot delete or cancel because SX Bang Vao Hop … is linked with SX No Don Gia …"). Xoá dòng cuối ở màn Ghi
+    hộp là xoá luôn bảng nháp (D106), nên lỗi này gặp ngay khi bảng có mã chưa khai giá.
+
+    Nợ đang chờ giá thì huỷ — không còn dòng nào để trả. Nợ đã áp giá / bỏ qua / huỷ giữ nguyên làm dấu vết (ngày,
+    mã, số hộp vẫn còn), chỉ bỏ ô liên kết. Gọi từ on_trash: Frappe chạy on_trash TRƯỚC khi kiểm tra liên kết."""
+    truong, ten = ("bang_vao_hop", bang_vao_hop) if bang_vao_hop else ("ngay_sx", ngay_sx)
+    if not ten:
+        return []
+    ds = frappe.get_all("SX No Don Gia", filters={truong: ten}, fields=["name", "trang_thai"])
+    for x in ds:
+        vals = {truong: None}
+        if x.trang_thai == CHO:
+            vals["trang_thai"] = "Đã huỷ"
+        frappe.db.set_value("SX No Don Gia", x.name, vals, update_modified=False)
+    return [x.name for x in ds]
+
+
 def canh_bao_no_gia(ngay_sx):
     """Câu cảnh báo sau khi chốt — nói rõ đã GHI NỢ, không phải "đã tính 0 đồng"."""
     ds = frappe.get_all("SX No Don Gia", filters={"ngay_sx": ngay_sx, "trang_thai": CHO},

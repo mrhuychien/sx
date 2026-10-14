@@ -330,7 +330,7 @@ def go_het(doc):
     """Phiếu ngày bị xoá: rút mọi chứng từ kho đã ghi + gỡ lương + huỷ nợ giá."""
     from sx.api.chot import _go_luong_khoan
     from sx.api.mfg import cancel_doc
-    from sx.api.nogia import huy_no_gia
+    from sx.api.nogia import go_lien_ket_no_gia, huy_no_gia
 
     for e in reversed(_so_cai(doc)):
         cancel_doc("Stock Entry", e.get("se"))
@@ -340,6 +340,7 @@ def go_het(doc):
     except (ValueError, TypeError):
         pass
     huy_no_gia(doc.name)
+    go_lien_ket_no_gia(ngay_sx=doc.name)        # D206: nợ trỏ vào phiếu ngày chặn xoá ngày
 
 
 # ═══════════════════════════════ hook ═══════════════════════════════

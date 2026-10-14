@@ -243,6 +243,8 @@ sys.modules["sx.api.chot"] = ch
 ng = types.ModuleType("sx.api.nogia")
 ng.CHO = "Chờ giá"
 ng.huy_no_gia = lambda n: [x.update(trang_thai="Đã huỷ") for x in ST["no"] if x["ngay_sx"] == n]
+ng.go_lien_ket_no_gia = lambda bang_vao_hop=None, ngay_sx=None: ST.setdefault("go_lk", []).append(
+    (bang_vao_hop, ngay_sx))
 
 
 
@@ -500,6 +502,8 @@ doc["salary_products_json"] = json.dumps([{"phieu": "PL-An", "employee": "An"}])
 B.go_het(doc)
 kiem("mọi chứng từ ghi sổ bị rút", not hieu_luc())
 kiem("gỡ lương ngày đó", ST["go"][-1] == ["An"])
+kiem("D206: gỡ liên kết nợ đơn giá trỏ vào phiếu ngày (không thì Frappe chặn xoá ngày)",
+     ST.get("go_lk") == [(None, "SXN-1")], ST.get("go_lk"))
 
 print("\n-- dây nối --")
 hk = open("sx/hooks.py", encoding="utf-8").read()

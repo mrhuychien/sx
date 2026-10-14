@@ -31,6 +31,13 @@ class SXBangVaoHop(Document):
         self.gop_theo_nguoi()
         self.tinh_tien()
 
+    def on_trash(self):
+        """Xoá bảng (D106: xoá hết dòng ở màn Ghi hộp) — gỡ nợ đơn giá trỏ vào bảng TRƯỚC khi Frappe kiểm tra liên kết,
+        không thì không xoá được (D206)."""
+        from sx.api.nogia import go_lien_ket_no_gia
+
+        go_lien_ket_no_gia(bang_vao_hop=self.name)
+
     def gop_theo_nguoi(self):
         """Xếp các dòng của CÙNG một công nhân liền nhau (D26).
 

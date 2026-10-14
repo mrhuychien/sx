@@ -323,6 +323,21 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ghi hộp: xoá bản ghi báo "Cannot delete or cancel … is linked with SX No Don Gia" (D206)
+
+- **Lỗi**: màn Ghi hộp xoá bản ghi → *Cannot delete or cancel because SX Bang Vao Hop VH-2026-00004 is linked with SX
+  No Don Gia NG-2026-0009*.
+- **Nguyên nhân**: xoá dòng cuối của ngày là xoá luôn bảng vào hộp nháp (D106). Từ D202, mã chưa khai giá được ghi
+  đúng vào **sổ nợ đơn giá**, và dòng nợ trỏ vào bảng (ô `bang_vao_hop`) → Frappe không cho xoá bảng còn bị trỏ tới.
+  Trước D202 sổ nợ không ghi được (lỗi D202) nên chưa ai gặp.
+- **Sửa**: bảng vào hộp sắp bị xoá (`on_trash` của controller — Frappe chạy trước khi kiểm tra liên kết; đủ mọi
+  đường xoá: màn Ghi hộp, Vào hộp Tết, Desk) → `sx.api.nogia.go_lien_ket_no_gia`: nợ **đang chờ giá → Đã huỷ** (không
+  còn dòng nào để trả); mọi nợ trỏ vào bảng **bỏ liên kết**, nợ đã áp giá / bỏ qua giữ nguyên trạng thái làm dấu vết
+  (ngày, mã, số hộp vẫn còn). Xoá phiếu ngày cũng vậy (nợ trỏ vào ô `ngay_sx`).
+- Test `test-novaohop.py` (QC xoá dòng cuối khi bảng có nợ đơn giá — mô phỏng đúng thứ tự xoá của Frappe: on_trash rồi
+  kiểm tra liên kết), `test-nogia.py`, `test-dongbo.py`.
+- Không đổi DocType: `git pull` → `bench restart`.
+
 ## POS: thêm mã có lô vào giỏ bị lỗi 'NoneType' object has no attribute 'get' — vá ERPNext tại chỗ (D205)
 
 - **Lỗi** (14/10/2026, CH Tuệ Tĩnh, mã TH170): vào POS bán hàng →

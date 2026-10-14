@@ -301,6 +301,27 @@ kiem("cộng số hộp, đếm người KHÁC NHAU",
      (thieu[("TP-B", "")]["so_hop"], len(thieu[("TP-B", "")]["nguoi"])) == (25, 2))
 kiem("mã có cách làm rơi về giá chung thì KHÔNG nợ", ("TP-D", "Tay") not in thieu)
 
+# ═══ 1b. D206: xoá bảng vào hộp / phiếu ngày — gỡ nợ trỏ vào ═════════════
+print("\n-- D206: xoá bảng vào hộp: gỡ nợ đơn giá trỏ vào bảng --")
+lam_sach()
+dung_ngay("NSX-20", D20, [dong_vh(2, "NV1", "TP-B", 20), dong_vh(4, "NV1", "TP-C", 7, "Tay")])
+dung_ngay("NSX-21", D21, [dong_vh(1, "NV1", "TP-B", 8)])
+NO[1]["trang_thai"] = "Đã cập nhật"                  # nợ đã áp giá — dấu vết, giữ trạng thái
+truoc = [(x.name, x.trang_thai, x.bang_vao_hop) for x in NO]
+ds = G.go_lien_ket_no_gia(bang_vao_hop="BVH-NSX-20")
+kiem("gỡ đúng các nợ trỏ vào bảng bị xoá", sorted(ds) == sorted(n for n, _t, b in truoc if b == "BVH-NSX-20"), str(ds))
+kiem("nợ đang chờ giá → Đã huỷ, bỏ liên kết bảng; nợ đã áp giá giữ trạng thái, chỉ bỏ liên kết",
+     [(x.trang_thai, x.bang_vao_hop, x.ngay_sx) for x in NO[:2]]
+     == [("Đã huỷ", None, "NSX-20"), ("Đã cập nhật", None, "NSX-20")],
+     str([(x.trang_thai, x.bang_vao_hop, x.ngay_sx) for x in NO[:2]]))
+kiem("nợ của bảng khác không đụng", (NO[2].trang_thai, NO[2].bang_vao_hop) == ("Chờ giá", "BVH-NSX-21"))
+G.go_lien_ket_no_gia(ngay_sx="NSX-21")
+kiem("xoá phiếu ngày: nợ trỏ vào ngày bỏ liên kết ngày", (NO[2].trang_thai, NO[2].ngay_sx) == ("Đã huỷ", None))
+kiem("không truyền gì → không đụng gì", G.go_lien_ket_no_gia() == [])
+kiem("controller SX Bang Vao Hop: on_trash gỡ nợ (chạy trước kiểm tra liên kết của Frappe)",
+     "go_lien_ket_no_gia(bang_vao_hop=self.name)" in open(
+         "sx/sx/doctype/sx_bang_vao_hop/sx_bang_vao_hop.py", encoding="utf-8").read())
+
 # ═══ 2. Chốt ghi nợ ══════════════════════════════════════════════════════
 print("\n-- chốt vào hộp: ghi nợ --")
 lam_sach()

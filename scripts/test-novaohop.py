@@ -32,6 +32,7 @@ BANG = {}          # SX Bang Vao Hop: name -> doc
 NGAY = []          # SX Ngay San Xuat
 PHIEU = []         # SX Phieu Nhap TP (đã duyệt / nháp)
 NO = []            # SX No Vao Hop
+NO_GIA = []        # SX No Don Gia (D206: trỏ vào bảng vào hộp)
 VAI = {"SX Quan Ly"}
 MSG = []
 
@@ -119,6 +120,8 @@ def _hang(dt):
                 for p in PHIEU for r in p["dong"]]
     if dt == "SX No Vao Hop":
         return NO
+    if dt == "SX No Don Gia":
+        return NO_GIA
     return []
 
 
@@ -147,6 +150,8 @@ def _set_value(dt, name, vals, v=None, **kw):
     vals = vals if isinstance(vals, dict) else {vals: v}
     if dt == "SX No Vao Hop":
         next(h for h in NO if h["name"] == name).update(vals)
+    elif dt == "SX No Don Gia":
+        next(h for h in NO_GIA if h["name"] == name).update(vals)
 
 
 frappe = types.ModuleType("frappe")
@@ -295,6 +300,12 @@ class BangMoi(BVH.SXBangVaoHop):
         return self["name"] not in BANG
 
     def delete(self, **k):
+        # Như frappe.delete_doc: on_trash TRƯỚC, rồi mới kiểm tra liên kết (D206).
+        BVH.SXBangVaoHop.on_trash(self)
+        lk = [x["name"] for x in NO_GIA if x.get("bang_vao_hop") == self["name"]]
+        if lk:
+            raise Loi(f"Cannot delete or cancel because SX Bang Vao Hop {self['name']} is linked with "
+                      f"SX No Don Gia {lk[0]}")
         BANG.pop(self["name"])
 
 
@@ -326,7 +337,7 @@ def bang_vh(*dong, ngay=HOM_NAY, ten="NSX-1"):
 
 
 def lam_sach():
-    for x in (NGAY, PHIEU, NO, MSG, SE):
+    for x in (NGAY, PHIEU, NO, MSG, SE, NO_GIA):
         x.clear()
     BANG.clear()
     VAI.clear(); VAI.add("SX Quan Ly")
@@ -406,6 +417,25 @@ kiem("xoá hết dòng, không chấm ăn → xoá luôn bảng nháp, không b�
 jd = json.load(open("sx/sx/doctype/sx_bang_vao_hop/sx_bang_vao_hop.json", encoding="utf-8"))
 kiem("bảng 'Chi tiết' không còn bắt buộc (hết lỗi 'Data missing in table Chi tiết')",
      not next(f for f in jd["fields"] if f["fieldname"] == "dong").get("reqd"))
+
+print("\n-- D206: xoá dòng cuối khi bảng có nợ đơn giá --")
+lam_sach()
+NGAY.append(Doc(name="NSX-2", ngay=HOM_NAY, docstatus=0, chot_vaohop=0))
+VAI.clear(); VAI.add("SX Vao Hop")
+kq = PT.luu_bang_vao_hop("NSX-2", json.dumps([{"nhan_vien": "NV1", "san_pham": "TP-MOI", "so_hop": 6}]))
+BANG["BVH-NSX-2"]["docstatus"] = 0
+for i, r in enumerate(BANG["BVH-NSX-2"].dong):
+    r["name"] = f"R{i}"
+# đồng bộ lương (D202) đã ghi nợ đơn giá cho TP-MOI, trỏ vào bảng; thêm một nợ cũ đã áp giá
+NO_GIA += [Doc(name="NG-1", bang_vao_hop="BVH-NSX-2", ngay_sx="NSX-2", trang_thai="Chờ giá"),
+           Doc(name="NG-0", bang_vao_hop="BVH-NSX-2", ngay_sx="NSX-2", trang_thai="Đã cập nhật")]
+loi = thu(lambda: PT.luu_bang_vao_hop("NSX-2", json.dumps([]), biet=json.dumps(["R0"])))
+kiem("xoá dòng cuối: không còn lỗi 'is linked with SX No Don Gia', bảng nháp bị xoá",
+     loi is None and "BVH-NSX-2" not in BANG, loi or "")
+kiem("… nợ đang chờ giá Đã huỷ; mọi nợ bỏ liên kết bảng, nợ đã áp giá giữ trạng thái",
+     [(x.name, x.trang_thai, x.bang_vao_hop) for x in NO_GIA]
+     == [("NG-1", "Đã huỷ", None), ("NG-0", "Đã cập nhật", None)], str(NO_GIA))
+VAI.clear(); VAI.add("SX Quan Ly")
 
 # ═══ 2. Nhập kho vượt số chấm → nợ, không chặn ═══════════════════════════
 print("\n-- nhập kho vượt số chấm: ghi nợ, KHÔNG chặn --")
