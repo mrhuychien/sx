@@ -2204,6 +2204,7 @@ b.sx-tx-kl-loi { background: none; }
 }
 
 /* ── D214: phiếu đã duyệt ở thẻ Nhập kho — khối gập trong thẻ (dùng khung .sx-no-gap của D208) + nút sang trang ── */
-.sx-nk-gan { border-top: 1px solid var(--sx-line); padding-top: var(--sx-s2); }
+/* D215: danh sách "Vừa vào hộp — chưa nhập kho" cùng kiểu khối gập */
+.sx-nk-gan, .sx-nk-cho { border-top: 1px solid var(--sx-line); padding-top: var(--sx-s2); }
 .sx-nk-trang { display: flex; align-items: center; justify-content: space-between; gap: var(--sx-s2); }
 .sx-nk-trang .sx-btn { flex: none; }

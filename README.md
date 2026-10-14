@@ -323,6 +323,20 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhập kho: danh sách "Vừa vào hộp — chưa nhập kho" gập sẵn (D215)
+
+- Danh sách mã đã chấm vào hộp mà chưa nhập kho (màn Nhập kho) **gập sẵn** như khối phiếu đã duyệt (D214): dòng gập
+  *Vừa vào hộp — chưa nhập kho (N mã)* + nhắc — chưa có phiếu nháp: *bấm mở, chọn mã để lập phiếu*; đang có phiếu nháp:
+  *đã ghi vào phiếu k/N mã* (đủ thì chữ xanh). Bấm mới xổ; bên trong y như cũ (bấm mã để ghi số, ⇩ TẢI TẤT CẢ VÀO
+  PHIẾU, số còn lại, HSD).
+- Đang ghi phiếu nháp (thêm mã, sửa / xoá dòng — khung chờ nhận vẽ lại mỗi lần) thì **giữ nguyên** mở / gập như người
+  dùng để. Vừa lập phiếu bằng cách bấm một mã trong danh sách (cả màn vẽ lại thành phiếu nháp) thì danh sách **mở sẵn
+  một lần** để ghi tiếp mã khác. Mở lại màn thì gập. Không có mã nào chờ: vẫn một dòng chữ như cũ.
+- Test `test-gapno.mjs` (Chromium: gập mặc định, lập phiếu từ mã → mở sẵn một lần, thêm mã vẫn mở + nhắc đổi, người
+  dùng gập rồi xoá dòng vẫn gập, mở lại màn thì gập, không có mã chờ), `test-sohsd.mjs` (các ca nhập kho cũ giữ
+  nguyên).
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-161**.
+
 ## Nhập kho: danh sách phiếu đã duyệt gập sẵn, chia trang (D214)
 
 - **Trước**: thẻ Nhập kho chỉ hiện **5 phiếu đã duyệt mới nhất**, luôn xổ sẵn; phiếu cũ hơn không xem được ở portal.

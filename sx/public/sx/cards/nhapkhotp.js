@@ -19,6 +19,10 @@ import { bamPhim } from '/assets/sx/sx/components/numpad.js';
 import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
 
+// D215: vừa lập phiếu bằng cách bấm một mã trong "Vừa vào hộp" (cả màn vẽ lại thành phiếu nháp) → danh sách chờ nhận
+// mở sẵn MỘT lần, để ghi tiếp mã khác không phải bấm mở lại.
+let moChoDen = 0;
+
 export async function render({ container, call, refresh, boot }) {
   container.className = 'sx-card';
   container.innerHTML = '<div class="sx-muted">Đang tải…</div>';
@@ -166,6 +170,7 @@ function veChuaCo(container, r, ganDay, call, refresh, boot) {
     const tao = async (ds) => {
       try {
         await call('sx.api.khotp.tao_phieu_nhap', { rows: JSON.stringify(ds) });
+        moChoDen = Date.now() + 15000;
         refresh();
       } catch (err) { toastErr(err.message); }
     };
@@ -200,13 +205,20 @@ function veChuaCo(container, r, ganDay, call, refresh, boot) {
 
 // Mã đã chấm vào hộp mà chưa nhập kho. Số bên phải là PHẦN CÒN LẠI, không phải tổng
 // đã chấm — nhận một phần rồi thì phần đã nhận biến khỏi danh sách này.
-function veChoNhan(cho, rows, coTaiHet) {
+// D215: GẬP sẵn (như khối phiếu đã duyệt, D214) — dòng gập nói bao nhiêu mã, đang có phiếu nháp thì đã ghi vào phiếu
+// bao nhiêu mã; bấm mới xổ. `coTaiHet` = đang ở phiếu nháp. `mo` = vẽ lại khi đang mở thì giữ mở.
+function veChoNhan(cho, rows, coTaiHet, mo = false) {
   if (!cho || !cho.length) {
     return `<div class="sx-muted">Chưa có mã hàng nào vừa vào hộp mà chưa nhập kho
       (7 ngày gần đây). Vẫn lập phiếu và ghi tay được.</div>`;
   }
-  return `
-    <div class="sx-field-label">Vừa vào hộp — chưa nhập kho (${cho.length})</div>
+  const daGhi = cho.filter((d) => (rows || []).some((x) => x.item === d.item)).length;
+  const nhac = !coTaiHet ? '<span>bấm mở, chọn mã để lập phiếu</span>'
+    : `<span${daGhi === cho.length ? ' class="sx-no-nhac-lam"' : ''}>đã ghi vào phiếu ${daGhi}/${cho.length} mã</span>`;
+  return `<details class="sx-no-gap sx-nk-cho" id="sx-nk-cho"${mo ? ' open' : ''}>
+    <summary class="sx-no-tom"><span class="sx-field-label">Vừa vào hộp — chưa nhập kho (${cho.length} mã)</span>
+      <span class="sx-no-nhac">${nhac}</span></summary>
+    <div class="sx-no-than">
     <div class="sx-muted">Bấm mã hàng để ghi số nhận. Số bên phải là phần còn lại.</div>
     ${coTaiHet ? `<button type="button" class="sx-btn" id="sx-nk-tai">
       ⇩ TẢI TẤT CẢ VÀO PHIẾU</button>` : ''}
@@ -234,7 +246,9 @@ function veChoNhan(cho, rows, coTaiHet) {
       ? `ghi ${formatNumber(co.so_hien)}`
       : formatNumber(d.con)}</span>
       </button>`;
-  }).join('')}</div>`;
+  }).join('')}</div>
+    </div>
+  </details>`;
 }
 
 // ──────────────────────── có phiếu nháp: ghi hàng + duyệt ─────────────────
@@ -372,8 +386,11 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     // Vẽ lại cả khung "vừa vào hộp" mỗi lần đổi dòng: mã nào đã ghi vào phiếu phải
     // thấy ngay là đã ghi, không thì thủ kho bấm lại lần hai tưởng là chưa ghi.
     const hopBox = container.querySelector('#sx-nk-cn');
+    const cuCho = hopBox.querySelector('#sx-nk-cho');
+    const moCho = cuCho ? !!cuCho.open : Date.now() < moChoDen;     // D215
+    moChoDen = 0;
     hopBox.innerHTML = cho.length
-      ? veChoNhan(cho, rows.map((x) => ({ ...x, so_hien: soCua(x) })), true) : '';
+      ? veChoNhan(cho, rows.map((x) => ({ ...x, so_hien: soCua(x) })), true, moCho) : '';
     hopBox.querySelectorAll('[data-cn]').forEach((b) => {
       const d = cho.find((x) => x.item === b.dataset.cn);
       b.addEventListener('click', () => themTuVaoHop(d));

@@ -61,9 +61,8 @@ const call = async (m, a) => {
   }
   if (m.startsWith('sx.api.kiemke.')) return structuredClone(D.kk);
   // D214: phiếu nhập — không có phiếu nháp; phiếu đã duyệt chia trang 10 / trang như máy chủ thật.
-  if (m === 'sx.api.khotp.phieu_dang_mo') {
-    return { nhap: null, kho_tp: 'Kho TP - HGC', cho_nhan: [], danh_muc: [{ item: 'TP-A', ten: 'Bánh A', dvt: 'Hộp' }] };
-  }
+  if (m === 'sx.api.khotp.phieu_dang_mo') return structuredClone(D.nkMo);
+  if (m === 'sx.api.khotp.tao_phieu_nhap') return {};
   if (m === 'sx.api.khotp.ds_phieu_nhap') {
     const tong = D.nk.length;
     const so = Math.max(1, Math.ceil(tong / 10));
@@ -133,6 +132,8 @@ DL.kk = { kho: 'Kho TP - HGC', loai: 'Thành phẩm', duoc_chot: true, hom_nay: 
   hang: Array.from({ length: 10 }, (_, i) => ({ item: `TP-${i}`, ten: i === 3 ? 'Bánh sen' : `Bánh số ${i}`,
     dvt: 'Hộp', uoms: [], so_sach: 10 + i, chua_hsd: i < 2 ? 5 : 0, thu_hoi: 0, khong_lo: false,
     theo_hsd: [{ hsd: '2027-04-01', so: 5 + i }], da_dem: false, dem: [], tong_dem: 0 })) };
+// Thẻ Nhập kho: mặc định không có phiếu nháp, không có hàng chờ nhận (ca D214); ca D215 đổi sang có.
+DL.nkMo = { nhap: null, kho_tp: 'Kho TP - HGC', cho_nhan: [], danh_muc: [{ item: 'TP-A', ten: 'Bánh A', dvt: 'Hộp' }] };
 // 23 phiếu đã duyệt, mới nhất trước (máy chủ xếp creation desc).
 DL.nk = Array.from({ length: 23 }, (_, i) => ({ name: `PD-${String(23 - i).padStart(2, '0')}`, ngay: '2026-10-14',
   tong_dem: 100 + i, tong_lech: i === 0 ? -2 : 0, nguoi_duyet: 'thukho' }));
@@ -371,6 +372,65 @@ await p.evaluate(() => window.ve('nk'));
 kiem('chưa có phiếu đã duyệt nào: không vẽ khối', (await nk()) === null);
 await p.evaluate(() => { window.DL.nk = Array.from({ length: 23 }, (_, i) => ({ name: `PD-${String(23 - i)
   .padStart(2, '0')}`, ngay: '2026-10-14', tong_dem: 100 + i, tong_lech: 0, nguoi_duyet: 'thukho' })); });
+
+console.log('\n-- Nhập kho (D215): danh sách "Vừa vào hộp — chưa nhập kho" gập sẵn --');
+const CHO = [
+  { item: 'TP-A', ten: 'Bánh A', con: 15, dvt: 'Hộp', uoms: [],
+    chia: [{ hsd: '2027-04-01', con: 10 }, { hsd: '2027-05-01', con: 5 }] },
+  { item: 'TP-B', ten: 'Bánh B', con: 8, dvt: 'Hộp', uoms: [],
+    chia: [{ hsd: '2027-04-02', con: 4 }, { hsd: '2027-05-02', con: 4 }] }];
+const DM_NK = [{ item: 'TP-A', ten: 'Bánh A', dvt: 'Hộp', co_bom: true }, { item: 'TP-B', ten: 'Bánh B', dvt: 'Hộp',
+  co_bom: true }];
+const cho = () => p.evaluate(() => {
+  const d = document.querySelector('#nk #sx-nk-cho');
+  if (!d) return null;
+  const n = d.querySelector('summary .sx-no-nhac > span');
+  return { mo: d.open, tieuDe: d.querySelector('summary .sx-field-label').textContent, nhac: n.textContent,
+    xanh: n.classList.contains('sx-no-nhac-lam'),
+    hien: [...d.querySelectorAll('[data-cn]')].some((b) => b.checkVisibility()) };
+});
+await p.evaluate(([c, dm]) => { window.DL.nkMo = { nhap: null, kho_tp: 'Kho TP - HGC', cho_nhan: c, danh_muc: dm };
+  window.CALLS = []; window.REFRESH = 0; }, [CHO, DM_NK]);
+await p.evaluate(() => window.ve('nk'));
+let ch = await cho();
+kiem('chưa có phiếu nháp: khối gập sẵn — "(2 mã)", nhắc bấm mở chọn mã; mã ẩn', ch && !ch.mo && !ch.hien
+  && ch.tieuDe === 'Vừa vào hộp — chưa nhập kho (2 mã)' && ch.nhac === 'bấm mở, chọn mã để lập phiếu', JSON.stringify(ch));
+await p.click('#nk #sx-nk-cho > summary');
+kiem('bấm → xổ danh sách mã', (await cho()).mo && (await cho()).hien);
+await p.click('#nk [data-cn="TP-A"]');
+await p.waitForFunction(() => window.REFRESH === 1, null, { timeout: 3000 }).catch(() => {});
+const tao = (await p.evaluate(() => window.CALLS)).find(([m]) => m === 'sx.api.khotp.tao_phieu_nhap');
+kiem('bấm một mã (2 HSD) → lập phiếu kèm mã đó theo từng HSD, vẽ lại cả màn',
+  tao && JSON.stringify(JSON.parse(tao[1].rows)) === JSON.stringify([{ item: 'TP-A', so_luong: 10, hsd: '2027-04-01' },
+    { item: 'TP-A', so_luong: 5, hsd: '2027-05-01' }]) && (await p.evaluate(() => window.REFRESH)) === 1,
+  tao && tao[1].rows);
+await p.evaluate(([c, dm]) => { window.DL.nkMo = { kho_tp: 'Kho TP - HGC', cho_nhan: c, danh_muc: dm, nhap: {
+  name: 'PNK-1', ngay: '2026-10-14', duoc_duyet: true, duoc_xoa: true, kho_dich: 'Kho TP - HGC', dong: [
+    { item: 'TP-A', ten: 'Bánh A', dvt: 'Hộp', so_lap: 10, so_dem: 10, lap_uom: null, dem_uom: null, lech: 0,
+      hsd: '2027-04-01', hsd_goi_y: '2027-04-01', co_bom: true, xx_hsd: '', xx: null, vuot: 0 },
+    { item: 'TP-A', ten: 'Bánh A', dvt: 'Hộp', so_lap: 5, so_dem: 5, lap_uom: null, dem_uom: null, lech: 0,
+      hsd: '2027-05-01', hsd_goi_y: '2027-05-01', co_bom: true, xx_hsd: '', xx: null, vuot: 0 }] } }; },
+[CHO, DM_NK]);
+await p.evaluate(() => window.ve('nk'));                    // = refresh: màn vẽ lại thành phiếu nháp
+ch = await cho();
+kiem('… màn phiếu nháp ngay sau đó: danh sách chờ nhận MỞ sẵn (một lần) — ghi tiếp mã khác không phải mở lại; '
+  + 'nhắc đã ghi 1/2 mã', ch && ch.mo && ch.nhac === 'đã ghi vào phiếu 1/2 mã' && !ch.xanh, JSON.stringify(ch));
+await p.click('#nk [data-cn="TP-B"]');
+await p.waitForTimeout(200);
+ch = await cho();
+kiem('thêm mã TP-B vào phiếu (thẻ vẽ lại khung chờ nhận): VẪN MỞ; nhắc đã ghi đủ 2/2 mã — chữ xanh',
+  ch.mo && ch.nhac === 'đã ghi vào phiếu 2/2 mã' && ch.xanh, JSON.stringify(ch));
+await p.click('#nk #sx-nk-cho > summary');
+await p.click('#nk [data-del]');
+await p.waitForTimeout(200);
+kiem('người dùng tự gập rồi xoá một dòng phiếu (vẽ lại): vẫn GẬP như người dùng để', !(await cho()).mo);
+await p.evaluate(() => window.ve('nk'));
+kiem('mở lại màn (không vừa lập phiếu) → gập như mặc định', !(await cho()).mo);
+await p.evaluate(() => { window.DL.nkMo = { nhap: null, kho_tp: 'Kho TP - HGC', cho_nhan: [],
+  danh_muc: [{ item: 'TP-A', ten: 'Bánh A', dvt: 'Hộp' }] }; });
+await p.evaluate(() => window.ve('nk'));
+kiem('không có mã chờ nhận: không có khối gập, chỉ một dòng chữ như cũ', !(await cho())
+  && (await p.textContent('#nk')).includes('Chưa có mã hàng nào vừa vào hộp'));
 
 console.log('\n-- hết nợ: thẻ tự ẩn như cũ --');
 await p.evaluate(() => { window.DL.bom = { nhom: [], tong_dong: 0, duoc_xu_ly: true, ngay_no_lau: 7 };
