@@ -9,7 +9,7 @@ import { apDungMua, iconMua, moChonMua } from '/assets/sx/sx/components/mua.js';
 import { nutTaiKhoan } from '/assets/sx/sx/components/taikhoan.js';
 import { batDauMan, doThe, xongMan } from '/assets/sx/sx/lib/do.js';
 
-const BUILD = 'sx-162';
+const BUILD = 'sx-163';
 const CTX = window.SX_CONTEXT || {};
 window.SX_APP = { build: BUILD };
 

@@ -66,6 +66,9 @@ class Doc(dict):
 
 
 class PhieuDoc(Doc):
+    def gop_trung_lo(self):          # D218: validate gọi qua self — Doc giả không kế thừa controller
+        return P.SXPhieuNhapTP.gop_trung_lo(self)
+
     def insert(self):
         self["name"] = f"PN-{len(PHIEU) + 1}"
         self.setdefault("docstatus", 0)

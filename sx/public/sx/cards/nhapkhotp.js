@@ -425,10 +425,39 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   ve();
 
 
+  // D218: cộng hai cách chia thùng / hộp theo từng đơn vị — 2 thùng 3 hộp + 1 thùng 10 hộp = 3 thùng 13 hộp, đúng số
+  // thùng và số hộp lẻ đang nằm ngoài kho. Bên chưa có cách chia thì chia tạm tổng của nó ra; hai bên đều không chia
+  // (mã một đơn vị) → null. Máy chủ cộng y như vậy (_cong_uom) khi phiếu còn dòng trùng gửi lên.
+  function congCt(a, soA, b, soB, x) {
+    if (!(a && a.length) && !(b && b.length)) return null;
+    const ds = uomCua(x.item);
+    const goc = x.dvt || (ds[ds.length - 1] || {}).uom || 'Hộp';
+    const ra = [];
+    [[a, soA], [b, soB]].forEach(([ct, so]) => {
+      const phan = ct && ct.length ? ct : (so > 0 ? tachUom(so, ds) || [{ uom: goc, sl: so, he_so: 1 }] : []);
+      phan.forEach((c) => {
+        const h = Number(c.he_so) || 1;
+        const co = ra.find((y) => y.uom === c.uom && y.he_so === h);
+        if (co) co.sl += Number(c.sl) || 0; else ra.push({ uom: c.uom, sl: Number(c.sl) || 0, he_so: h });
+      });
+    });
+    return ra.sort((u, v) => v.he_so - u.he_so);
+  }
+
+  // D218: cùng mã + cùng HSD là MỘT lô (W05) → một dòng. Gộp = cộng như hai dòng riêng (số lập + số lập, số đếm + số
+  // đếm, thùng / hộp theo đơn vị): tổng phiếu và chỗ lệch không đổi. HSD giữ của dòng đích — hai bên cùng một ngày.
+  function gopDong(dich, x) {
+    dich.lap_uom = congCt(dich.lap_uom, dich.so_lap, x.lap_uom, x.so_lap, dich);
+    dich.dem_uom = congCt(dich.dem_uom, dich.so_dem, x.dem_uom, x.so_dem, dich);
+    dich.so_lap = Number(dich.so_lap) + Number(x.so_lap);
+    dich.so_dem = Number(dich.so_dem) + Number(x.so_dem);
+  }
+
   // D153: MỘT bàn số cho cả số lẫn HSD (như Vào hộp Tết) — chọn mã là gõ số luôn, không qua cửa sổ số
   // lượng rồi cửa sổ HSD riêng. `co` = dòng đang sửa; null = dòng mới theo `them` ({item, hsd, goiY, so}).
   // W05: mỗi (mã, HSD) một dòng = một lô — các dòng HSD khác của cùng mã hiện thành ô bấm trên bàn số để
-  // chuyển sang sửa dòng đó; đổi HSD trùng một dòng khác thì báo ngay trên bàn số.
+  // chuyển sang sửa dòng đó. D218: LƯU mà HSD trùng một dòng khác của mã → CỘNG vào dòng đó (hàng một lô nằm
+  // vài chồng, đếm chồng nào ghi chồng đó), bàn số nói trước "cộng vào dòng đang có …".
   function moDong(co, them = {}) {
     const item = co ? co.item : them.item;
     const d = danhMuc.find((x) => x.item === item) || them.goiY || {};
@@ -446,16 +475,13 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
       hsd: co ? co.hsd : (them.hsd || null),
       macDinh,
       phu: co && laThuKho ? `phiếu ghi ${formatNumber(co.so_lap)}` : '',
-      daCo: khac.map((x) => ({ nhan: `HSD ${hsdCua(x) ? veNgayDu(hsdCua(x)) : '—'}`, so: soCua(x) })),
+      daCo: khac.map((x) => ({ nhan: `HSD ${hsdCua(x) ? veNgayDu(hsdCua(x)) : '—'}`, so: soCua(x), hsd: hsdCua(x) })),
       onDaCo: (i) => moDong(khac[i]),
+      congVao: true,
       choPhepKhong: !!co,
-      kiemLuu: (tong, h) => {
-        const trung = khac.find((x) => hsdCua(x) === h);
-        return trung ? `Mã này đã có dòng HSD ${veNgayDu(h)} (${formatNumber(soCua(trung))}) — bấm ô HSD đó `
-          + 'phía trên để sửa, hoặc đổi HSD.' : '';
-      },
       onOk: (tong, ct, hsd) => {
         const n = chotSo(tong, ct);
+        let x = co;
         if (co) {
           if (!n) { rows.splice(rows.indexOf(co), 1); ve(); return; }
           co.so_dem = n; co.dem_uom = ct; co.hsd = hsd;
@@ -464,9 +490,22 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
           if (!laThuKho) { co.so_lap = n; co.lap_uom = ct; }
         } else {
           if (!n) return;
-          rows.push({ item, ten: d.ten || tenSP(item), dvt: d.dvt || '', hsd,
-                      so_lap: n, so_dem: n, lap_uom: ct, dem_uom: ct });
+          x = { item, ten: d.ten || tenSP(item), dvt: d.dvt || '', hsd,
+                so_lap: n, so_dem: n, lap_uom: ct, dem_uom: ct };
         }
+        const h = hsdCua(x);
+        const trung = h && khac.find((y) => hsdCua(y) === h);
+        if (trung) {
+          // Dòng MỚI của thủ kho (thêm một chồng tìm thấy) chỉ cộng số ĐẾM — số người lập ghi cho lô đó giữ nguyên,
+          // đếm thêm được bao nhiêu so với phiếu mới là thứ đáng xem. Sửa một dòng sang trùng HSD thì cộng cả hai:
+          // hai dòng người lập ghi hoá ra là một lô.
+          if (!co && laThuKho) { x.so_lap = 0; x.lap_uom = null; }
+          const truoc = soCua(trung);
+          gopDong(trung, x);
+          if (co) rows.splice(rows.indexOf(co), 1);
+          toast(`Cộng vào dòng HSD ${veNgayDu(h)}: ${formatNumber(truoc)} + ${formatNumber(soCua(x))}`
+            + ` = ${formatNumber(soCua(trung))}`);
+        } else if (!co) rows.push(x);
         ve();
       },
     });
@@ -478,11 +517,10 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
     moDong(null, { item, hsd, goiY, so });
   }
 
-  // Chọn / quét một mã: đã có dòng HSD mặc định thì mở sửa dòng đó, chưa có thì mở dòng mới — cùng bàn số.
+  // Chọn / quét một mã → luôn mở DÒNG MỚI (D218): trùng HSD dòng đang có thì LƯU là cộng vào dòng đó. Sửa dòng cũ:
+  // bấm số / HSD của dòng, hoặc bấm ô của dòng đó trên bàn số.
   function themItem(item) {
-    const md = hsdMacDinh({ item });
-    const trung = rows.find((x) => x.item === item && hsdCua(x) === md);
-    if (trung) moDong(trung); else dongMoi(item, null);
+    dongMoi(item, null);
   }
 
   // Bấm một mã ở "vừa vào hộp": thêm đủ các dòng theo HSD còn thiếu trên phiếu.
@@ -666,7 +704,9 @@ function chiaCua(d) {
  *   ngay         ngày nhập: HSD phải sau ngày này, nút +3T… cộng từ ngày này
  *   hsd          HSD đang có ('' / null = dùng `macDinh` của mã); macDinh null = mã chưa khai hạn dùng
  *   phu          chữ phụ cạnh tổng (vd "phiếu ghi 255" cho thủ kho)
- *   daCo         [{nhan, so}] dòng KHÁC của cùng mã (mỗi HSD một lô) — bấm thì đóng bàn số, gọi onDaCo(i)
+ *   daCo         [{nhan, so, hsd?}] dòng KHÁC của cùng mã (mỗi HSD một lô) — bấm thì đóng bàn số, gọi onDaCo(i)
+ *   congVao      true = LƯU mà HSD trùng một dòng daCo là CỘNG vào dòng đó (D218, nhập kho) — bàn số nói trước
+ *                "cộng vào dòng đang có …"; việc cộng do onOk làm
  *   kiemLuu      (tong, hsd) → '' | lỗi: kiểm thêm lúc LƯU (vd trùng HSD dòng khác) — lỗi thì giữ bàn số
  *   choPhepKhong true = LƯU được số 0 (sửa dòng về 0 là bỏ dòng)
  *   nhanh        [{nhan, hsd}] nút HSD riêng thay cho +3T…+12T (kiểm kê: các HSD đang có trên sổ của mã)
@@ -674,7 +714,7 @@ function chiaCua(d) {
  *   onOk(tong, chi_tiet | null, hsd | null) — hsd null = đúng HSD mặc định
  */
 export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0, hsd, macDinh, phu = '',
-  daCo, onDaCo, kiemLuu, choPhepKhong = false, nhanh, sauNgay = true, onOk }) {
+  daCo, onDaCo, congVao = false, kiemLuu, choPhepKhong = false, nhanh, sauNgay = true, onOk }) {
   const ds = (uoms || []).filter((u) => u && u.uom);
   const bac = ds.length ? ds : [{ uom: dvt || 'Hộp', he_so: 1 }];
   const heSo = (u) => Number(u.he_so) || 1;
@@ -710,7 +750,8 @@ export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0,
   const m = openModal({ kicker, title: ten });
   m.body.classList.add('sx-sohsd');
   m.body.innerHTML = `
-    ${(daCo || []).length ? `<div class="sx-sohsd-daco"><span class="sx-field-label">Đã có dòng</span>${
+    ${(daCo || []).length ? `<div class="sx-sohsd-daco"><span class="sx-field-label">${
+  congVao ? 'Đã có dòng — cùng HSD thì cộng vào' : 'Đã có dòng'}</span>${
   daCo.map((x, i) => `<button type="button" class="sx-np-chip" data-daco="${i}">${esc(x.nhan)} · ${
     formatNumber(x.so)} ✎</button>`).join('')}</div>` : ''}
     ${bac.length > 1 ? '<div class="sx-np-chips" id="sh-tab" role="tablist"></div>' : ''}
@@ -732,6 +773,7 @@ export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0,
 
   function ve() {
     const t = tinh();
+    const vao = congVao && t > 0 ? (daCo || []).find((x) => x.hsd && x.hsd === oHsd.value) : null;
     if (bac.length > 1) {
       $('#sh-tab').innerHTML = bac.map((x, i) => `<button type="button" role="tab" aria-selected="${i === tab}"
         class="sx-np-chip${i === tab ? ' sx-np-chip-on' : ''}" data-tab="${i}">${esc(x.uom)}${
@@ -748,7 +790,8 @@ export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0,
         <div class="sx-numpad-unit">Số ${esc(bac[tab].uom.toLowerCase())}</div>
         <div class="sx-numpad-value">${esc(value || '0')}</div></div>
       <div class="sx-np-hint">${[bac.length > 1 ? `Tổng ${formatNumber(t)} ${esc(goc.uom.toLowerCase())}` : '',
-    esc(phu)].filter(Boolean).join(' · ')}</div>`;
+    esc(phu), vao ? `cộng vào dòng đang có ${formatNumber(vao.so)} → ${formatNumber(vao.so + t)}` : '']
+    .filter(Boolean).join(' · ')}</div>`;
     $('#sh-ok').textContent = t > 0 ? `LƯU · ${formatNumber(t)} ${goc.uom.toUpperCase()}` : 'LƯU';
     if ($('#sh-md')) $('#sh-md').classList.toggle('sx-np-chip-on', oHsd.value === macDinh);
   }

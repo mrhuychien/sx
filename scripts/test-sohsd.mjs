@@ -279,6 +279,12 @@ console.log('-- moSoHsd: tab thùng / hộp + HSD trên một màn --');
   ds[0].bam();
   kiem('bấm ô đó → đóng bàn số, gọi onDaCo(0)', p.dong() && chon === 0);
 }
+{
+  const [p] = moTrucTiep({ uoms: UOMS, daCo: [{ nhan: 'HSD 09/04/27', so: 245, hsd: '2027-04-09' }] });
+  p.go('1');
+  kiem('không bật congVao (Tết, kiểm kê): HSD trùng ô đã có cũng KHÔNG nói "cộng vào", nhãn giữ "Đã có dòng"',
+    !/cộng vào/.test(p.goiY()) && !/cùng HSD thì cộng/.test(p.m.body.innerHTML), p.goiY());
+}
 
 console.log('\n-- giữ đúng TỔNG khi bảng quy đổi đổi sau lúc ghi (ca cũ của openSoLuong, D75) --');
 for (const [ten, uoms, mong] of [
@@ -367,32 +373,62 @@ const choRe = () => new Promise((r) => { setTimeout(r, 0); });
     && /HSD 09\/01\/27 · 245/.test(p.daCo()[0].textContent), p.daCo().map((b) => b.textContent));
   p.go('10');
   p.datHsd('2027-01-09');
-  p.luu();
-  kiem('lưu trùng HSD dòng đang có → chặn ngay trên bàn số (cùng mã + HSD là một lô)', !p.dong()
-    && /đã có dòng HSD 09\/01\/27/.test(p.loi()), p.loi());
-  p.macDinh();
+  kiem('D218: HSD trùng dòng đang có → bàn số nói trước "cộng vào dòng đang có 245 → 365"',
+    /cộng vào dòng đang có 245 → 365/.test(p.goiY()) && /cùng HSD thì cộng vào/.test(p.m.body.innerHTML), p.goiY());
+  TOAST.length = 0;
   p.luu();
   c.querySelector('#sx-nk-luu').bam();
   await choRe();
   g = guiLuu();
-  kiem('về HSD mặc định → thêm dòng thứ hai: 10 thùng = 120, HSD null', g.length === 2 && g[1].item === 'TP-SEN'
+  kiem('D218: lưu trùng HSD → CỘNG vào dòng đó (không chặn, không đẻ dòng thứ hai): 245 + 120 = 365, '
+    + 'thùng / hộp cộng theo đơn vị (20 thùng 5 hộp + 10 thùng = 30 thùng 5 hộp)', p.dong() && g.length === 1
+    && g[0].so_lap === 365 && g[0].so_dem === 365 && g[0].hsd === '2027-01-09'
+    && bang(g[0].lap_uom, [{ uom: 'Thùng', sl: 30, he_so: 12 }, { uom: 'Hộp', sl: 5, he_so: 1 }])
+    && bang(g[0].dem_uom, g[0].lap_uom), g);
+  kiem('… và nói ra đã cộng', TOAST.some(([t]) => t === 'Cộng vào dòng HSD 09/01/27: 245 + 120 = 365'), TOAST);
+
+  c.querySelector('#sx-nk-tim').bam();
+  p = chonSP('TP-SEN');
+  p.go('10');
+  kiem('HSD mặc định chưa có dòng → không có chữ "cộng vào"', !/cộng vào/.test(p.goiY()), p.goiY());
+  p.luu();
+  c.querySelector('#sx-nk-luu').bam();
+  await choRe();
+  g = guiLuu();
+  kiem('HSD mặc định → thêm dòng thứ hai: 10 thùng = 120, HSD null', g.length === 2 && g[1].item === 'TP-SEN'
     && g[1].so_lap === 120 && g[1].hsd === null && bang(g[1].lap_uom, [{ uom: 'Thùng', sl: 10, he_so: 12 }]), g);
 
   c.querySelector('#sx-nk-tim').bam();
   p = chonSP('TP-SEN');
-  kiem('chọn lại mã đã có dòng HSD mặc định → mở SỬA dòng đó (không đẻ dòng trùng lô)',
-    p && p.m.kicker === 'Sửa dòng' && /Thùng · 10/.test(p.tabs()[0]) && p.daCo().length === 1, p && p.m.kicker);
-  p = moi(p.daCo()[0]);
-  kiem('bấm ô dòng kia → chuyển sang sửa dòng HSD 09/01/27', p && p.hsd() === '2027-01-09'
-    && /Thùng · 20/.test(p.tabs()[0]), p && p.hsd());
-  p.go('0');
-  p.tab(1);
-  p.go('0');
+  kiem('D218: chọn lại mã đã có dòng HSD mặc định → vẫn là DÒNG MỚI (ô số trống, chưa gõ thì chưa nói "cộng vào"), '
+    + 'hai dòng đang có là ô bấm', p && p.m.kicker === 'Thêm sản phẩm' && p.so() === '0' && p.daCo().length === 2
+    && !/cộng vào/.test(p.goiY()), p && `${p.m.kicker} | ${p.goiY()}`);
+  p.go('5');
+  kiem('… gõ 5 thùng → "cộng vào dòng đang có 120 → 180"', /cộng vào dòng đang có 120 → 180/.test(p.goiY()), p.goiY());
   p.luu();
   c.querySelector('#sx-nk-luu').bam();
   await choRe();
   g = guiLuu();
-  kiem('sửa dòng về 0 → bỏ dòng', g.length === 1 && g[0].so_lap === 120, g);
+  kiem('… LƯU → dòng HSD mặc định thành 15 thùng = 180, HSD vẫn null (đi theo ngày phiếu)', g.length === 2
+    && g[1].so_lap === 180 && g[1].so_dem === 180 && g[1].hsd === null
+    && bang(g[1].lap_uom, [{ uom: 'Thùng', sl: 15, he_so: 12 }]), g);
+
+  c.querySelector('#sx-nk-tim').bam();
+  p = chonSP('TP-SEN');
+  p = moi(p.daCo()[0]);
+  kiem('bấm ô dòng kia trên bàn số → chuyển sang sửa dòng HSD 09/01/27 (30 thùng 5 hộp)', p && p.m.kicker === 'Sửa dòng'
+    && p.hsd() === '2027-01-09' && /Thùng · 30/.test(p.tabs()[0]) && /Hộp · 5/.test(p.tabs()[1]), p && p.hsd());
+  p.macDinh();
+  kiem('… đổi HSD sang mặc định (trùng dòng kia) → "cộng vào dòng đang có 180 → 545"',
+    /cộng vào dòng đang có 180 → 545/.test(p.goiY()), p.goiY());
+  p.luu();
+  c.querySelector('#sx-nk-luu').bam();
+  await choRe();
+  g = guiLuu();
+  kiem('D218: SỬA một dòng sang trùng HSD dòng khác → hai dòng gộp làm một: 545 = 45 thùng 5 hộp, cả số lập lẫn số đếm',
+    g.length === 1 && g[0].so_lap === 545 && g[0].so_dem === 545 && g[0].hsd === null
+    && bang(g[0].lap_uom, [{ uom: 'Thùng', sl: 45, he_so: 12 }, { uom: 'Hộp', sl: 5, he_so: 1 }])
+    && bang(g[0].dem_uom, g[0].lap_uom), g);
 
   c.querySelector('#sx-nk-tim').bam();
   p = chonSP('TP-DO');
@@ -405,6 +441,23 @@ const choRe = () => new Promise((r) => { setTimeout(r, 0); });
   g = guiLuu();
   kiem('thêm dòng Đỗ 40 hộp, chi tiết null', g.length === 2 && g[1].item === 'TP-DO' && g[1].so_dem === 40
     && g[1].lap_uom === null, g);
+  c.querySelector('#sx-nk-tim').bam();
+  p = chonSP('TP-DO');
+  p.go('15');
+  p.luu();
+  c.querySelector('#sx-nk-luu').bam();
+  await choRe();
+  g = guiLuu();
+  kiem('mã một đơn vị thêm dòng cùng HSD → cộng: 40 + 15 = 55, chi tiết vẫn null', g.length === 2
+    && g[1].so_lap === 55 && g[1].so_dem === 55 && g[1].lap_uom === null && g[1].dem_uom === null, g);
+
+  p = moi(c.querySelector('#sx-nk-rows').querySelectorAll('.sx-vh-sl')[1]);
+  p.go('0');
+  p.luu();
+  c.querySelector('#sx-nk-luu').bam();
+  await choRe();
+  g = guiLuu();
+  kiem('sửa dòng về 0 → bỏ dòng', g.length === 1 && g[0].item === 'TP-SEN', g);
 }
 {
   const r = phieu(true);
@@ -424,6 +477,62 @@ const choRe = () => new Promise((r) => { setTimeout(r, 0); });
     g[0].so_dem === 243 && g[0].so_lap === 255 && bang(g[0].lap_uom, CT255)
     && bang(g[0].dem_uom, [{ uom: 'Thùng', sl: 19, he_so: 12 }, { uom: 'Hộp', sl: 15, he_so: 1 }]), g);
   kiem('duyệt: lưu số trước rồi mới hỏi xác nhận', HOI.length > 0 && /243/.test(HOI[HOI.length - 1].message));
+
+  c.querySelector('#sx-nk-tim').bam();
+  const q = chonSP('TP-SEN');
+  q.go('2');
+  kiem('D218: thủ kho thêm một chồng cùng HSD → "cộng vào dòng đang có 243 → 267"',
+    /cộng vào dòng đang có 243 → 267/.test(q.goiY()), q.goiY());
+  q.luu();
+  c.querySelector('#sx-nk-duyet').bam();
+  await choRe();
+  const g2 = guiLuu();
+  kiem('D218: dòng MỚI của thủ kho cộng vào dòng đang có CHỈ cộng số đếm (243 + 24 = 267 = 21 thùng 15 hộp) — số '
+    + 'người lập giữ 255: lệch +12 là phần đếm thêm được so với phiếu', g2.length === 1 && g2[0].so_dem === 267
+    && g2[0].so_lap === 255 && bang(g2[0].lap_uom, CT255)
+    && bang(g2[0].dem_uom, [{ uom: 'Thùng', sl: 21, he_so: 12 }, { uom: 'Hộp', sl: 15, he_so: 1 }]), g2);
+  kiem('… dòng hiện "phiếu ghi 255 · lệch +12"', /phiếu ghi 255 · lệch \+12/.test(c.querySelector('#sx-nk-rows').textContent),
+    c.querySelector('#sx-nk-rows').textContent);
+}
+{
+  // D218: thủ kho SỬA một dòng sang trùng HSD dòng khác — hai dòng người lập ghi hoá ra là một lô: cộng CẢ số lập.
+  const r = phieu(true);
+  r.nhap.dong = [
+    { item: 'TP-SEN', ten: 'Sen 300g', dvt: 'Hộp', so_lap: 30, so_dem: 30, lap_uom: null, dem_uom: null, lech: 0,
+      hsd: '2027-01-09', hsd_goi_y: '2027-04-09', co_bom: true, xx_hsd: '', xx: null, vuot: 0 },
+    { item: 'TP-SEN', ten: 'Sen 300g', dvt: 'Hộp', so_lap: 5, so_dem: 5, lap_uom: [{ uom: 'Hộp', sl: 5, he_so: 1 }],
+      dem_uom: [{ uom: 'Hộp', sl: 5, he_so: 1 }], lech: 0, hsd: null, hsd_goi_y: '2027-04-09', co_bom: true, xx_hsd: '',
+      xx: null, vuot: 0 },
+  ];
+  const c = await moNhapKho(r);
+  const p = moi(c.querySelector('#sx-nk-rows').querySelectorAll('.sx-vh-sl')[0]);
+  p.macDinh();
+  kiem('thủ kho đổi HSD dòng 09/01/27 sang mặc định → "cộng vào dòng đang có 5 → 35"',
+    /cộng vào dòng đang có 5 → 35/.test(p.goiY()), p.goiY());
+  p.luu();
+  c.querySelector('#sx-nk-duyet').bam();
+  await choRe();
+  const g = guiLuu();
+  kiem('D218: … cộng cả số LẬP (30 + 5 = 35) lẫn số đếm; dòng chưa có cách chia chia tạm (30 = 2 thùng 6 hộp), '
+    + 'thùng xếp trước hộp', g.length === 1 && g[0].so_lap === 35 && g[0].so_dem === 35 && g[0].hsd === null
+    && bang(g[0].lap_uom, [{ uom: 'Thùng', sl: 2, he_so: 12 }, { uom: 'Hộp', sl: 11, he_so: 1 }])
+    && bang(g[0].dem_uom, g[0].lap_uom), g);
+}
+{
+  const r = phieu(true);
+  r.nhap.dong[0] = { ...r.nhap.dong[0], so_lap: 12, so_dem: 12, lap_uom: [{ uom: 'Thùng', sl: 1, he_so: 12 }],
+    dem_uom: [{ uom: 'Thùng', sl: 1, he_so: 12 }] };
+  const c = await moNhapKho(r);
+  c.querySelector('#sx-nk-tim').bam();
+  const p = chonSP('TP-SEN');
+  p.go('2');
+  p.luu();
+  c.querySelector('#sx-nk-duyet').bam();
+  await choRe();
+  const g = guiLuu();
+  kiem('thủ kho thêm 2 thùng vào dòng 1 thùng: đếm 3 thùng = 36; cách chia số lập giữ nguyên "1 thùng" (không đẻ ô 0 hộp)',
+    g.length === 1 && g[0].so_dem === 36 && g[0].so_lap === 12
+    && bang(g[0].dem_uom, [{ uom: 'Thùng', sl: 3, he_so: 12 }]) && bang(g[0].lap_uom, [{ uom: 'Thùng', sl: 1, he_so: 12 }]), g);
 }
 {
   const r = phieu(false);

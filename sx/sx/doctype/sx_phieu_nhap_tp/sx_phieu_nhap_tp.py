@@ -36,6 +36,33 @@ def _tong_tu_uom(chi_tiet, mac_dinh):
     return flt(sum(flt(d.get("sl")) * flt(d.get("he_so") or 1) for d in ds))
 
 
+def _cong_uom(phan):
+    """Cộng chi tiết ĐVT của nhiều dòng cùng một lô (D218): số theo từng (đơn vị, hệ số).
+
+    `phan` = [(chi_tiet JSON | None, tổng, item, đơn vị kho)]. 2 thùng 3 hộp + 1 thùng 10 hộp
+    = 3 thùng 13 hộp — đúng số thùng và số hộp lẻ đang nằm ngoài kho. Dòng chưa có chi tiết
+    thì chia tạm tổng của nó ra thùng + hộp (không chia khớp thì để nguyên đơn vị kho).
+    Không dòng nào có chi tiết → None (một đơn vị: số là tổng)."""
+    if not any(ct for ct, *_ in phan):
+        return None
+    from sx.api.khotp import _uom_cua, tach_uom
+
+    cong = {}
+    for ct, so, item, dvt in phan:
+        try:
+            ds = json.loads(ct) if ct else None
+        except (ValueError, TypeError):
+            ds = None
+        if not isinstance(ds, list) or not ds:
+            ds = tach_uom(so, _uom_cua(item, dvt)) or [{"uom": dvt, "sl": so, "he_so": 1}]
+        for d in ds:
+            k = (d.get("uom"), flt(d.get("he_so") or 1))
+            cong[k] = cong.get(k, 0) + flt(d.get("sl"))
+    ra = [{"uom": u, "sl": sl, "he_so": h} for (u, h), sl in sorted(cong.items(), key=lambda x: -x[0][1])
+          if u and sl > 0]
+    return json.dumps(ra, ensure_ascii=False) if ra else None
+
+
 def hsd_goi_y(item, ngay):
     """HSD mặc định = ngày nhập + hạn dùng của mã hàng (D114, D127).
 
@@ -85,6 +112,7 @@ def _ghi_no_bom(phieu, r, so_luong, batch, se_nhap, gia):
 
 class SXPhieuNhapTP(Document):
     def validate(self):
+        self.gop_trung_lo()
         tong_dem = tong_lech = 0.0
         for r in self.dong:
             # Có chi tiết ĐVT thì TÍNH LẠI tổng từ nó, không tin con số client gửi:
@@ -107,6 +135,48 @@ class SXPhieuNhapTP(Document):
         if self.docstatus == 0:
             self.trang_thai = "Nháp"
 
+    def gop_trung_lo(self):
+        """Nhiều dòng cùng mã + cùng HSD = cùng MỘT lô (W05) → tự gộp thành một dòng (D218).
+
+        Hàng một lô hay nằm vài chồng, đếm chồng nào ghi chồng đó cho nhanh — trước D218
+        phiếu chặn bắt tự cộng tay. Gộp = cộng như hai dòng riêng: số lập + số lập, số đếm
+        + số đếm, thùng / hộp cộng theo từng đơn vị — tổng phiếu và chỗ lệch không đổi.
+        HSD trống tính theo HSD mặc định của mã (đúng lô sẽ vào lúc duyệt); mã chưa khai
+        hạn dùng mà dòng chưa có HSD thì chưa biết lô nào — để nguyên, kiem_hsd chặn.
+        Dòng giữ chỗ của dòng ĐẦU tiên, HSD là HSD đã gõ (nếu có dòng gõ)."""
+        goi_y, nhom, giu = {}, {}, []
+        for r in self.dong:
+            hsd = r.get("hsd")
+            if not hsd:
+                if r.item not in goi_y:
+                    goi_y[r.item] = hsd_goi_y(r.item, self.ngay)
+                hsd = goi_y[r.item]
+            if not hsd:
+                giu.append(r)
+                continue
+            k = (r.item, str(getdate(hsd)))
+            if k not in nhom:
+                nhom[k] = []
+                giu.append(r)
+            nhom[k].append(r)
+        for ds in nhom.values():
+            if len(ds) < 2:
+                continue
+            dau = ds[0]
+            dvt = frappe.get_cached_value("Item", dau.item, "stock_uom")
+            for f, f_ct in (("so_lap", "lap_uom"), ("so_dem", "dem_uom")):
+                # Có chi tiết thì vòng dưới (validate) tính lại tổng TỪ chi tiết đã cộng.
+                phan = [(r.get(f_ct), flt(r.get(f)), r.item, dvt) for r in ds]
+                dau.set(f, sum(p[1] for p in phan))
+                dau.set(f_ct, _cong_uom(phan))
+            dau.set("hsd", next((r.get("hsd") for r in ds if r.get("hsd")), None))
+            # Lý do lệch là ô Data 140 ký tự — nối dài quá thì Frappe chặn cả lần lưu.
+            ly_do = "; ".join(dict.fromkeys(r.get("ghi_chu") for r in ds if r.get("ghi_chu")))
+            dau.set("ghi_chu", ly_do[:140] or None)
+        self.set("dong", giu)
+        for i, r in enumerate(self.dong, 1):
+            r.idx = i
+
     def on_trash(self):
         """Phiếu Tết nháp bị xoá -> dòng công nhật sinh cùng nó cũng xoá (D122)."""
         if self.get("vao_hop_tet"):
@@ -117,7 +187,6 @@ class SXPhieuNhapTP(Document):
         if not any(flt(r.so_dem) > 0 for r in self.dong):
             frappe.throw(_("Chưa có dòng nào đếm được số > 0 — không duyệt phiếu rỗng."))
         self.kiem_hsd()
-        self.kiem_trung_lo()
         self.kiem_xuat_xuong()
         self.kiem_tran_da_cham()
         self.kiem_ton_nguyen_lieu()
@@ -149,22 +218,6 @@ class SXPhieuNhapTP(Document):
                     "quản lý khai \"Shelf Life In Days\" trên mã hàng (Item) để các phiếu "
                     "sau tự điền."),
                 title=_("Thiếu HSD"))
-
-    def kiem_trung_lo(self):
-        """Hai dòng cùng mã + cùng HSD = cùng MỘT lô (W05) — bắt gộp lại.
-
-        Không tự gộp: hai dòng có hai cách chia thùng / hộp, hai số người lập ghi;
-        gộp ngầm là mất chỗ lệch mà thủ kho cần nhìn. Thường là bấm nhầm thêm dòng."""
-        thay = {}
-        for r in self.dong:
-            if flt(r.so_dem) <= 0 or not r.get("hsd"):
-                continue
-            k = (r.item, str(getdate(r.hsd)))
-            if k in thay:
-                frappe.throw(_("Dòng {0} và {1} cùng {2}, cùng HSD {3} — là cùng một lô. "
-                               "Gộp hai dòng lại (xoá một dòng, sửa số dòng kia).").format(
-                    thay[k], r.idx, r.ten or r.item, frappe.utils.formatdate(r.hsd)))
-            thay[k] = r.idx
 
     def kiem_xuat_xuong(self):
         """Lô chưa được duyệt kiểm tra xuất xưởng BM.08.04 thì chưa nhập kho (W08, D137).

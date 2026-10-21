@@ -323,6 +323,32 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Nhập kho thành phẩm: nhiều dòng cùng lô (cùng mã, cùng HSD) — tự gộp vào phiếu (D218)
+
+- **Hỏi**: màn Nhập kho cho nhập nhiều dòng trùng lô (trùng HSD), app tự gộp vào phiếu.
+- **Trước**: cùng mã + cùng HSD là một lô (W05) nên bàn số chặn "Mã này đã có dòng HSD …", duyệt thì chặn "Dòng x và y …
+  cùng một lô" — phải tự cộng tay.
+- **Giờ** (`cards/nhapkhotp.js`):
+  - Chọn / quét một mã luôn mở **dòng mới** (trước: mở sửa dòng HSD mặc định) — hàng một lô nằm vài chồng thì đếm chồng
+    nào ghi chồng đó.
+  - LƯU mà HSD trùng một dòng đang có của mã → **cộng vào dòng đó**. Bàn số nói trước ("cộng vào dòng đang có 245 → 365"),
+    lưu xong báo "Cộng vào dòng HSD 09/01/27: 245 + 120 = 365". Thùng / hộp cộng theo từng đơn vị (20 thùng 5 hộp + 10
+    thùng = 30 thùng 5 hộp); dòng chưa có cách chia thì chia tạm từ tổng.
+  - Sửa một dòng sang HSD trùng dòng khác → hai dòng gộp làm một, cộng cả số lập lẫn số đếm.
+  - **Thủ kho** thêm dòng mới vào lô đã có trên phiếu → chỉ cộng **số đếm**, số người lập giữ nguyên: lệch (+) là phần đếm
+    thêm được so với phiếu. Người lập thêm thì cộng cả hai số.
+  - Sửa dòng cũ: bấm số / HSD của dòng, hoặc bấm ô của dòng đó ("Đã có dòng") trên bàn số.
+- **Máy chủ** (`SXPhieuNhapTP.gop_trung_lo`, chạy mỗi lần lưu / duyệt): dòng trùng (mã, HSD) còn lọt lên (máy chưa tải
+  bản mới, tải từ vào hộp, phiếu Tết) gộp thành một dòng ở chỗ dòng đầu — số lập + số lập, số đếm + số đếm, chi tiết ĐVT
+  cộng theo đơn vị, lý do lệch nối lại; HSD trống tính theo HSD mặc định của mã. Mã chưa khai hạn dùng mà dòng chưa có
+  HSD thì chưa biết lô nào → để nguyên (duyệt vẫn bắt nhập HSD). Bỏ chặn "cùng một lô" lúc duyệt; duyệt ra **một** chứng
+  từ kho cho mỗi lô.
+- Vào hộp Tết giữ như cũ (trùng HSD vẫn báo trên bàn số).
+- Test `test-lohsd.py` (gộp: số, thùng / hộp, lệch, lý do, HSD mặc định, mã khác cùng HSD, chưa biết HSD, cắt 140 ký tự,
+  chi tiết hỏng; máy cũ gửi dòng trùng; duyệt một chứng từ mỗi lô), `test-sohsd.mjs` (bàn số nói trước, cộng dòng mới,
+  sửa-gộp, thủ kho chỉ cộng số đếm, mã một đơn vị, không bật thì không nói "cộng vào").
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-163**.
+
 ## Kiểm kê cửa hàng bằng Stock Reconciliation: phần không lô của mã đã bật lô — DỌN theo số đếm, nhắc lúc lưu phiếu (D217)
 
 - **Hỏi**: chốt kho CH Tuệ Tĩnh bằng phiếu Stock Reconciliation trên Desk (POS đã đóng hết), Mix510 (Bánh đậu xanh Mix

@@ -73,6 +73,9 @@ VAI = {"SX Thu Kho"}
 
 
 class PhieuDoc(Doc):
+    def gop_trung_lo(self):          # D218: validate gọi qua self — Doc giả không kế thừa controller
+        return P.SXPhieuNhapTP.gop_trung_lo(self)
+
     def save(self):
         for i, r in enumerate(self["dong"], 1):
             r["idx"] = i
@@ -285,19 +288,104 @@ d = {x["hsd"]: x for x in ct["dong"]}
 kiem("thủ kho sửa số đếm → số người lập GIỮ đúng dòng (30 / 80)",
      (d["2027-07-02"]["so_lap"], d["2027-07-03"]["so_lap"]) == (30, 80),
      [(x["hsd"], x["so_lap"], x["so_dem"]) for x in ct["dong"]])
+ct = K.sua_phieu("PN-1", json.dumps([
+    {"item": "TP-SEN", "so_lap": 30, "so_dem": 29, "hsd": "2027-07-02"},
+    {"item": "TP-SEN", "so_lap": 80, "so_dem": 70, "hsd": "2027-07-03"},
+    {"item": "TP-SEN", "so_lap": 6, "so_dem": 6, "hsd": "2027-07-03"}]))
+kiem("D218: máy chưa cập nhật gửi lên hai dòng cùng (mã, HSD) → phiếu lưu MỘT dòng (80 + 6 / 70 + 6)",
+     [(x["hsd"], x["so_lap"], x["so_dem"]) for x in ct["dong"]] == [("2027-07-02", 30, 29), ("2027-07-03", 86, 76)],
+     [(x["hsd"], x["so_lap"], x["so_dem"]) for x in ct["dong"]])
+
+print("\n-- D218: dòng trùng (mã, HSD) tự gộp lúc lưu --")
+K._uom_cua = lambda *a, **k: [{"uom": "Thùng", "he_so": 12.0}, {"uom": "Hộp", "he_so": 1.0}]
+
+
+def ct_uom(*ds):
+    return json.dumps([{"uom": u, "sl": sl, "he_so": h} for u, sl, h in ds], ensure_ascii=False)
+
+
+p = P.SXPhieuNhapTP(name="PN-9", docstatus=0, ngay="2026-10-08", kho_dich="TP", dong=[
+    Doc(item="TP-SEN", ten="Bánh sen", dvt="Hộp", so_lap=27, so_dem=25, hsd="2027-07-02", idx=1,
+        lap_uom=ct_uom(("Thùng", 2, 12), ("Hộp", 3, 1)), dem_uom=ct_uom(("Thùng", 2, 12), ("Hộp", 1, 1)),
+        ghi_chu="vỡ 2 hộp"),
+    Doc(item="TP-CU", ten="Bánh cũ", dvt="Hộp", so_lap=5, so_dem=5, hsd="2027-05-01", idx=2),
+    Doc(item="TP-SEN", ten="Bánh sen", dvt="Hộp", so_lap=30, so_dem=31, hsd=dt.date(2027, 7, 2), idx=3,
+        ghi_chu="thừa 1"),
+    Doc(item="TP-SEN", ten="Bánh sen", dvt="Hộp", so_lap=12, so_dem=12, hsd="2027-07-03", idx=4,
+        lap_uom=ct_uom(("Thùng", 1, 12)), dem_uom=ct_uom(("Thùng", 1, 12))),
+    Doc(item="TP-SEN", ten="Bánh sen", dvt="Hộp", so_lap=10, so_dem=10, hsd=None, idx=5, ghi_chu="vỡ 2 hộp"),
+    Doc(item="TP-SEN", ten="Bánh sen", dvt="Hộp", so_lap=4, so_dem=4, hsd="2027-07-08", idx=6,
+        ghi_chu="vỡ 2 hộp"),
+    Doc(item="TP-CU", ten="Bánh cũ", dvt="Hộp", so_lap=7, so_dem=7, hsd=None, idx=7),
+    Doc(item="TP-CU", ten="Bánh cũ", dvt="Hộp", so_lap=8, so_dem=8, hsd=None, idx=8),
+    Doc(item="TP-CU", ten="Bánh cũ", dvt="Hộp", so_lap=2, so_dem=2, hsd="2027-07-03", idx=9)])
+P.SXPhieuNhapTP.validate(p)
+dong = [(r["idx"], r["item"], str(r.get("hsd")) if r.get("hsd") else None, r["so_lap"], r["so_dem"])
+        for r in p["dong"]]
+kiem("cùng mã cùng HSD → MỘT dòng ở chỗ dòng đầu: lập 27 + 30 = 57, đếm 25 + 31 = 56 (HSD ngày / chuỗi như nhau)",
+     dong[0] == (1, "TP-SEN", "2027-07-02", 57, 56), dong)
+kiem("thùng / hộp cộng theo đơn vị; dòng chưa có chi tiết chia tạm ra (30 = 2 thùng 6 hộp, 31 = 2 thùng 7 hộp)",
+     json.loads(p["dong"][0]["lap_uom"]) == [{"uom": "Thùng", "sl": 4, "he_so": 12}, {"uom": "Hộp", "sl": 9, "he_so": 1}]
+     and json.loads(p["dong"][0]["dem_uom"]) == [{"uom": "Thùng", "sl": 4, "he_so": 12},
+                                                 {"uom": "Hộp", "sl": 8, "he_so": 1}],
+     (p["dong"][0]["lap_uom"], p["dong"][0]["dem_uom"]))
+kiem("chỗ lệch giữ nguyên tổng (−2 + 1 = −1), lý do lệch nối lại", p["dong"][0]["lech"] == -1
+     and p["dong"][0]["ghi_chu"] == "vỡ 2 hộp; thừa 1", (p["dong"][0]["lech"], p["dong"][0]["ghi_chu"]))
+kiem("HSD trống = HSD mặc định của mã (08/10 + 9 tháng = 08/07/27) → gộp với dòng gõ đúng ngày đó, giữ HSD đã gõ",
+     dong[3] == (4, "TP-SEN", "2027-07-08", 14, 14), dong)
+kiem("lý do lệch trùng nhau không lặp", p["dong"][3]["ghi_chu"] == "vỡ 2 hộp", p["dong"][3]["ghi_chu"])
+kiem("HSD khác → dòng riêng; mã chưa khai hạn dùng mà chưa gõ HSD → chưa biết lô nào, để nguyên hai dòng; "
+     "mã KHÁC cùng HSD là lô khác",
+     dong[1:3] == [(2, "TP-CU", "2027-05-01", 5, 5), (3, "TP-SEN", "2027-07-03", 12, 12)]
+     and dong[4:] == [(5, "TP-CU", None, 7, 7), (6, "TP-CU", None, 8, 8), (7, "TP-CU", "2027-07-03", 2, 2)], dong)
+kiem("tổng phiếu không đổi sau gộp (56 + 5 + 12 + 14 + 7 + 8 + 2)", p["tong_dem"] == 104 and p["tong_lech"] == -1,
+     (p["tong_dem"], p["tong_lech"]))
+_, loi = thu(lambda: P.SXPhieuNhapTP.before_submit(p))
+kiem("… hai dòng chưa HSD đó vẫn bị chặn lúc duyệt như cũ", bool(loi) and "Chưa có hạn sử dụng" in loi, loi)
+p = P.SXPhieuNhapTP(name="PN-9", docstatus=0, ngay="2026-10-08", kho_dich="TP", dong=[
+    Doc(item="TP-SEN", so_lap=1, so_dem=1, hsd="2027-07-02", idx=1, ghi_chu="a" * 100),
+    Doc(item="TP-SEN", so_lap=1, so_dem=1, hsd="2027-07-02", idx=2, ghi_chu="b" * 100)])
+P.SXPhieuNhapTP.validate(p)
+kiem("lý do lệch nối dài quá 140 ký tự (ô Data) → cắt, không làm hỏng lần lưu",
+     len(p["dong"]) == 1 and len(p["dong"][0]["ghi_chu"]) == 140, len(p["dong"][0]["ghi_chu"] or ""))
+kiem("hai dòng không chi tiết thì chi tiết vẫn trống",
+     p["dong"][0]["so_dem"] == 2 and p["dong"][0].get("dem_uom") is None, p["dong"][0])
+p = P.SXPhieuNhapTP(name="PN-9", docstatus=0, ngay="2026-10-08", kho_dich="TP", dong=[
+    Doc(item="TP-SEN", so_lap=5, so_dem=5, hsd="2027-07-02", idx=1, dem_uom=ct_uom(("Hộp", 5, 1))),
+    Doc(item="TP-SEN", so_lap=7, so_dem=7, hsd="2027-07-02", idx=2)])
+K._uom_cua = lambda *a, **k: []
+P.SXPhieuNhapTP.validate(p)
+kiem("mã không có bảng quy đổi: dòng không chi tiết cộng vào ĐƠN VỊ KHO của mã (Hộp 5 + 7 = 12)",
+     json.loads(p["dong"][0]["dem_uom"]) == [{"uom": "Hộp", "sl": 12, "he_so": 1}] and p["dong"][0]["so_dem"] == 12,
+     p["dong"][0]["dem_uom"])
+K._uom_cua = lambda *a, **k: [{"uom": "Thùng", "he_so": 12.0}, {"uom": "Hộp", "he_so": 1.0}]
+p = P.SXPhieuNhapTP(name="PN-9", docstatus=0, ngay="2026-10-08", kho_dich="TP", dong=[
+    Doc(item="TP-SEN", so_lap=24, so_dem=24, hsd="2027-07-02", idx=1, dem_uom=ct_uom(("Thùng", 2, 12))),
+    Doc(item="TP-SEN", so_lap=3, so_dem=0, hsd="2027-07-02", idx=2),
+    Doc(item="TP-SEN", so_lap=12, so_dem=12, hsd="2027-07-02", idx=3, lap_uom='{"uom": "Thùng"}', dem_uom="hỏng")])
+P.SXPhieuNhapTP.validate(p)
+kiem("dòng đếm 0 không đẻ ô \"0 hộp\" trong chi tiết; chi tiết hỏng (không phải danh sách / không đọc được) coi như "
+     "chưa có, chia tạm từ tổng", json.loads(p["dong"][0]["dem_uom"]) == [{"uom": "Thùng", "sl": 3, "he_so": 12}]
+     and p["dong"][0]["so_dem"] == 36
+     and json.loads(p["dong"][0]["lap_uom"]) == [{"uom": "Thùng", "sl": 3, "he_so": 12}, {"uom": "Hộp", "sl": 3, "he_so": 1}]
+     and p["dong"][0]["so_lap"] == 39, (p["dong"][0]["lap_uom"], p["dong"][0]["dem_uom"]))
 
 print("\n-- duyệt: một lô mỗi (mã, HSD), NSX = HSD − hạn dùng --")
 p = P.SXPhieuNhapTP(name="PN-2", docstatus=0, ngay="2026-10-08", kho_dich="TP", dong=[
     Doc(item="TP-SEN", ten="Bánh sen", so_lap=30, so_dem=30, hsd="2027-07-02", idx=1),
-    Doc(item="TP-SEN", ten="Bánh sen", so_lap=80, so_dem=80, hsd="2027-07-02", idx=2)])
+    Doc(item="TP-SEN", ten="Bánh sen", so_lap=80, so_dem=80, hsd="2027-07-02", idx=2),
+    Doc(item="TP-SEN", ten="Bánh sen", so_lap=9, so_dem=9, hsd="2027-07-03", idx=3)])
+P.SXPhieuNhapTP.validate(p)           # Frappe chạy validate TRƯỚC before_submit
 _, loi = thu(lambda: P.SXPhieuNhapTP.before_submit(p))
-kiem("hai dòng cùng mã cùng HSD → chặn, bảo gộp lại", bool(loi) and "cùng một lô" in loi, loi)
-p["dong"][1]["hsd"] = "2027-07-03"
-_, loi = thu(lambda: P.SXPhieuNhapTP.before_submit(p))
-kiem("cùng mã, HSD khác → qua", loi is None, loi)
+kiem("D218: hai dòng cùng mã cùng HSD không còn bị chặn — lưu là gộp", loi is None and len(p["dong"]) == 2,
+     loi or p["dong"])
+SE_SO = []
 M.tao_wo = lambda *a, **k: types.SimpleNamespace(name="WO-1")
-M.tao_se_manufacture = lambda wo, qty, batch, **k: types.SimpleNamespace(name=f"SE-{batch}")
+M.tao_se_manufacture = lambda wo, qty, batch, **k: (SE_SO.append((batch, qty)),
+                                                    types.SimpleNamespace(name=f"SE-{batch}"))[1]
 P.SXPhieuNhapTP.on_submit(p)
+kiem("… duyệt ra MỘT chứng từ 110 hộp cho lô 02/07 (không phải hai phiếu kho 30 + 80), lô 03/07 riêng",
+     SE_SO == [("SEN-HSD020727", 110), ("SEN-HSD030727", 9)], SE_SO)
 kiem("hai lô theo HSD", sorted(BATCH) == ["SEN-HSD020727", "SEN-HSD030727"], sorted(BATCH))
 kiem("NSX = HSD − 9 tháng (02/07/2027 → 02/10/2026), KHÔNG phải ngày nhập 08/10",
      BATCH["SEN-HSD020727"]["manufacturing_date"] == "2026-10-02",
@@ -361,8 +449,9 @@ print("\n-- màn nhập kho: mỗi (mã, HSD) một dòng --")
 js = open("sx/public/sx/cards/nhapkhotp.js", encoding="utf-8").read()
 # D153: hỏi "sửa dòng nào / + DÒNG HSD KHÁC" bỏ — chọn mã là vào thẳng bàn số; hành vi chạy thật ở
 # scripts/test-sohsd.mjs, đây chỉ soát dây nối.
-kiem("thêm mã đã có dòng → mở dòng HSD mặc định; dòng HSD khác là ô bấm trên bàn số; trùng HSD thì chặn",
-     "function themItem(item)" in js and "daCo: khac.map(" in js and "kiemLuu: (tong, h)" in js)
+kiem("D218: chọn mã là mở dòng mới; dòng đang có là ô bấm trên bàn số; trùng HSD thì cộng vào, không chặn",
+     "function themItem(item)" in js and "daCo: khac.map(" in js and "congVao: true" in js
+     and "function gopDong(dich, x)" in js and "kiemLuu: (tong, h)" not in js)
 kiem("bấm 'vừa vào hộp' thêm đủ các dòng theo HSD", "function themTuVaoHop(d)" in js
      and "chiaCua(d)" in js)
 kiem("tổng 'đã ghi' của một mã cộng mọi dòng của mã", "rows || []).filter((x) => x.item === d.item)" in js)
