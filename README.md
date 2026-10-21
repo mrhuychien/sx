@@ -323,6 +323,44 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê: chứng từ ghi sổ trước lúc đếm mà vào sổ sau lúc chốt — tồn sau kiểm kê lệch (D216)
+
+- **Hỏi**: chốt kiểm kê TX510 còn 31 hộp, xem sổ kho thì phiếu kiểm kê *cộng 31* mà tồn **vẫn âm**.
+- **Vì sao**: chốt ghi phần **chênh** (số đếm − sổ lúc bấm chốt) bằng phiếu nhập / xuất điều chỉnh. Chứng từ ghi sổ
+  TRƯỚC lúc đếm mà vào sổ SAU lúc chốt thì số đếm đã tính hàng đó, phần chênh thì không — sổ tính thêm lần nữa. Hay gặp
+  nhất: **đóng ca POS sau lúc chốt** — phiếu POS chỉ vào sổ kho lúc đóng ca, hoá đơn gộp ghi sổ lúc phiếu POS cuối của ca
+  (ERPNext `POS Invoice Merge Log.merge_pos_invoice_into`), nên hàng bán từ sáng (trước lúc đếm) bị trừ lần hai; hoá đơn /
+  phiếu chuyển nhập muộn ghi ngày cũ cũng vậy. Vd sổ lúc chốt 0, đếm 31 → kiểm kê +31; đóng ca trừ 40 → −9.
+- **Chặn lúc chốt** (`SXKiemKe._pos_chua_dong`, thành phẩm): còn phiếu POS **chưa đóng ca** (đã gửi, chưa gộp hoá đơn) bán ở
+  kho kiểm kê mã trong phiếu, lập TRƯỚC lúc đếm mã đó (dòng đếm sớm nhất; mã chưa đếm — lúc bắt đầu; có thời điểm chốt
+  sổ D195 — thời điểm đó: `moc_dem`) → không chốt được, nói mã / số / ca POS: **đóng ca trước rồi chốt**. Phiếu POS lập
+  sau lúc đếm thì khớp (số đếm còn hàng đó, sổ chưa trừ) — không chặn.
+- **"Chứng từ sau lúc đếm"** (`_giao_dich_sau_dem`) nay xét giờ GHI SỔ: chứng từ vào sổ sau lúc đếm mà ghi sổ trước lúc
+  đếm (đóng ca sau lúc đếm — dòng hoá đơn gộp theo giờ phiếu POS gốc, `gio_pos`; hoá đơn nhập muộn) không bắt đếm lại —
+  số đếm và sổ lúc chốt đều đã có nó. Dòng của phiếu POS sau lúc đếm vẫn chặn như cũ.
+- **Soát phiếu đã chốt** (lệnh bench, `sx/api/sau_kiem_ke.py`): phiếu chốt gần nhất của kho thành phẩm (hoặc `phieu` /
+  `kho`), từng mã: sổ lúc chốt → đếm, tồn hiện nay (phần không lô), chứng từ ghi lùi (ghi sổ trước lúc đếm, vào sổ hoặc
+  bị huỷ sau lúc chốt; hoá đơn gộp POS theo giờ từng phiếu POS), phần bù, chứng từ thật sau lúc đếm, kho khác đang âm.
+  `chay=1` ghi **phiếu bù**: mỗi chứng từ một phiếu nhập / xuất điều chỉnh đúng lô, ngược số, ghi sổ cùng giờ chứng từ đó
+  (đứng ngay sau nó), giá nhập = giá lô của dòng chứng từ; gắn số kiểm kê và vào `ds_se` (huỷ chốt thì huỷ theo). Không
+  bù, chỉ báo: phần **không lô** của mã đã bật lô (thẻ Kiểm kê → Tồn không lô còn lại → **DỌN**, D198), Stock
+  Reconciliation (đặt lại tồn). Chạy lại an toàn: đã bù không bù lần hai; chứng từ đã bù mà sau đó bị huỷ → huỷ phiếu bù.
+  Mỗi chứng từ một điểm lưu. Phiếu chưa phải phiếu chốt mới nhất của kho → không soát (phiếu sau đã tính các chứng từ đó).
+
+```bash
+cd ~/frappe-bench
+bench --site site1.local execute sx.api.sau_kiem_ke.soat                               # xem trước, mọi mã
+bench --site site1.local execute sx.api.sau_kiem_ke.soat --kwargs "{'ma': 'TX510'}"    # một mã
+bench --site site1.local execute sx.api.sau_kiem_ke.soat --kwargs "{'chay': 1}"        # ghi phiếu bù
+# chứng từ mà hàng THẬT ra / vào kho sau lúc đếm (chỉ ghi nhầm ngày cũ) → không bù: thêm 'bo': ['ACC-SINV-…']
+```
+
+- Test `test-kiemke.py` (chặn ca POS: trước / sau lúc đếm, trả hàng, đã gộp, kho khác, phiếu huỷ; chứng từ ghi lùi lúc
+  chốt; mốc đếm; phân tích theo giờ phiếu POS, phiếu huỷ, phiếu của chính kiểm kê, Stock Reconciliation, không lô / bỏ /
+  đã bù; xem trước, báo cáo, lọc mã, ghi phiếu bù đúng lô / giờ / giá, chạy lại, phiếu bù thừa, điểm lưu khi lỗi),
+  `test-tonlo-sql.py` (câu truy vấn chứng từ đổi sổ sau lúc chốt chạy thật trên SQLite).
+- Không đổi DocType, không đổi giao diện: `git pull` → `bench restart` (lệnh bench chạy được ngay sau `git pull`).
+
 ## Nhập kho: danh sách "Vừa vào hộp — chưa nhập kho" gập sẵn (D215)
 
 - Danh sách mã đã chấm vào hộp mà chưa nhập kho (màn Nhập kho) **gập sẵn** như khối phiếu đã duyệt (D214): dòng gập

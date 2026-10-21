@@ -52,11 +52,12 @@ không chuyển lô. Chứng từ sau lúc cân xét theo TỪNG LÔ: xưởng v
 """
 
 import json
+from datetime import datetime
 
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_days, cint, flt, get_datetime, getdate, now_datetime, nowdate
+from frappe.utils import add_days, cint, flt, get_datetime, get_time, getdate, now_datetime, nowdate
 
 from sx.kiem_ke import chia_chung_tu, co_thay_doi, lap_ke_hoach, lap_ke_hoach_lo, so_chung_tu, theo_lo
 
@@ -178,6 +179,28 @@ def _sle_khoang(khos, items, tu=None, den=None):
             where sle.is_cancelled = 0 and sle.warehouse in %(khos)s and sle.item_code in %(items)s{loc}
             order by sle.posting_datetime, sle.creation, sle.name""",
         {"khos": tuple(khos), "items": tuple(items), "tu": tu, "den": den}, as_dict=True)]
+
+
+def gio_ghi_so(d):
+    """Giờ ghi sổ (posting_date + posting_time) của một chứng từ."""
+    return datetime.combine(getdate(d.get("posting_date")), get_time(d.get("posting_time") or "00:00:00"))
+
+
+def gio_pos(si_dong):
+    """{dòng Sales Invoice Item: giờ phiếu POS gốc} — D216. Đóng ca POS gộp các phiếu thành hoá đơn và ERPNext ghi sổ
+    CẢ hoá đơn lúc phiếu POS cuối của ca (POS Invoice Merge Log.merge_pos_invoice_into), còn hàng của từng phiếu ra khỏi
+    kho đúng giờ phiếu đó. Dòng hoá đơn gộp giữ số phiếu POS gốc (pos_invoice)."""
+    si_dong = [x for x in dict.fromkeys(si_dong or []) if x]
+    if not si_dong:
+        return {}
+    dong = [d for d in frappe.get_all("Sales Invoice Item", filters={"name": ("in", si_dong)},
+                                      fields=["name", "pos_invoice"]) if d.get("pos_invoice")]
+    if not dong:
+        return {}
+    luc = {p.name: gio_ghi_so(p) for p in frappe.get_all(
+        "POS Invoice", filters={"name": ("in", sorted({d.pos_invoice for d in dong}))},
+        fields=["name", "posting_date", "posting_time"])}
+    return {d.name: luc[d.pos_invoice] for d in dong if d.pos_invoice in luc}
 
 
 def ton_kho_khac(items, kho):
@@ -434,6 +457,7 @@ class SXKiemKe(Document):
                          "(phiếu kho của kiểm kê không ghi sang công ty khác; bật lô thì phần đó kẹt): {0}. Điều chỉnh tồn "
                          "ở kho đó về 0 trước, rồi chốt.").format(
                 "; ".join(f"{self._ten(i)} — " + ", ".join(f"{w}: {_so(q)}" for w, q in kc[i]) for i in ket)))
+        loi += self._pos_chua_dong(ke)
         loi += self._kiem_chung_tu(ke)
         return loi
 
@@ -460,6 +484,59 @@ class SXKiemKe(Document):
     def _td(self):
         """Thời điểm chốt sổ (D195) — None = lúc bấm chốt."""
         return get_datetime(self.thoi_diem) if self.get("thoi_diem") else None
+
+    def moc_dem(self, khoa):
+        """{khoá: lúc số đếm là tồn thật} — khoá = mã (thành phẩm) / (mã, lô) (bán thành phẩm). D216: thời điểm chốt sổ
+        (D195) nếu đặt; không thì dòng đếm / cân SỚM NHẤT của khoá đó (như _giao_dich_sau_dem); khoá chưa đếm (mã về 0,
+        D188) — lúc bắt đầu kiểm kê. Chứng từ ghi sổ từ mốc này trở về trước là hàng đã ra / vào kho trước lúc đếm."""
+        td = self._td()
+        lo_rieng = self.la_btp()
+        dem = {}
+        for r in self.dong or []:
+            if r.dem_luc:
+                k = (r.item, r.batch or None) if lo_rieng else r.item
+                t = get_datetime(r.dem_luc)
+                dem[k] = min(dem.get(k, t), t)
+        goc = get_datetime(self.get("bat_dau_luc") or self.get("chot_luc") or now_datetime())
+        return {k: td or dem.get(k) or goc for k in khoa}
+
+    def _pos_chua_dong(self, ke):
+        """D216 — phiếu POS đã gửi mà CHƯA ĐÓNG CA (chưa gộp thành hoá đơn), bán ở kho này mã trong kiểm kê, lập trước
+        lúc đếm mã đó. Phiếu POS chỉ vào sổ kho lúc đóng ca: hàng đã ra khỏi kho (số đếm không còn) mà sổ chưa trừ — chốt
+        lúc này thì đóng ca xong sổ trừ thêm lần nữa, tồn sau kiểm kê thiếu đúng chừng đó (vd đếm 31, sổ 0 → kiểm kê
+        +31; đóng ca trừ 40 hộp bán từ sáng → tồn −9). Phiếu POS lập SAU lúc đếm thì khớp (số đếm còn hàng đó, sổ chưa
+        trừ) — không chặn. Chặn: đóng ca trước rồi chốt."""
+        items = sorted(ke)
+        if not items:
+            return []
+        # Phiếu chưa gộp trước (ít — chỉ các ca đang mở), rồi mới tới dòng: dòng phiếu POS là cả lịch sử bán lẻ.
+        pos = {p.name: p for p in frappe.get_all(
+            "POS Invoice", filters={"docstatus": 1, "consolidated_invoice": ("is", "not set")},
+            fields=["name", "posting_date", "posting_time", "pos_profile"])}
+        if not pos:
+            return []
+        dong = frappe.get_all("POS Invoice Item", filters={"parent": ("in", sorted(pos)), "warehouse": self.kho,
+                                                           "item_code": ("in", items)},
+                              fields=["parent", "item_code", "stock_qty", "qty"])
+        moc = self.moc_dem(items)
+        can, ca = {}, set()
+        for d in dong:
+            p = pos.get(d.parent)
+            if not p or gio_ghi_so(p) > moc[d.item_code]:
+                continue
+            x = can.setdefault(d.item_code, [0.0, set()])
+            x[0] += flt(d.get("stock_qty")) or flt(d.get("qty"))          # phiếu trả hàng mang số âm
+            x[1].add(p.name)
+            if p.get("pos_profile"):
+                ca.add(p.pos_profile)
+        if not can:
+            return []
+        ds = sorted(can.items(), key=lambda x: self._ten(x[0]))
+        return [_("Còn phiếu POS CHƯA ĐÓNG CA bán ở {0} lập trước lúc đếm: {1}. Phiếu POS chỉ vào sổ kho lúc đóng ca — "
+                  "hàng đó đã ra khỏi kho (số đếm không có) mà sổ chưa trừ; chốt bây giờ thì đóng ca xong sổ trừ thêm lần "
+                  "nữa, tồn sau kiểm kê thiếu đúng chừng đó. Đóng ca POS ({2}) trước, rồi mới chốt.").format(
+            self.kho, "; ".join(f"{self._ten(i)} {_so(x[0])} ({len(x[1])} phiếu)" for i, x in ds[:8])
+            + (" …" if len(ds) > 8 else ""), ", ".join(sorted(ca)) or "—")]
 
     def _kiem_chung_tu(self, ke):
         """Chứng từ kho làm số đếm / số chốt không còn đúng: chưa đặt thời điểm chốt → chứng từ sau lúc đếm (như cũ);
@@ -667,7 +744,10 @@ class SXKiemKe(Document):
         """Có chứng từ kho ở kho này SAU lúc đếm → số đếm không còn khớp sổ. Thành phẩm xét theo MÃ (số đếm thay cả
         mã; mốc = dòng đếm sớm nhất của mã); bán thành phẩm xét theo LÔ (mốc = lúc cân lô đó) — xưởng chạy lô khác
         thì lô đã cân vẫn đúng. Tính chứng từ MỚI (creation sau mốc, chưa huỷ) và chứng từ HUỶ sau mốc — không
-        tính SLE chỉ bị repost lại giá (modified đổi mà số không đổi)."""
+        tính SLE chỉ bị repost lại giá (modified đổi mà số không đổi).
+        D216: chứng từ vào sổ sau lúc đếm mà GHI SỔ trước lúc đếm (đóng ca POS sau lúc đếm — hoá đơn gộp, mỗi dòng theo
+        giờ phiếu POS của nó; hoá đơn nhập muộn ghi ngày cũ) không chặn: hàng đó ra / vào kho trước lúc đếm — số đếm đã
+        có, sổ lúc chốt cũng đã có."""
         lo_rieng = self.la_btp()
         moc = {}
         for r in self.dong or []:
@@ -686,12 +766,13 @@ class SXKiemKe(Document):
         t0 = min(moc.values())
         ma = sorted({k[0] for k in moc} if lo_rieng else set(moc))
         truong = ["name", "item_code", "voucher_type", "voucher_no", "actual_qty", "creation", "modified",
-                  "is_cancelled", "batch_no", "serial_and_batch_bundle"]
+                  "is_cancelled", "batch_no", "serial_and_batch_bundle", "posting_datetime", "voucher_detail_no"]
         gap = {}
         for f in ("creation", "modified"):
             for s in frappe.get_all("Stock Ledger Entry", filters={
                     "warehouse": self.kho, "item_code": ("in", ma), f: (">", t0)}, fields=truong):
                 gap[s.name] = s
+        pos = gio_pos([s.get("voucher_detail_no") for s in gap.values() if s.voucher_type == "Sales Invoice"])
         phan = {}                      # SLE → [(lô, số)] — một SLE có thể chạm nhiều lô qua bundle
         if lo_rieng:
             goi = [s.serial_and_batch_bundle for s in gap.values() if s.get("serial_and_batch_bundle")]
@@ -705,10 +786,12 @@ class SXKiemKe(Document):
                                                                               flt(s.actual_qty))]
         sau = {}
         for s in gap.values():
+            luc = pos.get(s.get("voucher_detail_no")) or (get_datetime(s.posting_datetime)
+                                                         if s.get("posting_datetime") else None)
             for b, q in (phan[s.name] if lo_rieng else [(None, flt(s.actual_qty))]):
                 k = (s.item_code, b) if lo_rieng else s.item_code
                 t = moc.get(k)
-                if not t:
+                if not t or (luc and luc <= t):
                     continue
                 moi, huy = get_datetime(s.creation) > t, cint(s.is_cancelled)
                 if moi and not huy:

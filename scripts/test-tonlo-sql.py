@@ -44,7 +44,7 @@ def sql(q, args=None, as_dict=False):
 fr = types.ModuleType("frappe"); fr._dict = _dict; fr.db = types.SimpleNamespace(sql=sql)
 fu = types.ModuleType("frappe.utils")
 fu.flt = lambda x, p=None: round(float(x or 0), p) if p is not None else float(x or 0)
-for n in ("add_days", "cint", "get_datetime", "getdate", "now_datetime", "nowdate"):
+for n in ("add_days", "cint", "get_datetime", "get_time", "getdate", "now_datetime", "nowdate"):
     setattr(fu, n, lambda *a, **k: None)
 fr.utils = fu; fr._ = lambda s: s
 fm = types.ModuleType("frappe.model"); fmd = types.ModuleType("frappe.model.document"); fmd.Document = object
@@ -83,4 +83,34 @@ r = [(x.kho, x.item, x.b, x.q, x.vt, x.luc) for x in K._sle_khoang(["TP"], ["SR1
 assert r == [("TP", "SR170", None, -6331.0, "Sales Invoice", "2026-05-01 08:00:00"),
              ("TP", "LOT", "A", 100.0, "Stock Entry", "2026-06-01 08:00:00")], r
 assert K._sle_khoang([], ["LOT"]) == [] and K._sle_khoang(["TP"], []) == []
+# D216: dòng sổ cái ĐỔI SỔ sau lúc chốt (sx.api.sau_kiem_ke._dong_muon) — tạo sau lúc chốt (chưa huỷ), hoặc có từ trước
+# mà huỷ sau lúc chốt; mỗi lô một dòng, giá của dòng lô (incoming_rate) / của dòng sổ cái.
+for c in ("voucher_detail_no text", "modified text", "valuation_rate real"):
+    con.execute(f"alter table `tabStock Ledger Entry` add column {c}")
+con.execute("alter table `tabSerial and Batch Entry` add column incoming_rate real")
+spec2 = importlib.util.spec_from_file_location("sau_kiem_ke", os.path.join(GOC, "sx/api/sau_kiem_ke.py"))
+SK = importlib.util.module_from_spec(spec2); spec2.loader.exec_module(SK)
+def ins2(n, item, kho, b, bundle, q, luc, tao, sua, huy, vt="Sales Invoice", vd=None, gia=0):
+    con.execute("insert into `tabStock Ledger Entry` (name, item_code, warehouse, batch_no, serial_and_batch_bundle, "
+                "actual_qty, qty_after_transaction, posting_datetime, creation, is_cancelled, voucher_type, voucher_no, "
+                "voucher_detail_no, modified, valuation_rate) values (?,?,?,?,?,?,0,?,?,?,?,?,?,?,?)",
+                (n, item, kho, b, bundle, q, luc, tao, huy, vt, n.upper(), vd, sua, gia))
+CHOT = "2026-10-20 17:00:00"
+ins2("k1", "TX", "K2", None, None, -1, "2026-10-20 09:00:00", "2026-10-20 09:00:00", "2026-10-20 09:00:00", 0)  # trước chốt
+ins2("k2", "TX", "K2", None, "SBX", -25, "2026-10-20 13:30:00", "2026-10-20 18:05:00", "2026-10-20 18:05:00", 0,
+     vd="sg1", gia=14000)
+con.execute("insert into `tabSerial and Batch Entry` (parent, batch_no, qty, incoming_rate) values ('SBX','L1',-20,15000)")
+con.execute("insert into `tabSerial and Batch Entry` (parent, batch_no, qty, incoming_rate) values ('SBX','L2',-5,16000)")
+ins2("k3", "TX", "K2", None, None, -15, "2026-10-20 10:00:00", "2026-10-20 18:06:00", "2026-10-20 18:06:00", 0,
+     gia=14000)                                                                               # không lô
+ins2("k4", "TX", "K2", None, None, -2, "2026-10-20 11:00:00", "2026-10-21 08:00:00", "2026-10-21 09:00:00", 1)  # tạo rồi huỷ sau chốt
+ins2("k5", "TX", "K2", "L1", None, -4, "2026-10-20 08:00:00", "2026-10-19 08:00:00", "2026-10-21 09:00:00", 1,
+     vt="Delivery Note", gia=15000)                                                           # có trước, huỷ sau chốt
+ins2("k6", "TX", "K2", None, None, -6, "2026-10-20 08:30:00", "2026-10-19 08:00:00", "2026-10-20 12:00:00", 1)  # huỷ trước chốt
+ins2("k7", "TX", "KHAC", None, None, -7, "2026-10-20 10:00:00", "2026-10-21 08:00:00", "2026-10-21 08:00:00", 0)  # kho khác
+ins2("k8", "TY", "K2", None, None, -8, "2026-10-20 10:00:00", "2026-10-21 08:00:00", "2026-10-21 08:00:00", 0)  # mã khác
+r = [(x.vn, x.b, x.q, int(x.huy), x.vd, x.gia) for x in SK._dong_muon("K2", ["TX"], CHOT)]
+assert r == [("K5", "L1", -4.0, 1, None, 15000.0), ("K3", None, -15.0, 0, None, 14000.0),
+             ("K2", "L1", -20.0, 0, "sg1", 15000.0), ("K2", "L2", -5.0, 0, "sg1", 16000.0)], r
+assert SK._dong_muon("K2", [], CHOT) == []
 print("TONLO-SQL-OK")

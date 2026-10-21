@@ -2235,6 +2235,303 @@ frappe.local.__dict__.pop("sx_moc_bat_lo", None)
 frappe.local.__dict__.pop("sx_nho", None)
 F.vai("SX Thu Kho", u="kho@x")
 
+print("\n-- D216: ca POS chưa đóng lúc chốt; chứng từ ghi sổ trước lúc đếm (vào sổ sau) --")
+P16 = F.get_doc({"doctype": "SX Kiem Ke", "ngay": "2026-10-09", "kho": KHO, "loai": "Thành phẩm",
+                 "nguoi_lap": "kho@x", "bat_dau_luc": "2026-10-09 08:00:00", "trang_thai": "Đang đếm",
+                 "dong": [{"item": "TP-SEN", "ten": "Bánh đậu xanh sen", "hsd": H1, "so_dem": 40,
+                           "dem_luc": "2026-10-09 09:00:00"}]}).insert().name
+PI, PII = F.bang("POS Invoice"), F.bang("POS Invoice Item")
+
+
+def pos16(n, gio, q, kho=KHO, gop=None, item="TP-SEN", ds=1):
+    PI[n] = {"name": n, "docstatus": ds, "posting_date": "2026-10-09", "posting_time": gio, "pos_profile": "PF-KHO",
+             "consolidated_invoice": gop}
+    PII[n + "-1"] = {"name": n + "-1", "parent": n, "item_code": item, "warehouse": kho, "stock_qty": q, "qty": q,
+                     "docstatus": ds}
+
+
+def loi16():
+    return " ".join(A.xem_truoc(P16)["loi"])
+
+
+pos16("POS-16A", "08:30:00", 3)
+kiem("phiếu POS chưa đóng ca, lập TRƯỚC lúc đếm, bán ở kho kiểm kê → chặn chốt, nói mã / số / ca POS",
+     "CHƯA ĐÓNG CA" in loi16() and "Bánh đậu xanh sen 3 (1 phiếu)" in loi16() and "PF-KHO" in loi16(), loi16())
+pos16("POS-16R", "08:40:00", -1)
+kiem("… phiếu trả hàng trước lúc đếm cộng vào (số âm): 3 − 1", "Bánh đậu xanh sen 2 (2 phiếu)" in loi16(), loi16())
+for n in ("POS-16A", "POS-16R"):
+    PI[n]["consolidated_invoice"] = "SINV-GOP16"
+pos16("POS-16B", "09:30:00", 4)                      # bán SAU lúc đếm: số đếm còn hàng đó, sổ chưa trừ — khớp
+pos16("POS-16C", "08:10:00", 5, kho="CH Khac16")     # kho khác
+pos16("POS-16D", "08:20:00", 6, ds=2)                # phiếu đã huỷ
+kiem("… đã đóng ca (đã gộp hoá đơn) / bán sau lúc đếm / kho khác / phiếu huỷ → không chặn",
+     "CHƯA ĐÓNG CA" not in loi16(), loi16())
+for n in [n for n in PI if n.startswith("POS-16")]:
+    PI.pop(n)
+    PII.pop(n + "-1")
+SII = F.bang("Sales Invoice Item")
+SII["sii16b"] = {"name": "sii16b", "pos_invoice": "POS-16E"}
+SII["sii16c"] = {"name": "sii16c", "pos_invoice": "POS-16F"}
+PI["POS-16E"] = {"name": "POS-16E", "posting_date": "2026-10-09", "posting_time": "08:50:00"}
+PI["POS-16F"] = {"name": "POS-16F", "posting_date": "2026-10-09", "posting_time": "09:20:00"}
+for n, vn, q, luc, tao, vd in (("s16a", "SINV-16A", -2, "2026-10-09 08:45:00", "2026-10-09 09:30:00", None),
+                               ("s16b", "SINV-16G", -3, "2026-10-09 09:40:00", "2026-10-09 09:45:00", "sii16b"),
+                               ("s16c", "SINV-16G", -1, "2026-10-09 09:40:00", "2026-10-09 09:45:00", "sii16c")):
+    SLE[n] = {"name": n, "item_code": "TP-SEN", "warehouse": KHO, "voucher_type": "Sales Invoice", "voucher_no": vn,
+              "voucher_detail_no": vd, "actual_qty": q, "posting_datetime": luc, "creation": tao, "modified": tao,
+              "is_cancelled": 0}
+kiem("chứng từ vào sổ sau lúc đếm mà GHI SỔ trước lúc đếm (hoá đơn nhập muộn; dòng hoá đơn gộp POS theo giờ phiếu POS) "
+     "→ không chặn; dòng của phiếu POS sau lúc đếm → chặn (đúng số của dòng đó)",
+     "SINV-16A" not in loi16() and "SINV-16G (-1)" in loi16(), loi16())
+SLE.pop("s16c")
+kiem("… bỏ dòng sau lúc đếm thì hết chặn", "sau lúc đếm" not in loi16(), loi16())
+for n in ("s16a", "s16b"):
+    SLE.pop(n)
+for n in ("sii16b", "sii16c"):
+    SII.pop(n)
+for n in ("POS-16E", "POS-16F"):
+    PI.pop(n)
+F.bang("SX Kiem Ke").pop(P16)
+d16 = C.SXKiemKe({"doctype": "SX Kiem Ke", "name": "KK-M16", "loai": "Thành phẩm", "bat_dau_luc": "2026-10-09 08:00:00",
+                  "dong": [{"item": "A", "dem_luc": "2026-10-09 09:30:00"}, {"item": "A", "dem_luc": "2026-10-09 09:10:00"},
+                           {"item": "B", "dem_luc": None}]})
+m16 = d16.moc_dem(["A", "B", "C"])
+kiem("mốc đếm: dòng đếm sớm nhất của mã; mã chưa đếm → lúc bắt đầu kiểm kê",
+     (str(m16["A"]), str(m16["B"]), str(m16["C"])) == ("2026-10-09 09:10:00", "2026-10-09 08:00:00",
+                                                       "2026-10-09 08:00:00"), m16)
+d16.thoi_diem = "2026-10-09 09:45:00"
+kiem("… đặt thời điểm chốt sổ (D195): mốc của mọi mã là thời điểm đó",
+     {str(v) for v in d16.moc_dem(["A", "B"]).values()} == {"2026-10-09 09:45:00"})
+
+print("\n-- D216: soát phiếu đã chốt — chứng từ ghi lùi sau lúc chốt, phiếu bù --")
+S = F.nap("sx.api.sau_kiem_ke", "sx/api/sau_kiem_ke.py")
+dt16 = fu.get_datetime
+rr = lambda **k: F.Doc(dict({"b": None, "huy": 0, "gia": 0, "vd": None}, **k))   # noqa: E731
+moc_ = {"X": dt16("2026-10-20 14:10:00")}
+ct_ = S.phan_tich(moc_, [
+    rr(item="X", vt="Sales Invoice", vn="G1", vd="v1", b="L", q=-20, luc="2026-10-20 13:30:00", tao="2026-10-20 18:05:00",
+       sua="2026-10-20 18:05:00", gia=15000),
+    rr(item="X", vt="Sales Invoice", vn="G1", vd="v2", b="L", q=-5, luc="2026-10-20 13:30:00", tao="2026-10-20 18:05:00",
+       sua="2026-10-20 18:05:00"),
+    rr(item="X", vt="Sales Invoice", vn="G2", vd="v3", b="L", q=-3, luc="2026-10-20 18:00:00", tao="2026-10-20 18:06:00",
+       sua="2026-10-20 18:06:00"),
+    rr(item="X", vt="Stock Entry", vn="SE-KK", b="L", q=31, luc="2026-10-20 17:00:00", tao="2026-10-20 17:00:00",
+       sua="2026-10-20 17:00:00"),
+    rr(item="X", vt="Delivery Note", vn="DN1", b="L", q=-4, luc="2026-10-20 08:00:00", tao="2026-10-19 08:00:00",
+       sua="2026-10-21 09:00:00", huy=1),
+    rr(item="X", vt="Stock Entry", vn="SE-0", b="L", q=6, luc="2026-10-20 09:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00"),
+    rr(item="X", vt="Stock Entry", vn="SE-0", b="L", q=-6, luc="2026-10-20 09:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00"),
+    rr(item="X", vt="Stock Reconciliation", vn="RECO1", q=0, luc="2026-10-20 07:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00"),
+    rr(item="Y", vt="Sales Invoice", vn="G9", b="L", q=-9, luc="2026-10-20 08:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00"),
+    rr(item="X", vt="Stock Entry", vn="SE-BU1", b="L", q=25, luc="2026-10-20 13:30:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00"),                                     # phiếu bù lần trước (trong ds_se của kiểm kê)
+], {"v1": dt16("2026-10-20 09:10:00"), "v2": dt16("2026-10-20 13:30:00"), "v3": dt16("2026-10-20 15:00:00")},
+    cua_kk={"SE-KK", "SE-BU1"})
+kiem("phân tích: theo giờ thật (dòng hoá đơn gộp: giờ phiếu POS); dòng sau lúc đếm, phiếu của chính kiểm kê, chứng từ "
+     "cộng trừ về 0, mã ngoài kiểm kê → bỏ; phiếu bị huỷ → số ngược; Stock Reconciliation giữ (đặt lại tồn)",
+     [(g["vn"], g["dong"], g["huy"], g["dat_lai"]) for g in ct_]
+     == [("RECO1", {("X", None): 0.0}, 0, True), ("DN1", {("X", "L"): 4.0}, 1, False),
+         ("G1", {("X", "L"): -25.0}, 0, False)]
+     and (str(ct_[2]["tu"]), str(ct_[2]["den"]), str(ct_[2]["luc"])) == ("2026-10-20 09:10:00", "2026-10-20 13:30:00",
+                                                                        "2026-10-20 13:30:00")
+     and ct_[2]["gia"] == {("X", "L"): 15000.0} and str(ct_[1]["vao"]) == "2026-10-21 09:00:00",
+     [(g["vn"], g["dong"]) for g in ct_])
+S.chia_bu(ct_, {"X"})
+kiem("phần bù = ngược số đổi sổ; Stock Reconciliation không bù",
+     [(g["vn"], g["bu"], g["khong"]) for g in ct_] == [("RECO1", {}, {("X", None): "dat_lai"}),
+                                                       ("DN1", {("X", "L"): -4.0}, {}),
+                                                       ("G1", {("X", "L"): 25.0}, {})], ct_)
+ct2_ = S.chia_bu(S.phan_tich(moc_, [
+    rr(item="X", vt="Sales Invoice", vn="G3", q=-15, luc="2026-10-20 10:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00"),
+    rr(item="X", vt="Sales Invoice", vn="G4", b="L", q=-2, luc="2026-10-20 10:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00"),
+    rr(item="X", vt="Sales Invoice", vn="G5", b="L", q=-1, luc="2026-10-20 10:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00")], {}, bo={"G4"}, da_bu={("Sales Invoice", "G5")}), {"X"})
+kiem("không bù: phần không lô của mã có lô (DỌN), chứng từ chỉ định bỏ, chứng từ đã bù",
+     [(g["vn"], g["bu"], g["khong"]) for g in ct2_] == [("G3", {}, {("X", None): "khong_lo"}),
+                                                        ("G4", {}, {("X", "L"): "bo"}),
+                                                        ("G5", {}, {("X", "L"): "da_bu"})], ct2_)
+ct3_ = S.chia_bu(S.phan_tich(moc_, [rr(item="X", vt="Stock Entry", vn="SE-9", q=-2, luc="2026-10-20 10:00:00",
+                                       tao="2026-10-21 08:00:00", sua="2026-10-21 08:00:00")], {}), set())
+kiem("mã không quản lý lô: phần không lô vẫn bù", ct3_[0]["bu"] == {("X", None): 2.0}, ct3_)
+ctb_ = S.phan_tich({("X", "L1"): dt16("2026-10-20 14:00:00")}, [
+    rr(item="X", vt="Stock Entry", vn="SB1", b="L1", q=-2, luc="2026-10-20 10:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00"),
+    rr(item="X", vt="Stock Entry", vn="SB2", b="L2", q=-3, luc="2026-10-20 10:00:00", tao="2026-10-21 08:00:00",
+       sua="2026-10-21 08:00:00")], {}, lo_rieng=True)
+kiem("bán thành phẩm: khoá (mã, lô) — chỉ lô đã cân", [g["vn"] for g in ctb_] == ["SB1"], ctb_)
+
+# Phiếu đã chốt giả: TX510 sổ 0 → đếm 31 (+31 vào lô HSD); TY (không lô) sổ 5 → đếm 5.
+F.bang("Warehouse")[KHO] = {"name": KHO, "company": "RVHG"}
+for i, ten, lo_ in (("TP-TX", "Bánh TX 510g", 1), ("TP-TY", "Bánh TY", 0)):
+    F.bang("Item")[i] = {"name": i, "item_name": ten, "stock_uom": "Hộp", "custom_sx_nhom": "TP", "disabled": 0,
+                         "has_batch_no": lo_}
+F.bang("Batch")["TX-HSD010727"] = {"name": "TX-HSD010727", "item": "TP-TX", "expiry_date": "2027-07-01"}
+F.bang("Bin")["b16x"] = {"name": "b16x", "item_code": "TP-TX", "warehouse": KHO, "actual_qty": -8,
+                         "valuation_rate": 14000}
+F.bang("Bin")["b16y"] = {"name": "b16y", "item_code": "TP-TY", "warehouse": KHO, "actual_qty": 3,
+                         "valuation_rate": 9000}
+F.bang("Bin")["b16c"] = {"name": "b16c", "item_code": "TP-TX", "warehouse": "CH X16", "actual_qty": -5}
+KK16 = "KK-D216"
+F.bang("SX Kiem Ke")[KK16] = {
+    "name": KK16, "docstatus": 1, "kho": KHO, "loai": "Thành phẩm", "trang_thai": "Đã chốt",
+    "chot_luc": "2026-10-20 17:00:00", "bat_dau_luc": "2026-10-20 14:00:00",
+    "ds_se": json.dumps([{"dt": "Stock Entry", "name": "SE-KK16"}]),
+    "dong": [{"item": "TP-TX", "hsd": "2027-07-01", "so_dem": 31, "dem_luc": "2026-10-20 14:10:00"},
+             {"item": "TP-TY", "hsd": "2027-03-01", "so_dem": 5, "dem_luc": "2026-10-20 14:20:00"}],
+    "lo": [{"item": "TP-TX", "ten": "Bánh TX 510g", "batch": "TX-HSD010727", "so_truoc": 0, "so_sau": 31},
+           {"item": "TP-TY", "ten": "Bánh TY", "batch": None, "so_truoc": 5, "so_sau": 5}]}
+# Sổ HIỆN TẠI: lô HSD 31 − 25 (hoá đơn gộp POS, phiếu POS trước lúc đếm) − 3 (bán sau lúc đếm) + 4 (huỷ phiếu giao cũ)
+# = 7; không lô −15 (hoá đơn gộp POS của mã đã bật lô — DỌN); TY 5 − 2 (chuyển kho ghi lùi) = 3.
+SO.update({("TP-TX", "TX-HSD010727"): 7, ("TP-TX", None): -15, ("TP-TY", None): 3})
+for n, p_, gio in (("sg1", "POS-1", "09:10:00"), ("sg2", "POS-2", "13:30:00"), ("sg3", "POS-3", "10:00:00"),
+                   ("sg4", "POS-4", "15:00:00")):
+    SII[n] = {"name": n, "pos_invoice": p_}
+    PI[p_] = {"name": p_, "posting_date": "2026-10-20", "posting_time": gio}
+F.bang("Sales Invoice").update({n: {"name": n, "docstatus": 1} for n in ("SI-GOP1", "SI-GOP2", "SI-SAU")})
+F.bang("Delivery Note")["DN-OLD"] = {"name": "DN-OLD", "docstatus": 2}
+MUON = [
+    dict(name="m1", item="TP-TX", vt="Sales Invoice", vn="SI-GOP1", vd="sg1", b="TX-HSD010727", q=-20,
+         luc="2026-10-20 13:30:00", tao="2026-10-20 18:05:00", sua="2026-10-20 18:05:00", huy=0, gia=15000),
+    dict(name="m2", item="TP-TX", vt="Sales Invoice", vn="SI-GOP1", vd="sg2", b="TX-HSD010727", q=-5,
+         luc="2026-10-20 13:30:00", tao="2026-10-20 18:05:00", sua="2026-10-20 18:05:00", huy=0, gia=15000),
+    dict(name="m3", item="TP-TX", vt="Sales Invoice", vn="SI-GOP2", vd="sg3", b=None, q=-15,
+         luc="2026-10-20 10:00:00", tao="2026-10-20 18:06:00", sua="2026-10-20 18:06:00", huy=0, gia=0),
+    dict(name="m4", item="TP-TX", vt="Sales Invoice", vn="SI-SAU", vd="sg4", b="TX-HSD010727", q=-3,
+         luc="2026-10-20 15:00:00", tao="2026-10-20 18:07:00", sua="2026-10-20 18:07:00", huy=0, gia=15000),
+    dict(name="m5", item="TP-TX", vt="Delivery Note", vn="DN-OLD", vd=None, b="TX-HSD010727", q=-4,
+         luc="2026-10-20 08:00:00", tao="2026-10-19 08:00:00", sua="2026-10-21 09:00:00", huy=1, gia=15000),
+    dict(name="m6", item="TP-TY", vt="Stock Entry", vn="SE-MOI", vd=None, b=None, q=-2,
+         luc="2026-10-20 12:00:00", tao="2026-10-21 08:00:00", sua="2026-10-21 08:00:00", huy=0, gia=0),
+]
+S._dong_muon = lambda kho, items, chot: [F.Doc(r) for r in MUON if r["item"] in items and kho == KHO
+                                         and str(chot) == "2026-10-20 17:00:00"]
+kq = S.xu_ly()
+x16 = {x["item"]: x for x in kq["ma"]}
+kiem("xem trước: phiếu chốt gần nhất của kho thành phẩm; hai mã có chứng từ ghi lùi, không ghi gì",
+     kq["phieu"] == KK16 and set(x16) == {"TP-TX", "TP-TY"} and not kq["chay"] and SO[("TP-TX", "TX-HSD010727")] == 7,
+     kq)
+tx = x16.get("TP-TX", {})
+kiem("TX510: sổ 0 → đếm 31; tồn nay −8 (không lô −15); ghi lùi −36 (bù +21 = +25 lô − 4 lô; −15 không lô để DỌN); "
+     "sau lúc đếm −3; sau bù 13; kho khác âm",
+     (tx.get("so"), tx.get("dem"), tx.get("nay"), tx.get("khong_lo"), tx.get("lech"), tx.get("bu"), tx.get("sau_dem"),
+      tx.get("sau_bu"), tx.get("am_khac")) == (0.0, 31.0, -8.0, -15.0, -36.0, 21.0, -3.0, 13.0, [("CH X16", -5.0)])
+     and [g["vn"] for g in tx.get("ct", [])] == ["DN-OLD", "SI-GOP2", "SI-GOP1"], tx)
+txt = S.bao_cao(kq)
+kiem("báo cáo: xem trước, phiếu, từng chứng từ (đóng ca POS theo giờ phiếu POS, phiếu huỷ), lý do không bù, bù, sau lúc "
+     "đếm, kho khác, bước tiếp",
+     "XEM TRƯỚC" in txt and KK16 in txt and "TP-TX Bánh TX 510g" in txt
+     and "đóng ca POS — phiếu POS 20/10 09:10→20/10 13:30" in txt and "phiếu bị HUỶ" in txt
+     and "-25 lô TX-HSD010727" in txt and "-15 không lô" in txt and "Tồn không lô còn lại → DỌN" in txt
+     and "→ bù +21: tồn -8 → 13" in txt and "Chứng từ sau lúc đếm (bán / nhập thật): -3" in txt
+     and "Kho khác đang âm: CH X16 -5" in txt and "Bước tiếp" in txt and "SI-SAU" not in txt, txt)
+kiem("lọc một mã (mã / tên), mã không có trong phiếu",
+     [x["item"] for x in S.xu_ly(ma="tx")["ma"]] == ["TP-TX"] and [x["item"] for x in S.xu_ly(ma="bánh ty")["ma"]]
+     == ["TP-TY"] and S.xu_ly(ma="ZZZ")["khong_thay"] == "ZZZ"
+     and "Không thấy mã 'ZZZ'" in S.bao_cao(S.xu_ly(ma="ZZZ")))
+kiem("bỏ chứng từ chỉ định ('bo'): không bù phần đó",
+     next(x for x in S.xu_ly(bo=["SI-GOP1"])["ma"] if x["item"] == "TP-TX")["bu"] == -4.0)
+n_se = len(F.bang("Stock Entry"))
+with __import__("contextlib").redirect_stdout(__import__("io").StringIO()) as out16:
+    kiem("soat() in báo cáo, không trả gì (bench in giá trị trả về thành JSON)", S.soat() is None)
+kiem("… in đúng báo cáo xem trước, không ghi phiếu nào", "XEM TRƯỚC" in out16.getvalue()
+     and len(F.bang("Stock Entry")) == n_se, out16.getvalue()[:300])
+
+F.vai("SX Quan Ly", u="ql@x")
+kq = S.xu_ly(chay=1)
+tx = next(x for x in kq["ma"] if x["item"] == "TP-TX")
+moi16 = {g["vn"]: g.get("phieu") for x in kq["ma"] for g in x["ct"]}
+se16 = {vn: [F.bang("Stock Entry")[n] for n in ns or []] for vn, ns in moi16.items()}
+kiem("chay=1: mỗi chứng từ một phiếu bù đúng lô, ngược số, ghi sổ cùng giờ chứng từ; không bù phần không lô",
+     [(s["purpose"], s["items"][0]["batch_no"], s["items"][0]["qty"], str(s["posting_date"]), s["posting_time"])
+      for s in se16["DN-OLD"]] == [("Material Issue", "TX-HSD010727", 4.0, "2026-10-20", "08:00:00")]
+     and [(s["purpose"], s["items"][0]["batch_no"], s["items"][0]["qty"], s["posting_time"], s["items"][0]["basic_rate"])
+          for s in se16["SI-GOP1"]] == [("Material Receipt", "TX-HSD010727", 25.0, "13:30:00", 15000.0)]
+     and [(s["purpose"], s["items"][0].get("batch_no"), s["items"][0]["qty"], s["items"][0]["basic_rate"])
+          for s in se16["SE-MOI"]] == [("Material Receipt", None, 2.0, 9000.0)]
+     and not moi16["SI-GOP2"], {k: [(s["purpose"], s["items"]) for s in v] for k, v in se16.items()})
+kiem("… sổ sau bù: lô HSD 7 − 4 + 25 = 28 (= 31 − 3 bán sau lúc đếm), không lô −15 chờ DỌN; TY về 5",
+     (SO[("TP-TX", "TX-HSD010727")], SO[("TP-TX", None)], SO[("TP-TY", None)]) == (28.0, -15, 5.0),
+     (SO[("TP-TX", "TX-HSD010727")], SO[("TP-TX", None)], SO[("TP-TY", None)]))
+ds16 = json.loads(F.bang("SX Kiem Ke")[KK16]["ds_se"])
+kiem("… phiếu bù gắn số kiểm kê, ghi chú lý do, nằm trong ds_se (huỷ chốt thì huỷ theo) kèm chứng từ được bù",
+     all(s["custom_kiem_ke"] == KK16 and s["remarks"].startswith(S.NHAN) and "SI-GOP1" in se16["SI-GOP1"][0]["remarks"]
+         for v in se16.values() for s in v)
+     and ds16[0] == {"dt": "Stock Entry", "name": "SE-KK16"}
+     and {(tuple(x["bu"][:2]), x["bu"][2]) for x in ds16[1:]} == {(("Delivery Note", "DN-OLD"), 1),
+                                                                  (("Sales Invoice", "SI-GOP1"), 0),
+                                                                  (("Stock Entry", "SE-MOI"), 0)}, ds16)
+kiem("… báo cáo ghi thật: đã ghi phiếu bù, xong", "GHI PHIẾU BÙ" in S.bao_cao(kq) and "✓ đã ghi phiếu bù" in S.bao_cao(kq)
+     and "Xong — tồn sau kiểm kê" in S.bao_cao(kq), S.bao_cao(kq))
+kq = S.xu_ly()
+tx = next(x for x in kq["ma"] if x["item"] == "TP-TX")
+kiem("chạy lại: chứng từ đã bù không bù lần hai; sau lúc đếm vẫn −3; không còn bước tiếp",
+     tx["bu"] == 0 and tx["da_bu"] == 21.0 and tx["sau_dem"] == -3.0 and tx["nay"] == 13.0
+     and "đã bù lần trước" in S.bao_cao(kq) and "Bước tiếp" not in S.bao_cao(kq), (tx, S.bao_cao(kq)))
+F.bang("Sales Invoice")["SI-GOP1"]["docstatus"] = 2         # đóng ca bị huỷ: hoá đơn gộp huỷ sau khi đã bù
+MUON[:] = [r for r in MUON if r["vn"] != "SI-GOP1"]
+kq = S.xu_ly()
+kiem("chứng từ đã bù mà sau đó bị huỷ → phiếu bù thừa (xem trước báo; phiếu huỷ đã bù — DN-OLD — không tính)",
+     [(h["vn"], h["se"]) for h in kq["huy_bu"]] == [("SI-GOP1", moi16["SI-GOP1"])]
+     and "Phiếu bù thừa — Sales Invoice SI-GOP1" in S.bao_cao(kq) and "chay=1 sẽ huỷ" in S.bao_cao(kq), kq["huy_bu"])
+kq = S.xu_ly(chay=1)
+kiem("… chay=1 huỷ phiếu bù thừa: lô HSD về 3", F.bang("Stock Entry")[moi16["SI-GOP1"][0]]["docstatus"] == 2
+     and SO[("TP-TX", "TX-HSD010727")] == 3.0 and "→ đã huỷ" in S.bao_cao(kq), (SO, S.bao_cao(kq)))
+kiem("… chạy lại: phiếu bù đã huỷ không báo nữa; không có gì để ghi",
+     S.xu_ly()["huy_bu"] == [] and "Không có gì để ghi" in S.bao_cao(S.xu_ly(chay=1)))
+F.bang("SX Kiem Ke")["KK-D216B"] = {"name": "KK-D216B", "docstatus": 1, "kho": KHO, "chot_luc": "2026-10-21 08:00:00",
+                                    "loai": "Thành phẩm"}
+kiem("phiếu không phải phiếu chốt mới nhất của kho → chặn, chỉ phiếu sau",
+     "đã có phiếu kiểm kê chốt sau KK-D216: KK-D216B" in (thu(lambda: S.xu_ly(phieu=KK16)) or ""))
+F.bang("SX Kiem Ke")["KK-D216B"]["docstatus"] = 0
+kiem("phiếu chưa chốt / không có → báo", "chưa chốt" in (thu(lambda: S.xu_ly(phieu="KK-D216B")) or "")
+     and "Không có phiếu kiểm kê" in (thu(lambda: S.xu_ly(phieu="KK-ZZ")) or ""))
+F.bang("SX Kiem Ke").pop("KK-D216B")
+# lỗi giữa chừng: điểm lưu — chứng từ lỗi không ghi gì, chứng từ khác vẫn bù
+F.bang("Batch")["TX-L2"] = {"name": "TX-L2", "item": "TP-TX"}
+SO[("TP-TX", "TX-L2")] = 1
+for n_, b_, q_ in (("m7", "TX-HSD010727", -1), ("m7b", "TX-L2", 1)):     # chuyển lô ghi lùi: bù nhập + bù xuất
+    MUON.append(dict(name=n_, item="TP-TX", vt="Stock Entry", vn="SE-LOI", vd=None, b=b_, q=q_,
+                     luc="2026-10-20 12:30:00", tao="2026-10-21 08:00:00", sua="2026-10-21 08:00:00", huy=0, gia=0))
+MUON.append(dict(name="m8", item="TP-TY", vt="Stock Entry", vn="SE-OK", vd=None, b=None, q=-1,
+                 luc="2026-10-20 12:40:00", tao="2026-10-21 08:00:00", sua="2026-10-21 08:00:00", huy=0, gia=0))
+goc_validate = StockEntry.validate
+
+
+def validate_loi(self):
+    if "SE-LOI" in str(self.remarks or "") and self.purpose == "Material Issue":    # phiếu nhập bù đã ghi xong
+        raise F.Loi("Kỳ kế toán đã khoá")
+    goc_validate(self)
+
+
+StockEntry.validate = validate_loi
+kq = S.xu_ly(chay=1)
+StockEntry.validate = goc_validate
+g16 = {g["vn"]: g for x in kq["ma"] for g in x["ct"]}
+kiem("chứng từ lỗi giữa chừng (phiếu nhập bù đã ghi, phiếu xuất bù lỗi): quay về điểm lưu — không ghi gì, báo lỗi; "
+     "chứng từ khác vẫn bù",
+     g16["SE-LOI"].get("loi") == "Kỳ kế toán đã khoá" and not g16["SE-LOI"].get("phieu") and g16["SE-OK"].get("phieu")
+     and (SO[("TP-TX", "TX-HSD010727")], SO[("TP-TX", "TX-L2")], SO[("TP-TY", None)]) == (3.0, 1, 6.0)
+     and "✗ LỖI" in S.bao_cao(kq) and "1 chứng từ lỗi" in S.bao_cao(kq),
+     (g16["SE-LOI"], SO[("TP-TX", "TX-HSD010727")], SO[("TP-TY", None)]))
+for n in ("TP-TX", "TP-TY"):
+    F.bang("Item").pop(n)
+    SO.pop((n, None), None)
+SO.pop(("TP-TX", "TX-HSD010727"))
+SO.pop(("TP-TX", "TX-L2"))
+for t, ns in (("Bin", ("b16x", "b16y", "b16c")), ("Batch", ("TX-HSD010727", "TX-L2")), ("SX Kiem Ke", (KK16,)),
+              ("Sales Invoice Item", ("sg1", "sg2", "sg3", "sg4")), ("POS Invoice", ("POS-1", "POS-2", "POS-3", "POS-4")),
+              ("Sales Invoice", ("SI-GOP1", "SI-GOP2", "SI-SAU")), ("Delivery Note", ("DN-OLD",))):
+    for n in ns:
+        F.bang(t).pop(n)
+F.bang("Warehouse").pop(KHO)
+F.vai("SX Thu Kho", u="kho@x")
+
 print("\n-- dây nối --")
 kiem("thẻ kiemke: thủ kho + quản lý; nằm ở màn Nhập kho (sau phiếu nhập) và Quản lý",
      R.CARD_ROLES["kiemke"] == [R.THU_KHO, R.QUAN_LY] and R.VIEW_CARDS["nhapkho"][:2] == ["nhapkhotp", "kiemke"]
