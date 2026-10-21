@@ -323,6 +323,16 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Vào hộp Tết: dòng trùng HSD cũng tự gộp (D220)
+
+- Như màn Nhập kho (D218): chọn / quét mã luôn mở **dòng mới**; LƯU mà HSD trùng một dòng đang có của mã thì **cộng vào
+  dòng đó** — bàn số nói trước "cộng vào dòng đang có 60 → 84", lưu xong báo "Cộng vào dòng HSD …: 60 + 24 = 84"; thùng /
+  hộp cộng theo từng đơn vị. Sửa HSD một dòng sang trùng dòng khác thì hai dòng gộp làm một. Trước đây trùng HSD bị chặn.
+- Hàm cộng thùng / hộp dùng chung hai màn: `congChiTiet` (`cards/nhapkhotp.js`) — đơn vị cùng tên mà khác hệ số để riêng
+  (giữ đúng tổng), bên chưa có cách chia thì chia tạm theo bảng quy đổi, không chia khớp thì để ở đơn vị kho.
+- Test `test-sohsd.mjs` (màn Tết: dòng mới, nói trước, cộng, sửa-gộp, LƯU mỗi lô một dòng; congChiTiet), `test-tet.py`.
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-165**.
+
 ## Kiểm kê chỉ số lượng — HSD tự chia (lô còn hạn ngắn nhất xuất trước); kiểm kê cũ thành "kiểm kê kèm hạn sử dụng" (D219)
 
 - **Hỏi**: thêm kiểm kê mới chỉ cần nhập số lượng, HSD tự tính theo nguyên tắc lô còn hạn ngắn nhất xuất trước; kiểm kê

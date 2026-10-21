@@ -286,6 +286,28 @@ console.log('-- moSoHsd: tab thùng / hộp + HSD trên một màn --');
     !/cộng vào/.test(p.goiY()) && !/cùng HSD thì cộng/.test(p.m.body.innerHTML), p.goiY());
 }
 
+console.log('\n-- congChiTiet: cộng thùng / hộp của cùng một lô (D218 / D220, hàm thuần) --');
+{
+  const T12 = { uom: 'Thùng', he_so: 12 };
+  const ct = (...x) => x.map(([uom, sl, he_so]) => ({ uom, sl, he_so }));
+  kiem('cộng theo từng đơn vị, thùng xếp trước: 3 hộp + 2 thùng 1 hộp = 2 thùng 4 hộp',
+    bang(NK.congChiTiet(ct(['Hộp', 3, 1]), 3, ct(['Thùng', 2, 12], ['Hộp', 1, 1]), 25, UOMS, 'Hộp'),
+      ct(['Thùng', 2, 12], ['Hộp', 4, 1])));
+  kiem('bên chưa có cách chia: chia tạm tổng theo bảng quy đổi (30 = 2 thùng 6 hộp)',
+    bang(NK.congChiTiet(ct(['Thùng', 1, 12]), 12, null, 30, UOMS, 'Hộp'), ct(['Thùng', 3, 12], ['Hộp', 6, 1])));
+  kiem('không chia khớp được thì để nguyên ở ĐƠN VỊ KHO của mã (Gói 5), không bịa ra đơn vị khác',
+    bang(NK.congChiTiet(ct(['Két', 1, 10]), 10, null, 5, [], 'Gói'), ct(['Két', 1, 10], ['Gói', 5, 1])));
+  kiem('… chưa biết đơn vị kho thì lấy bậc nhỏ nhất của bảng quy đổi',
+    bang(NK.congChiTiet(ct(['Thùng', 1, 12]), 12, null, 5.5, [T12, { uom: 'Gói', he_so: 1 }], ''),
+      ct(['Thùng', 1, 12], ['Gói', 5.5, 1])));
+  kiem('cùng tên đơn vị mà khác hệ số (bảng quy đổi đổi giữa hai lần ghi) → để riêng, giữ đúng tổng 10 + 12',
+    bang(NK.congChiTiet(ct(['Thùng', 1, 10]), 10, ct(['Thùng', 1, 12]), 12, UOMS, 'Hộp'),
+      ct(['Thùng', 1, 12], ['Thùng', 1, 10])));
+  kiem('hai bên đều không chia (mã một đơn vị) → null; bên số 0 không đẻ ô 0',
+    NK.congChiTiet(null, 5, [], 7, UOMS, 'Hộp') === null
+    && bang(NK.congChiTiet(ct(['Thùng', 1, 12]), 12, null, 0, UOMS, 'Hộp'), ct(['Thùng', 1, 12])));
+}
+
 console.log('\n-- giữ đúng TỔNG khi bảng quy đổi đổi sau lúc ghi (ca cũ của openSoLuong, D75) --');
 for (const [ten, uoms, mong] of [
   ['chi tiết khớp bảng quy đổi', UOMS, false],
@@ -587,36 +609,65 @@ console.log('\n-- Vào hộp Tết: cùng bàn số --');
   p.go('5');
   p.luu();
   p = chon();
-  kiem('chọn lại mã đã có dòng HSD mặc định → mở sửa dòng đó (điền sẵn 5 thùng)', /Thùng · 5/.test(p.tabs()[0])
-    && !p.daCo().length, p.tabs());
+  kiem('D220: chọn lại mã đã có dòng HSD mặc định → vẫn là DÒNG MỚI (ô số trống), dòng kia là ô "HSD 09/04/27 · 60"',
+    p.so() === '0' && p.daCo().length === 1 && /HSD 09\/04\/27 · 60/.test(p.daCo()[0].textContent)
+    && /cùng HSD thì cộng vào/.test(p.m.body.innerHTML), p.daCo().map((b) => b.textContent));
+  p.go('2');
+  kiem('… gõ 2 thùng → bàn số nói trước "cộng vào dòng đang có 60 → 84"', /cộng vào dòng đang có 60 → 84/.test(p.goiY()),
+    p.goiY());
+  TOAST.length = 0;
+  p.luu();
+  // Số dòng = số nút số của dòng; chữ cả khung để đọc từng dòng theo thứ tự (DOM giả cắt textContent ở thẻ đóng đầu).
+  const dongTet = () => {
+    const b = c.querySelector('#tet-dong');
+    return { n: b.querySelectorAll('[data-sl]').length, t: b.textContent };
+  };
+  kiem('… LƯU → cộng vào dòng đó: 7 thùng = 84, vẫn một dòng; báo đã cộng', p.dong() && dongTet().n === 1
+    && /7 thùng = 84/.test(dongTet().t) && TOAST.some(([t]) => t === 'Cộng vào dòng HSD 09/04/27: 60 + 24 = 84'),
+    [dongTet(), TOAST]);
+  p = moi(c.querySelector('#tet-dong').querySelectorAll('[data-sl]')[0]);
   p.nhanh(3);
   p.luu();
   p = chon();
-  kiem('dòng đó đổi HSD → chọn lại mã là dòng MỚI, dòng kia hiện thành ô "HSD 09/01/27 · 60"',
-    p.so() === '0' && p.daCo().length === 1 && /HSD 09\/01\/27 · 60/.test(p.daCo()[0].textContent),
-    p.daCo().map((b) => b.textContent));
   p.go('3');
-  p.datHsd('2027-01-09');
   p.luu();
-  kiem('lưu trùng HSD dòng kia → chặn tại bàn số', !p.dong() && /đã có dòng HSD 09\/01\/27/.test(p.loi()), p.loi());
-  p.macDinh();
-  p.luu();
+  kiem('dòng đó đổi HSD (09/01/27), thêm dòng HSD mặc định 3 thùng → hai dòng hai lô', dongTet().n === 2
+    && /7 thùng = 84[\s\S]*HSD 09\/01\/27[\s\S]*3 thùng = 36[\s\S]*HSD 09\/04\/27/.test(dongTet().t), dongTet());
   p = chon();
-  kiem('chọn lại mã → mở dòng HSD mặc định (3 thùng), dòng HSD 09/01/27 là ô bấm', p && /Thùng · 3/.test(p.tabs()[0])
-    && p.daCo().length === 1, p && p.tabs());
+  kiem('chọn lại mã → dòng mới, hai dòng đang có là ô bấm', p.so() === '0' && p.daCo().length === 2,
+    p.daCo().map((b) => b.textContent));
+  p.datHsd('2027-01-09');
+  p.tab(1);
+  p.go('6');
+  kiem('… HSD trùng dòng 09/01/27 → "cộng vào dòng đang có 84 → 90"', /cộng vào dòng đang có 84 → 90/.test(p.goiY()),
+    p.goiY());
+  p.luu();
+  kiem('… LƯU → dòng 09/01/27 thành 7 thùng 6 hộp = 90 (thùng / hộp cộng theo đơn vị)', dongTet().n === 2
+    && /7 thùng \+ 6 hộp = 90[\s\S]*HSD 09\/01\/27[\s\S]*3 thùng = 36/.test(dongTet().t), dongTet());
+  p = chon();
   p = moi(p.daCo()[0]);
-  kiem('bấm ô đó → chuyển sang bàn số của dòng HSD 09/01/27 (5 thùng)', p && p.hsd() === '2027-01-09'
-    && /Thùng · 5/.test(p.tabs()[0]), p && p.hsd());
-  p = moi(c.querySelector('#tet-dong').querySelectorAll('[data-hsd]')[0]);
-  kiem('bấm HSD của dòng → bàn số của dòng đó, ô HSD là HSD của dòng (09/01/27)', p && p.hsd() === '2027-01-09'
-    && /Thùng · 5/.test(p.tabs()[0]), p && p.hsd());
+  kiem('bấm ô dòng đang có trên bàn số → chuyển sang bàn số của dòng HSD 09/01/27 (7 thùng 6 hộp)', p
+    && p.hsd() === '2027-01-09' && /Thùng · 7/.test(p.tabs()[0]) && /Hộp · 6/.test(p.tabs()[1]), p && p.hsd());
+  p = moi(c.querySelector('#tet-dong').querySelectorAll('[data-hsd]')[1]);
+  kiem('bấm HSD của dòng → bàn số của dòng đó (3 thùng, HSD mặc định)', p && p.hsd() === '2027-04-09'
+    && /Thùng · 3/.test(p.tabs()[0]), p && p.hsd());
+  p.datHsd('2027-01-09');
+  kiem('… SỬA dòng sang HSD trùng dòng kia → "cộng vào dòng đang có 90 → 126"',
+    /cộng vào dòng đang có 90 → 126/.test(p.goiY()), p.goiY());
+  p.luu();
+  kiem('… LƯU → hai dòng gộp làm một: 10 thùng 6 hộp = 126', dongTet().n === 1
+    && /10 thùng \+ 6 hộp = 126/.test(dongTet().t), dongTet());
+  p = chon();
+  p.go('2');
+  p.luu();
   c.querySelector('#tet-luu').bam();
   await HOI[HOI.length - 1].onConfirm();
   const luu = goi.find(([m]) => m === 'sx.api.tet.luu');
   const rows = luu && JSON.parse(luu[1].rows);
-  kiem('LƯU: hai dòng hai lô — 60 (HSD 09/01/27) và 36 (HSD mặc định tính sẵn)', bang(rows, [
-    { item: 'TP-TET', so: 60, chi_tiet: [{ uom: 'Thùng', sl: 5, he_so: 12 }], hsd: '2027-01-09' },
-    { item: 'TP-TET', so: 36, chi_tiet: [{ uom: 'Thùng', sl: 3, he_so: 12 }], hsd: '2027-04-09' },
+  kiem('LƯU: mỗi lô một dòng — 126 (HSD 09/01/27) và 24 (HSD mặc định tính sẵn)', bang(rows, [
+    { item: 'TP-TET', so: 126, chi_tiet: [{ uom: 'Thùng', sl: 10, he_so: 12 }, { uom: 'Hộp', sl: 6, he_so: 1 }],
+      hsd: '2027-01-09' },
+    { item: 'TP-TET', so: 24, chi_tiet: [{ uom: 'Thùng', sl: 2, he_so: 12 }], hsd: '2027-04-09' },
   ]), rows);
 }
 

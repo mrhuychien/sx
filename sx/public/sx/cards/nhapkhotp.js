@@ -425,30 +425,12 @@ function vePhieu(container, r, ganDay, call, refresh, boot) {
   ve();
 
 
-  // D218: cộng hai cách chia thùng / hộp theo từng đơn vị — 2 thùng 3 hộp + 1 thùng 10 hộp = 3 thùng 13 hộp, đúng số
-  // thùng và số hộp lẻ đang nằm ngoài kho. Bên chưa có cách chia thì chia tạm tổng của nó ra; hai bên đều không chia
-  // (mã một đơn vị) → null. Máy chủ cộng y như vậy (_cong_uom) khi phiếu còn dòng trùng gửi lên.
-  function congCt(a, soA, b, soB, x) {
-    if (!(a && a.length) && !(b && b.length)) return null;
-    const ds = uomCua(x.item);
-    const goc = x.dvt || (ds[ds.length - 1] || {}).uom || 'Hộp';
-    const ra = [];
-    [[a, soA], [b, soB]].forEach(([ct, so]) => {
-      const phan = ct && ct.length ? ct : (so > 0 ? tachUom(so, ds) || [{ uom: goc, sl: so, he_so: 1 }] : []);
-      phan.forEach((c) => {
-        const h = Number(c.he_so) || 1;
-        const co = ra.find((y) => y.uom === c.uom && y.he_so === h);
-        if (co) co.sl += Number(c.sl) || 0; else ra.push({ uom: c.uom, sl: Number(c.sl) || 0, he_so: h });
-      });
-    });
-    return ra.sort((u, v) => v.he_so - u.he_so);
-  }
-
   // D218: cùng mã + cùng HSD là MỘT lô (W05) → một dòng. Gộp = cộng như hai dòng riêng (số lập + số lập, số đếm + số
   // đếm, thùng / hộp theo đơn vị): tổng phiếu và chỗ lệch không đổi. HSD giữ của dòng đích — hai bên cùng một ngày.
   function gopDong(dich, x) {
-    dich.lap_uom = congCt(dich.lap_uom, dich.so_lap, x.lap_uom, x.so_lap, dich);
-    dich.dem_uom = congCt(dich.dem_uom, dich.so_dem, x.dem_uom, x.so_dem, dich);
+    const ds = uomCua(dich.item);
+    dich.lap_uom = congChiTiet(dich.lap_uom, dich.so_lap, x.lap_uom, x.so_lap, ds, dich.dvt);
+    dich.dem_uom = congChiTiet(dich.dem_uom, dich.so_dem, x.dem_uom, x.so_dem, ds, dich.dvt);
     dich.so_lap = Number(dich.so_lap) + Number(x.so_lap);
     dich.so_dem = Number(dich.so_dem) + Number(x.so_dem);
   }
@@ -686,6 +668,28 @@ function moChonSP(danhMuc, rows, cho, onPick) {
   oTim.addEventListener('input', ve);
   ve();
   return m;
+}
+
+/**
+ * Cộng hai cách chia thùng / hộp của CÙNG một lô theo từng đơn vị (D218, Nhập kho; D220, Vào hộp Tết) — 2 thùng 3 hộp
+ * + 1 thùng 10 hộp = 3 thùng 13 hộp, đúng số thùng và số hộp lẻ đang nằm ngoài kho. Bên chưa có cách chia thì chia tạm
+ * tổng của nó theo `uoms` (không chia khớp thì để nguyên đơn vị kho `dvt`); hai bên đều không chia (mã một đơn vị) →
+ * null. Máy chủ cộng y như vậy (_cong_uom) khi phiếu còn dòng trùng gửi lên. Hàm thuần.
+ */
+export function congChiTiet(a, soA, b, soB, uoms, dvt) {
+  if (!(a && a.length) && !(b && b.length)) return null;
+  const ds = uoms || [];
+  const goc = dvt || (ds[ds.length - 1] || {}).uom || 'Hộp';
+  const ra = [];
+  [[a, soA], [b, soB]].forEach(([ct, so]) => {
+    const phan = ct && ct.length ? ct : (so > 0 ? tachUom(so, ds) || [{ uom: goc, sl: so, he_so: 1 }] : []);
+    phan.forEach((c) => {
+      const h = Number(c.he_so) || 1;
+      const co = ra.find((y) => y.uom === c.uom && y.he_so === h);
+      if (co) co.sl += Number(c.sl) || 0; else ra.push({ uom: c.uom, sl: Number(c.sl) || 0, he_so: h });
+    });
+  });
+  return ra.sort((u, v) => v.he_so - u.he_so);
 }
 
 // Phần "vừa vào hộp" của một mã chia theo HSD (W05) — server tính theo ngày đóng hộp.

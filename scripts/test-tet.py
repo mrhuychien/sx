@@ -337,9 +337,10 @@ kiem("mã quét vẫn đủ (quét nhầm mã thường thì báo 'không phải
 js = open("sx/public/sx/cards/vaohoptet.js", encoding="utf-8").read()
 nk = open("sx/public/sx/cards/nhapkhotp.js", encoding="utf-8").read()
 # Hành vi bàn số (gõ, đổi tab, HSD, trùng lô) chạy thật ở scripts/test-sohsd.mjs; đây chỉ soát dây nối.
-kiem("chọn mã → vào thẳng bàn số MỘT MÀN, dùng chung với Nhập kho (moSoHsd, D153)",
-     "import { hsdTu, moSoHsd, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js'" in js
-     and "return moSoHsd({" in js and "function themItem(item)" in js and "openSoLuong" not in js)
+kiem("chọn mã → vào thẳng bàn số MỘT MÀN, dùng chung với Nhập kho (moSoHsd, D153; cộng dòng trùng HSD — D220)",
+     "import { congChiTiet, hsdTu, moSoHsd, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js'" in js
+     and "return moSoHsd({" in js and "function themItem(item)" in js and "openSoLuong" not in js
+     and "congVao: true" in js and "kiemLuu" not in js)
 kiem("bàn số có tab đơn vị + ô HSD + kiểm HSD sau ngày nhập",
      "data-tab" in nk and 'id="sh-hsd"' in nk and "h <= ngay" in nk)
 

@@ -8,6 +8,7 @@
 // lập phiếu riêng, không bấm qua ba màn.
 //
 // Dòng đang gõ lưu tạm trên máy theo ngày: lỡ tay tải lại trang không mất.
+// D220: như Nhập kho (D218) — chọn / quét mã luôn là dòng mới; LƯU trùng HSD một dòng của mã thì cộng vào dòng đó.
 
 import { esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
@@ -15,7 +16,7 @@ import { toast, toastErr } from '/assets/sx/sx/components/toast.js';
 import { openModal, confirm2Step } from '/assets/sx/sx/components/modal.js';
 import { moTaUom } from '/assets/sx/sx/components/soluong.js';
 import { moQuet } from '/assets/sx/sx/components/quet.js';
-import { hsdTu, moSoHsd, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js';
+import { congChiTiet, hsdTu, moSoHsd, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js';
 
 const KHOA = 'sx-tet-dong-';
 
@@ -85,23 +86,35 @@ export async function render({ container, call, boot }) {
   }
 
   // Một bàn số cho cả số lẫn HSD. `x` = dòng đang sửa, null = dòng mới của `item`. Cùng mã + cùng HSD là
-  // cùng MỘT lô — thủ kho không duyệt được phiếu có hai dòng một lô — nên các dòng khác của mã hiện thành
-  // ô bấm trên bàn số, và lưu trùng HSD một dòng khác thì báo ngay tại đó.
+  // cùng MỘT lô: các dòng khác của mã hiện thành ô bấm trên bàn số; D220: LƯU mà HSD trùng một dòng khác thì
+  // CỘNG vào dòng đó (số + thùng / hộp theo đơn vị) — hàng một lô nằm vài chồng, đếm chồng nào ghi chồng đó.
   function moDong(x, item = x && x.item) {
-    moNhapTet({ s: sp(item), ngay, cu: x, macDinh: hsdMacDinh(item),
-      khac: dong.filter((y) => y.item === item && y !== x),
+    const s = sp(item);
+    const hsdCua = (y) => y.hsd || hsdMacDinh(item);
+    const khac = dong.filter((y) => y.item === item && y !== x);
+    moNhapTet({ s, ngay, cu: x, macDinh: hsdMacDinh(item), khac,
       onKhac: (y) => moDong(y),
       onOk: (so, ct, hsd) => {
-        if (x) { x.so = so; x.ct = ct; x.hsd = hsd; } else dong.push({ item, so, ct, hsd });
+        const d = x || { item };
+        Object.assign(d, { so, ct, hsd });
+        const h = hsdCua(d);
+        const trung = khac.find((y) => hsdCua(y) === h);
+        if (trung) {
+          const truoc = Number(trung.so) || 0;
+          trung.ct = congChiTiet(trung.ct, truoc, ct, so, s.uoms, s.dvt);
+          trung.so = truoc + so;
+          if (x) dong.splice(dong.indexOf(x), 1);
+          toast(`Cộng vào dòng HSD ${veNgayDu(h)}: ${formatNumber(truoc)} + ${formatNumber(so)} = ${
+            formatNumber(trung.so)}`);
+        } else if (!x) dong.push(d);
         ghiMay(); ve();
       } });
   }
 
-  // Chọn / quét mã là vào thẳng bàn số. Mã đã có dòng HSD mặc định thì mở sửa dòng đó (gõ số mới đè
-  // số cũ), chưa có thì mở dòng mới.
+  // Chọn / quét mã → luôn mở DÒNG MỚI (D220); trùng HSD dòng đang có thì LƯU là cộng vào dòng đó. Sửa dòng cũ: bấm
+  // số / HSD của dòng, hoặc bấm ô của dòng đó trên bàn số.
   function themItem(item) {
-    const md = hsdMacDinh(item);
-    moDong(dong.find((y) => y.item === item && (y.hsd || md) === md) || null, item);
+    moDong(null, item);
   }
 
   $('#tet-them').addEventListener('click', () => moChon(dm.rows || [], themItem));
@@ -210,19 +223,18 @@ function moChon(ds, onChon) {
  * Bàn số Vào hộp Tết (D124): tab đơn vị (THÙNG / HỘP — mỗi tab một số riêng) + ô HSD + phím số, tất cả
  * trên MỘT màn. Từ D153 là bàn số chung moSoHsd (cards/nhapkhotp.js) — màn Nhập kho dùng y hệt.
  * onOk(tong, chi_tiet|null, hsd|null) — hsd null là dùng HSD mặc định của mã (ngày + Shelf Life).
- * `khac` = các dòng khác cùng mã trên màn (mỗi HSD một lô): hiện thành ô bấm (onKhac), trùng HSD thì
- * không cho lưu.
+ * `khac` = các dòng khác cùng mã trên màn (mỗi HSD một lô): hiện thành ô bấm (onKhac); trùng HSD thì bàn số nói
+ * trước "cộng vào dòng đang có …" (D220 — onOk cộng).
  */
 export function moNhapTet({ s, ngay, cu, macDinh, khac = [], onKhac, onOk }) {
   const hsdCua = (y) => y.hsd || macDinh;
   return moSoHsd({
     kicker: `Vào hộp Tết · ${veNgayDu(ngay)}`, ten: s.ten, uoms: s.uoms, dvt: s.dvt, ngay,
     chi_tiet: cu && cu.ct, tong: (cu && Number(cu.so)) || 0, hsd: cu && cu.hsd, macDinh,
-    daCo: khac.map((y) => ({ nhan: `HSD ${hsdCua(y) ? veNgayDu(hsdCua(y)) : '—'}`, so: Number(y.so) || 0 })),
+    daCo: khac.map((y) => ({ nhan: `HSD ${hsdCua(y) ? veNgayDu(hsdCua(y)) : '—'}`, so: Number(y.so) || 0,
+      hsd: hsdCua(y) })),
     onDaCo: (i) => onKhac && onKhac(khac[i]),
-    kiemLuu: (t, h) => (khac.some((y) => hsdCua(y) === h)
-      ? `Mã này đã có dòng HSD ${veNgayDu(h)} — cùng mã cùng HSD là một lô: bấm ô HSD đó phía trên để sửa số.`
-      : ''),
+    congVao: true,
     onOk,
   });
 }
