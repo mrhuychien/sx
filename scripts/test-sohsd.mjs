@@ -597,7 +597,10 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
           { item: 'TP-LC', ten: 'Bánh lá cẩm', kho: 'Kho TP', so: 1, cach: 'dieu_chinh', lay: [], vao: null, thieu: 0,
             gia: 12000, gia_tri: 12000, ct: ['Sales Invoice SI-1 (huỷ)', 'Sales Invoice SI-2'] },
           { item: 'TP-LD', ten: 'Bánh lá dứa', kho: 'CH Le', so: 2, cach: 'doi_lo', lay: [], vao: 'LD-TONCU', thieu: 0,
-            gia: 9000, gia_tri: 18000, ct: ['DN-1', 'DN-2', 'DN-3', 'DN-4', 'DN-5', 'DN-6'] }] };
+            gia: 9000, gia_tri: 18000, ct: ['DN-1', 'DN-2', 'DN-3', 'DN-4', 'DN-5', 'DN-6'] },
+          { item: 'Mix510', ten: 'Bánh đậu xanh Mix 510g', kho: 'CH Tuệ Tĩnh', so: -48, cach: 'dieu_chinh',
+            kk: 'Stock Reconciliation MAT-RECO-2026-00025 21/10 11:11', lay: [], vao: null, thieu: 0, gia: 63000,
+            gia_tri: 3024000, ct: [] }] };
     }
     if (m === 'sx.api.lo_cu.don_du') {
       st.da_don_du = true;
@@ -870,6 +873,12 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
     && /\+1 → 0/.test(du.body.innerHTML) && /do Sales Invoice SI-1 \(huỷ\), Sales Invoice SI-2</.test(du.body.innerHTML)
     && /do DN-1, DN-2, DN-3, DN-4, DN-5 …/.test(du.body.innerHTML)
     && /2 mã · 3 dòng · điều chỉnh 12\.000 đ/.test(du.body.innerHTML), du.body.innerHTML.slice(0, 900));
+  kiem('… D217: cửa hàng đếm lại bằng Stock Reconciliation sau lúc bật lô → nói phiếu đó, điều chỉnh (không đổi với lô); '
+    + 'chữ giải thích nói cả trường hợp này',
+  /Bánh đậu xanh Mix 510g · CH Tuệ Tĩnh/.test(du.body.innerHTML)
+    && /đã kiểm kê \(Stock Reconciliation MAT-RECO-2026-00025 21\/10 11:11\) — điều chỉnh: nhập bù 48 không lô \(giá trị 3\.024\.000 đ\)/
+      .test(du.body.innerHTML)
+    && /cửa\s+hàng đếm lại bằng phiếu Stock Reconciliation sau lúc bật lô/.test(du.body.innerHTML), du.body.innerHTML.slice(0, 1600));
   kiem('… không phải quản lý: không có nút DỌN, nói chỉ quản lý dọn được',
     !du.body.kids.some((k) => k.textContent === 'DỌN TỒN KHÔNG LÔ')
     && du.body.kids.some((k) => /Chỉ quản lý dọn được/.test(k.textContent)));

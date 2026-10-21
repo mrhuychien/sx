@@ -2195,6 +2195,61 @@ kiem("xem lại: còn đúng dòng thiếu lô; lần dọn vừa rồi trong da
      [(r["kho"], r["so"], r["lay"], r["thieu"]) for r in x["dong"]] == [("CH Ba", -3, [], 3)]
      and x["lan_truoc"][0]["lan"] == "DL-091026-100000" and set(kq["phieu"]) <= set(x["lan_truoc"][0]["phieu"])
      and x["duoc_don"] is True, (x["dong"], x["lan_truoc"]))
+# D217: cửa hàng đếm lại bằng Stock Reconciliation SAU lúc bật lô (phiếu đó chỉ đặt lại các lô) → phần không lô còn lại là
+# số ảo: điều chỉnh về 0, không đổi với lô. Phiếu trước lúc bật lô / đã huỷ → không tính.
+SR17, SRI17 = F.bang("Stock Reconciliation"), F.bang("Stock Reconciliation Item")
+SR17.update({"RECO-1": {"name": "RECO-1", "docstatus": 1, "posting_date": "2026-10-09", "posting_time": "11:11:11"},
+             "RECO-0": {"name": "RECO-0", "docstatus": 1, "posting_date": "2026-10-08", "posting_time": "16:00:00"},
+             "RECO-9": {"name": "RECO-9", "docstatus": 1, "posting_date": "2026-10-09", "posting_time": "08:00:00"},
+             "RECO-2": {"name": "RECO-2", "docstatus": 2, "posting_date": "2026-10-09", "posting_time": "12:00:00"}})
+SRI17.update({"sr9": {"name": "sr9", "parent": "RECO-9", "item_code": "TP-LC", "warehouse": "CH Ba", "docstatus": 1},
+              "sr1": {"name": "sr1", "parent": "RECO-1", "item_code": "TP-LC", "warehouse": "CH Ba", "docstatus": 1},
+              "sr2": {"name": "sr2", "parent": "RECO-2", "item_code": "TP-LC", "warehouse": "CH Ba", "docstatus": 2}})
+SO_KHO["CH Le"][("TP-LC", None)] = -2
+SRI17["sr0"] = {"name": "sr0", "parent": "RECO-0", "item_code": "TP-LC", "warehouse": "CH Le", "docstatus": 1}
+x17 = {(r["item"], r["kho"]): r for r in L.ds_du()["dong"]}
+kiem("D217: cửa hàng đếm lại bằng Stock Reconciliation sau lúc bật lô → điều chỉnh về 0 (không đổi với lô), nói phiếu gần "
+     "nhất; phiếu trước lúc bật lô / đã huỷ → vẫn đổi với lô",
+     (x17[("TP-LC", "CH Ba")]["cach"], x17[("TP-LC", "CH Ba")]["kk"], x17[("TP-LC", "CH Ba")]["lay"],
+      x17[("TP-LC", "CH Ba")]["thieu"], x17[("TP-LC", "CH Ba")]["gia_tri"])
+     == ("dieu_chinh", "Stock Reconciliation RECO-1 09/10 11:11", [], 0.0, 36000.0)
+     and (x17[("TP-LC", "CH Le")]["cach"], x17[("TP-LC", "CH Le")]["kk"]) == ("doi_lo", None), x17)
+SO_KHO["CH Le"][("TP-LC", None)] = 0
+kq17 = L.don_du()
+se17 = [F.bang("Stock Entry")[n] for n in kq17["phieu"]]
+kiem("… DỌN: nhập bù 3 không lô ở CH Ba (mã tạm tắt lô), lô giữ nguyên; cờ lô bật lại",
+     [(e["purpose"], [(r["t_warehouse"], r["item_code"], r.get("batch_no"), r["qty"]) for r in e["items"]]) for e in se17]
+     == [("Material Receipt", [("CH Ba", "TP-LC", None, 3.0)])] and SO_KHO["CH Ba"][("TP-LC", None)] == 0
+     and SO_KHO["CH Ba"][("TP-LC", "LC-HSD010327")] == 0 and co_lo("TP-LC") == 1, (se17, SO_KHO["CH Ba"]))
+for n in reversed(kq17["phieu"]):
+    F.get_doc("Stock Entry", n).cancel()
+SR17.clear()
+SRI17.clear()
+# D217: phiếu Stock Reconciliation — "Fetch Items" chỉ lấy số các lô (63) mà sổ cái là tổng (33): nhắc lúc lưu phiếu.
+SO_KHO["CH Ba"].update({("TP-LC", "LC-HSD010327"): 63, ("TP-LC", None): -30})
+F.bang("Item")["TP-KHL"] = {"name": "TP-KHL", "item_name": "Bánh không lô", "has_batch_no": 0}
+SO_KHO["CH Ba"][("TP-KHL", None)] = -4                    # mã không quản lý lô: phiếu đặt lại cả tổng — không nhắc
+n_bao = len(F.BAO)
+reco17 = F.Doc({"doctype": "Stock Reconciliation", "posting_date": "2026-10-21", "posting_time": "11:11:11",
+                "items": [F.Doc(item_code="TP-LC", warehouse="CH Ba"), F.Doc(item_code="TP-KHL", warehouse="CH Ba"),
+                          F.Doc(item_code="TP-NOPE", warehouse="CH Ba")]})
+L.canh_bao_reco(reco17)
+kiem("D217: lưu phiếu Stock Reconciliation có mã có lô còn phần không lô → nhắc (số các lô = số Fetch, không lô, sổ cái; "
+     "DỌN sau khi gửi); mã không quản lý lô không nhắc",
+     len(F.BAO) == n_bao + 1 and "Bánh lá cẩm ở CH Ba: các lô 63 (số Fetch lấy về), không lô -30 → sổ cái 33" in F.BAO[-1]
+     and "Tồn không lô còn lại → DỌN" in F.BAO[-1] and "Bánh không lô" not in F.BAO[-1], F.BAO[n_bao:])
+SO_KHO["CH Ba"][("TP-LC", None)] = 0
+L.canh_bao_reco(reco17)
+kiem("… không còn phần không lô → không nhắc", len(F.BAO) == n_bao + 1, F.BAO[n_bao:])
+so_lo_17, C._so_lo = C._so_lo, lambda *a, **k: 1 / 0
+kiem("… lỗi trong lúc tính → không làm hỏng việc lưu phiếu", thu(lambda: L.canh_bao_reco(reco17)) is None
+     and len(F.BAO) == n_bao + 1)
+C._so_lo = so_lo_17
+SO_KHO["CH Ba"].pop(("TP-KHL", None))
+SO_KHO["CH Ba"][("TP-LC", "LC-HSD010327")] = 0
+F.bang("Item").pop("TP-KHL")
+kiem("hook: Stock Reconciliation.validate → nhắc phần không lô",
+     H.doc_events["Stock Reconciliation"] == {"validate": "sx.api.lo_cu.canh_bao_reco"})
 SO_KHO["CH Ba"][("TP-LC", None)] = 0
 kiem("hết phần không lô → dọn báo không còn gì", "Không còn tồn không lô" in (thu(L.don_du) or ""))
 html = " ".join(L.bien_ban(json.dumps(kq["phieu"])).split())

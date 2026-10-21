@@ -323,6 +323,33 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê cửa hàng bằng Stock Reconciliation: phần không lô của mã đã bật lô — DỌN theo số đếm, nhắc lúc lưu phiếu (D217)
+
+- **Hỏi**: chốt kho CH Tuệ Tĩnh bằng phiếu Stock Reconciliation trên Desk (POS đã đóng hết), Mix510 (Bánh đậu xanh Mix
+  510g) đếm 31 hộp lúc 11:11 → sổ cái: một phiếu ra hai dòng **−37 / +31**, tồn sau phiếu **−17**. Mã khác: "Fetch Items
+  from Warehouse" lấy về **63** mà sổ cái **33**.
+- **Vì sao**:
+  - Stock Reconciliation với mã có lô làm theo TỪNG LÔ: ERPNext ghi hai dòng sổ — xuất hết số lô đang có (−37), nhập
+    lại đúng số đếm (+31). Một phiếu, hai dòng là bình thường.
+  - Mã được kiểm kê bật lô (D189 / D191, 12/10) còn phần **KHÔNG LÔ** ở cửa hàng (chứng từ lập trước lúc bật lô ghi sổ /
+    huỷ sau đó — D198): Mix510 ở CH Tuệ Tĩnh lô 37, không lô −48 → sổ cái −11. Phiếu Stock Reconciliation chỉ đặt lại các
+    lô, không chạm phần không lô (cột lô bắt buộc); "Fetch Items" cũng chỉ lấy số các lô (Batch-Wise Balance History) —
+    nên số lấy về (63) khác sổ cái (33 = 63 − 30), và tồn sau phiếu = số đếm + phần không lô (31 − 48 = −17).
+- **Sửa** (`sx/api/lo_cu.py`):
+  - **DỌN tồn không lô** (thẻ Kiểm kê → Tồn không lô còn lại): kho đã **đếm lại bằng Stock Reconciliation sau lúc bật lô**
+    (phiếu đã gửi, gần nhất — `_kiem_ke_lai`) được coi như kho đã kiểm kê: phần không lô **điều chỉnh về 0** (số đếm là
+    tồn thật), dòng nói phiếu nào. Trước đây cửa hàng luôn "đổi với lô" — rút hàng vừa đếm ra khỏi lô cho phần không lô:
+    tổng vẫn âm, lô về 0 thì POS không bán được. Phiếu trước lúc bật lô / đã huỷ không tính.
+  - **Lưu phiếu Stock Reconciliation** (`canh_bao_reco`, hook validate): mã có lô mà kho còn phần không lô → nhắc ngay
+    (các lô = số Fetch, không lô, sổ cái) và chỉ DỌN sau khi gửi. Chỉ nhắc, không chặn; lỗi khi tính không làm hỏng việc
+    lưu phiếu.
+- **Kiểm kê cửa hàng bằng Stock Reconciliation**: (nên) DỌN trước khi đếm — cửa hàng chưa đếm lại thì đổi với lô, tổng
+  không đổi, số Fetch khớp sổ cái; đếm, gửi phiếu; còn phần không lô thì DỌN lần nữa (điều chỉnh theo số đếm).
+- Test `test-kiemke.py` (đếm lại sau lúc bật lô → điều chỉnh, nói phiếu gần nhất; phiếu trước lúc bật lô / đã huỷ → đổi với
+  lô; DỌN nhập bù không lô, lô giữ nguyên; nhắc lúc lưu phiếu, mã không lô không nhắc, lỗi không lọt; hook),
+  `test-sohsd.mjs` (dòng DỌN nói phiếu Stock Reconciliation, chữ giải thích).
+- **Hook mới**: `git pull` → `bench --site site1.local migrate` → `bench restart`. Build **sx-162**.
+
 ## Kiểm kê: chứng từ ghi sổ trước lúc đếm mà vào sổ sau lúc chốt — tồn sau kiểm kê lệch (D216)
 
 - **Hỏi**: chốt kiểm kê TX510 còn 31 hộp, xem sổ kho thì phiếu kiểm kê *cộng 31* mà tồn **vẫn âm**.

@@ -275,9 +275,10 @@ export async function render({ container, call, boot }) {
     }
     const t = x.tong;
     const m = openModal({ kicker: 'Mã đã bật quản lý lô', title: 'Tồn không lô còn lại' });
+    // D217: cửa hàng đếm lại bằng Stock Reconciliation sau lúc bật lô (r.kk) cũng là kho đã kiểm kê — điều chỉnh về 0.
     const viec = (r) => (r.cach === 'dieu_chinh'
-      ? `kho đã kiểm kê — điều chỉnh: ${r.so < 0 ? 'nhập bù' : 'xuất'} ${formatNumber(Math.abs(r.so))} không lô (giá trị ${
-        formatNumber(r.gia_tri)} đ)`
+      ? `${r.kk ? `đã kiểm kê (${r.kk})` : 'kho đã kiểm kê'} — điều chỉnh: ${r.so < 0 ? 'nhập bù' : 'xuất'} ${
+        formatNumber(Math.abs(r.so))} không lô (giá trị ${formatNumber(r.gia_tri)} đ)`
       : (r.so < 0
         ? `đổi với lô: lấy ${r.lay.map((l) => `${l.batch} ${formatNumber(l.so)}`).join(', ') || '—'}${
           r.thieu > 0 ? ` · lô không đủ, còn âm ${formatNumber(r.thieu)}` : ''}`
@@ -290,9 +291,10 @@ export async function render({ container, call, boot }) {
         </div><span class="sx-nv-qty">${r.so > 0 ? '+' : ''}${formatNumber(r.so)} → 0</span></div>`).join('');
     m.body.innerHTML = `
       <div class="sx-muted">Phiếu lập khi mã chưa quản lý lô (phiếu POS đóng ca muộn, hoá đơn cũ huỷ / sửa) ghi sổ KHÔNG lô
-        sau lúc kiểm kê bật lô — để lại phần không lô khác 0. <b>DỌN</b>: kho đã kiểm kê thì điều chỉnh về 0 (số đếm là tồn
-        thật — bút toán điều chỉnh kho, báo kế toán); kho khác (cửa hàng…) đổi với lô tồn cũ / lô HSD sớm nhất, không đổi
-        tổng tồn.</div>
+        sau lúc kiểm kê bật lô — để lại phần không lô khác 0. <b>DỌN</b>: kho đã kiểm kê — kho kiểm kê bật lô, hoặc cửa
+        hàng đếm lại bằng phiếu Stock Reconciliation sau lúc bật lô (phiếu đó chỉ đặt lại các lô) — thì điều chỉnh về 0 (số
+        đếm là tồn thật — bút toán điều chỉnh kho, báo kế toán); kho chưa kiểm kê lại (cửa hàng…) đổi với lô tồn cũ / lô
+        HSD sớm nhất, không đổi tổng tồn.</div>
       ${x.dong.length ? `<div class="sx-kk-tien">${t.so_ma} mã · ${t.so_dong} dòng${t.dieu_chinh ? ` · điều chỉnh ${
   formatNumber(t.dieu_chinh)} đ` : ''}</div>
       <div class="sx-vh-list">${dong}</div>` : '<div class="sx-muted">Không còn tồn không lô nào của mã đã bật lô.</div>'}

@@ -73,6 +73,8 @@ doc_events = {
     "Stock Entry": {"before_submit": "sx.api.thuhoi.kiem_xuat",
                     "on_submit": "sx.api.thuhoi.kiem_xuat"},
     "Batch": {"validate": "sx.api.thuhoi.kiem_sua_batch"},
+    # D217: Stock Reconciliation chỉ đặt lại các LÔ — mã có lô mà kho còn phần không lô thì nhắc (không chặn).
+    "Stock Reconciliation": {"validate": "sx.api.lo_cu.canh_bao_reco"},
 }
 
 # D123: lưới an toàn của đồng bộ ngầm — ngày còn dấu "cần đồng bộ" (job nền lỡ,

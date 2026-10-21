@@ -30,6 +30,10 @@ Ghi sổ muộn như vậy để lại phần KHÔNG LÔ khác 0 sau lúc bật 
   · kho khác (cửa hàng, xưởng — D191 chuyển nguyên số vào lô tồn cũ, không đếm): ĐỔI với lô — âm → xuất từ lô tồn cũ
     (thiếu thì lô HSD sớm nhất) rồi nhập vào phần không lô; dương → xuất phần không lô, nhập vào lô tồn cũ. Không đổi
     tổng tồn.
+  · D217: kho khác mà đã KIỂM KÊ LẠI mã đó sau lúc bật lô bằng phiếu Stock Reconciliation trên Desk (cửa hàng đếm
+    hàng): phiếu đó chỉ đặt lại các LÔ (dòng −số lô đang có, +số đếm) — phần không lô của mã có lô nó không chạm được,
+    mà số đếm là TỔNG thật → phần không lô còn lại là số ảo: ĐIỀU CHỈNH về 0 như kho đã kiểm kê. Đổi với lô ở đây là
+    rút hàng vừa đếm ra khỏi lô — tổng vẫn âm, lô về 0 thì POS không bán được.
 Danh sách in cho kế toán đọc lại từ chính các phiếu đã ghi.
 """
 
@@ -379,6 +383,71 @@ def _lay_lo(item, lots, can, lo_cu, ngay=None):
     return ra
 
 
+def canh_bao_reco(doc, method=None):
+    """Stock Reconciliation.validate (D217): mã có lô mà kho còn phần KHÔNG LÔ khác 0 (chứng từ lập trước lúc bật lô ghi
+    sổ / huỷ sau đó). Phiếu này chỉ đặt lại các LÔ — "Fetch Items from Warehouse" cũng chỉ lấy số các lô (Batch-Wise
+    Balance History) — nên số lấy về khác tồn trên sổ cái, và tồn sau phiếu = số đếm + phần không lô. Nhắc, không chặn:
+    gửi phiếu xong vào thẻ Kiểm kê → Tồn không lô còn lại → DỌN (kho đã đếm lại: điều chỉnh về 0). Lỗi gì ở đây cũng
+    không được làm hỏng việc lưu phiếu."""
+    try:
+        from sx.api.kiemke import so_vn
+        from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import _so_lo
+
+        theo_kho = {}
+        for r in doc.get("items") or []:
+            if r.get("item_code") and r.get("warehouse"):
+                theo_kho.setdefault(r.get("warehouse"), set()).add(r.get("item_code"))
+        ten = {i.name: i.item_name or i.name for i in frappe.get_all(
+            "Item", filters={"name": ("in", sorted({i for v in theo_kho.values() for i in v}) or [""]),
+                             "has_batch_no": 1}, fields=["name", "item_name"])}
+        den = _luc(doc) if doc.get("posting_date") else None
+        dong = []
+        for w, items in sorted(theo_kho.items()):
+            ma = sorted(i for i in items if i in ten)
+            if not ma:
+                continue
+            lo, kl = {}, {}
+            for x in _so_lo(w, ma, den):
+                (lo if x.b else kl)[x.item] = (lo if x.b else kl).get(x.item, 0.0) + flt(x.q)
+            for i in ma:
+                q = flt(kl.get(i), 6)
+                if abs(q) > EPS:
+                    dong.append(_("{0} ở {1}: các lô {2} (số Fetch lấy về), không lô {3} → sổ cái {4}").format(
+                        ten[i], w, so_vn(lo.get(i, 0.0)), so_vn(q), so_vn(flt(lo.get(i, 0.0) + q, 6))))
+        if dong:
+            frappe.msgprint(_("Phiếu này chỉ đặt lại các LÔ — phần KHÔNG LÔ (dữ liệu từ trước lúc bật lô) nó không chạm "
+                              "được, nên tồn sau phiếu = số đếm + phần không lô:") + "<br>" + "<br>".join(
+                f"• {x}" for x in dong[:20]) + ("<br>…" if len(dong) > 20 else "") + "<br>" + _(
+                "Gửi phiếu xong: thẻ Kiểm kê → Tồn không lô còn lại → DỌN — kho đã đếm lại thì phần không lô điều chỉnh "
+                "về 0, tồn đúng số đếm."), title=_("Còn phần không lô"), indicator="orange")
+    except Exception:  # noqa: BLE001 — chỉ là lời nhắc
+        pass
+
+
+def _kiem_ke_lai(items, khos, moc):
+    """{(mã, kho): "Stock Reconciliation <số> dd/mm HH:MM"} — D217: kho đã kiểm kê lại mã đó SAU lúc bật lô bằng phiếu
+    Stock Reconciliation đã gửi (phiếu gần nhất). Số đếm ở đó là tồn thật — phần không lô còn lại là số ảo."""
+    if not items or not khos:
+        return {}
+    dong = frappe.get_all("Stock Reconciliation Item", filters={"item_code": ("in", items), "warehouse": ("in", khos),
+                                                                "docstatus": 1},
+                          fields=["parent", "item_code", "warehouse"])
+    if not dong:
+        return {}
+    luc = {p.name: _luc(p) for p in frappe.get_all(
+        "Stock Reconciliation", filters={"name": ("in", sorted({d.parent for d in dong})), "docstatus": 1},
+        fields=["name", "posting_date", "posting_time"])}
+    ra = {}
+    for d in dong:
+        t = luc.get(d.parent)
+        if t is None or t <= moc[d.item_code]["luc"]:
+            continue
+        k = (d.item_code, d.warehouse)
+        if k not in ra or t > ra[k][1]:
+            ra[k] = (d.parent, t)
+    return {k: f"Stock Reconciliation {p} {t.strftime('%d/%m %H:%M')}" for k, (p, t) in ra.items()}
+
+
 def _dong_du():
     """[{item, ten, kho, so, cach, lay, vao, thieu, gia, gia_tri, ct}] — phần KHÔNG LÔ khác 0 hiện tại của các mã đã bật
     lô, mỗi (mã, kho) một dòng. cach: "dieu_chinh" (kho đã kiểm kê) / "doi_lo" (kho khác). Bỏ kho của công ty khác —
@@ -397,6 +466,7 @@ def _dong_du():
                   | {moc[i]["kho"] for i in items if moc[i]["kho"]})
     ten = {i.name: i.item_name for i in frappe.get_all("Item", filters={"name": ("in", items)},
                                                         fields=["name", "item_name"])}
+    kk = _kiem_ke_lai(items, khos, moc)
     ra = []
     for w in khos:
         if cty and (frappe.db.get_value("Warehouse", w, "company") or cty) != cty:
@@ -412,8 +482,8 @@ def _dong_du():
                 continue
             i, m = r.item, moc[r.item]
             x = {"item": i, "ten": ten.get(i) or i, "kho": w, "so": q,
-                 "cach": "dieu_chinh" if w == m["kho"] else "doi_lo", "lay": [], "vao": None, "thieu": 0.0,
-                 "gia": flt(gia_von_hien(i, w)), "ct": _chung_tu_gay_ra(i, w, m)}
+                 "cach": "dieu_chinh" if w == m["kho"] or (i, w) in kk else "doi_lo", "kk": kk.get((i, w)),
+                 "lay": [], "vao": None, "thieu": 0.0, "gia": flt(gia_von_hien(i, w)), "ct": _chung_tu_gay_ra(i, w, m)}
             if x["cach"] == "doi_lo":
                 lo_cu = m.get("lo_cu") or ma_lo_ton_cu(i)
                 if q < 0:
