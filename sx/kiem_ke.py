@@ -105,6 +105,41 @@ def lap_ke_hoach(lots, dem, nsx_cua=None):
     return ke
 
 
+def chia_fefo(lots, tong):
+    """D219 — kiểm kê CHỈ SỐ LƯỢNG: số đếm của MỘT mã chia ra HSD theo nguyên tắc xuất FEFO (lô còn hạn ngắn nhất xuất
+    trước) — hàng còn trong kho là các lô hạn DÀI nhất: lấy từ HSD muộn nhất lùi dần, mỗi HSD tối đa số sổ đang có. Hàm
+    thuần.
+
+    Đếm nhiều hơn tổng các lô có HSD thì phần vượt tính vào HSD SỚM nhất đang có: sổ đã cho xuất hàng hạn ngắn trước,
+    hộp dư ra là hộp sổ tưởng đã xuất — và không làm hàng "trẻ" hơn thật. Tồn chưa rõ HSD (lô cũ, không lô) không có HSD
+    để chia: coi như cũ nhất, xuất trước (lap_ke_hoach đưa vào bể).
+      lots  như lap_ke_hoach — chỉ tính lô có HSD, số > 0, không thu hồi
+      tong  số đếm của mã
+    Trả {hsd: số}; {} khi đếm 0; None khi đếm > 0 mà sổ không có lô nào có HSD để chia (mã đó phải đếm kèm HSD).
+    """
+    tong = float(tong or 0)
+    if tong <= EPS:
+        return {}
+    co = {}
+    for l in lots or []:
+        q = float(l.get("qty") or 0)
+        if q > EPS and l.get("hsd") and not l.get("thu_hoi"):
+            h = str(l["hsd"])[:10]
+            co[h] = co.get(h, 0.0) + q
+    if not co:
+        return None
+    ra, con = {}, tong
+    for h in sorted(co, reverse=True):
+        lay = min(co[h], con)
+        if lay > EPS:
+            ra[h] = _r(lay)
+            con -= lay
+    if con > EPS:
+        h = min(co)
+        ra[h] = _r(ra.get(h, 0.0) + con)
+    return ra
+
+
 def lap_ke_hoach_lo(lots, dem):
     """Kế hoạch kiểm kê BÁN THÀNH PHẨM (D155) cho MỘT mã ở MỘT kho — kiểm theo LÔ, hàm thuần.
 

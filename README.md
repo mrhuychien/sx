@@ -323,6 +323,33 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê chỉ số lượng — HSD tự chia (lô còn hạn ngắn nhất xuất trước); kiểm kê cũ thành "kiểm kê kèm hạn sử dụng" (D219)
+
+- **Hỏi**: thêm kiểm kê mới chỉ cần nhập số lượng, HSD tự tính theo nguyên tắc lô còn hạn ngắn nhất xuất trước; kiểm kê
+  cũ đổi tên thành "kiểm kê kèm hạn sử dụng".
+- **Thẻ Kiểm kê kho, kho thành phẩm** — chưa có phiếu đang đếm thì chọn một trong hai:
+  - **KIỂM KÊ CHỈ SỐ LƯỢNG** (mới): mỗi mã bấm **ĐẾM**, gõ số thùng / hộp — bàn số không có ô HSD. Thẻ bày ngay HSD tự
+    chia ("→ HSD tự chia: 18/06/27: 40 · 08/06/27: 15"). Quét hộp cũng mở bàn số chỉ số lượng.
+  - **KIỂM KÊ KÈM HẠN SỬ DỤNG**: kiểm kê như trước (D154) — đếm theo từng HSD in trên hộp.
+  Tên thẻ khi đang đếm nói rõ cách đếm; phiếu giữ cách đếm từ lúc bắt đầu tới lúc chốt (cả khi huỷ chốt, mở lại — D196).
+- **Cách chia HSD** (`sx/kiem_ke.chia_fefo`, tính lúc xem trước / chốt trên đúng tồn các lô dùng làm số sổ sách): mỗi
+  mã, hàng còn lại là các lô **hạn dài nhất** — lấy từ HSD muộn nhất lùi dần, mỗi HSD tối đa số sổ đang có; phần thiếu
+  rơi vào lô hạn ngắn nhất (coi như đã xuất trước). Đếm **nhiều hơn** sổ thì phần dư vào HSD **sớm nhất** đang có (sổ đã
+  cho xuất hàng hạn ngắn trước — hộp dư là hộp sổ tưởng đã xuất; không làm hàng "trẻ" hơn thật). Tồn chưa rõ HSD (lô cũ,
+  không lô) coi như cũ nhất. Rồi chốt đi đúng đường của kiểm kê kèm HSD (D188: đặt lại toàn kho, mỗi mã mỗi HSD một lô,
+  mã không đếm về 0; chuyển lô / thiếu / thừa).
+- Mã mà sổ **không có lô nào có HSD** (ngoài sổ, chưa quản lý lô, lô chưa ghi HSD) thì không chia được: dòng mã hiện
+  "+ HSD" kèm lời nhắc — đếm mã đó kèm HSD ngay trên phiếu. Mã chia được mà biết chắc HSD thì vẫn bấm "kèm HSD" được.
+  Còn mã chỉ số lượng không chia được thì chốt bị chặn, nói tên mã.
+- Xem trước / biên bản: mã chỉ số lượng ghi HSD tự chia; biên bản ghi cách đếm, dòng HSD đánh dấu "(tự chia)".
+- DocType **SX Kiem Ke** thêm ô **Cách đếm** (`cach_dem`: Kèm hạn sử dụng / Chỉ số lượng; phiếu cũ = kèm HSD). API mới
+  `sx.api.kiemke.ghi_so`; `bat_dau` nhận `cach_dem`.
+- Test `test-kiemke.py` (chia: ít / đúng / dư so với sổ, lô thu hồi / âm / chưa HSD, không chia được; phiếu: mở theo cách
+  đếm, ghi_so, thẻ bày số chia, xem trước, chặn chốt, đếm kèm HSD trên phiếu chỉ số lượng, chặn trộn hai cách, chốt ra
+  đúng tồn theo HSD, biên bản nháp / đã chốt, huỷ chốt giữ cách đếm, phiếu bán thành phẩm không có cách đếm),
+  `test-sohsd.mjs` (hai nút bắt đầu, ĐẾM không ô HSD, số tự chia, sửa về 0, quét hộp, mã không tự chia, xem trước).
+- **Đổi DocType**: `git pull` → `bench --site site1.local migrate` → `bench restart`. Build **sx-164**.
+
 ## Nhập kho thành phẩm: nhiều dòng cùng lô (cùng mã, cùng HSD) — tự gộp vào phiếu (D218)
 
 - **Hỏi**: màn Nhập kho cho nhập nhiều dòng trùng lô (trùng HSD), app tự gộp vào phiếu.

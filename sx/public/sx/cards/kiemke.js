@@ -19,6 +19,9 @@
 // Thủ kho chốt luôn (D155). Mỗi lần LƯU là ghi thẳng vào phiếu trên server: tải lại trang, đổi máy vẫn còn số.
 // D209: GẬP sẵn thành một dòng (kho + đang đếm dở bao nhiêu / mã chưa ghi HSD / chốt gần nhất), bấm mới xổ — như
 // các thẻ sổ nợ (D208). Vẽ lại khi lưu, đổi kho, gõ tìm… giữ nguyên đang mở.
+// D219: thành phẩm có HAI cách đếm, chọn lúc bắt đầu — "Kiểm kê chỉ số lượng": mỗi mã một số thùng / hộp (bàn số
+// không có ô HSD), HSD tự chia theo sổ: lô còn hạn ngắn nhất coi như đã xuất trước (thẻ bày ngay số chia); mã mà sổ
+// không có lô nào có HSD thì đếm kèm HSD như cũ. "Kiểm kê kèm hạn sử dụng" — cách đếm theo từng HSD in trên hộp (D154).
 
 import { el, esc } from '/assets/sx/sx/lib/dom.js';
 import { formatNumber } from '/assets/sx/sx/lib/format.js';
@@ -31,6 +34,8 @@ import { moSoHsd, veNgayDu } from '/assets/sx/sx/cards/nhapkhotp.js';
 import { khungNoHtml } from '/assets/sx/sx/components/gapno.js';
 
 const BTP = 'Bán thành phẩm';
+const KEM_HSD = 'Kèm hạn sử dụng';
+const CHI_SL = 'Chỉ số lượng';
 const NHO_KHO = 'sx-kk-kho';            // kho đang kiểm của máy này — mở lại thẻ vào đúng kho đó
 
 // Mặc định xem TẤT CẢ, thứ tự cố định (server xếp): lưu một dòng xong mã vẫn đứng nguyên chỗ, nút "+ HSD"
@@ -89,6 +94,7 @@ export async function render({ container, call, boot }) {
   }
   const $ = (q) => container.querySelector(q);
   const laBtp = () => dl.loai === BTP;
+  const laSl = () => !laBtp() && !!dl.phieu && dl.phieu.cach_dem === CHI_SL;      // D219
   const so = (n) => (laBtp() ? kg(n) : formatNumber(n));
   const le = () => (laBtp() ? 3 : 0);
   const dem = () => (laBtp() ? 'cân' : 'đếm');
@@ -115,7 +121,10 @@ export async function render({ container, call, boot }) {
 
   function tieuDe() {
     const k = (dl.cac_kho || []).find((x) => x.kho === dl.kho && x.loai === dl.loai);
-    if (!laBtp()) return 'Kiểm kê kho thành phẩm';
+    if (!laBtp()) {
+      if (!dl.phieu) return 'Kiểm kê kho thành phẩm';
+      return laSl() ? 'Kiểm kê chỉ số lượng — kho thành phẩm' : 'Kiểm kê kèm hạn sử dụng — kho thành phẩm';
+    }
     return k && k.nhan === 'Kho xưởng' ? 'Kiểm kê kho xưởng (bán thành phẩm)' : 'Kiểm kê kho bán thành phẩm';
   }
 
@@ -185,14 +194,25 @@ export async function render({ container, call, boot }) {
       ${veKho()}
       <div class="sx-muted">${laBtp()
     ? 'Cân từng lô (kg) rồi chốt: lô đã cân thì số cân thay số sổ của lô đó, lô chưa cân giữ nguyên; thừa / thiếu ghi điều chỉnh kho.'
-    : `Đếm số thùng / hộp từng loại theo HSD in trên hộp rồi chốt. Chốt = <b>đặt lại toàn bộ kho thành phẩm</b>
+    : `Đếm số thùng / hộp từng loại rồi chốt. Chốt = <b>đặt lại toàn bộ kho thành phẩm</b>
         theo số đếm: mỗi loại, mỗi HSD một lô; mã không đếm về 0; thừa / thiếu ghi điều chỉnh kho.`}</div>
       ${tom}
       ${veCanhBao()}
-      <button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-bat">BẮT ĐẦU KIỂM KÊ</button>
+      ${laBtp() ? '<button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-bat">BẮT ĐẦU KIỂM KÊ</button>'
+    : `<button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-bat-sl">KIỂM KÊ CHỈ SỐ LƯỢNG</button>
+      <div class="sx-muted">Đếm tổng số thùng / hộp từng loại, không phải đọc HSD — HSD tự tính theo sổ: lô còn hạn ngắn
+        nhất coi như đã xuất trước, hàng còn lại là các lô hạn dài nhất.</div>
+      <button type="button" class="sx-btn sx-btn-big" id="kk-bat">KIỂM KÊ KÈM HẠN SỬ DỤNG</button>
+      <div class="sx-muted">Đếm theo từng HSD in trên hộp — sổ ghi đúng HSD của từng hộp.</div>`}
       ${veGanDay()}
       ${veNutAm()}`);
-    $('#kk-bat').addEventListener('click', (e) => lam(() => call('sx.api.kiemke.bat_dau', khoNay()), e.currentTarget));
+    $('#kk-bat').addEventListener('click', (e) => lam(() => call('sx.api.kiemke.bat_dau',
+      laBtp() ? khoNay() : { ...khoNay(), cach_dem: KEM_HSD }), e.currentTarget));
+    const batSl = $('#kk-bat-sl');
+    if (batSl) {
+      batSl.addEventListener('click', (e) => lam(() => call('sx.api.kiemke.bat_dau', { ...khoNay(), cach_dem: CHI_SL }),
+        e.currentTarget));
+    }
     ganKho();
     ganGanDay();
   }
@@ -439,7 +459,7 @@ export async function render({ container, call, boot }) {
         nhom = x.nhom;
         dau = `<div class="sx-kk-nhom">${esc(nhom || 'Khác')}</div>`;
       }
-      return dau + (laBtp() ? veMaBtp(x, i) : veMa(x, i));
+      return dau + (laBtp() ? veMaBtp(x, i) : (laSl() ? veMaSl(x, i) : veMa(x, i)));
     }).join('');
     container.innerHTML = khungNoHtml(container, tieuDe(), nhacGap(), `
       ${veKho()}
@@ -451,7 +471,8 @@ export async function render({ container, call, boot }) {
     : 'sx-kk-khop'}">${coDau(lech, le())}${laBtp() ? ' kg' : ''}</span>` : ''}</div>
       <div class="sx-kk-nhac">${laBtp()
     ? 'Đang kiểm kê: lô đã cân thì đừng xuất / nhập lô đó. Có chứng từ kho của lô sau lúc cân thì phải cân lại lô đó mới chốt được.'
-    : 'Đang kiểm kê: đừng bán / nhập / xuất thành phẩm. Chốt sẽ đặt lại toàn kho theo số đếm — mã có tồn mà không đếm về 0.'}${
+    : 'Đang kiểm kê: đừng bán / nhập / xuất thành phẩm. Chốt sẽ đặt lại toàn kho theo số đếm — mã có tồn mà không đếm về 0.'
+      + (laSl() ? ' HSD tự chia theo sổ: lô còn hạn ngắn nhất coi như đã xuất trước.' : '')}${
   p.thoi_diem ? ` Số sổ sách tính tới ${esc(veLuc(p.thoi_diem))}; chốt ghi chứng từ kho lùi về lúc đó. Có chứng từ kho giữa lúc ${
     dem()} và lúc đó thì ${dem()} lại; chứng từ sau lúc đó không được rút từ lô mà chốt giảm.`
     : ` Có chứng từ kho sau lúc ${dem()} thì phải ${dem()} lại mới chốt được.`}</div>
@@ -494,6 +515,9 @@ export async function render({ container, call, boot }) {
     container.querySelectorAll('[data-them]').forEach((b) => b.addEventListener('click', () => {
       moDong(hang[Number(b.dataset.them)], null);
     }));
+    container.querySelectorAll('[data-sl]').forEach((b) => b.addEventListener('click', () => {
+      moSl(hang[Number(b.dataset.sl)]);
+    }));
     container.querySelectorAll('[data-sua]').forEach((b) => b.addEventListener('click', () => {
       const [i, j] = b.dataset.sua.split(':').map(Number);
       moDong(hang[i], hang[i].dem[j]);
@@ -520,7 +544,7 @@ export async function render({ container, call, boot }) {
         onTim: (item) => {
           const x = hang.find((h) => h.item === item) || moi(dl.danh_muc.find((h) => h.item === item));
           if (!x) { toastErr('Mã này không phải thành phẩm.'); return; }
-          moDong(x, null);
+          if (demSl(x)) moSl(x); else moDong(x, null);
         },
       }));
     }
@@ -566,16 +590,65 @@ export async function render({ container, call, boot }) {
     return '';
   }
 
-  function veMa(x, i) {
+  // D219: mã đếm CHỈ SỐ LƯỢNG được — sổ có lô có HSD để tự chia, và chưa đếm kèm HSD.
+  const demSl = (x) => laSl() && x.tu_chia && !x.dem.some((d) => d.hsd);
+
+  // D219: kiểm kê chỉ số lượng — mỗi mã MỘT số (thùng / hộp), HSD tự chia theo sổ (lô còn hạn ngắn nhất coi như đã xuất
+  // trước): bày ngay số chia để thủ kho soát. Mã không tự chia được / đã đếm kèm HSD → dòng đếm theo HSD như cũ.
+  function veMaSl(x, i) {
+    if (!demSl(x)) {
+      return veMa(x, i, x.tu_chia ? '' : 'Sổ không có lô nào có HSD để tự chia — đếm mã này kèm HSD in trên hộp.');
+    }
+    const het = (h) => (h < dl.hom_nay ? ' (hết hạn)' : '');
+    const chia = x.sl && (x.chia || []).length ? `<div class="sx-vh-meta">→ HSD tự chia: ${esc(x.chia.map(
+      (c) => `${veNgayDu(c.hsd)}: ${formatNumber(c.so)}${het(c.hsd)}`).join(' · '))}</div>` : '';
+    const o = x.sl
+      ? `<button type="button" class="sx-np-chip" data-sl="${i}">Đếm <b>${formatNumber(x.sl.so)}</b>${x.sl.chi_tiet
+        ? ` <i>(${esc(moTaUom(x.sl.chi_tiet))})</i>` : ''} ✎</button>`
+      : (x.da_dem ? '<span class="sx-kk-het">không còn hàng</span>'
+        : `<button type="button" class="sx-np-chip sx-kk-them" data-sl="${i}">ĐẾM</button>
+          <button type="button" class="sx-np-chip" data-them="${i}">kèm HSD</button>`);
+    return `<div class="sx-kk-ma${x.da_dem ? ' sx-kk-ma-xong' : ''}">
+      <div class="sx-kk-dau"><div class="sx-vh-name">${esc(x.ten)}</div><div class="sx-kk-so">${tomMa(x)}</div></div>
+      ${trenMa(x) ? `<div class="sx-vh-meta">Sổ: ${esc(trenMa(x))}</div>` : ''}
+      ${x.khong_lo ? veLo(x) : ''}
+      ${chia}
+      <div class="sx-kk-dong">${o}
+        ${x.da_dem ? `<button type="button" class="sx-np-chip" data-lai="${i}">Đếm lại</button>`
+    : `<button type="button" class="sx-np-chip" data-het="${i}">Không còn</button>`}
+      </div></div>`;
+  }
+
+  function tomMa(x) {
     const l = lechCua(x);
-    const tom = x.da_dem
+    return x.da_dem
       ? `đếm <b>${formatNumber(x.tong_dem)}</b> · sổ ${formatNumber(x.so_sach)} · ${Math.abs(l) > 1e-9
         ? `<span class="sx-kk-lech">${coDau(l)}</span>` : '<span class="sx-kk-khop">khớp</span>'}`
       : `sổ <b>${formatNumber(x.so_sach)}</b> · <span class="sx-kk-chua">chưa đếm${
         x.so_sach > 0 ? ' — chốt về 0' : ''}</span>`;
-    const tren = [x.chua_hsd > 0 ? `chưa có HSD ${formatNumber(x.chua_hsd)}` : '',
-      ...x.theo_hsd.map((h) => `HSD ${veNgayDu(h.hsd)}: ${formatNumber(h.so)}`),
-      x.thu_hoi > 0 ? `thu hồi ${formatNumber(x.thu_hoi)} (để riêng, không đếm)` : ''].filter(Boolean).join(' · ');
+  }
+
+  const trenMa = (x) => [x.chua_hsd > 0 ? `chưa có HSD ${formatNumber(x.chua_hsd)}` : '',
+    ...x.theo_hsd.map((h) => `HSD ${veNgayDu(h.hsd)}: ${formatNumber(h.so)}`),
+    x.thu_hoi > 0 ? `thu hồi ${formatNumber(x.thu_hoi)} (để riêng, không đếm)` : ''].filter(Boolean).join(' · ');
+
+  // D219: bàn số thùng / hộp KHÔNG có ô HSD — một số cho cả mã; sửa về 0 = không còn hàng.
+  function moSl(x) {
+    const d = x.sl;
+    moSoHsd({
+      kicker: `Kiểm kê · ${dl.phieu.name}`, ten: x.ten, uoms: x.uoms, dvt: x.dvt, ngay: dl.hom_nay,
+      chi_tiet: d ? d.chi_tiet : null, tong: d ? d.so : 0, macDinh: null, coHsd: false,
+      phu: `sổ ${formatNumber(x.so_sach)}`, choPhepKhong: !!d,
+      onOk: (tong, ct) => lam(() => call('sx.api.kiemke.ghi_so', {
+        name: dl.phieu.name, item: x.item, so_dem: tong, chi_tiet: ct ? JSON.stringify(ct) : '',
+      })),
+    });
+  }
+
+  // `ghiChu`: lời nhắc riêng của dòng (D219: mã không tự chia HSD được trong kiểm kê chỉ số lượng).
+  function veMa(x, i, ghiChu = '') {
+    const tom = tomMa(x);
+    const tren = trenMa(x);
     const dong = x.dem.map((d, j) => (d.hsd
       ? `<button type="button" class="sx-np-chip${d.hsd < dl.hom_nay ? ' sx-kk-hethan' : ''}" data-sua="${i}:${j}">HSD ${
         esc(veNgayDu(d.hsd))} · ${formatNumber(d.so)}${d.chi_tiet ? ` <i>(${esc(moTaUom(d.chi_tiet))})</i>` : ''}${
@@ -585,6 +658,7 @@ export async function render({ container, call, boot }) {
       <div class="sx-kk-dau"><div class="sx-vh-name">${esc(x.ten)}</div><div class="sx-kk-so">${tom}</div></div>
       ${tren ? `<div class="sx-vh-meta">Sổ: ${esc(tren)}</div>` : ''}
       ${x.khong_lo ? veLo(x) : ''}
+      ${ghiChu ? `<div class="sx-kk-nhac">${esc(ghiChu)}</div>` : ''}
       <div class="sx-kk-dong">${dong}
         <button type="button" class="sx-np-chip sx-kk-them" data-them="${i}">+ HSD</button>
         ${x.da_dem ? `<button type="button" class="sx-np-chip" data-lai="${i}">Đếm lại</button>`
@@ -849,9 +923,12 @@ export async function render({ container, call, boot }) {
         <div class="sx-vh-row" style="cursor:default"><div class="sx-vh-who">
           <div class="sx-vh-name">${esc(r.ten)}</div>
           <div class="sx-vh-meta">${r.chua_dem ? '<span class="sx-kk-chua">chưa đếm → về 0</span> · ' : ''}${
+  r.khong_chia ? '<span class="sx-kk-chua">chưa chia được HSD — đếm kèm HSD</span> · ' : ''}${
   r.bat_lo ? '<span class="sx-kk-chua">bật quản lý lô</span> · ' : ''}${
   r.le_khong_lo ? '<span class="sx-kk-chua">tồn không lô về 0</span> · ' : ''}${esc([
     btp && r.lo_can ? `${r.lo_can} lô` : '',
+    (r.chia || []).length
+      ? `HSD tự chia ${r.chia.map((h) => `${veNgayDu(h.hsd)}: ${formatNumber(h.so)}`).join(', ')}` : '',
     r.chuyen ? `chuyển ${formatNumber(r.chuyen)} từ ${r.lo_cu} lô cũ sang lô theo HSD` : '',
     r.thieu ? `thiếu ${n(r.thieu)}${dv}` : '', r.thua ? `thừa ${n(r.thua)}${dv}` : '',
     r.bu_am ? `bù lô âm ${n(r.bu_am)}${dv}` : '',

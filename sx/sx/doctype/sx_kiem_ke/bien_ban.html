@@ -19,6 +19,7 @@
 <div class="kk">
   {% if cong_ty %}<div class="ct">{{ cong_ty }}</div>{% endif %}
   <h1>Biên bản kiểm kê kho {{ "bán thành phẩm" if btp else "thành phẩm" }}</h1>
+  {% if not btp %}<div class="ma"><b>{{ "Kiểm kê chỉ số lượng — HSD tự chia: lô còn hạn ngắn nhất coi như đã xuất trước" if chi_sl else "Kiểm kê kèm hạn sử dụng" }}</b></div>{% endif %}
   <div class="ma">Số {{ d.name }} &nbsp;·&nbsp; Kho: {{ d.kho }} &nbsp;·&nbsp; Ngày kiểm kê {{ vn(d.ngay) }}
     {% if d.thoi_diem %}&nbsp;·&nbsp; <b>Chốt sổ tại {{ vn(d.thoi_diem) }} {{ (d.thoi_diem|string)[11:16] }}</b>{% endif %}
     {% if d.chot_luc %}&nbsp;·&nbsp; {{ "Bấm chốt" if d.thoi_diem else "Chốt" }} {{ vn(d.chot_luc) }} {{ (d.chot_luc|string)[11:16] }}{% endif %}</div>
@@ -51,7 +52,7 @@
   <div class="gc">Lô đã cân: số cân thay số sổ của lô đó (lô đang thu hồi để riêng, không kiểm). Lô không có trong
     biên bản: giữ nguyên số sổ sách.</div>
   {% else %}
-  <h2>I. Số đếm theo HSD in trên hộp</h2>
+  <h2>{{ "I. Số đếm (HSD tự chia theo nguyên tắc hạn ngắn xuất trước)" if chi_sl else "I. Số đếm theo HSD in trên hộp" }}</h2>
   <table>
     <tr><th style="width:5%">STT</th><th>Sản phẩm</th><th style="width:14%">HSD</th><th class="s" style="width:11%">Số đếm</th>
       <th class="s" style="width:11%">Sổ sách</th><th class="s" style="width:11%">Chênh lệch</th></tr>
@@ -62,7 +63,7 @@
       <tr>
         {% if loop.first %}<td rowspan="{{ n }}">{{ stt }}</td>
           <td rowspan="{{ n }}">{{ m.ten }}</td>{% endif %}
-        <td>{{ vn(x.hsd) if x.hsd else ("chưa đếm — về 0" if m.chua_dem else "không còn hàng") }}</td>
+        <td>{% if x.khong_chia %}chỉ số lượng — chưa chia được HSD{% else %}{{ vn(x.hsd) if x.hsd else ("chưa đếm — về 0" if m.chua_dem else "không còn hàng") }}{% if x.tu_chia %} (tự chia){% endif %}{% endif %}</td>
         <td class="s">{{ so(x.so) }}</td>
         {% if loop.first %}<td class="s" rowspan="{{ n }}">{{ so(m.so_sach) }}</td>
           <td class="s" rowspan="{{ n }}">{% if m.lech is not none %}{{ "+" if m.lech > 0 else "" }}{{ so(m.lech) }}{% endif %}</td>{% endif %}
@@ -74,7 +75,9 @@
       <td class="s">{% if tong.lech is not none %}{{ "+" if tong.lech > 0 else "" }}{{ so(tong.lech) }}{% endif %}</td></tr>
   </table>
   <div class="gc">Số đếm thay toàn bộ tồn của mã trong kho, mỗi mã mỗi HSD một lô (trừ lô đang thu hồi — để riêng,
-    không kiểm); mã có tồn mà không đếm ghi "chưa đếm — về 0". Mã không có trong biên bản: giữ nguyên số sổ sách.</div>
+    không kiểm); mã có tồn mà không đếm ghi "chưa đếm — về 0". Mã không có trong biên bản: giữ nguyên số sổ sách.{% if chi_sl %}
+    HSD "(tự chia)": mã đếm tổng số, HSD chia theo sổ — lô còn hạn ngắn nhất coi như đã xuất trước, hàng còn lại là các
+    lô hạn dài nhất; đếm nhiều hơn sổ thì phần dư vào HSD sớm nhất.{% endif %}</div>
   {% if bat_lo %}<div class="gc">{{ "Chốt sẽ bật" if nhap else "Đã bật" }} quản lý theo lô cho mã: {{ bat_lo|join(", ") }}
     — tồn cũ không lô về 0, số đếm vào lô theo HSD; từ đó nhập / bán các mã này theo lô.</div>{% endif %}
   {% if kho_khac %}

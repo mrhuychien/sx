@@ -711,10 +711,11 @@ function chiaCua(d) {
  *   choPhepKhong true = LƯU được số 0 (sửa dòng về 0 là bỏ dòng)
  *   nhanh        [{nhan, hsd}] nút HSD riêng thay cho +3T…+12T (kiểm kê: các HSD đang có trên sổ của mã)
  *   sauNgay      false = không bắt HSD sau `ngay` (kiểm kê: hàng hết hạn vẫn nằm trong kho, vẫn phải đếm)
+ *   coHsd        false = không có ô HSD (D219 kiểm kê chỉ số lượng — HSD tự chia lúc chốt); onOk nhận hsd null
  *   onOk(tong, chi_tiet | null, hsd | null) — hsd null = đúng HSD mặc định
  */
 export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0, hsd, macDinh, phu = '',
-  daCo, onDaCo, congVao = false, kiemLuu, choPhepKhong = false, nhanh, sauNgay = true, onOk }) {
+  daCo, onDaCo, congVao = false, kiemLuu, choPhepKhong = false, nhanh, sauNgay = true, coHsd = true, onOk }) {
   const ds = (uoms || []).filter((u) => u && u.uom);
   const bac = ds.length ? ds : [{ uom: dvt || 'Hộp', he_so: 1 }];
   const heSo = (u) => Number(u.he_so) || 1;
@@ -756,12 +757,12 @@ export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0,
     formatNumber(x.so)} ✎</button>`).join('')}</div>` : ''}
     ${bac.length > 1 ? '<div class="sx-np-chips" id="sh-tab" role="tablist"></div>' : ''}
     <div class="sx-numpad-display" id="sh-so"></div>
-    <div class="sx-sohsd-hsd">
+    ${coHsd ? `<div class="sx-sohsd-hsd">
       <label class="sx-field-label" for="sh-hsd">HSD in trên hộp</label>
       <input class="sx-textarea" type="date" id="sh-hsd"${sauNgay ? ` min="${esc(congNgay(ngay, 1) || '')}"` : ''}
         value="${esc(hsd || macDinh || '')}">
       ${nutHsd ? `<div class="sx-sohsd-nhanh">${nutHsd}</div>` : ''}
-    </div>
+    </div>` : ''}
     ${lech ? `<div class="sx-warn-text">⚠ Bảng quy đổi của mã hàng đã đổi so với lúc ghi: đã dồn ${
     formatNumber(Math.abs(lech))} ${esc(goc.uom.toLowerCase())} ${lech > 0 ? 'thiếu' : 'thừa'} vào ô ${
     esc(goc.uom)} để giữ đúng tổng ${formatNumber(tong)}. Đếm lại rồi sửa cho khớp.</div>` : ''}
@@ -817,7 +818,7 @@ export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0,
     oHsd.value = nhanh[Number(b.dataset.hsdnhanh)].hsd; ve();
   }));
   if ($('#sh-md')) $('#sh-md').addEventListener('click', () => { oHsd.value = macDinh; ve(); });
-  oHsd.addEventListener('change', ve);
+  if (oHsd) oHsd.addEventListener('change', ve);
   m.body.querySelectorAll('[data-daco]').forEach((b) => b.addEventListener('click', () => {
     m.close();
     if (onDaCo) onDaCo(Number(b.dataset.daco));
@@ -826,13 +827,13 @@ export function moSoHsd({ kicker = '', ten, uoms, dvt, ngay, chi_tiet, tong = 0,
   $('#sh-ok').addEventListener('click', () => {
     const loi = $('#sh-loi');
     const t = tinh();
-    const h = oHsd.value;
+    const h = oHsd ? oHsd.value : '';
     if (!(t > 0) && !choPhepKhong) {
       loi.textContent = `Chưa nhập số ${bac.map((u) => u.uom.toLowerCase()).join(' / ')}.`;
       return;
     }
-    if (t > 0 && !h) { loi.textContent = 'Chưa có HSD — nhập theo HSD in trên hộp.'; return; }
-    if (t > 0 && sauNgay && h <= ngay) { loi.textContent = 'HSD phải sau ngày nhập.'; return; }
+    if (t > 0 && coHsd && !h) { loi.textContent = 'Chưa có HSD — nhập theo HSD in trên hộp.'; return; }
+    if (t > 0 && coHsd && sauNgay && h <= ngay) { loi.textContent = 'HSD phải sau ngày nhập.'; return; }
     const them = t > 0 && kiemLuu ? kiemLuu(t, h) : '';
     if (them) { loi.textContent = them; return; }
     const ct = bac.length > 1

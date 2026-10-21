@@ -2,7 +2,9 @@
 
 THÀNH PHẨM (D154, Kho TP): ĐẾM theo HSD in trên hộp — mỗi mã một hay nhiều dòng (HSD → số thùng / hộp). Chốt =
 ĐẶT LẠI TOÀN KHO theo số đếm (D188): mỗi (mã, HSD) đúng một lô, mã có tồn mà không đếm về 0, lô cũ chuyển sang lô
-theo HSD, thừa / thiếu ghi điều chỉnh kho.
+theo HSD, thừa / thiếu ghi điều chỉnh kho. D219: hai cách đếm, chọn lúc bắt đầu — "Kiểm kê kèm hạn sử dụng" (như trên)
+và "Kiểm kê chỉ số lượng": đếm tổng từng mã (ghi_so), HSD tự chia lúc xem trước / chốt (lô còn hạn ngắn nhất coi như đã
+xuất trước — sx.kiem_ke.chia_fefo); mã mà sổ không có lô nào có HSD thì đếm kèm HSD ngay trên phiếu đó.
 
 BÁN THÀNH PHẨM (D155, Kho BTP / Kho xưởng): hàng rời tính kg — CÂN TỪNG LÔ. Lô đã cân thì số cân thay số sổ của
 lô đó, lô chưa cân giữ nguyên. Chốt: thiếu / thừa từng lô ghi điều chỉnh kho.
@@ -21,7 +23,7 @@ from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, nowdate
 
 from sx.config.roles import QUAN_LY, THU_KHO, guard_card, is_super, user_roles
 from sx.kiem_ke import theo_lo
-from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import BTP, TP, cong_ty_kho, ton_kho_khac, ton_lo
+from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import BTP, CHI_SL, KEM_HSD, TP, cong_ty_kho, ton_kho_khac, ton_lo
 from sx.utils import get_settings, items_tp, kho_xuong, nap_cong_bo
 
 CARD = "kiemke"
@@ -199,13 +201,16 @@ def tong_quan(kho=None, loai=None):
         ra["phieu"] = {"name": p.name, "ngay": str(p.ngay), "nguoi_lap": p.nguoi_lap,
                        "bat_dau_luc": str(p.bat_dau_luc or "")[:16],
                        "thoi_diem": str(p.get("thoi_diem") or "")[:16],
+                       "cach_dem": None if k["loai"] == BTP else (p.get("cach_dem") or KEM_HSD),
                        "duoc_huy": bool(_la_quan_ly() or p.nguoi_lap == frappe.session.user)}
     return ra
 
 
 def _hang_tp(kho, p):
-    """Thành phẩm: sổ theo HSD + số đã đếm của từng mã; "+ MÃ KHÁC" khi đang đếm."""
+    """Thành phẩm: sổ theo HSD + số đã đếm của từng mã; "+ MÃ KHÁC" khi đang đếm. D219: `sl` = dòng chỉ số lượng của
+    mã, `chia` = HSD tự chia cho số đó (FEFO, trên đúng tồn đang bày), `tu_chia` = sổ có lô có HSD để chia."""
     from sx.api.khotp import _doc_json, _han_dung_js, _nap_uom, _uom_cua
+    from sx.kiem_ke import chia_fefo
 
     tp = {i.name: i for i in items_tp(["name", "item_name", "stock_uom", "shelf_life_in_days",
                                         "has_batch_no"])}
@@ -242,6 +247,8 @@ def _hang_tp(kho, p):
         i = tp.get(item)
         dong = sorted(dem.get(item, []), key=lambda r: _h(r.hsd) or "")
         tong = flt(sum(flt(r.so_dem) for r in dong), 3)
+        sl = next((r for r in dong if not r.hsd and flt(r.so_dem) > 0), None)
+        chia = chia_fefo(ls, flt(sl.so_dem)) if sl else None
         hang.append({
             **mo_ta(item),
             "so_sach": flt(so_sach, 3), "chua_hsd": flt(chua, 3), "thu_hoi": flt(thu_hoi, 3),
@@ -255,7 +262,11 @@ def _hang_tp(kho, p):
                          for w, q in kk.get(item, [])],
             "da_dem": item in dem,
             "dem": [{"hsd": _h(r.hsd), "so": flt(r.so_dem, 3), "chi_tiet": _doc_json(r.chi_tiet),
-                     "nguoi": r.nguoi_dem, "luc": str(r.dem_luc or "")[:16]} for r in dong],
+                     "nguoi": r.nguoi_dem, "luc": str(r.dem_luc or "")[:16]} for r in dong if r is not sl],
+            "tu_chia": chia_fefo(ls, 1) is not None,
+            "sl": {"so": flt(sl.so_dem, 3), "chi_tiet": _doc_json(sl.chi_tiet), "nguoi": sl.nguoi_dem,
+                   "luc": str(sl.dem_luc or "")[:16]} if sl else None,
+            "chia": [{"hsd": h, "so": flt(q, 3)} for h, q in sorted((chia or {}).items(), reverse=True)],
             "tong_dem": tong, "lech": flt(tong - so_sach, 3) if item in dem else 0.0,
         })
     # Thứ tự CỐ ĐỊNH theo tên: đếm xong một dòng mã không nhảy chỗ (thẻ lọc "chưa đếm" khi cần).
@@ -325,12 +336,16 @@ def _hang_btp(kho, p):
 
 
 @frappe.whitelist()
-def bat_dau(kho=None, loai=None):
-    """Mở phiếu kiểm kê (mỗi kho, mỗi loại một phiếu đang đếm)."""
+def bat_dau(kho=None, loai=None, cach_dem=None):
+    """Mở phiếu kiểm kê (mỗi kho, mỗi loại một phiếu đang đếm). Thành phẩm: `cach_dem` = "Kèm hạn sử dụng" (mặc định) /
+    "Chỉ số lượng" (D219). Kho đang có phiếu đang đếm thì trả phiếu đó (cách đếm của nó giữ nguyên)."""
     guard_card(CARD)
     k = _chon_kho(kho, loai)
+    if cach_dem and cach_dem not in (KEM_HSD, CHI_SL):
+        frappe.throw(_("Cách đếm không hợp lệ: {0}.").format(cach_dem))
     if not _nhap(k["kho"], k["loai"]):
         d = frappe.get_doc({"doctype": PT, "ngay": nowdate(), "kho": k["kho"], "loai": k["loai"],
+                            "cach_dem": None if k["loai"] == BTP else (cach_dem or KEM_HSD),
                             "nguoi_lap": frappe.session.user, "bat_dau_luc": now_datetime(), "trang_thai": "Đang đếm"})
         d.flags.ignore_permissions = True
         d.insert()
@@ -387,6 +402,30 @@ def ghi(name, item, hsd=None, so_dem=0, chi_tiet=None, hsd_cu=None):
             d.append("dong", {"item": item, "ten": tp.get(item, item), **moi})
             return _luu(d)
     d.set("dong", dong)
+    return _luu(d)
+
+
+@frappe.whitelist()
+def ghi_so(name, item, so_dem=0, chi_tiet=None):
+    """D219 — kiểm kê CHỈ SỐ LƯỢNG: ghi TỔNG số đếm của một mã (không đọc HSD), thay mọi dòng đếm của mã đó. HSD tự chia
+    lúc xem trước / chốt. Số 0 = không còn hàng. Có chi tiết thùng / hộp thì tổng tính lại từ chi tiết."""
+    guard_card(CARD)
+    from sx.api.khotp import _ghi_json
+    from sx.sx.doctype.sx_phieu_nhap_tp.sx_phieu_nhap_tp import _tong_tu_uom
+
+    d = _phieu(name)
+    if not d.chi_so_luong():
+        frappe.throw(_("Phiếu {0} là kiểm kê kèm hạn sử dụng — đếm theo HSD in trên hộp.").format(name))
+    tp = {i.name: i.item_name or i.name for i in items_tp(["name", "item_name"])}
+    if item not in tp and not any(r.item == item for r in d.dong or []):
+        frappe.throw(_("{0} không phải thành phẩm.").format(item))
+    ct = _ghi_json(chi_tiet)
+    so = _tong_tu_uom(ct, so_dem)
+    if so < 0:
+        frappe.throw(_("Số đếm không được âm."))
+    d.set("dong", [r for r in d.dong or [] if r.item != item])
+    d.append("dong", {"item": item, "ten": tp.get(item, item), "hsd": None, "so_dem": so,
+                      "chi_tiet": ct if so > 0 else None, "nguoi_dem": frappe.session.user, "dem_luc": now_datetime()})
     return _luu(d)
 
 
@@ -563,11 +602,15 @@ def dem_lai(name, item):
     return _luu(d)
 
 
-def _tom_tat(ke, ten, lo_can=None, chua=(), doi_lo=None):
+def _tom_tat(ke, ten, lo_can=None, chua=(), doi_lo=None, chia=None, khong=()):
     ma = []
     for i, k in sorted(ke.items(), key=lambda x: (x[0] in chua, ten.get(x[0], x[0]))):
         ma.append({
             "item": i, "ten": ten.get(i, i), "so_sach": k["so_sach"], "dem": k["dem"], "chua_dem": i in chua,
+            # D219: số chỉ số lượng → HSD tự chia (xếp HSD xa trước); không chia được thì báo, chốt chặn.
+            "chia": [{"hsd": h, "so": q} for h, q in sorted((chia or {}).get(i, {}).items(), reverse=True)]
+            if i in (chia or {}) else None,
+            "khong_chia": i in khong,
             "bat_lo": (doi_lo or {}).get(i) == "bat", "le_khong_lo": (doi_lo or {}).get(i) == "le",
             "lech": flt(k["dem"] - k["so_sach"], 6),
             "chuyen": flt(sum(x["so"] for x in k["chuyen"]), 6),
@@ -591,7 +634,13 @@ def xem_truoc(name):
     btp = d.la_btp()
     chua = set() if btp else (getattr(d.flags, "chua_dem", None) or set())
     doi = {} if btp else (getattr(d.flags, "doi_lo", None) or {})
-    ma = _tom_tat(ke, ten, {i: len(v) for i, v in d.dem_theo_lo().items()} if btp else None, chua, doi)
+    chia = {} if btp else (getattr(d.flags, "chia_fefo", None) or {})
+    khong = set() if btp else (getattr(d.flags, "khong_chia", None) or set())
+    ma = _tom_tat(ke, ten, {i: len(v) for i, v in d.dem_theo_lo().items()} if btp else None, chua, doi, chia, khong)
+    sl = d.dem_so_luong() if khong else {}
+    for x in ma:
+        if x["khong_chia"]:
+            x["dem"] = flt(sl.get(x["item"]), 6)       # số đã đếm — chưa chia được HSD nên kế hoạch chưa có số này
     canh = _canh_bao(d.kho, _loai(d))
 
     def liet_ke(ds):
@@ -601,6 +650,10 @@ def xem_truoc(name):
     if chua:
         canh.append(_("{0} mã có tồn trên sổ mà CHƯA ĐẾM — chốt sẽ đưa về 0 (xuất thiếu toàn bộ): {1}. Còn hàng thì "
                       "đếm mã đó trước khi chốt.").format(len(chua), liet_ke(ten.get(i, i) for i in chua)))
+    if chia:
+        canh.append(_("Kiểm kê chỉ số lượng: {0} mã tự chia HSD — mỗi mã, lô còn hạn ngắn nhất coi như đã xuất trước, "
+                      "hàng còn lại là các lô hạn dài nhất; đếm nhiều hơn sổ thì phần dư vào HSD sớm nhất đang có. Mã "
+                      "nào biết chắc HSD khác thì đếm mã đó kèm HSD (+ HSD).").format(len(chia)))
     if not btp:
         bat = [ten.get(i, i) for i, c in doi.items() if c == "bat"]
         if bat:
@@ -724,7 +777,7 @@ def huy_chot(name, ly_do=None):
         now_datetime().strftime("%d/%m/%Y %H:%M"), frappe.session.user, ly_do)).strip(), update_modified=False)
     d.flags.ignore_permissions = True
     d.cancel()
-    moi = frappe.get_doc({"doctype": PT, "ngay": d.ngay, "kho": d.kho, "loai": loai,
+    moi = frappe.get_doc({"doctype": PT, "ngay": d.ngay, "kho": d.kho, "loai": loai, "cach_dem": d.get("cach_dem"),
                           "nguoi_lap": d.nguoi_lap or frappe.session.user, "bat_dau_luc": d.bat_dau_luc,
                           "thoi_diem": d.get("thoi_diem"), "trang_thai": "Đang đếm", "dong": dong,
                           "ghi_chu": _("Mở lại từ phiếu đã huỷ chốt {0}: {1}").format(d.name, ly_do)})
@@ -786,7 +839,7 @@ def bien_ban(name):
                              for w, q in x["kho_khac"]]
     kho_khac.sort(key=lambda k: (k["ten"], k["kho"]))
     return frappe.render_template("sx/sx/doctype/sx_kiem_ke/bien_ban.html", {
-        "d": d, "ma": ma, "tong": tong, "se": se, "bat_lo": bat_lo, "kho_khac": kho_khac,
+        "d": d, "ma": ma, "tong": tong, "se": se, "bat_lo": bat_lo, "kho_khac": kho_khac, "chi_sl": d.chi_so_luong(),
         "cong_ty": get_settings().get("cong_ty") or "",
         "nhap": d.docstatus == 0, "huy": d.docstatus == 2, "btp": btp,
         "vn": lambda x: getdate(x).strftime("%d/%m/%Y") if x else "", "so": so_vn,
@@ -794,7 +847,8 @@ def bien_ban(name):
 
 
 def _bien_ban_tp(d, ten):
-    dem, so_sach = {}, {}
+    dem, so_sach, chia, khong = {}, {}, {}, set()
+    sl = d.dem_so_luong()             # D219: mã đếm chỉ số lượng — in số theo HSD tự chia
     for r in d.dong or []:
         dem.setdefault(r.item, []).append({"hsd": r.hsd, "so": flt(r.so_dem, 3)})
     ten = dict(ten)
@@ -804,6 +858,8 @@ def _bien_ban_tp(d, ten):
         so_sach = {i: k["so_sach"] for i, k in ke.items()}
         for i in ke:
             ten.setdefault(i, ten_ke.get(i, i))
+        chia = getattr(d.flags, "chia_fefo", None) or {}
+        khong = getattr(d.flags, "khong_chia", None) or set()
     else:
         # Đã chốt: sổ trước = tồn các lô lúc chốt, trừ lô đang thu hồi (để riêng, không kiểm). Mã chưa đếm đã về 0
         # (D188) chỉ có trong bảng lô — đưa vào danh sách mã.
@@ -813,13 +869,21 @@ def _bien_ban_tp(d, ten):
         for r in d.lo or []:
             if bo not in (r.viec or ""):
                 so_sach[r.item] = so_sach.get(r.item, 0.0) + flt(r.so_truoc)
+                # Đã chốt: HSD đã chia của mã chỉ số lượng = tồn sau chốt theo HSD (mỗi HSD một lô).
+                if r.item in sl and r.hsd and flt(r.so_sau) > 1e-9:
+                    c = chia.setdefault(r.item, {})
+                    c[str(getdate(r.hsd))] = c.get(str(getdate(r.hsd)), 0.0) + flt(r.so_sau)
             ten.setdefault(r.item, r.ten or r.item)
+    for i, so in sl.items():
+        dem[i] = ([{"hsd": None, "so": flt(so, 3), "khong_chia": True}] if i in khong
+                  else [{"hsd": h, "so": flt(q, 3), "tu_chia": True} for h, q in (chia.get(i) or {}).items()])
     ma = []
     for i in sorted(ten, key=lambda x: (x not in dem, ten[x])):
         dm = flt(sum(x["so"] for x in dem.get(i, [])), 3)
         ss = flt(so_sach.get(i, 0.0), 3) if d.docstatus != 2 else None
-        ma.append({"item": i, "ten": ten[i], "dem": sorted((x for x in dem.get(i, []) if x["hsd"]),
-                                                            key=lambda x: str(x["hsd"])),
+        ma.append({"item": i, "ten": ten[i],
+                   "dem": sorted((x for x in dem.get(i, []) if x["hsd"] or x.get("khong_chia")),
+                                 key=lambda x: str(x["hsd"])),
                    "tong_dem": dm, "so_sach": ss, "lech": flt(dm - ss, 3) if ss is not None else None,
                    "chua_dem": i not in dem})
     return ma

@@ -14,6 +14,7 @@ import calendar
 import copy
 import json
 import os
+import re
 import sys
 import types
 from datetime import date, datetime
@@ -909,6 +910,9 @@ PB = tq["phieu"]["name"]
 kiem("mở phiếu bán thành phẩm song song phiếu thành phẩm — mỗi kho một phiếu",
      PB != PT_TP and F.bang("SX Kiem Ke")[PB]["loai"] == BTP_ and A.tong_quan()["phieu"]["name"] == PT_TP
      and A.bat_dau("Kho BTP", BTP_)["phieu"]["name"] == PB and tq["loai"] == BTP_, (PB, PT_TP))
+kiem("D219: phiếu bán thành phẩm không mang cách đếm (chỉ thành phẩm có hai cách)",
+     F.bang("SX Kiem Ke")[PB].get("cach_dem") is None and tq["phieu"]["cach_dem"] is None
+     and A.bat_dau("Kho BTP", BTP_, cach_dem="Chỉ số lượng")["phieu"]["cach_dem"] is None)
 kiem("+ MÃ KHÁC: bán thành phẩm chưa có trên sổ kho này", [x["item"] for x in tq["danh_muc"]] == ["DO-U"], tq["danh_muc"])
 kiem("+ LÔ KHÁC: lô của mã không có trên sổ kho này, mới nhất trước",
      [x["batch"] for x in A.lo_khac(PB, "BOT-NEN")] == ["R-280926"] and A.lo_khac(PB, "BOT-NEN")[0]["ngay"] == "2026-09-28"
@@ -2587,6 +2591,157 @@ for t, ns in (("Bin", ("b16x", "b16y", "b16c")), ("Batch", ("TX-HSD010727", "TX-
 F.bang("Warehouse").pop(KHO)
 F.vai("SX Thu Kho", u="kho@x")
 
+print("\n-- D219: kiểm kê CHỈ SỐ LƯỢNG — HSD tự chia (lô còn hạn ngắn nhất coi như đã xuất trước) --")
+L1, L2, L3 = "2027-01-10", "2027-03-10", "2027-05-10"
+lots19 = [lo("Q-HSD100127", 20, L1, chuan=True), lo("Q-HSD100327", 30, L2, chuan=True), lo("Q-HSD100527", 40, L3, chuan=True),
+          lo("Q-CU", 15), lo("Q-TH", 9, L3, thu_hoi=True), lo("Q-AM", -4, L2, chuan=True)]
+kiem("đếm ít hơn sổ: giữ các lô hạn DÀI nhất — 55 = HSD 10/05 40 + HSD 10/03 15; HSD 10/01 coi như đã xuất hết",
+     K.chia_fefo(lots19, 55) == {L3: 40, L2: 15}, K.chia_fefo(lots19, 55))
+kiem("đếm đúng tổng các lô có HSD (90) → đủ ba HSD", K.chia_fefo(lots19, 90) == {L3: 40, L2: 30, L1: 20},
+     K.chia_fefo(lots19, 90))
+kiem("đếm DƯ (100 > 90): phần dư 10 vào HSD SỚM nhất — sổ tưởng hộp hạn ngắn đã xuất",
+     K.chia_fefo(lots19, 100) == {L3: 40, L2: 30, L1: 30}, K.chia_fefo(lots19, 100))
+kiem("lô thu hồi, lô âm, tồn chưa có HSD không vào phép chia", K.chia_fefo(lots19, 45) == {L3: 40, L2: 5},
+     K.chia_fefo(lots19, 45))
+kiem("đếm 0 → {} (không còn hàng), kể cả sổ không có lô nào", K.chia_fefo(lots19, 0) == {} and K.chia_fefo([], 0) == {})
+kiem("đếm > 0 mà sổ không có lô nào có HSD (chỉ tồn chưa HSD / lô âm / lô thu hồi / không có gì) → None",
+     K.chia_fefo([lo("Q-CU", 15), lo("Q-TH", 9, L3, thu_hoi=True), lo("Q-AM", -4, L2)], 5) is None
+     and K.chia_fefo([], 5) is None)
+kiem("hai lô cùng HSD (lô chuẩn + lô lẻ) cộng chung một HSD; HSD dạng ngày như chuỗi",
+     K.chia_fefo([lo("A", 5, date(2027, 1, 10)), lo("B", 7, L1, chuan=True)], 10) == {L1: 10})
+
+SO19, KK19 = dict(SO), {n: v for n, v in F.bang("SX Kiem Ke").items() if v.get("kho") == KHO and not v.get("docstatus")}
+SO.clear()
+for n in KK19:
+    F.bang("SX Kiem Ke").pop(n)
+for i, ten in (("TP-Q1", "Bánh Q1"), ("TP-Q2", "Bánh Q2 chưa có lô HSD"), ("TP-Q3", "Bánh Q3 không đếm")):
+    F.bang("Item")[i] = {"name": i, "item_name": ten, "stock_uom": "Hộp", "custom_sx_nhom": "TP", "disabled": 0,
+                         "has_batch_no": 1, "shelf_life_in_days": 270, "custom_batch_prefix": i[3:]}
+    F.bang("Bin")["b19" + i] = {"name": "b19" + i, "item_code": i, "warehouse": KHO, "valuation_rate": 10000}
+F.bang("UOM Conversion Detail")["u19"] = {"name": "u19", "parent": "TP-Q1", "parenttype": "Item", "uom": "Thùng",
+                                          "conversion_factor": 12}
+for b, i, hsd, nsx, q in (("Q1-HSD100127", "TP-Q1", L1, "2026-04-15", 20), ("Q1-HSD100327", "TP-Q1", L2, "2026-06-13", 30),
+                          ("Q1-HSD100527", "TP-Q1", L3, "2026-08-13", 40), ("Q1-CU", "TP-Q1", None, "2026-03-01", 15),
+                          ("Q2-CU", "TP-Q2", None, "2026-03-01", 8), ("Q3-HSD100327", "TP-Q3", L2, "2026-06-13", 5)):
+    F.bang("Batch")[b] = {"name": b, "item": i, "expiry_date": hsd, "manufacturing_date": nsx,
+                          "creation": f"{nsx} 08:00:00", "custom_thu_hoi": 0}
+    SO[(i, b)] = q
+frappe.local.__dict__.pop("sx_nho", None)
+F.vai("SX Thu Kho", u="kho@x")
+kiem("cách đếm lạ → chặn", "Cách đếm không hợp lệ" in (thu(lambda: A.bat_dau(cach_dem="Đoán")) or ""))
+tq = A.bat_dau(cach_dem="Chỉ số lượng")
+P19 = tq["phieu"]["name"]
+kiem("BẮT ĐẦU KIỂM KÊ CHỈ SỐ LƯỢNG: phiếu mang cách đếm, thẻ biết",
+     F.bang("SX Kiem Ke")[P19]["cach_dem"] == "Chỉ số lượng" and tq["phieu"]["cach_dem"] == "Chỉ số lượng", tq["phieu"])
+kiem("… bấm lại (kể cả chọn cách kia) vẫn là phiếu đang đếm đó, cách đếm giữ nguyên",
+     A.bat_dau(cach_dem="Kèm hạn sử dụng")["phieu"]["name"] == P19
+     and F.bang("SX Kiem Ke")[P19]["cach_dem"] == "Chỉ số lượng")
+ct19 = json.dumps([{"uom": "Thùng", "sl": 4, "he_so": 12}, {"uom": "Hộp", "sl": 7, "he_so": 1}])
+tq = A.ghi_so(P19, "TP-Q1", so_dem=999, chi_tiet=ct19)
+q1 = hang(tq, "TP-Q1")
+kiem("ghi_so: MỘT số cho cả mã, tổng tính lại từ thùng / hộp (4 × 12 + 7 = 55), không dòng HSD",
+     q1["sl"]["so"] == 55 and q1["sl"]["chi_tiet"] == json.loads(ct19) and q1["dem"] == [] and q1["da_dem"]
+     and q1["tong_dem"] == 55 and q1["lech"] == -50, q1)
+kiem("… thẻ bày ngay HSD tự chia (HSD xa trước): 10/05 40, 10/03 15", q1["tu_chia"]
+     and q1["chia"] == [{"hsd": L3, "so": 40}, {"hsd": L2, "so": 15}], q1["chia"])
+tq = A.ghi_so(P19, "TP-Q2", so_dem=8)
+q2 = hang(tq, "TP-Q2")
+kiem("mã mà sổ không có lô nào có HSD: tu_chia = False, chưa chia", not q2["tu_chia"] and q2["chia"] == []
+     and q2["sl"]["so"] == 8, q2)
+xt = A.xem_truoc(P19)
+ma19 = {x["item"]: x for x in xt["ma"]}
+kiem("XEM TRƯỚC: mã chỉ số lượng → HSD tự chia, kế hoạch như kiểm kê kèm HSD (55: lô HSD 10/01 + lô cũ xuất thiếu 35)",
+     ma19["TP-Q1"]["chia"] == [{"hsd": L3, "so": 40}, {"hsd": L2, "so": 15}] and ma19["TP-Q1"]["dem"] == 55
+     and ma19["TP-Q1"]["so_sach"] == 105 and ma19["TP-Q1"]["thieu"] == 50 and not ma19["TP-Q1"]["khong_chia"],
+     ma19["TP-Q1"])
+kiem("… mã không chia được: báo, số đếm vẫn hiện đúng (8, không phải 0), CHẶN chốt — bảo đếm kèm HSD",
+     ma19["TP-Q2"]["khong_chia"] and ma19["TP-Q2"]["dem"] == 8 and ma19["TP-Q2"]["chia"] is None
+     and any("không có lô nào có HSD để tự chia" in l and "Bánh Q2 chưa có lô HSD" in l for l in xt["loi"]),
+     (ma19["TP-Q2"], xt["loi"]))
+kiem("… mã không đếm vẫn về 0 (D188); cảnh báo nói cách chia (1 mã tự chia)",
+     ma19["TP-Q3"]["chua_dem"] and ma19["TP-Q3"]["thieu"] == 5
+     and any("Kiểm kê chỉ số lượng: 1 mã tự chia HSD" in c and "hạn ngắn nhất" in c for c in xt["canh_bao"]),
+     xt["canh_bao"])
+kiem("chốt khi còn mã không chia được → chặn", "không có lô nào có HSD" in (thu(lambda: A.chot(P19)) or ""))
+html = A.bien_ban(P19)
+kiem("… biên bản nháp in mã đó: \"chỉ số lượng — chưa chia được HSD\" với số đã đếm",
+     re.search(r"chỉ số lượng — chưa chia được HSD</td>\s*<td class=\"s\">8</td>", html) is not None,
+     re.findall(r"<td>[^<]*chưa chia[^<]*</td>", html))
+tq = A.ghi_so(P19, "TP-Q1", so_dem=100)
+xt = A.xem_truoc(P19)
+q1x = {x["item"]: x for x in xt["ma"]}["TP-Q1"]
+kiem("đếm DƯ 100 (sổ có HSD 90 + lô cũ 15): HSD 10/01 lấy 30 — 20 của lô + 10 chuyển từ lô cũ, lô cũ thiếu 5",
+     q1x["chia"] == [{"hsd": L3, "so": 40}, {"hsd": L2, "so": 30}, {"hsd": L1, "so": 30}] and q1x["chuyen"] == 10
+     and q1x["thieu"] == 5 and q1x["thua"] == 0, q1x)
+tq = A.ghi_so(P19, "TP-Q1", so_dem=55, chi_tiet=ct19)
+tq = A.ghi(P19, "TP-Q2", hsd=L1, so_dem=8)
+q2 = hang(tq, "TP-Q2")
+kiem("mã không chia được → đếm kèm HSD ngay trên phiếu: dòng chỉ số lượng thay bằng dòng HSD",
+     q2["sl"] is None and q2["dem"] == [{"hsd": L1, "so": 8, "chi_tiet": None, "nguoi": "kho@x", "luc": q2["dem"][0]["luc"]}],
+     q2)
+kiem("… hết chặn", not A.xem_truoc(P19)["loi"], A.xem_truoc(P19)["loi"])
+F.bang("Item")["TP-Q1"]["custom_sx_nhom"] = "KHAC"            # mã đã đếm rồi mới bị bỏ khỏi danh mục thành phẩm
+frappe.local.__dict__.pop("sx_nho", None)
+xt = A.xem_truoc(P19)
+kiem("mã đã đếm chỉ số lượng mà không còn trong danh mục thành phẩm: vẫn lấy tồn của nó để chia",
+     not xt["loi"] and {x["item"]: x for x in xt["ma"]}["TP-Q1"]["chia"] == [{"hsd": L3, "so": 40}, {"hsd": L2, "so": 15}],
+     xt["loi"])
+F.bang("Item")["TP-Q1"]["custom_sx_nhom"] = "TP"
+frappe.local.__dict__.pop("sx_nho", None)
+d19 = C.SXKiemKe({"doctype": "SX Kiem Ke", "name": "KK-M19", "loai": "Thành phẩm", "cach_dem": "Chỉ số lượng",
+                  "dong": [{"item": "A", "so_dem": 7}, {"item": "B", "hsd": L1, "so_dem": 2}, {"item": "C", "so_dem": 0}]})
+kiem("dem_theo_ma KHÔNG có mã chỉ số lượng (không phải \"đếm 0\"); dem_so_luong có", "A" not in d19.dem_theo_ma()
+     and d19.dem_theo_ma() == {"B": {L1: 2}, "C": {}} and d19.dem_so_luong() == {"A": 7}, d19.dem_theo_ma())
+kiem("cách đếm chỉ số lượng chỉ cho thành phẩm (phiếu bán thành phẩm mang nhầm cờ vẫn là cân theo lô)",
+     d19.chi_so_luong() and not C.SXKiemKe({"loai": "Bán thành phẩm", "cach_dem": "Chỉ số lượng"}).chi_so_luong())
+d19 = F.get_doc("SX Kiem Ke", P19)
+d19.append("dong", {"item": "TP-Q2", "ten": "Bánh Q2", "so_dem": 3})
+kiem("một mã vừa có số chỉ số lượng vừa có dòng HSD (sửa tay) → chặn lúc lưu",
+     "vừa có số đếm chỉ số lượng vừa có dòng kèm HSD" in (thu(lambda: d19.save()) or ""))
+d19 = F.get_doc("SX Kiem Ke", P19)
+d19.append("dong", {"item": "TP-Q1", "ten": "Bánh Q1", "so_dem": 3})
+kiem("… hai dòng chỉ số lượng của một mã → chặn, nói rõ", "hai dòng cùng HSD (chỉ số lượng)" in (thu(lambda: d19.save()) or ""))
+html = A.bien_ban(P19)
+kiem("biên bản nháp: ghi cách đếm; số theo HSD tự chia (10/05/2027 40, 10/03/2027 15) đánh dấu \"(tự chia)\"",
+     "Kiểm kê chỉ số lượng" in html and "10/05/2027 (tự chia)" in html and "10/03/2027 (tự chia)" in html
+     and "HSD tự chia theo nguyên tắc hạn ngắn xuất trước" in html, re.findall(r"<td>[^<]*tự chia[^<]*</td>", html))
+kq = A.chot(P19)
+kiem("CHỐT: tồn sau chốt = HSD tự chia (10/05 40, 10/03 15), HSD 10/01 + lô cũ về 0; mã đếm kèm HSD vào lô theo HSD; "
+     "mã không đếm về 0",
+     (SO[("TP-Q1", "Q1-HSD100527")], SO[("TP-Q1", "Q1-HSD100327")], SO[("TP-Q1", "Q1-HSD100127")],
+      SO[("TP-Q1", "Q1-CU")], SO[("TP-Q2", "Q2-HSD100127")], SO[("TP-Q2", "Q2-CU")], SO[("TP-Q3", "Q3-HSD100327")])
+     == (40, 15, 0, 0, 8, 0, 0) and F.bang("SX Kiem Ke")[P19]["tong_dem"] == 63, (kq, SO))
+html = A.bien_ban(P19)
+kiem("biên bản đã chốt: số theo HSD tự chia lấy từ kết quả lô (10/05/2027 40, 10/03/2027 15; lô HSD 10/01 về 0 không in)",
+     "BẢN NHÁP" not in html and "10/05/2027 (tự chia)" in html and "10/03/2027 (tự chia)" in html
+     and "10/01/2027 (tự chia)" not in html
+     and "Kiểm kê chỉ số lượng" in html, re.findall(r"<td>[^<]*tự chia[^<]*</td>", html))
+tq = A.huy_chot(P19, ly_do="chốt nhầm")
+moi19 = F.bang("SX Kiem Ke")[tq["huy_chot"]["moi"]]
+kiem("huỷ chốt, mở lại: phiếu mới giữ cách đếm chỉ số lượng và số đã đếm",
+     moi19["cach_dem"] == "Chỉ số lượng" and tq["phieu"]["cach_dem"] == "Chỉ số lượng"
+     and hang(tq, "TP-Q1")["sl"]["so"] == 55, moi19)
+A.huy(tq["huy_chot"]["moi"])
+P19B = A.bat_dau()["phieu"]["name"]
+kiem("phiếu kèm HSD (mặc định): ghi_so bị chặn; xem trước không nói chuyện tự chia HSD",
+     F.bang("SX Kiem Ke")[P19B]["cach_dem"] == "Kèm hạn sử dụng"
+     and "kiểm kê kèm hạn sử dụng" in (thu(lambda: A.ghi_so(P19B, "TP-Q1", so_dem=5)) or "")
+     and not any("tự chia" in c for c in A.xem_truoc(P19B)["canh_bao"]), A.xem_truoc(P19B)["canh_bao"])
+d19 = F.get_doc("SX Kiem Ke", P19B)
+d19.append("dong", {"item": "TP-Q1", "ten": "Bánh Q1", "so_dem": 3})
+kiem("… dòng không HSD có số trên phiếu kèm HSD → chặn như cũ", "phải có HSD" in (thu(lambda: d19.save()) or ""))
+A.huy(P19B)
+for n in [n for n, v in F.bang("SX Kiem Ke").items() if v.get("kho") == KHO and n not in KK19 and n.startswith("KK")
+          and any(r.get("item", "").startswith("TP-Q") for r in v.get("dong") or [])]:
+    F.bang("SX Kiem Ke").pop(n)
+SO.clear()
+SO.update(SO19)
+F.bang("SX Kiem Ke").update(KK19)
+for i in ("TP-Q1", "TP-Q2", "TP-Q3"):
+    F.bang("Item").pop(i)
+    F.bang("Bin").pop("b19" + i)
+frappe.local.__dict__.pop("sx_nho", None)
+
 print("\n-- dây nối --")
 kiem("thẻ kiemke: thủ kho + quản lý; nằm ở màn Nhập kho (sau phiếu nhập) và Quản lý",
      R.CARD_ROLES["kiemke"] == [R.THU_KHO, R.QUAN_LY] and R.VIEW_CARDS["nhapkho"][:2] == ["nhapkhotp", "kiemke"]
@@ -2616,5 +2771,9 @@ for d_ in ("sx_kiem_ke_dong", "sx_kiem_ke_lo"):
          sum(f.get("columns") or 0 for f in j["fields"] if f.get("in_list_view")) <= 10)
 kiem("bảng dòng có cột lô (bán thành phẩm cân theo lô)", "batch" in {f["fieldname"] for f in json.load(open(
     "sx/sx/doctype/sx_kiem_ke_dong/sx_kiem_ke_dong.json", encoding="utf-8"))["fields"]})
+cd_ = next(f for f in dt["fields"] if f["fieldname"] == "cach_dem")
+kiem("D219: ô cách đếm Kèm hạn sử dụng / Chỉ số lượng, mặc định kèm HSD (phiếu cũ), sau ô loại hàng",
+     cd_["options"].split("\n") == [C.KEM_HSD, C.CHI_SL] == ["Kèm hạn sử dụng", "Chỉ số lượng"]
+     and cd_["default"] == C.KEM_HSD and dt["field_order"].index("cach_dem") == dt["field_order"].index("loai") + 1)
 
 F.ket_thuc("KIEMKE")

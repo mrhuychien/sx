@@ -45,6 +45,12 @@ THỜI ĐIỂM CHỐT SỔ (D195, `thoi_diem`): để trống = lúc bấm chố
   HIỆN TẠI vào lô theo HSD lúc bấm chốt — số đếm chạy tiếp các chứng từ sau thời điểm chốt: ra trừ HSD sớm nhất trước
   (FEFO), vào theo HSD của phiếu nhập thành phẩm, không rõ HSD → lô tồn cũ. Bán quá số đếm → chặn.
 
+CÁCH ĐẾM thành phẩm (D219, `cach_dem`): "Kèm hạn sử dụng" — như trên, đếm theo HSD in trên hộp; "Chỉ số lượng" — mỗi
+mã một dòng không HSD mang TỔNG số đếm, HSD tự chia lúc lập kế hoạch (xem trước / chốt) trên tồn các lô cùng lúc với
+số sổ sách (sx.kiem_ke.chia_fefo): lô còn hạn ngắn nhất coi như đã xuất trước, hàng còn lại là các lô hạn dài nhất; đếm
+dư thì phần dư vào HSD sớm nhất. Rồi đi đúng đường kế hoạch / chứng từ như kiểm kê kèm HSD. Mã mà sổ không có lô nào có
+HSD (ngoài sổ, chưa quản lý lô) thì không chia được — đếm mã đó kèm HSD (vẫn trên cùng phiếu), chốt chặn tới khi đếm.
+
 BÁN THÀNH PHẨM (D155, loai = "Bán thành phẩm", Kho BTP / Kho xưởng): hàng rời tính kg, lô theo ngày làm / lô
 rang, không có HSD — CÂN TỪNG LÔ. Mỗi (mã, lô) một dòng; lô đã cân thì số cân thay số sổ của lô đó, lô chưa cân
 giữ nguyên (sx/kiem_ke.lap_ke_hoach_lo). Chỉ sinh Material Issue (thiếu) / Material Receipt (thừa, bù lô âm) —
@@ -59,10 +65,11 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import add_days, cint, flt, get_datetime, get_time, getdate, now_datetime, nowdate
 
-from sx.kiem_ke import chia_chung_tu, co_thay_doi, lap_ke_hoach, lap_ke_hoach_lo, so_chung_tu, theo_lo
+from sx.kiem_ke import chia_chung_tu, chia_fefo, co_thay_doi, lap_ke_hoach, lap_ke_hoach_lo, so_chung_tu, theo_lo
 
 DANG_DEM, DA_CHOT, DA_HUY = "Đang đếm", "Đã chốt", "Đã huỷ"
 TP, BTP = "Thành phẩm", "Bán thành phẩm"
+KEM_HSD, CHI_SL = "Kèm hạn sử dụng", "Chỉ số lượng"      # cách đếm thành phẩm (D219)
 
 VIEC = {"chuyen_di": "chuyển {so} sang lô HSD {hsd}", "nhan": "nhận {so} từ lô {lo}",
         "nhan_kl": "nhận {so} từ tồn không lô",
@@ -299,6 +306,10 @@ class SXKiemKe(Document):
     def la_btp(self):
         return (self.loai or TP) == BTP
 
+    def chi_so_luong(self):
+        """D219: phiếu thành phẩm đếm CHỈ SỐ LƯỢNG (HSD tự chia lúc chốt)."""
+        return not self.la_btp() and self.get("cach_dem") == CHI_SL
+
     # ─────────────────────────────── nháp ───────────────────────────────
     def validate(self):
         if self.docstatus == 0:
@@ -334,8 +345,12 @@ class SXKiemKe(Document):
         self.set("dong", giu)
 
     def _chuan_dong(self):
-        """Mỗi (mã, HSD) một dòng; số ≥ 0; số > 0 phải có HSD; mã đã có dòng số > 0 thì bỏ dòng "không còn"."""
+        """Mỗi (mã, HSD) một dòng; số ≥ 0; số > 0 phải có HSD; mã đã có dòng số > 0 thì bỏ dòng "không còn". D219 —
+        phiếu CHỈ SỐ LƯỢNG: dòng không HSD có số là tổng đếm của mã (mỗi mã một dòng); mã đã đếm kèm HSD thì không có
+        thêm dòng chỉ số lượng."""
+        sl = self.chi_so_luong()
         co_so = {r.item for r in self.dong or [] if flt(r.so_dem) > 0}
+        co_hsd = {r.item for r in self.dong or [] if flt(r.so_dem) > 0 and r.hsd}
         thay, giu = set(), []
         for r in self.dong or []:
             if not r.item:
@@ -344,8 +359,11 @@ class SXKiemKe(Document):
             ten = r.ten or r.item
             if so < 0:
                 frappe.throw(_("Dòng {0} ({1}): số đếm không được âm.").format(r.idx, ten))
-            if so > 0 and not r.hsd:
+            if so > 0 and not r.hsd and not sl:
                 frappe.throw(_("Dòng {0} ({1}): có số thì phải có HSD in trên hộp.").format(r.idx, ten))
+            if so > 0 and not r.hsd and r.item in co_hsd:
+                frappe.throw(_("{0} vừa có số đếm chỉ số lượng vừa có dòng kèm HSD — đếm lại mã này theo một cách.")
+                             .format(ten))
             if so <= 0:
                 if r.item in co_so:
                     continue
@@ -353,15 +371,26 @@ class SXKiemKe(Document):
             k = (r.item, str(getdate(r.hsd)) if r.hsd else None)
             if k in thay:
                 frappe.throw(_("{0} có hai dòng cùng HSD {1} — gộp lại thành một dòng.").format(
-                    ten, _vn(r.hsd) if r.hsd else _("(không còn hàng)")))
+                    ten, _vn(r.hsd) if r.hsd else (_("(chỉ số lượng)") if so > 0 else _("(không còn hàng)"))))
             thay.add(k)
             giu.append(r)
         self.set("dong", giu)
 
-    def dem_theo_ma(self):
-        """{item: {hsd: số}} — mã đã đếm. {} = đã đếm, không còn hộp nào."""
+    def dem_so_luong(self):
+        """D219 — {item: tổng đếm} của dòng CHỈ SỐ LƯỢNG (không HSD, số > 0): HSD chia lúc lập kế hoạch (lap_ke)."""
         ra = {}
         for r in self.dong or []:
+            if not r.hsd and flt(r.so_dem) > 0:
+                ra[r.item] = ra.get(r.item, 0.0) + flt(r.so_dem)
+        return ra
+
+    def dem_theo_ma(self):
+        """{item: {hsd: số}} — mã đã đếm. {} = đã đếm, không còn hộp nào. Dòng chỉ số lượng (D219) không ở đây — lap_ke
+        chia HSD cho chúng (chia_fefo). Mã bật lô (_bat_lui) không có lô HSD nên không bao giờ đếm chỉ số lượng được."""
+        ra = {}
+        for r in self.dong or []:
+            if not r.hsd and flt(r.so_dem) > 0:
+                continue
             d = ra.setdefault(r.item, {})
             if r.hsd and flt(r.so_dem) > 0:
                 h = str(getdate(r.hsd))
@@ -394,11 +423,22 @@ class SXKiemKe(Document):
             self.flags.lo_thu_hoi = {(i, l["batch"]) for i in items for l in lots.get(i, []) if l["thu_hoi"]}
             return {i: lap_ke_hoach_lo(lots.get(i, []), dem[i]) for i in items}, {}, ten
 
-        dem = self.dem_theo_ma()
+        dem, sl = self.dem_theo_ma(), self.dem_so_luong()
         # D188: chốt = ĐẶT LẠI TOÀN KHO — thành phẩm có tồn trong kho (trừ lô thu hồi) mà chưa đếm cũng vào kế
         # hoạch với số đếm 0 (về 0). Hàng không phải thành phẩm để trong kho này thì không đụng.
         tp = [i.name for i in items_tp(["name"])]
-        lots = ton_lo(self.kho, list(dict.fromkeys(list(dem) + tp)), self._td())
+        lots = ton_lo(self.kho, list(dict.fromkeys(list(dem) + list(sl) + tp)), self._td())
+        # D219: đếm CHỈ SỐ LƯỢNG → chia HSD theo FEFO trên CHÍNH tồn các lô của kế hoạch này (cùng thời điểm với số sổ
+        # sách). Không chia được (sổ không có lô nào có HSD) → giữ chỗ {} để mã không thành "chưa đếm"; chốt chặn.
+        chia, khong = {}, set()
+        for i, so in sl.items():
+            c = chia_fefo(lots.get(i, []), so)
+            if c is None:
+                khong.add(i)
+            else:
+                chia[i] = c
+            dem[i] = c or {}
+        self.flags.chia_fefo, self.flags.khong_chia = chia, khong
         chua = [i for i in tp if i not in dem and any(
             abs(l["qty"]) > 1e-9 and not l["thu_hoi"] for l in lots.get(i, []))]
         for i in chua:
@@ -448,6 +488,11 @@ class SXKiemKe(Document):
             return [_("Chưa đếm mã nào.")]
         if self.la_btp():
             return self._kiem_btp(ke)
+        khong = sorted(getattr(self.flags, "khong_chia", None) or (), key=self._ten)
+        if khong:
+            loi.append(_("Đếm chỉ số lượng mà sổ kho không có lô nào có HSD để tự chia (mã ngoài sổ / chưa quản lý lô "
+                         "/ lô chưa ghi HSD) — đếm các mã này kèm HSD in trên hộp (nút + HSD): {0}.").format(
+                ", ".join(self._ten(i) for i in khong)))
         # D189: mã tắt lô có số đếm thì chốt phải bật lô (HSD nằm trên lô). D191: tồn ở kho khác cùng công ty xử lý
         # luôn lúc bật; chỉ kho của công ty KHÁC là không ghi sang được — bật lô thì phần đó kẹt.
         kc = getattr(self.flags, "kho_cty_khac", None) or {}

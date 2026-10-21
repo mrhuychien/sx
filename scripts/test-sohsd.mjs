@@ -1023,6 +1023,160 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
 }
 
 // ═════════════════════════════════════════════════════════════════════
+console.log('\n-- D219: kiểm kê CHỈ SỐ LƯỢNG — một số mỗi mã, HSD tự chia --');
+{
+  const goi = [];
+  const st = { phieu: null, sl: {}, hsd: {} };
+  const CHIA = { 55: [{ hsd: '2027-06-18', so: 40 }, { hsd: '2027-06-08', so: 15 }] };
+  const HANG = [
+    { item: 'TP-SEN', ten: 'Bánh sen', dvt: 'Hộp', uoms: UOMS, so_sach: 180, chua_hsd: 0, thu_hoi: 0,
+      theo_hsd: [{ hsd: '2027-06-08', so: 30 }, { hsd: '2027-06-18', so: 150 }], khong_lo: false, tu_chia: true },
+    { item: 'TP-CU', ten: 'Bánh cũ chưa có HSD', dvt: 'Hộp', uoms: [], so_sach: 12, chua_hsd: 12, thu_hoi: 0, theo_hsd: [],
+      khong_lo: false, tu_chia: false },
+  ];
+  const tq = () => ({
+    kho: 'Kho TP', duoc_chot: true, hom_nay: NGAY, bay_gio: '2026-10-09T10:00', phieu: st.phieu, danh_muc: [],
+    gan_day: [], canh_bao: [],
+    hang: HANG.map((h) => {
+      const sl = st.sl[h.item];
+      const dem = st.hsd[h.item] || [];
+      return { ...h, da_dem: !!sl || dem.length > 0, sl: sl && sl.so > 0 ? sl : null,
+        dem: sl && !(sl.so > 0) ? [{ hsd: null, so: 0 }] : dem,
+        chia: sl && sl.so > 0 ? (CHIA[sl.so] || []) : [],
+        tong_dem: sl ? sl.so : dem.reduce((a, x) => a + x.so, 0) };
+    }),
+  });
+  const call = async (m, a = {}) => {
+    goi.push([m, a]);
+    if (m === 'sx.api.kiemke.bat_dau') {
+      st.phieu = { name: 'KK-9', bat_dau_luc: '2026-10-09 08:15', duoc_huy: true, cach_dem: a.cach_dem };
+    }
+    if (m === 'sx.api.kiemke.ghi_so') {
+      st.sl[a.item] = { so: Number(a.so_dem), chi_tiet: a.chi_tiet ? JSON.parse(a.chi_tiet) : null };
+      delete st.hsd[a.item];
+    }
+    if (m === 'sx.api.kiemke.ghi') { st.hsd[a.item] = [{ hsd: a.hsd, so: Number(a.so_dem) }]; delete st.sl[a.item]; }
+    if (m === 'sx.api.kiemke.dem_lai') { delete st.sl[a.item]; delete st.hsd[a.item]; }
+    if (m === 'sx.api.kiemke.xem_truoc') {
+      return { name: 'KK-9', loi: [], canh_bao: [], duoc_chot: true, loai: 'Thành phẩm',
+        ma: [{ item: 'TP-SEN', ten: 'Bánh sen', so_sach: 180, dem: 55, chuyen: 0, lo_cu: 0, thieu: 125, thua: 0, bu_am: 0,
+          thu_hoi: 0, chia: CHIA[55], khong_chia: false },
+        { item: 'TP-CU', ten: 'Bánh cũ chưa có HSD', so_sach: 12, dem: 12, chuyen: 0, lo_cu: 0, thieu: 12, thua: 0,
+          bu_am: 0, thu_hoi: 0, chia: null, khong_chia: true }],
+        tong: { so_ma: 2, so_sach: 192, dem: 67, phieu_kho: 1, ve_0: 0, bat_lo: 0, kho_am: [], thoi_diem: '', bat_lui: 0 } };
+    }
+    return tq();
+  };
+  const loiGoi = (m) => goi.filter((g) => g[0] === m).pop();
+  const tomKK = (c) => (c.innerHTML.match(/<summary class="sx-no-tom">([\s\S]*?)<\/summary>/) || [])[1] || '';
+  const c = new E('div');
+  await KK.render({ container: c, call, boot: {} });
+  const sl = c.querySelector('#kk-bat-sl');
+  kiem('chưa có phiếu: HAI cách — KIỂM KÊ CHỈ SỐ LƯỢNG (nút chính) và KIỂM KÊ KÈM HẠN SỬ DỤNG (tên mới của kiểm kê cũ)',
+    sl && /sx-btn-primary/.test(c.innerHTML.match(/<button[^>]*id="kk-bat-sl"[^>]*>/)[0])
+    && /KIỂM KÊ CHỈ SỐ LƯỢNG/.test(c.innerHTML) && /id="kk-bat">KIỂM KÊ KÈM HẠN SỬ DỤNG/.test(c.innerHTML)
+    && /lô còn hạn ngắn\s+nhất coi như đã xuất trước/.test(c.innerHTML), c.innerHTML.slice(0, 400));
+  sl.bam();
+  await choRe();
+  kiem('bấm → bat_dau(cách đếm "Chỉ số lượng"); tên thẻ "Kiểm kê chỉ số lượng — kho thành phẩm"',
+    loiGoi('sx.api.kiemke.bat_dau')[1].cach_dem === 'Chỉ số lượng'
+    && tomKK(c).includes('Kiểm kê chỉ số lượng — kho thành phẩm'), tomKK(c));
+  kiem('mã tự chia được: nút ĐẾM (một số) + "kèm HSD" để đếm theo HSD nếu muốn; không có "+ HSD"',
+    !!c.querySelector('[data-sl="0"]') && /data-sl="0">ĐẾM</.test(c.innerHTML) && !!c.querySelector('[data-them="0"]')
+    && /data-them="0">kèm HSD</.test(c.innerHTML) && !/data-them="0">\+ HSD/.test(c.innerHTML), c.innerHTML.slice(0, 300));
+  kiem('mã sổ không có lô HSD: dòng đếm kèm HSD như cũ + nhắc vì sao', /data-them="1">\+ HSD/.test(c.innerHTML)
+    && !c.querySelector('[data-sl="1"]') && /Sổ không có lô nào có HSD để tự chia — đếm mã này kèm HSD in trên hộp\./
+      .test(c.innerHTML), c.innerHTML);
+  kiem('nhắc đang kiểm kê nói HSD tự chia', /HSD tự chia theo sổ: lô còn hạn ngắn nhất coi như đã xuất trước\./.test(c.innerHTML));
+  let p = moi(c.querySelector('[data-sl="0"]'));
+  kiem('ĐẾM → bàn số thùng / hộp KHÔNG có ô HSD, dòng phụ "sổ 180"', p && p.tabs().length === 2
+    && !p.m.body.querySelector('#sh-hsd') && /sổ 180/.test(p.goiY()), p && p.m.body.innerHTML.slice(0, 300));
+  p.go('4');
+  p.tab(1);
+  p.go('7');
+  p.luu();
+  await choRe();
+  let g = loiGoi('sx.api.kiemke.ghi_so');
+  kiem('LƯU (không đòi HSD) → ghi_so(mã, 55, chi tiết 4 thùng 7 hộp)', p.dong() && g && g[1].item === 'TP-SEN'
+    && g[1].so_dem === 55 && g[1].chi_tiet === JSON.stringify([{ uom: 'Thùng', sl: 4, he_so: 12 }, { uom: 'Hộp', sl: 7, he_so: 1 }]),
+    g && g[1]);
+  kiem('dòng mã: "Đếm 55 (4 thùng + 7 hộp)", HSD tự chia bày ngay (18/06/27: 40 · 08/06/27: 15), lệch so với sổ',
+    /data-sl="0">Đếm <b>55<\/b> <i>\(4 thùng \+ 7 hộp\)<\/i>/.test(c.innerHTML)
+    && /→ HSD tự chia: 18\/06\/27: 40 · 08\/06\/27: 15/.test(c.innerHTML) && /đếm <b>55<\/b> · sổ 180/.test(c.innerHTML)
+    && !/data-them="0"/.test(c.innerHTML), c.innerHTML.slice(0, 900));
+  p = moi(c.querySelector('[data-sl="0"]'));
+  kiem('bấm lại số → bàn số điền sẵn 4 thùng 7 hộp', p && /Thùng · 4/.test(p.tabs()[0]) && /Hộp · 7/.test(p.tabs()[1]),
+    p && p.tabs());
+  p.go('0');
+  p.tab(1);
+  p.go('0');
+  p.luu();
+  await choRe();
+  g = loiGoi('sx.api.kiemke.ghi_so');
+  kiem('sửa về 0 được (= không còn hàng) → ghi_so số 0', p.dong() && g[1].so_dem === 0, g[1]);
+  kiem('… dòng mã "không còn hàng", nút Đếm lại', /không còn hàng/.test(c.innerHTML) && !!c.querySelector('[data-lai="0"]'));
+  const quet = [];
+  const goc = globalThis.__gia.moQuet;
+  globalThis.__gia.moQuet = (o) => quet.push(o);
+  c.querySelector('#kk-quet').bam();
+  const nMo = MO.length;
+  quet[0].onTim('TP-SEN');
+  const pq = pad();
+  kiem('QUÉT HỘP mã tự chia được → bàn số chỉ số lượng (không ô HSD)', MO.length === nMo + 1
+    && !pq.m.body.querySelector('#sh-hsd'), pq.m.body.innerHTML.slice(0, 200));
+  pq.m.close();
+  c.querySelector('#kk-quet').bam();
+  quet[1].onTim('TP-CU');
+  kiem('… mã không tự chia được → bàn số kèm HSD', !!pad().m.body.querySelector('#sh-hsd'));
+  pad().m.close();
+  globalThis.__gia.moQuet = goc;
+  c.querySelector('[data-lai="0"]').bam();
+  await choRe();
+  const pk = moi(c.querySelector('[data-them="0"]'));
+  kiem('Đếm lại → mã chọn "kèm HSD" → bàn số CÓ ô HSD', pk && !!pk.m.body.querySelector('#sh-hsd'));
+  pk.go('3');
+  pk.datHsd('2027-06-18');
+  pk.luu();
+  await choRe();
+  kiem('… đã đếm kèm HSD thì dòng mã là dòng HSD (ô HSD 18/06/27 · 3, + HSD), không còn nút ĐẾM một số',
+    loiGoi('sx.api.kiemke.ghi')[1].hsd === '2027-06-18' && /data-sua="0:0">HSD 18\/06\/27 · 3/.test(c.innerHTML)
+    && /data-them="0">\+ HSD/.test(c.innerHTML) && !c.querySelector('[data-sl="0"]'), c.innerHTML.slice(0, 600));
+  const ph = moi(c.querySelector('[data-them="1"]'));
+  ph.go('12');
+  ph.datHsd('2027-01-01');
+  ph.luu();
+  await choRe();
+  kiem('mã không tự chia: + HSD → ghi(mã, HSD, số) như kiểm kê kèm HSD', loiGoi('sx.api.kiemke.ghi')[1].item === 'TP-CU'
+    && loiGoi('sx.api.kiemke.ghi')[1].hsd === '2027-01-01');
+  c.querySelector('#kk-xem').bam();
+  await choRe();
+  const xt = MO[MO.length - 1].body.innerHTML;
+  kiem('XEM TRƯỚC: mã chỉ số lượng ghi HSD tự chia; mã chưa chia được nói rõ phải đếm kèm HSD',
+    /HSD tự chia 18\/06\/27: 40, 08\/06\/27: 15/.test(xt) && /chưa chia được HSD — đếm kèm HSD/.test(xt), xt.slice(0, 900));
+}
+{
+  const goi = [];
+  let phieu = null;
+  const call = async (m, a = {}) => {
+    goi.push([m, a]);
+    if (m === 'sx.api.kiemke.bat_dau') phieu = { name: 'KK-8', bat_dau_luc: '2026-10-09 08:15', duoc_huy: true, cach_dem: a.cach_dem };
+    return { kho: 'Kho TP', duoc_chot: true, hom_nay: NGAY, phieu, danh_muc: [], gan_day: [], canh_bao: [],
+      hang: [{ item: 'TP-SEN', ten: 'Bánh sen', dvt: 'Hộp', uoms: UOMS, so_sach: 30, chua_hsd: 0, thu_hoi: 0,
+        theo_hsd: [{ hsd: '2027-06-08', so: 30 }], khong_lo: false, tu_chia: true, da_dem: false, dem: [], sl: null,
+        chia: [], tong_dem: 0 }] };
+  };
+  const c = new E('div');
+  await KK.render({ container: c, call, boot: {} });
+  c.querySelector('#kk-bat').bam();
+  await choRe();
+  const tom = (c.innerHTML.match(/<summary class="sx-no-tom">([\s\S]*?)<\/summary>/) || [])[1] || '';
+  kiem('KIỂM KÊ KÈM HẠN SỬ DỤNG → bat_dau(cách đếm "Kèm hạn sử dụng"); tên thẻ đổi theo; mã đếm bằng + HSD như cũ',
+    goi.find((x) => x[0] === 'sx.api.kiemke.bat_dau')[1].cach_dem === 'Kèm hạn sử dụng'
+    && tom.includes('Kiểm kê kèm hạn sử dụng — kho thành phẩm') && /data-them="0">\+ HSD/.test(c.innerHTML)
+    && !c.querySelector('[data-sl="0"]'), tom);
+}
+
+// ═════════════════════════════════════════════════════════════════════
 console.log('\n-- Kiểm kê bán thành phẩm (D155): chọn kho, cân từng lô bằng bàn số kg --');
 {
   /** Điều khiển bàn số openNumpad đang mở (cửa sổ cuối cùng). */
