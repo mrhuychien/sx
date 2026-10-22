@@ -65,6 +65,39 @@ def chan_nhap_kho(phieu):
         title=_("Chờ duyệt xuất xưởng"))
 
 
+def lo_chua_duyet(ds):
+    """{mã lô: Batch} — các lô trong `ds` chưa bán / giao được vì chưa duyệt xuất xưởng (BM.08.04): lô thành phẩm có HSD,
+    tạo từ ngày áp dụng, không phải lô nhận tồn cũ qua kiểm kê (D154). Tắt chốt chặn → {}. Dùng chung cho chốt bán
+    (kiem_ban) và chia lô ở phiếu POS (D221 — lô chưa bán được xếp sau cùng)."""
+    s = get_settings()
+    if not _bat(s):
+        return {}
+    ds = list({b for b in ds or [] if b})
+    if not ds:
+        return {}
+    tp = {i.name for i in items_tp(["name"])}
+    loc = {"name": ("in", ds)}
+    truong = ["name", "item", "item_name", "expiry_date", "creation"]
+    try:
+        lo = frappe.get_all("Batch", filters=loc, fields=truong + ["custom_kiem_ke"])
+    except Exception:                 # chưa migrate D154
+        lo = frappe.get_all("Batch", filters=loc, fields=truong)
+    tn = tu_ngay(s)
+    can = []
+    for x in lo:
+        if x.item not in tp or not x.expiry_date:
+            continue
+        if tn and getdate(x.creation) < tn:
+            continue                  # tồn cũ trước ngày áp dụng BM.08.04
+        if x.get("custom_kiem_ke"):
+            continue                  # D154: tồn cũ chuyển sang lô theo HSD lúc chốt kiểm kê
+        can.append(x)
+    if not can:
+        return {}
+    thieu = {(i, h) for i, h, _p in XX.chua_duyet([(x.item, x.expiry_date) for x in can])}
+    return {x.name: x for x in can if (x.item, str(getdate(x.expiry_date))) in thieu}
+
+
 def kiem_ban(doc, method=None):
     """before_submit + on_submit của Sales Invoice (trừ kho) / Delivery Note / POS Invoice:
     lô thành phẩm tạo từ ngày áp dụng mà chưa duyệt xuất xưởng → chặn. Trả hàng: qua."""
@@ -72,37 +105,13 @@ def kiem_ban(doc, method=None):
         return
     if doc.doctype == "Sales Invoice" and not cint(doc.get("update_stock")):
         return
-    s = get_settings()
-    if not _bat(s):
-        return
     from sx.api.thuhoi import _lo_cac_dong
 
     cap = _lo_cac_dong(doc)
     if not cap:
         return
-    tp = {i.name for i in items_tp(["name"])}
-    loc = {"name": ("in", list({b for _r, b in cap}))}
-    truong = ["name", "item", "item_name", "expiry_date", "creation"]
-    try:
-        ds = frappe.get_all("Batch", filters=loc, fields=truong + ["custom_kiem_ke"])
-    except Exception:                 # chưa migrate D154
-        ds = frappe.get_all("Batch", filters=loc, fields=truong)
-    lo = {b.name: b for b in ds}
-    tn = tu_ngay(s)
-    can = []
-    for r, b in cap:
-        x = lo.get(b)
-        if not x or x.item not in tp or not x.expiry_date:
-            continue
-        if tn and getdate(x.creation) < tn:
-            continue                  # tồn cũ trước ngày áp dụng BM.08.04
-        if x.get("custom_kiem_ke"):
-            continue                  # D154: tồn cũ chuyển sang lô theo HSD lúc chốt kiểm kê
-        can.append((r, x))
-    if not can:
-        return
-    thieu = {(i, h) for i, h, _p in XX.chua_duyet([(x.item, x.expiry_date) for _r, x in can])}
-    sai = [(r, x) for r, x in can if (x.item, str(getdate(x.expiry_date))) in thieu]
+    cd = lo_chua_duyet([b for _r, b in cap])
+    sai = [(r, cd[b]) for r, b in cap if b in cd]
     if sai:
         frappe.throw(_("Lô chưa được duyệt xuất xưởng (BM.08.04) — chưa bán / giao được:") + "<br>"
                      + "<br>".join(_("• Dòng {0}: {1} HSD {2}").format(r.idx, x.item_name or x.item,

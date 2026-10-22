@@ -812,6 +812,14 @@ loi = thu(lambda: A.kiem_ban(hd("DUA-HSD270405")))
 kiem("bán lô TP chưa duyệt (tạo từ ngày áp dụng) → chặn", loi and "chưa được duyệt xuất xưởng" in loi, loi or "")
 kiem("Delivery Note / POS cũng chặn", thu(lambda: A.kiem_ban(hd("DUA-HSD270405", dt="Delivery Note"))) is not None
      and thu(lambda: A.kiem_ban(hd("DUA-HSD270405", dt="POS Invoice"))) is not None)
+hai = hd("SEN-HSD270405", dt="POS Invoice")
+hai["items"].append(Doc(idx=2, item_code="x", batch_no="DUA-HSD270405", warehouse="Kho TP"))
+loi = thu(lambda: A.kiem_ban(hai))
+kiem("nhiều dòng: chặn đúng dòng mang lô chưa duyệt (dòng 2), không kể dòng lô đã duyệt",
+     loi and "Dòng 2" in loi and "Dòng 1" not in loi, loi or "")
+hai["items"][0]["batch_no"], hai["items"][1]["batch_no"] = "DUA-HSD270405", "SEN-HSD270405"
+loi = thu(lambda: A.kiem_ban(hai))
+kiem("… lô chưa duyệt ở dòng 1 → báo dòng 1", loi and "Dòng 1" in loi and "Dòng 2" not in loi, loi or "")
 kiem("lô tồn cũ (tạo trước ngày áp dụng) → qua", thu(lambda: A.kiem_ban(hd("SEN-CU-270101"))) is None)
 BATCH.append({"name": "DUA-HSD270301", "item": "TP-DUA", "item_name": "Bánh đậu xanh dừa",
               "expiry_date": date(2027, 3, 1), "creation": "2026-10-09 09:00", "custom_kiem_ke": "KK-2026-001"})
@@ -822,7 +830,13 @@ kiem("trả hàng / hoá đơn không trừ kho → qua", thu(lambda: A.kiem_ban
      and thu(lambda: A.kiem_ban(hd("DUA-HSD270405", us=0))) is None)
 SETTINGS["chan_nhap_chua_xuat_xuong"] = 0
 kiem("tắt ở SX Settings → qua", thu(lambda: A.kiem_ban(hd("DUA-HSD270405"))) is None)
+kiem("… lô chưa bán được (D221 — chia lô POS xếp sau cùng): tắt → không lô nào",
+     A.lo_chua_duyet(["DUA-HSD270405"]) == {})
 SETTINGS["chan_nhap_chua_xuat_xuong"] = 1
+kiem("lô chưa bán được: đúng các lô chưa duyệt trong danh sách (bỏ lô trống, lô trùng, tồn cũ, lô kiểm kê, không TP)",
+     sorted(A.lo_chua_duyet(["DUA-HSD270405", "SEN-HSD270405", None, "DUA-HSD270405", "SEN-CU-270101",
+                             "DUA-HSD270301", "BOT-NEN-01"])) == ["DUA-HSD270405"]
+     and A.lo_chua_duyet([]) == {} and A.lo_chua_duyet([None]) == {})
 kiem("trạng thái lô cho màn nhập kho: đã duyệt / chưa",
      A.trang_thai_cac_lo([("TP-SEN", "2027-04-05"), ("TP-DUA", "2027-06-01")])
      == {("TP-SEN", "2027-04-05"): {"name": d["name"], "duyet": True, "chu": "đã duyệt — Cho xuất xưởng"},

@@ -323,6 +323,34 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## POS: một dòng phải gộp nhiều lô mới đủ — báo lô âm dù các lô cộng lại thừa đủ (D221)
+
+- **Hỏi** (22/10/2026): mã còn tồn 2 lô, bán bằng POS một số lượng mà phải gộp 2 lô mới đủ → POS báo lô âm.
+- **Nguyên nhân — cách màn POS của ERPNext 16 gắn lô**: mỗi dòng giỏ hàng mang **một** lô (ô `batch_no`). Lô được chọn
+  lúc thêm mã vào giỏ — khi số lượng còn là 1 — là lô HSD gần nhất còn hàng; tăng số lượng thì dòng **vẫn giữ lô đó**.
+  Màn POS chỉ kiểm **tổng** tồn của mã, không kiểm từng lô, nên vẫn cho thanh toán. Lúc ghi phiếu, ERPNext dựng gói lô
+  **một lô** cho cả số lượng của dòng → *Batch … has negative stock … Please add a stock quantity of N* (N = số bán −
+  số còn của lô đó).
+- **Sửa** (`sx/api/pos_lo.py`, hook `before_submit` của POS Invoice, đứng đầu — trước khi ERPNext dựng gói lô): dòng
+  có lô mà lô đó không đủ → lấy hết phần còn của lô đang gắn, phần thiếu lấy lần lượt các lô khác theo HSD gần trước;
+  ghi thành **một gói lô nhiều lô** cho dòng — y như khi thu ngân tự chọn nhiều lô trong hộp chọn lô của POS. Dòng,
+  giá, tiền, hoá đơn in không đổi; đóng ca gộp hoá đơn mang nguyên gói lô sang hoá đơn bán.
+  - Số còn từng lô tính đúng như ERPNext khi tự chọn lô: đã trừ phiếu POS khác chưa đóng ca, hàng giữ chỗ; bỏ lô hết
+    hạn. Nhiều dòng cùng mã trên một phiếu: dòng sau trừ phần các dòng trước đã lấy. Bán theo thùng tính theo hộp.
+  - Lô đang thu hồi (W26) / chưa duyệt xuất xưởng BM.08.04 (W08) xếp **sau cùng** — chỉ đụng tới khi các lô bán được
+    không đủ, và khi đó chốt bán báo đúng lý do (lô thu hồi / chưa duyệt) thay cho "lô âm".
+  - Các lô cộng lại vẫn không đủ → để nguyên, ERPNext báo lô âm như cũ (thiếu hàng thật → kiểm kê / nhập bù). Phiếu
+    trả hàng, dòng thu ngân đã tự chọn lô bằng hộp chọn lô: không đụng.
+  - Lô còn **nhiều hơn** số bán mà vẫn báo âm → không phải lỗi này, xem D207 (điểm âm trong lịch sử lô).
+- Chỉ phiếu POS (POS Settings → *Invoice Type* = POS Invoice, như đang dùng). Hoá đơn bán / phiếu giao lập ở Desk vẫn
+  do người lập chọn lô như cũ (W06).
+- `sx.api.xuatxuong.lo_chua_duyet` — lô chưa duyệt xuất xưởng — tách ra dùng chung cho chốt bán (`kiem_ban`) và chia lô.
+- Test `test-poslo.py` (chia lô: lô đang gắn trước, HSD gần trước, lô bị khoá sau cùng, không đủ thì để nguyên, nhiều
+  dòng / nhiều kho, thùng / kg lẻ; gói lô gắn đúng phiếu / dòng / ngày giờ, để nháp; dòng sau khi chia đúng là dòng
+  ERPNext không dựng gói một lô nữa — điều kiện chép nguyên văn 16.15.1), `test-xuatxuong.py` (lô chưa duyệt; nhiều
+  dòng chặn đúng dòng).
+- Đổi hooks, không đổi DocType: `git pull` → `bench --site site1.local migrate` (xoá cache hooks) → `bench restart`.
+
 ## Vào hộp Tết: dòng trùng HSD cũng tự gộp (D220)
 
 - Như màn Nhập kho (D218): chọn / quét mã luôn mở **dòng mới**; LƯU mà HSD trùng một dòng đang có của mã thì **cộng vào

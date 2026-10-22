@@ -68,7 +68,9 @@ doc_events = {
                       "on_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban", "sx.api.lo_cu.bat_lai_lo"],
                       "before_cancel": "sx.api.lo_cu.tam_tat_lo",
                       "on_cancel": "sx.api.lo_cu.bat_lai_lo"},
-    "POS Invoice": {"before_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"],
+    # D221: dòng POS bán quá số còn của lô đang gắn → chia sang các lô khác (một gói lô nhiều lô) — đứng ĐẦU, để chốt
+    # thu hồi / xuất xưởng xét đúng các lô sẽ ghi.
+    "POS Invoice": {"before_submit": ["sx.api.pos_lo.chia_lo", "sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"],
                     "on_submit": ["sx.api.thuhoi.kiem_xuat", "sx.api.xuatxuong.kiem_ban"]},
     "Stock Entry": {"before_submit": "sx.api.thuhoi.kiem_xuat",
                     "on_submit": "sx.api.thuhoi.kiem_xuat"},
