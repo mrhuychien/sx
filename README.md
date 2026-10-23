@@ -323,6 +323,30 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ô lô ERPNext tự điền: một lô không đủ số thì lấy lô HSD gần nhất, không phải lô cuối (D223)
+
+- **Thấy** (23/10/2026, khung *Đã chia lô* của D222): đơn 600 hộp *Bánh đậu xanh hương vị sen Hộp lễ 100g* — dòng mang
+  lô **LS-HSD100727** (HSD 10/07/2027, còn 558), lấy thêm LS-HSD100627 (10/06, còn 11) + LS-HSD250627 (25/06, còn 31).
+  Đủ 600 = hết cả ba lô, nhưng lô trên dòng lại là lô HSD **xa nhất**.
+- **Nguyên nhân — ERPNext** (`get_item_details.update_stock`, 16.15.1): dòng chưa có lô thì ERPNext đi lần các lô
+  (thứ tự ở Stock Settings) trừ dần số cần và **ghi đè ô lô mỗi vòng** → dòng mang lô **cuối cùng** cần tới. Gặp khi số
+  lượng đã có lúc điền lô: hoá đơn / phiếu giao lập từ đơn hàng, lưu hoá đơn có dòng chưa chọn lô. Đơn 300 hộp thì lô
+  10/07 đủ → ERPNext ghi **cả 300 vào lô 10/07, không báo gì**; hai lô cũ vẫn nằm trên sổ dù kho đã xuất theo HSD →
+  sổ lô lệch kho thật.
+- **Vá** (`sx/va_erpnext.py`, bản vá 2, cùng chỗ bọc của D205): dòng cần hơn một lô thì ô lô = **lô HSD gần nhất còn
+  hàng** (trừ phần các dòng khác của phiếu đã lấy, như ERPNext); lúc gửi, D221 / D222 chia phần thiếu theo HSD → đơn 600
+  ghi 10/06 11 + 25/06 31 + 10/07 558; đơn 300 ghi 10/06 11 + 25/06 31 + 10/07 258. Giá theo lô (nếu có) theo lô mới.
+  Không đụng: lô người lập đã chọn, dòng mà một lô đủ số, mã có số serial. Bản vá lỗi thì giữ lô ERPNext chọn, ghi
+  Error Log — không làm hỏng việc chọn mã.
+- Khung *Đã chia lô* đổi chữ "Lô đang chọn" → "**Lô trên dòng**" (lô thường do ERPNext điền, không phải người lập chọn).
+  Từ nay đơn nào một dòng cần hơn một lô cũng hiện khung này sau khi gửi.
+- Dòng mà **một lô đủ số** thì ERPNext lấy lô đầu tiên theo Stock Settings → *Pick Serial / Batch Based On*: để
+  **Expiry** thì cũng là lô HSD gần nhất (FIFO là lô tạo trước — lô tạo cùng lúc ở kiểm kê thì không theo HSD).
+- Test `test-vaerpnext.py` (chạy nguyên văn mã ERPNext 16.15.1): trước vá tái hiện đúng đơn 600 / đơn 300; sau vá lô HSD
+  gần nhất, Stock Settings xếp FIFO vẫn theo HSD, trừ lô các dòng khác, phiếu giao kèm đơn hàng, giá theo lô, các ca
+  không đụng, bản vá lỗi.
+- Không đổi DocType, không đổi hooks: `git pull` → `bench restart`.
+
 ## Hoá đơn bán / phiếu giao: một dòng phải gộp nhiều lô mới đủ — tự chia như POS (D222)
 
 - **Hỏi** (23/10/2026): làm Sales Invoice cũng bị như POS (D221) — tồn đủ ở 2 lô mà báo lô âm.

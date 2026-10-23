@@ -7,6 +7,10 @@ Bài này chạy ĐÚNG mã update_stock của ERPNext 16.15.1 (chép nguyên v�
 nó gọi tới): trước vá tái hiện đúng lỗi, sau sx.va_erpnext.va() chọn lô bình thường; có phiếu thật thì bản vá
 không đụng gì.
 
+D223 — cùng hàm: dòng chưa có lô mà một lô không đủ số → ERPNext điền lô CUỐI CÙNG cần tới (đơn 600 hộp thật 23/10:
+lô HSD 10/6 còn 11, 25/6 còn 31, 10/7 còn 558 → dòng mang lô 10/7). Trước vá tái hiện đúng; sau vá ô lô = lô HSD gần
+nhất còn hàng.
+
 Chạy: python3 scripts/test-vaerpnext.py   (verify.sh gọi sẵn)
 """
 
@@ -149,6 +153,7 @@ class _dict(dict):
 
 
 LOG, LO, GIA_LO, GOI_GIA, GOI_LO = [], {}, {}, [], []
+HSD_LO = {}       # lô → HSD; hỏi based_on Expiry thì xếp theo đây (LO giữ thứ tự Stock Settings — FIFO)
 frappe = types.ModuleType("frappe")
 frappe._dict = _dict
 frappe.get_single_value = lambda dt, f: "FIFO"
@@ -156,6 +161,7 @@ frappe.log_error = lambda **k: LOG.append(k)
 frappe.get_traceback = lambda: "traceback"
 fu = types.ModuleType("frappe.utils")
 fu.cint = lambda v: int(float(v or 0))
+fu.flt = lambda v, p=None: float(v or 0)
 frappe.utils = fu
 sys.modules["frappe"] = frappe
 sys.modules["frappe.utils"] = fu
@@ -166,7 +172,8 @@ for g in ("erpnext", "erpnext.stock", "erpnext.stock.doctype", "erpnext.stock.do
     m.__path__ = []
     sys.modules[g] = m
 bt = types.ModuleType("erpnext.stock.doctype.batch.batch")
-bt.get_available_batches = lambda kw: GOI_LO.append(dict(kw)) or dict(LO)
+bt.get_available_batches = lambda kw: GOI_LO.append(dict(kw)) or (
+    dict(sorted(LO.items(), key=lambda x: HSD_LO[x[0]])) if kw.get("based_on") == "Expiry" and HSD_LO else dict(LO))
 sys.modules["erpnext.stock.doctype.batch.batch"] = bt
 sr = types.ModuleType("erpnext.stock.doctype.serial_no.serial_no")
 sr.get_serial_nos_for_outward = lambda kw: ["S1", "S2", "S3"]
@@ -238,6 +245,117 @@ kiem("mã có số serial, không kèm phiếu: cũng không sập (cùng lỗi 
 o = out_lo()
 gid.update_stock(ctx_pos(doctype="Sales Order"), o, None)
 kiem("chứng từ không xuất kho (Sales Order): không chọn lô, không lỗi", not o.batch_no)
+
+print("\n-- D223: ERPNext tự điền ô lô mà MỘT lô không đủ số của dòng --")
+
+
+def ctx_hd(**k):
+    return _dict(dict(item_code="LS100", doctype="Sales Invoice", update_stock=1, warehouse="Kho TP - HGC",
+                      child_docname="row-17", use_serial_batch_fields=1), **k)
+
+
+def hd(*dong):
+    return {"name": "ACC-SINV-2026-00017", "selling_price_list": "Bảng giá sỉ", "items": list(dong)}
+
+
+LO.clear()
+LO.update({"LS-HSD100627": 11, "LS-HSD250627": 31, "LS-HSD100727": 558})
+o = out_lo(item_code="LS100", stock_qty=600)
+GOC(ctx_hd(), o, hd())
+kiem("mã gốc: đơn 600 (lô 10/6 còn 11, 25/6 còn 31, 10/7 còn 558) → dòng mang lô CUỐI (10/7) — đúng ảnh chụp 23/10",
+     (o.batch_no, o.actual_batch_qty) == ("LS-HSD100727", 558), o)
+o = out_lo(item_code="LS100", stock_qty=300)
+GOC(ctx_hd(), o, hd())
+kiem("mã gốc: đơn 300 → cả 300 vào lô HSD xa nhất (lô 10/7 đủ) — không báo gì, hai lô cũ vẫn nằm trên sổ",
+     (o.batch_no, o.actual_batch_qty) == ("LS-HSD100727", 258), o)
+
+GOI_LO.clear()
+o = out_lo(item_code="LS100", stock_qty=600)
+gid.update_stock(ctx_hd(), o, hd())
+kiem("sau vá: đơn 600 → ô lô = lô HSD gần nhất còn hàng (10/6, còn 11) — lúc gửi chia tiếp theo HSD (D222)",
+     (o.batch_no, o.actual_batch_qty) == ("LS-HSD100627", 11), o)
+kiem("… hỏi lại số còn theo HSD, đúng phiếu / dòng, kể cả hàng giữ chỗ cho phiếu (như ERPNext), không giới hạn số",
+     len(GOI_LO) == 2 and GOI_LO[1]["based_on"] == "Expiry" and GOI_LO[1]["item_code"] == "LS100"
+     and GOI_LO[1]["warehouse"] == "Kho TP - HGC" and GOI_LO[1]["sabb_voucher_no"] == "ACC-SINV-2026-00017"
+     and GOI_LO[1]["sabb_voucher_detail_no"] == "row-17" and GOI_LO[1]["sabb_voucher_type"] == "Sales Invoice"
+     and GOI_LO[1]["pick_reserved_items"] and "qty" not in GOI_LO[1] and "against_sales_order" not in GOI_LO[1],
+     GOI_LO)
+o = out_lo(item_code="LS100", stock_qty=300)
+gid.update_stock(ctx_hd(), o, hd())
+kiem("sau vá: đơn 300 → lô 10/6 (không còn ghi cả 300 vào lô 10/7)", o.batch_no == "LS-HSD100627", o)
+o = out_lo(item_code="LS100", stock_qty=700)
+gid.update_stock(ctx_hd(), o, hd())
+kiem("các lô cộng lại không đủ (600 < 700): ô lô vẫn là lô HSD gần nhất", o.batch_no == "LS-HSD100627", o)
+o = out_lo(item_code="LS100", stock_qty=40)
+gid.update_stock(ctx_hd(), o, hd({"batch_no": "LS-HSD100627", "qty": 11}))
+kiem("dòng khác của phiếu đã lấy hết lô 10/6 → lô 25/6 (trừ như ERPNext)", (o.batch_no, o.actual_batch_qty)
+     == ("LS-HSD250627", 31), o)
+GOI_LO.clear()
+o = out_lo(item_code="LS100", stock_qty=5)
+gid.update_stock(ctx_hd(), o, hd())
+kiem("một lô đủ số: để nguyên lô ERPNext chọn, không hỏi thêm", o.batch_no == "LS-HSD100627" and len(GOI_LO) == 1,
+     GOI_LO)
+GOI_LO.clear()
+o = out_lo(item_code="LS100", stock_qty=600, batch_no="LS-HSD100727")   # ERPNext chép lô của dòng vào out
+gid.update_stock(ctx_hd(batch_no="LS-HSD100727"), o, hd())
+kiem("lô người lập đã chọn: không đụng, không hỏi thêm", o.batch_no == "LS-HSD100727" and len(GOI_LO) == 0,
+     (o, GOI_LO))
+o = out_lo(item_code="LS100", stock_qty=600)
+gid.update_stock(ctx_hd(doctype="Delivery Note", against_sales_order="SO-1"), o, hd())
+kiem("phiếu giao: cũng lô HSD gần nhất, hỏi kèm đơn hàng như ERPNext", o.batch_no == "LS-HSD100627"
+     and GOI_LO[-1]["against_sales_order"] == "SO-1", GOI_LO[-1])
+o = out_lo(item_code="LS100", stock_qty=600, has_serial_no=1)
+gid.update_stock(ctx_hd(serial_no="S1"), o, hd())
+kiem("mã có số serial: không đụng (ERPNext chọn serial theo lô đó)", o.batch_no == "LS-HSD100727", o)
+
+LO.clear()
+LO.update({"MOI-HSD100727": 558, "CU-HSD100627": 11, "CU-HSD250627": 31})      # thứ tự Stock Settings (FIFO)
+HSD_LO.update({"MOI-HSD100727": "2027-07-10", "CU-HSD100627": "2027-06-10", "CU-HSD250627": "2027-06-25"})
+o = out_lo(item_code="LS100", stock_qty=600)
+gid.update_stock(ctx_hd(), o, hd())
+kiem("Stock Settings xếp FIFO khác HSD: vẫn lấy lô HSD gần nhất", o.batch_no == "CU-HSD100627", o)
+HSD_LO.clear()
+
+LO.clear()
+LO.update({"LS-HSD100627": 11, "LS-HSD250627": 31, "LS-HSD100727": 558})
+GIA_LO.update({"LS-HSD100627": 41000.0, "LS-HSD100727": 45000.0})     # mã gốc để lại giá lô cuối
+o = out_lo(item_code="LS100", stock_qty=600)
+gid.update_stock(ctx_hd(), o, hd())
+kiem("giá theo lô (nếu có) theo lô mới, bảng giá của phiếu", (o.rate, o.price_list_rate) == (41000.0, 41000.0)
+     and GOI_GIA[-1]["batch_no"] == "LS-HSD100627" and GOI_GIA[-1]["price_list"] == "Bảng giá sỉ", (o, GOI_GIA[-1]))
+GIA_LO.clear()
+o = out_lo(item_code="LS100", stock_qty=600, rate=30000.0, price_list_rate=30000.0)
+gid.update_stock(ctx_hd(), o, hd())
+kiem("… không lô nào có giá riêng: giữ giá bảng giá như cũ", (o.batch_no, o.rate, o.price_list_rate)
+     == ("LS-HSD100627", 30000.0, 30000.0), o)
+goc_gb = bt.get_available_batches
+bt.get_available_batches = lambda kw: {} if kw.get("based_on") == "Expiry" else goc_gb(kw)
+o = out_lo(item_code="LS100", stock_qty=600)
+gid.update_stock(ctx_hd(), o, hd())
+kiem("hỏi lại không còn lô nào (vừa bán hết): giữ lô ERPNext chọn, không báo lỗi", o.batch_no == "LS-HSD100727"
+     and not LOG, (o, LOG))
+bt.get_available_batches = goc_gb
+o = out_lo(item_code="TH170", stock_qty=1)
+LO.clear()
+LO.update({"TH170-HSD100727": 50})
+gid.update_stock(ctx_pos(), o, None)
+kiem("phiếu POS (thêm mã, số lượng 1): như cũ", (o.batch_no, o.actual_batch_qty) == ("TH170-HSD100727", 1), o)
+
+LOG.clear()
+LO.clear()
+LO.update({"LS-HSD100627": 11, "LS-HSD250627": 31, "LS-HSD100727": 558})
+goc_gb = bt.get_available_batches
+bt.get_available_batches = lambda kw: (_ for _ in ()).throw(RuntimeError("hỏng")) if kw.get("based_on") == "Expiry" \
+    else goc_gb(kw)
+o = out_lo(item_code="LS100", stock_qty=600)
+try:
+    gid.update_stock(ctx_hd(), o, hd())
+    kiem("bản vá 2 lỗi: giữ lô ERPNext chọn, ghi Error Log, không làm hỏng việc điền mã",
+         o.batch_no == "LS-HSD100727" and len(LOG) == 1 and "D223" in LOG[0]["title"], (o, LOG))
+except Exception as e:
+    kiem("bản vá 2 lỗi: giữ lô ERPNext chọn, ghi Error Log, không làm hỏng việc điền mã", False, e)
+bt.get_available_batches = goc_gb
+LOG.clear()
 
 print("\n-- an toàn của hook --")
 V.va()

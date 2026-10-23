@@ -228,6 +228,7 @@ node scripts/test-dotoc.mjs > /tmp/sx-dotoc-js.log 2>&1 \
 
 # D205: vá ERPNext trong tiến trình (sx/va_erpnext.py) — chạy ĐÚNG mã update_stock của ERPNext 16.15.1:
 # trước vá sập ở POS (mã có lô, không kèm phiếu), sau vá chọn lô như thường; có phiếu thật thì không đụng.
+# D223: dòng cần hơn một lô → ERPNext điền lô CUỐI cần tới (đơn 600: lô HSD xa nhất); sau vá là lô HSD gần nhất.
 python3 scripts/test-vaerpnext.py > /tmp/sx-va.log 2>&1 \
   && tail -1 /tmp/sx-va.log \
   || { cat /tmp/sx-va.log; loi=1; }

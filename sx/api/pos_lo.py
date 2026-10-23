@@ -104,7 +104,7 @@ def bao_chia(doc, method=None):
         return f"{b} {so_vn(q)}" + (f" (HSD {getdate(hsd[b]).strftime('%d/%m/%Y')})" if hsd.get(b) else "")
 
     frappe.msgprint(
-        _("Lô đang chọn không đủ số bán — đã lấy thêm lô khác (HSD gần trước):") + "<br>" + "<br>".join(
+        _("Lô trên dòng không đủ số bán — đã lấy thêm lô khác (HSD gần trước):") + "<br>" + "<br>".join(
             _("• Dòng {0} · {1}: bán {2}, lô {3} {4} → ghi {5}").format(
                 x.idx, x.ten, so_vn(x.can), x.lo,
                 _("chỉ còn {0}").format(so_vn(x.con)) if x.con > EPS else _("không còn hàng bán được"),
