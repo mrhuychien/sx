@@ -241,6 +241,7 @@ python3 scripts/test-loam.py > /tmp/sx-loam.log 2>&1 \
 # D221: phiếu POS bán một dòng mà phải gộp nhiều lô mới đủ — ERPNext gắn mỗi dòng MỘT lô rồi báo lô âm lúc thanh toán.
 # Chia sang các lô khác thành một gói lô (lô đang gắn trước, HSD gần trước, lô thu hồi / chưa duyệt xuất xưởng sau
 # cùng); dòng sau khi chia đúng là dòng ERPNext không dựng gói một lô nữa.
+# D222: hoá đơn bán trừ kho / phiếu giao cũng chia — lô người lập chọn luôn trước, ghi lùi ngày, gửi xong báo lại.
 python3 scripts/test-poslo.py > /tmp/sx-poslo.log 2>&1 \
   && tail -1 /tmp/sx-poslo.log \
   || { cat /tmp/sx-poslo.log; loi=1; }
