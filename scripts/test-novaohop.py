@@ -205,7 +205,17 @@ for g in ("sx", "sx.api", "sx.config", "sx.sx", "sx.sx.doctype"):
 ut = types.ModuleType("sx.utils")
 BANG_GIA = {("TP-A", ""): 1000.0}
 ut.don_gia_ap_dung = lambda ngay=None: dict(BANG_GIA)
-ut.tra_don_gia = lambda b, sp, cl=None: b.get((sp, cl or ""), b.get((sp, "")) if cl else None)
+ut.GIA_TAM = 1                                    # D224: giá tạm 1 đồng = chưa có giá (như sx.utils)
+ut.la_gia_tam = lambda g: float(g or 0) <= ut.GIA_TAM
+ut.gia_hien = lambda g: 0.0 if ut.la_gia_tam(g) else float(g)
+
+
+def _tra_don_gia(b, sp, cl=None):
+    g = b[(sp, cl)] if cl and (sp, cl) in b else b.get((sp, ""))
+    return None if g is None or ut.la_gia_tam(g) else g
+
+
+ut.tra_don_gia = _tra_don_gia
 ut.bang_don_gia = lambda ngay=None: "BG-1"
 ut.get_bom_active = lambda item: "BOM-" + item
 ut.get_settings = lambda: Doc({"cong_ty": "RVHG", "kho_nvl": "NVL", "kho_btp": "BTP",
@@ -670,6 +680,16 @@ BANG_GIA.clear()
 BANG_GIA.update({("TP-A", "Máy"): 800.0})
 kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 18)
 kiem("chỉ một cách làm, không giá chung → tự chọn", (kq["cach_lam"], kq["don_gia"]) == ("Máy", 800.0), str(kq))
+dung_no()
+BANG_GIA.clear()
+BANG_GIA.update({("TP-A", "Máy"): 1.0, ("TP-A", "Tay"): 1.0, ("TP-A", ""): 1.0})
+g = K.so_no_vao_hop(str(HOM_NAY))["nhom"][0]
+kiem("D224: Tay / Máy giá tạm 1 đồng → thẻ vẫn kể hai cách làm, đơn giá 0 (màn hiện \"chưa có giá\"); giá chung tạm → "
+     "không có giá chung", (g["cach_lam"], g["gia_chung"]) == ([{"ten": "Máy", "don_gia": 0.0},
+                                                                 {"ten": "Tay", "don_gia": 0.0}], None), str(g))
+kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 18, "Tay")
+kiem("… chọn Tay → dòng chung 0 đồng (giá tạm KHÔNG vào tiền khoán), vào sổ nợ đơn giá",
+     (kq["cach_lam"], kq["don_gia"], kq["thanh_tien"]) == ("Tay", 0.0, 0.0), str(kq))
 dung_no()
 BANG_GIA.clear()
 kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 18)

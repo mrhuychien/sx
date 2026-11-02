@@ -46,7 +46,10 @@ kiem('mất mạng: Ghi cho công khoán KHÔNG xếp hàng gửi sau (gửi l�
   && Q.lyDoChan('sx.api.khotp.ghi_no_khoan_chung').includes('đối chiếu sổ nợ'));
 
 // ── Phần 2: hai thẻ thật trong Chromium ─────────────────────────────────
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Đường dẫn cố định của máy chạy thử (liên kết tới bản Chromium đang cài) — ghim số bản là máy đổi bản thì bài
+// lặng lẽ BỎ QUA (D224).
+const CHROME = ['/opt/pw-browsers/chromium', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome']
+  .find((f) => existsSync(f)) || '/opt/pw-browsers/chromium';
 const PW = '/opt/node22/lib/node_modules/playwright/index.js';
 if (!existsSync(CHROME) || !existsSync(PW)) {
   console.log('\n-- trình duyệt thật: BỎ QUA (máy này không có Chromium) --');
@@ -71,7 +74,10 @@ const call = async (m, a) => {
 };
 const ngay = { name: 'N1', ngay: '2026-10-13', docstatus: 0 };
 const boot = { ngay_xem: '2026-10-13', la_hom_nay: true, ngay_sx: ngay, bang_don_gia: 'BG',
-  items_tp: [{ name: 'TP-SEN', item_name: 'Bánh đậu xanh sen' }], danh_muc_khoan: [],
+  items_tp: [{ name: 'TP-SEN', item_name: 'Bánh đậu xanh sen' }],
+  // D224: Tay / Máy giá tạm 1 đồng — server gửi đơn giá 0
+  danh_muc_khoan: [{ item: 'TP-SEN', ten: 'Bánh đậu xanh sen', dvt: 'Hộp', gia_chung: null, chua_gia: false,
+    cach_lam: [{ ten: 'Máy', don_gia: 0 }, { ten: 'Tay', don_gia: 0 }] }],
   nhan_vien: [{ name: 'NV1', employee_name: 'Nguyễn Thị An', ten_hien_thi: 'An' }],
   bang_vao_hop: { dong: [
     { name: 'R3', nhan_vien: 'CONG_NHAT', ten_nhan_vien: 'Công nhật', cong_nhat: 1, san_pham: 'TP-SEN', so_hop: 50 },
@@ -124,6 +130,18 @@ window.SAN_SANG = true;
   const chan = (await p.textContent('#sx-vh-footer')).replace(/\s+/g, ' ');
   kiem('tổng ngày ghi riêng phần công khoán chung và công nhật',
     chan.includes('200') && chan.includes('công khoán chung 30') && chan.includes('công nhật 50'), chan);
+  await p.click('#vh .sx-vh-them[data-nv="NV1"]');
+  await p.click('.sx-modal .sx-sp-pick[data-item="TP-SEN"]');
+  const cachVH = await p.$$eval('.sx-modal .sx-sl-o', (ds) => ds.map((d) => d.textContent.replace(/\s+/g, ' ').trim()));
+  kiem('D224: mã có Tay / Máy giá tạm → chọn cách làm hiện "chưa có giá" (không phải "0 đ"), vẫn chọn được',
+    JSON.stringify(cachVH) === JSON.stringify(['Máy chưa có giá', 'Tay chưa có giá']), JSON.stringify(cachVH));
+  await p.click('.sx-modal .sx-sl-o:has-text("Tay")');
+  const hintVH = await p.textContent('.sx-modal .sx-np-hint');
+  kiem('… chọn Tay → bàn số báo chưa khai đơn giá', hintVH.includes('chưa khai đơn giá'), hintVH);
+  await p.click('.sx-modal .sx-modal-close');
+  await p.waitForTimeout(150);
+  kiem('… đóng bàn số: không ghi dòng nào', !(await p.evaluate(() => window.CALLS))
+    .some(([m]) => m === 'sx.api.portal.luu_bang_vao_hop'));
   await p.click('#vh .sx-vh-row-cn .sx-vh-del');
   await p.waitForTimeout(200);
   const luu = (await p.evaluate(() => window.CALLS)).filter(([m]) => m === 'sx.api.portal.luu_bang_vao_hop').pop();
@@ -204,6 +222,17 @@ window.SAN_SANG = true;
   await p.waitForTimeout(200);
   g = await goiGhi();
   kiem('… gửi đúng cách làm đó', g.length === 1 && g[0][1].cach_lam === 'Máy', JSON.stringify(g));
+
+  await mo(nhom({ cach_lam: [{ ten: 'Máy', don_gia: 0 }, { ten: 'Tay', don_gia: 0 }] }));
+  await p.click('#no .sx-nvh-kc');
+  const oNo = await p.$$eval('.sx-modal .sx-sl-o', (ds) => ds.map((d) => d.textContent.replace(/\s+/g, ' ').trim()));
+  kiem('D224: Tay / Máy giá tạm → "chưa có giá", thành tiền "—" (không phải 0 đ)',
+    JSON.stringify(oNo) === JSON.stringify(['Máy chưa có giá —', 'Tay chưa có giá —']), JSON.stringify(oNo));
+  await p.click('.sx-modal .sx-sl-o:has-text("Tay")');
+  await (await okNut()).click();
+  await p.waitForTimeout(200);
+  g = await goiGhi();
+  kiem('… vẫn ghi được, gửi đúng cách làm đã chọn', g.length === 1 && g[0][1].cach_lam === 'Tay', JSON.stringify(g));
 
   await mo(nhom({}));
   await p.click('#no .sx-nvh-kc');

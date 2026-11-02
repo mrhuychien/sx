@@ -41,7 +41,10 @@ kiem('mã không có tên → hiện "?" chứ không vỡ', vanBanSanLuong(
   [{ ten: 'B', dong: [{ san_pham: 'X', so_hop: 1 }] }], '', () => undefined).includes('B (?: 1)'));
 
 // ── Phần 2: bấm nút thật trong Chromium ─────────────────────────────────
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Đường dẫn cố định của máy chạy thử (liên kết tới bản Chromium đang cài) — ghim số bản là máy đổi bản thì bài
+// lặng lẽ BỎ QUA (D224).
+const CHROME = ['/opt/pw-browsers/chromium', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome']
+  .find((f) => existsSync(f)) || '/opt/pw-browsers/chromium';
 const PW = '/opt/node22/lib/node_modules/playwright/index.js';
 if (!existsSync(CHROME) || !existsSync(PW)) {
   console.log('\n-- trình duyệt thật: BỎ QUA (máy này không có Chromium) --');

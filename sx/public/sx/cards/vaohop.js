@@ -586,7 +586,8 @@ function openSanPhamPicker(ten, danhMuc, spGanDay, onPick, boot) {
   ve();
 }
 
-// Chọn CÁCH LÀM — chỉ hiện khi mã đó có nhiều hơn một mức giá
+// Chọn CÁCH LÀM — chỉ hiện khi mã đó có nhiều hơn một mức giá. Giá tạm 1 đồng (D224) tới đây là 0: "chưa có giá"
+// (vẫn chọn được — dòng vào sổ nợ đơn giá, áp giá sau).
 function openCachLamPicker(ten, sp, onPick) {
   const m = openModal({ kicker: sp.ten, title: `${ten} — làm bằng cách nào?` });
   const chon = [
@@ -596,7 +597,7 @@ function openCachLamPicker(ten, sp, onPick) {
   m.body.innerHTML = '<div class="sx-sl-hang">' + chon.map((c, i) => `
     <button type="button" class="sx-sl-o" data-i="${i}">
       <span class="sx-sl-ten">${esc(c.ten)}</span>
-      <span class="sx-sl-so">${formatNumber(c.gia)} đ</span>
+      <span class="sx-sl-so">${c.gia ? `${formatNumber(c.gia)} đ` : 'chưa có giá'}</span>
     </button>`).join('') + '</div>';
   m.body.querySelectorAll('[data-i]').forEach((b) => {
     b.addEventListener('click', () => { m.close(); onPick(chon[Number(b.dataset.i)].val); });

@@ -323,6 +323,43 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Bảng giá vào hộp: mọi thành phẩm hai cách làm Tay / Máy — giá tạm 1 đồng, nhập giá thật sau (D224)
+
+- **Hỏi** (02/11/2026): phần ghi hộp — các sản phẩm có hai hình thức làm Tay và Máy; viết seed cho nhanh, tạm để giá
+  1 đồng rồi nhập tay sau.
+- **Lệnh seed** (`sx/seed/don_gia.py`), chạy một lần trên site — gọi trần là xem trước, như cả `sx.seed`:
+  ```
+  bench --site site1.local execute sx.seed.don_gia.tay_may                                   # xem trước, không ghi gì
+  bench --site site1.local execute sx.seed.don_gia.tay_may --kwargs "{'dry_run': 0}"         # ghi, hiệu lực từ hôm nay
+  bench --site site1.local execute sx.seed.don_gia.tay_may --kwargs "{'dry_run': 0, 'tu_ngay': '2026-11-03'}"
+  ```
+  - Tạo cách làm **Tay**, **Máy** (SX Cach Lam) nếu chưa có — đang tắt thì bật lại; site có sẵn "máy" chữ thường thì
+    dùng đúng tên đó.
+  - Lập **bảng giá mới hiệu lực từ `tu_ngay`** (mặc định hôm nay), chép đủ dòng của bảng đang dùng — tra giá chỉ đọc
+    một bảng nên bảng mới phải đủ. Bảng cũ giữ nguyên, ngày trước đó vẫn tính giá cũ. Đã có bảng đúng ngày đó thì sửa
+    bảng đó.
+  - Mỗi thành phẩm hai dòng **Tay**, **Máy**, xếp theo tên hàng: dòng thiếu thêm giá **1 đồng**, dòng đã có giữ nguyên
+    giá. **Giá chung** và cách làm khác của thành phẩm bỏ khỏi bảng mới — QC ghi hộp phải chọn Tay hoặc Máy; báo cáo in
+    lại giá cũ để đối chiếu khi nhập giá thật. Dòng của mã không phải thành phẩm giữ nguyên.
+  - **Dừng, không ghi gì** khi bảng vào hộp chưa chốt (hoặc sổ nợ đơn giá đang chờ giá) từ `tu_ngay` trở đi còn dòng
+    thành phẩm không cách làm / cách làm khác: đổi bảng là các dòng đó hết giá để tra. Báo cáo liệt kê và gợi ý
+    `tu_ngay` là ngày sau đó.
+  - Chạy lại an toàn: đủ rồi thì không ghi gì; có thành phẩm mới thì chỉ thêm mã mới, giữ giá đã nhập.
+- **Giá 1 đồng = giá tạm, coi như CHƯA có giá** (`sx.utils.GIA_TAM`). Bảng vào hộp lưu giá ngay lúc ghi, ngày đã chốt
+  không tự tính lại — để 1 đồng là giá thật thì ngày nào chốt trước khi nhập giá, công nhân bị tính 1 đồng/hộp. Nay:
+  - màn Ghi hộp vẫn hiện Tay / Máy để chọn, ghi "**chưa có giá**" (bàn số: "⚠ chưa khai đơn giá"); thẻ Sổ nợ vào hộp
+    → Ghi cho công khoán cũng vậy;
+  - dòng ghi tính 0 đồng, báo "Thiếu đơn giá"; chốt ngày thì vào **Sổ nợ đơn giá** theo mã + cách làm;
+  - nhập giá thật ở SX Bang Don Gia (sửa 1 → giá thật) rồi bấm **Áp giá** ở màn Quản lý; ngày chưa chốt thì lưu lại
+    bảng vào hộp là tính lại;
+  - cách làm có dòng giá tạm thì không rơi về giá chung — rơi về là trả nhầm giá mà không ai biết để áp lại.
+- Các bài kiểm thử trình duyệt tìm Chromium ở `/opt/pw-browsers/chromium` — máy chạy thử đổi bản Chromium thì bài ghim
+  số bản cũ lặng lẽ bỏ qua.
+- Test `test-taymay.py` (seed: xem trước / ghi, bảng mới đủ dòng, giữ giá đã nhập, cách làm có sẵn, dừng khi mất giá,
+  chạy lại; bảng ra qua `kiem_dong` thật), `test-dongia.py` (giá tạm khi tra giá, danh mục màn Ghi hộp),
+  `test-novaohop.py`, `test-khoanchung.mjs` (Chromium: "chưa có giá" ở hai màn chọn cách làm).
+- Không đổi DocType: `git pull` → `bench restart` → chạy lệnh seed (xem trước rồi ghi). Build **sx-166**.
+
 ## Ô lô ERPNext tự điền: một lô không đủ số thì lấy lô HSD gần nhất, không phải lô cuối (D223)
 
 - **Thấy** (23/10/2026, khung *Đã chia lô* của D222): đơn 600 hộp *Bánh đậu xanh hương vị sen Hộp lễ 100g* — dòng mang

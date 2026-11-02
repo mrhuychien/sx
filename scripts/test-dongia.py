@@ -281,5 +281,45 @@ kiem("mã lạ -> None", utils.tra_don_gia(bang, "Z") is None)
 kiem("cach_lam_cua chỉ trả cách làm có khai giá",
      utils.cach_lam_cua(bang, "A") == ["Máy"])
 
+print("\n-- D224: giá tạm 1 đồng = CHƯA có giá (khai cách làm trước, nhập giá sau) --")
+bang = {("A", ""): 100.0, ("A", "Tay"): 1.0, ("B", "Tay"): 1.0, ("B", "Máy"): 150.0, ("C", ""): 1.0}
+kiem("cách làm giá tạm -> None (không lấy nhầm giá chung: ghi 0 đồng, vào sổ nợ, áp giá sau)",
+     utils.tra_don_gia(bang, "A", "Tay") is None)
+kiem("cách làm giá thật bên cạnh cách làm giá tạm -> giá thật", utils.tra_don_gia(bang, "B", "Máy") == 150.0)
+kiem("… và cách làm giá tạm của mã đó -> None", utils.tra_don_gia(bang, "B", "Tay") is None)
+kiem("cách làm KHÔNG có dòng -> vẫn rơi về giá chung như cũ", utils.tra_don_gia(bang, "A", "Máy") == 100.0)
+kiem("giá chung giá tạm -> None", utils.tra_don_gia(bang, "C") is None and utils.tra_don_gia(bang, "C", "Tay") is None)
+kiem("ngưỡng: 1 đồng là tạm, 2 đồng là giá thật", utils.la_gia_tam(1) and utils.la_gia_tam(0)
+     and not utils.la_gia_tam(2) and utils.GIA_TAM == 1)
+kiem("gia_hien (đưa lên màn chọn): tạm -> 0, thật giữ nguyên", utils.gia_hien(1) == 0.0 and utils.gia_hien(150) == 150.0)
+kiem("cach_lam_cua vẫn kể cách làm giá tạm (màn Ghi hộp hiện để chọn)", utils.cach_lam_cua(bang, "A") == ["Tay"])
+b4 = Bang(dong=[D(idx=1, san_pham="A", cach_lam="Tay", don_gia=1), D(idx=2, san_pham="A", cach_lam="Máy", don_gia=1)])
+loi = None
+try:
+    b4.kiem_dong()
+except Throw as e:
+    loi = str(e)
+kiem("bảng đơn giá nhận dòng 1 đồng (giá tạm) — vẫn chặn 0 / âm", loi is None, loi)
+
+# Danh mục màn Ghi hộp (portal._danh_muc_khoan) — ĐÚNG mã hàm trong tệp nguồn, không nạp cả portal.
+import ast  # noqa: E402
+
+_goc = open("sx/api/portal.py", encoding="utf-8").read()
+_fn = next(n for n in ast.parse(_goc).body if isinstance(n, ast.FunctionDef) and n.name == "_danh_muc_khoan")
+_ns = {"flt": frappe.utils.flt,
+       "don_gia_ap_dung": lambda ngay: {("A", "Máy"): 1.0, ("A", "Tay"): 1.0, ("B", ""): 900.0, ("C", ""): 1.0,
+                                        ("E", "Tay"): 1.0, ("E", "Máy"): 700.0},
+       "items_tp": lambda f: [D(name=x, item_name="Bánh " + x, stock_uom="Hộp") for x in "ABCDE"]}
+exec(compile(ast.Module([_fn], []), "sx/api/portal.py", "exec"), _ns)
+dm = {d["item"]: d for d in _ns["_danh_muc_khoan"]("2026-11-02")}
+kiem("màn Ghi hộp: Tay / Máy giá tạm vẫn hiện để chọn, đơn giá 0 (\"chưa có giá\"), không coi là mã chưa khai giá",
+     (dm["A"]["cach_lam"], dm["A"]["gia_chung"], dm["A"]["chua_gia"])
+     == ([{"ten": "Máy", "don_gia": 0.0}, {"ten": "Tay", "don_gia": 0.0}], None, False), str(dm["A"]))
+kiem("… giá chung thật như cũ", (dm["B"]["cach_lam"], dm["B"]["gia_chung"], dm["B"]["chua_gia"]) == ([], 900.0, False))
+kiem("… giá chung giá tạm = mã chưa khai giá", (dm["C"]["gia_chung"], dm["C"]["chua_gia"]) == (None, True)
+     and dm["D"]["chua_gia"])
+kiem("… một cách làm giá thật, một cách giá tạm", dm["E"]["cach_lam"]
+     == [{"ten": "Máy", "don_gia": 700.0}, {"ten": "Tay", "don_gia": 0.0}], str(dm["E"]))
+
 print("DONGIA-FAIL ({} ca)".format(hong) if hong else "DONGIA-OK")
 sys.exit(1 if hong else 0)

@@ -1155,7 +1155,7 @@ def so_no_vao_hop(ngay=None):
 
     D203: kèm số hộp nguyên còn nợ (`so_hop`) và các mức giá của mã theo bảng đơn giá áp dụng cho `ngay` (ngày
     đang xem trên màn — nút "Ghi cho công khoán" ghi vào ngày đó): `cach_lam` [{ten, don_gia}], `gia_chung`."""
-    from sx.utils import don_gia_ap_dung
+    from sx.utils import don_gia_ap_dung, gia_hien, la_gia_tam
 
     guard_card("novaohop")
     ds = frappe.get_all(NO_VH, filters={"trang_thai": "Chờ chấm"},
@@ -1175,9 +1175,10 @@ def so_no_vao_hop(ngay=None):
     for g in ra:
         g["so_ngay"] = (hom_nay - getdate(g["dong"][0]["ngay"])).days
         g["so_hop"] = _hop_no(g["con_lai"])
-        g["cach_lam"] = [{"ten": cl, "don_gia": flt(gia)} for (sp, cl), gia in sorted(bang.items())
+        g["cach_lam"] = [{"ten": cl, "don_gia": gia_hien(gia)} for (sp, cl), gia in sorted(bang.items())
                          if sp == g["item"] and cl]
-        g["gia_chung"] = flt(bang[(g["item"], "")]) if (g["item"], "") in bang else None
+        chung = bang.get((g["item"], ""))
+        g["gia_chung"] = None if chung is None or la_gia_tam(chung) else flt(chung)    # D224: giá tạm = chưa có
     ra.sort(key=lambda g: -g["so_ngay"])
     return {"nhom": ra, "tong_dong": len(ds), "duoc_bo_qua": _duoc_bo_qua_no_vh(),
             "duoc_ghi_kc": _duoc_ghi_kc()}

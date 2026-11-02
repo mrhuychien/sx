@@ -261,7 +261,8 @@ def ham_that(tep, ten, **g):
 # D202: gom nợ giá bằng hàm THẬT trên dòng giống dòng bảng con Frappe — hàm giả đọc bằng thuộc tính nên che mất
 # lỗi r["san_pham"] của hàm thật ("'SXBangVaoHopItem' object is not subscriptable" → rút lại cả lần ghi lương).
 ng.gom_thieu_gia = ham_that("sx/api/nogia.py", "gom_thieu_gia", cint=lambda v: int(float(v or 0)),
-                            tra_don_gia=ham_that("sx/utils.py", "tra_don_gia"))
+                            tra_don_gia=ham_that("sx/utils.py", "tra_don_gia", la_gia_tam=ham_that(
+                                "sx/utils.py", "la_gia_tam", flt=lambda v, p=None: float(v or 0), GIA_TAM=1)))
 sys.modules["sx.api.nogia"] = ng
 ut = types.ModuleType("sx.utils")
 ut.get_bom_active = lambda i: i if i in BOM else None

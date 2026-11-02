@@ -358,7 +358,10 @@ def _danh_muc_khoan(ngay):
     `cach_lam` rỗng và `gia_chung` có giá  -> màn nhập khỏi hỏi thêm bước nào.
     `cach_lam` một phần tử, không giá chung -> tự chọn luôn.
     Còn lại -> hỏi cách làm, vì hai cách làm hai đơn giá khác nhau.
+    Giá tạm 1 đồng (D224, sx.utils.GIA_TAM): cách làm vẫn hiện để chọn, đơn giá 0 — màn hiện "chưa có giá".
     """
+    from sx.utils import gia_hien, la_gia_tam
+
     bang = don_gia_ap_dung(ngay) if ngay else {}
     # Gom cách làm theo mã MỘT lần (D120) — cach_lam_cua quét cả bảng cho mỗi mã.
     cach_theo_ma = {}
@@ -369,12 +372,13 @@ def _danh_muc_khoan(ngay):
     for it in items_tp(["name", "item_name", "stock_uom"]):
         cach = sorted(cach_theo_ma.get(it.name, ()))
         chung = bang.get((it.name, ""))
+        chung = None if chung is None or la_gia_tam(chung) else flt(chung)
         ds.append({
             "item": it.name,
             "ten": it.item_name or it.name,
             "dvt": it.stock_uom or "",
-            "cach_lam": [{"ten": c, "don_gia": flt(bang[(it.name, c)])} for c in cach],
-            "gia_chung": flt(chung) if chung is not None else None,
+            "cach_lam": [{"ten": c, "don_gia": gia_hien(bang[(it.name, c)])} for c in cach],
+            "gia_chung": chung,
             "chua_gia": not cach and chung is None,
         })
     return ds

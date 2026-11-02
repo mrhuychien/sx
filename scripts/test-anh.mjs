@@ -58,7 +58,10 @@ kiem('… và vòng nén luôn dừng', g.goi.length < 60, String(g.goi.length))
 kiem('hiện dung lượng dễ đọc', A.kb(3.2 * 1024 * 1024) === '3,2 MB' && A.kb(215 * 1024) === '215 KB');
 
 // ── Phần 2: Chromium thật ────────────────────────────────────────────────
-const CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// Đường dẫn cố định của máy chạy thử (liên kết tới bản Chromium đang cài) — ghim số bản là máy đổi bản thì bài
+// lặng lẽ BỎ QUA (D224).
+const CHROME = ['/opt/pw-browsers/chromium', '/opt/pw-browsers/chromium-1194/chrome-linux/chrome']
+  .find((f) => existsSync(f)) || '/opt/pw-browsers/chromium';
 const PW = '/opt/node22/lib/node_modules/playwright/index.js';
 if (!existsSync(CHROME) || !existsSync(PW)) {
   console.log('\n-- trình duyệt thật: BỎ QUA (máy này không có Chromium) --');

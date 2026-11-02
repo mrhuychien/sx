@@ -119,6 +119,12 @@ python3 scripts/test-dongia.py > /tmp/sx-dongia.log 2>&1 \
   && tail -1 /tmp/sx-dongia.log \
   || { cat /tmp/sx-dongia.log; loi=1; }
 
+# D224: seed bảng giá Tay / Máy — lập bảng mới từ ngày chọn (bảng cũ giữ nguyên), đủ dòng mã khác, không đè giá đã
+# nhập, dừng khi bảng vào hộp chưa chốt còn dòng sẽ mất giá. Giá tạm 1 đồng = chưa có giá (test-dongia).
+python3 scripts/test-taymay.py > /tmp/sx-taymay.log 2>&1 \
+  && tail -1 /tmp/sx-taymay.log \
+  || { cat /tmp/sx-taymay.log; loi=1; }
+
 # Màn tạo tài khoản là chỗ DUY NHẤT app cấp quyền cho người khác, và mã QR trên thẻ
 # là thứ ai cầm cũng vào được. Hỏng ở đây không hiện ra như một lỗi.
 python3 scripts/test-nguoidung.py > /tmp/sx-nd.log 2>&1 \

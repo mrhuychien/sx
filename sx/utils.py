@@ -741,17 +741,37 @@ def don_gia_ap_dung(ngay=None):
     return dict(m[ten])
 
 
+# D224: đơn giá 1 đồng = GIÁ TẠM — khai cách làm trước (màn Ghi hộp hiện để chọn), nhập giá thật sau. Coi như CHƯA có
+# giá: dòng vào hộp tính 0 đồng, chốt ngày vào sổ nợ đơn giá, có giá thật thì Áp giá. Để con số 1 đồng không lọt vào
+# lương — bảng vào hộp lưu giá lúc ghi, ngày đã chốt không tự tính lại theo bảng giá mới.
+GIA_TAM = 1
+
+
+def la_gia_tam(gia):
+    """Giá tạm (xem GIA_TAM) — coi như chưa có giá."""
+    return flt(gia) <= GIA_TAM
+
+
+def gia_hien(gia):
+    """Đơn giá đưa lên màn chọn cách làm: giá tạm → 0 (màn hiện "chưa có giá")."""
+    return 0.0 if la_gia_tam(gia) else flt(gia)
+
+
 def tra_don_gia(bang, san_pham, cach_lam=None):
     """Tra đơn giá trong bảng đã đọc. Ưu tiên đúng cách làm, không có thì giá chung.
 
     Trả None khi không tra được — nơi gọi phải quyết định báo lỗi thế nào, vì câu
-    báo lỗi ở bảng vào hộp khác câu ở màn quản lý.
+    báo lỗi ở bảng vào hộp khác câu ở màn quản lý. Dòng giá tạm (GIA_TAM) cũng là
+    không tra được — kể cả khi mã có giá chung: cách làm đó chưa định giá, lấy giá
+    chung là trả nhầm mà không ai biết để áp lại.
     """
     if cach_lam and (san_pham, cach_lam) in bang:
-        return bang[(san_pham, cach_lam)]
-    if (san_pham, "") in bang:
-        return bang[(san_pham, "")]
-    return None
+        gia = bang[(san_pham, cach_lam)]
+    elif (san_pham, "") in bang:
+        gia = bang[(san_pham, "")]
+    else:
+        return None
+    return None if la_gia_tam(gia) else gia
 
 
 def cach_lam_cua(bang, san_pham):

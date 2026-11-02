@@ -126,8 +126,8 @@ function moGhiKC(g, call, ctx, lai) {
     gia.innerHTML = (chon.length > 1 ? '<div class="sx-field-label">Làm bằng cách nào?</div>' : '')
       + '<div class="sx-sl-hang">' + chon.map((c, i) => `
         <button type="button" class="sx-sl-o${pick === c ? ' sx-sl-o-co' : ''}" data-i="${i}">
-          <span class="sx-sl-ten">${esc(c.ten)} <i>${esc(formatNumber(c.gia))} đ/hộp</i></span>
-          <span class="sx-sl-so">${esc(formatVND(c.gia * g.so_hop))}</span>
+          <span class="sx-sl-ten">${esc(c.ten)} <i>${c.gia ? `${esc(formatNumber(c.gia))} đ/hộp` : 'chưa có giá'}</i></span>
+          <span class="sx-sl-so">${c.gia ? esc(formatVND(c.gia * g.so_hop)) : '—'}</span>
         </button>`).join('') + '</div>';
     gia.querySelectorAll('[data-i]').forEach((b) => {
       b.addEventListener('click', () => { pick = chon[Number(b.dataset.i)]; veGia(); });
