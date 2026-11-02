@@ -4,10 +4,12 @@
  "permissions": [],
  "field_order": [
   "ngay",
+  "theo_gio",
   "san_pham",
   "ten_san_pham",
   "cach_lam",
   "so_luong",
+  "so_gio",
   "don_gia",
   "thanh_tien"
  ],
@@ -21,13 +23,19 @@
    "columns": 2
   },
   {
+   "fieldname": "theo_gio",
+   "fieldtype": "Check",
+   "label": "Làm theo giờ",
+   "description": "D225: công khoán làm việc tính theo giờ — thành tiền = số giờ × đơn giá / giờ, cộng vào lương sản phẩm của ngày (hệ số ngày lễ, thâm niên như sản phẩm)."
+  },
+  {
    "fieldname": "san_pham",
    "fieldtype": "Link",
    "options": "Item",
    "label": "Mã hàng",
-   "reqd": 1,
    "in_list_view": 1,
-   "columns": 2
+   "columns": 2,
+   "mandatory_depends_on": "eval:!doc.theo_gio"
   },
   {
    "fieldname": "ten_san_pham",
@@ -36,7 +44,7 @@
    "fetch_from": "san_pham.item_name",
    "read_only": 1,
    "in_list_view": 1,
-   "columns": 3
+   "columns": 2
   },
   {
    "fieldname": "cach_lam",
@@ -51,7 +59,19 @@
    "fieldtype": "Int",
    "label": "Số lượng",
    "in_list_view": 1,
-   "columns": 1
+   "columns": 1,
+   "depends_on": "eval:!doc.theo_gio"
+  },
+  {
+   "fieldname": "so_gio",
+   "fieldtype": "Float",
+   "label": "Số giờ",
+   "precision": "2",
+   "non_negative": 1,
+   "in_list_view": 1,
+   "columns": 1,
+   "depends_on": "eval:doc.theo_gio",
+   "mandatory_depends_on": "eval:doc.theo_gio"
   },
   {
    "fieldname": "don_gia",
@@ -72,7 +92,7 @@
  "actions": [],
  "links": [],
  "creation": "2026-08-25 12:00:00.000000",
- "modified": "2026-08-25 12:00:00.000000",
+ "modified": "2026-11-02 12:00:00.000000",
  "modified_by": "Administrator",
  "owner": "Administrator",
  "module": "SX",

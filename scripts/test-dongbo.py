@@ -424,12 +424,14 @@ lam_sach()
 ngay()
 ST["bang"] = D(name="BVH-1", dong=[SXBangVaoHopItem(nhan_vien="An", san_pham="SEN", so_hop=100, thanh_tien=100000),
                                    SXBangVaoHopItem(nhan_vien="Bình", san_pham="MOI", so_hop=30, thanh_tien=0),
-                                   SXBangVaoHopItem(cong_nhat=1, san_pham="MOI", so_hop=20, thanh_tien=0)])
+                                   SXBangVaoHopItem(cong_nhat=1, san_pham="MOI", so_hop=20, thanh_tien=0)],
+               an_ca=[D(nhan_vien="Cúc", an_ca=0, an_dem=0, so_gio=2, tien_gio=66000)])     # D225: làm theo giờ
 doc = get_doc("SX Ngay San Xuat", "SXN-1")
 kiem("không lỗi", B.dong_bo_vaohop(doc) == [])
 n = ST["ngay"]["SXN-1"]
 kiem("ghi phiếu lương các người trong bảng", ST["luong"][-1] == ["An", "Bình"])
-kiem("tổng ngày (cả công nhật) + tiền", n["tong_hop_tp"] == 150 and n["tong_luong_sp"] == 100000, n)
+kiem("tổng ngày (cả công nhật) + tiền — D225: gồm cả tiền làm theo giờ", n["tong_hop_tp"] == 150
+     and n["tong_luong_sp"] == 166000, n)
 kiem("nợ giá mã chưa có giá (không tính công nhật)", [(x.san_pham, x.so_hop, x.trang_thai)
                                                      for x in ST["no"]] == [("MOI", 30, "Chờ giá")])
 ST["bang"]["dong"] = [SXBangVaoHopItem(nhan_vien="An", san_pham="SEN", so_hop=120, thanh_tien=120000),

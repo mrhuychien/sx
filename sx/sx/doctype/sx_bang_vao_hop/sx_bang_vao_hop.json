@@ -46,7 +46,7 @@
   {
    "fieldname": "an_ca",
    "fieldtype": "Table",
-   "label": "Chấm ăn ca / ăn đêm",
+   "label": "Chấm theo người (ăn ca, ăn đêm, làm theo giờ)",
    "options": "SX Bang Vao Hop An Ca"
   },
   {
@@ -84,7 +84,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-07-11 10:00:00.000000",
+ "modified": "2026-11-02 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Bang Vao Hop",

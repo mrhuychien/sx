@@ -54,7 +54,18 @@ PHIEU = [
           dong=[Doc(ngay=date(2026, 10, 4), thu="Chủ nhật", an_ca=1, an_dem=0, luong_sp=96_000,
                     he_so=1.2, thu_nhap_ngay=135_200)],
           phat=[Doc(ly_do="Hộp móp", thanh_tien=20_000)]),
-    phieu("PL-2", "Trần Văn Bình", 0, luong_san_pham=3_000_000, luong_thuc_nhan=3_100_000),
+    phieu("PL-2", "Trần Văn Bình", 0, luong_san_pham=3_000_000, luong_thuc_nhan=3_100_000,
+          # D225: làm theo giờ — số lượng là số GIỜ, gộp theo đơn giá / giờ
+          chi_tiet=[Doc(ngay=date(2026, 10, 1), san_pham="TP-SEN", ten_san_pham="Bánh sen", cach_lam=None,
+                        so_luong=10, don_gia=1200, thanh_tien=12_000),
+                    Doc(ngay=date(2026, 10, 1), theo_gio=1, so_gio=2.5, san_pham=None, ten_san_pham="Làm theo giờ",
+                        cach_lam=None, so_luong=0, don_gia=33_000, thanh_tien=82_500),
+                    Doc(ngay=date(2026, 10, 3), theo_gio=1, so_gio=1.5, san_pham=None, ten_san_pham="Làm theo giờ",
+                        cach_lam=None, so_luong=0, don_gia=33_000, thanh_tien=49_500)],
+          dong=[Doc(ngay=date(2026, 10, 1), thu="Thứ 5", an_ca=1, an_dem=0, luong_sp=94_500, he_so=1,
+                    thu_nhap_ngay=114_500),
+                Doc(ngay=date(2026, 10, 3), thu="Thứ 7", an_ca=0, an_dem=0, luong_sp=49_500, he_so=1,
+                    thu_nhap_ngay=49_500)]),
     phieu("PL-3", "Lê Huỷ", 2, luong_san_pham=9_999_999, luong_thuc_nhan=9_999_999),
     phieu("PL-9", "Tháng khác", 0, thang=9, luong_thuc_nhan=1),
 ]
@@ -146,6 +157,15 @@ kiem("khấu trừ tách riêng", c["tru"] == [{"ten": "Bảo hiểm", "tien": 2
 kiem("thực nhận đúng phiếu", c["thuc_nhan"] == 5_500_000)
 kiem("từng ngày kèm hệ số Chủ nhật", c["ngay"][0]["he_so"] == 1.2 and c["ngay"][0]["thu_nhap"] == 135_200)
 kiem("lỗi phạt", c["phat"] == [{"ly_do": "Hộp móp", "tien": 20_000}])
+c = L.chi_tiet("PL-2")
+gio = [x for x in c["san_pham"] if x.get("theo_gio")]
+kiem("D225: làm theo giờ gộp MỘT dòng theo đơn giá / giờ — số lượng là số giờ (2,5 + 1,5)",
+     [(x["ten"], x["so_luong"], x["don_gia"], x["thanh_tien"]) for x in gio] == [("Làm theo giờ", 4.0, 33_000, 132_000)]
+     and len(c["san_pham"]) == 2, str(c["san_pham"]))
+kiem("… từng ngày kèm số giờ của ngày", [(x["ngay"], x["so_gio"]) for x in c["ngay"]]
+     == [("2026-10-01", 2.5), ("2026-10-03", 1.5)], str(c["ngay"]))
+kiem("… mã hàng có đúng tên dòng sản phẩm, không lẫn dòng giờ",
+     [(x["ten"], x["so_luong"]) for x in c["san_pham"] if not x.get("theo_gio")] == [("Bánh sen", 10)])
 
 print("\n-- quyền --")
 for vai in ("SX Vao Hop", "SX Thu Kho", "SX Ghi So", "SX QC"):

@@ -323,6 +323,35 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Công khoán làm theo giờ (33.000đ/giờ) — QC ghi ở màn Ghi hộp, tính như lương sản phẩm (D225)
+
+- **Hỏi** (02/11/2026): thỉnh thoảng công khoán ra làm việc tính theo giờ như công nhật (33.000đ/giờ) thì tính thế
+  nào. **Đã chốt**: tính **như lương sản phẩm** (Chủ nhật / 1-1 nhân 1,2; vào thưởng thâm niên 5%); **QC ghi ở màn
+  Ghi hộp**.
+- **Ghi**: bấm tên công nhân (hoặc + ở dòng của người đó) → màn chọn mã có nút **⏱ LÀM THEO GIỜ** → bàn số **Số
+  giờ** (giờ lẻ dùng phím phẩy: 2,5) → XONG, hoặc + GHI TIẾP để ghi thêm hộp cho cùng người. Bàn số hiện tiền (số
+  giờ × đơn giá) và hai ô ăn ca / ăn đêm như khi chấm hộp.
+  - Mỗi người **một số giờ cho cả ngày**: bảng ghi hiện dòng "⏱ Làm theo giờ · 2,5 giờ" — bấm số để sửa, ✕ để bỏ.
+    Người chỉ làm theo giờ (không hộp) cũng tính là đã nhập; chân bảng ghi tổng giờ; copy gửi nhóm kèm
+    "Làm theo giờ: 2,5 giờ". Công nhật / công khoán chung không có lối này (không phải một người).
+  - Lưu ở bảng chấm theo người của bảng vào hộp (cạnh ăn ca): `so_gio`, `don_gia_gio`, `tien_gio`. Máy chỉ gửi
+    **khoá vừa đổi** — hai QC cùng chấm một người (người ghi giờ, người chấm ăn) không đè số của nhau; máy bản cũ
+    không biết số giờ thì không xoá giờ.
+- **Đơn giá**: SX Settings → *Đơn giá làm theo giờ (công khoán) / giờ*, mặc định **33.000**. Chốt lúc ghi giờ lần
+  đầu và giữ qua các lần lưu sau — đổi đơn giá chỉ áp cho giờ ghi từ đó. Một ngày tối đa 24 giờ.
+- **Phiếu lương**: chốt ngày (đồng bộ lương) ghi một dòng chi tiết **Làm theo giờ** (số giờ × đơn giá) vào ngày đó —
+  cộng vào lương SP của ngày như tiền hộp, nên Chủ nhật nhân 1,2 và tính vào thâm niên. Người chỉ làm theo giờ vẫn
+  có dòng lương. Chốt lại ngày thì ghi đè, không cộng dồn. Tổng lương SP của ngày (màn Quản lý) gồm tiền giờ. Thẻ
+  Phiếu lương: dòng "Làm theo giờ — 2,5 giờ × 33.000 đ", từng ngày ghi số giờ; lịch tháng (khối Theo người) ghi giờ.
+- Desk: phiếu lương — ô *Mã hàng* hết bắt buộc trên form (dòng giờ không có mã), server vẫn chặn dòng sản phẩm
+  thiếu mã; cột *Số giờ* trên lưới chi tiết.
+- Test `test-giocong.py` (chốt ngày → phiếu lương: người chỉ làm theo giờ, hệ số Chủ nhật, thâm niên, chốt lại ghi
+  đè, kiểm dòng), `test-giocong.mjs` (Chromium: nút, bàn số giờ lẻ, chỉ gửi khoá vừa đổi, sửa / bỏ, công nhật,
+  copy, thẻ phiếu lương), `test-ghihop.py` (gộp theo khoá, giữ đơn giá, trần 24 giờ), `test-luong.py`,
+  `test-dongbo.py`, `test-lich.py`.
+- **Đổi DocType** (bảng chấm theo người, chi tiết phiếu lương, SX Settings): `git pull` →
+  `bench --site site1.local migrate` → `bench restart`. Build **sx-167**.
+
 ## Bảng giá vào hộp: mọi thành phẩm hai cách làm Tay / Máy — giá tạm 1 đồng, nhập giá thật sau (D224)
 
 - **Hỏi** (02/11/2026): phần ghi hộp — các sản phẩm có hai hình thức làm Tay và Máy; viết seed cho nhanh, tạm để giá

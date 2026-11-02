@@ -147,13 +147,15 @@ async function moPhieu(name, call) {
     ...p.tru.map((x) => [x.ten, `− ${dong(x.tien)}`]),
     ...(p.tru.length ? [['Thực nhận', dong(p.thuc_nhan)]] : []),
   ]);
+  // D225: dòng "Làm theo giờ" — số lượng là số GIỜ.
   khoi('Sản phẩm trong tháng', p.san_pham.map((x) => [
     `${x.ten}${x.cach_lam ? ` · ${x.cach_lam}` : ''}`, dong(x.thanh_tien),
-    x.don_gia ? `${formatNumber(x.so_luong)} × ${formatNumber(x.don_gia)} đ`
-      : `${formatNumber(x.so_luong)} × ⚠ chưa có giá`]));
+    `${x.theo_gio ? `${formatNumber(x.so_luong, 2)} giờ` : formatNumber(x.so_luong)} × ${
+      x.don_gia ? `${formatNumber(x.don_gia)} đ` : '⚠ chưa có giá'}`]));
   khoi('Từng ngày', p.ngay.map((x) => [
     `${x.ngay.slice(8)}/${x.ngay.slice(5, 7)} ${x.thu || ''}`, dong(x.thu_nhap),
     [x.luong_sp ? `SP ${dong(x.luong_sp)}${x.he_so > 1 ? ` ×${x.he_so}` : ''}` : '',
+      x.so_gio ? `${formatNumber(x.so_gio, 2)} giờ` : '',
       x.an_ca ? 'ăn ca' : '', x.an_dem ? 'ăn đêm' : ''].filter(Boolean).join(' · ')]));
   khoi('Lỗi phạt', p.phat.map((x) => [x.ly_do || '—', `− ${dong(x.tien)}`]));
   if (p.ghi_chu) b.appendChild(el('div', 'sx-muted', esc(p.ghi_chu)));

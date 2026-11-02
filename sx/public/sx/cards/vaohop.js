@@ -39,11 +39,9 @@ export async function render({ container, boot, call, ensureNgay }) {
   const spGanDay = boot.sp_gan_day || [];
   const tenSPKhoan = (code) => (danhMuc.find((d) => d.item === code) || {}).ten || code;
   const nhanVien = boot.nhan_vien || [];
-  // Chấm ăn ca / ăn đêm theo người (D30) — {nhan_vien: {an_ca, an_dem}}
+  // Chấm theo người: ăn ca / ăn đêm (D30), làm theo giờ (D225) — {nhan_vien: {an_ca, an_dem, so_gio}}
   const anCa = {};
-  (((boot.bang_vao_hop || {}).an_ca) || []).forEach((r) => {
-    anCa[r.nhan_vien] = { an_ca: Number(r.an_ca) || 0, an_dem: Number(r.an_dem) || 0 };
-  });
+  (((boot.bang_vao_hop || {}).an_ca) || []).forEach((r) => { anCa[r.nhan_vien] = theoNguoiMoi(r); });
   // Ảnh chụp ăn ca lần lưu cuối — chỉ gửi người VỪA ĐỔI, để hai QC chấm ăn cho hai
   // nhóm người khác nhau không đè lên nhau.
   let anCaGoc = JSON.parse(JSON.stringify(anCa));
@@ -130,6 +128,13 @@ export async function render({ container, boot, call, ensureNgay }) {
       if (!nhom.has(r.nhan_vien)) nhom.set(r.nhan_vien, { ten: tenNV(r), dong: [] });
       nhom.get(r.nhan_vien).dong.push({ ...r, _i: i });
     });
+    // D225: làm theo giờ — mỗi người MỘT dòng giả (số giờ của cả ngày; sửa / xoá theo người, không theo dòng)
+    Object.entries(anCa).forEach(([nv, v]) => {
+      const h = Number(v.so_gio) || 0;
+      if (h <= 0 || KHONG_NGUOI.includes(nv)) return;
+      if (!nhom.has(nv)) nhom.set(nv, { ten: tenNgan[nv] || nv, dong: [] });
+      nhom.get(nv).dong.push({ nhan_vien: nv, _gio: h });
+    });
     // Công khoán chung rồi công nhật xuống cuối — bảng đọc theo người, hai dòng này không phải người.
     const hang = (k) => ({ [KHOAN_CHUNG]: 1, [CONG_NHAT]: 2 }[k] || 0);
     return [...nhom.entries()]
@@ -146,6 +151,22 @@ export async function render({ container, boot, call, ensureNgay }) {
     let html = '';
     theoNguoi().forEach((g) => {
       g.dong.forEach((r) => {
+        if (r._gio) {
+          html += `<div class="sx-vh-row sx-vh-row-gio">
+            <div class="sx-vh-who">
+              <div class="sx-vh-name">${esc(g.ten)}</div>
+              <div class="sx-vh-meta">⏱ Làm theo giờ</div>
+            </div>
+            <button type="button" class="sx-vh-sl sx-vh-gio-sl" data-gio="${esc(r.nhan_vien)}"${daChot ? ' disabled' : ''}
+              >${esc(formatNumber(r._gio, 2))} giờ</button>
+            ${daChot ? '' : `
+            <button type="button" class="sx-vh-them" data-nv="${esc(r.nhan_vien)}"
+              aria-label="Ghi thêm cho ${esc(g.ten)}" title="Ghi thêm loại khác">+</button>
+            <button type="button" class="sx-vh-del sx-vh-gio-del" data-gio="${esc(r.nhan_vien)}"
+              aria-label="Bỏ giờ làm của ${esc(g.ten)}">✕</button>`}
+          </div>`;
+          return;
+        }
         const cn = r.nhan_vien === CONG_NHAT;
         const kc = r.nhan_vien === KHOAN_CHUNG;
         html += `<div class="sx-vh-row${cn ? ' sx-vh-row-cn' : ''}${kc ? ' sx-vh-row-kc' : ''}">
@@ -170,7 +191,10 @@ export async function render({ container, boot, call, ensureNgay }) {
 
     const tongHop = rows.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
-    const soNguoi = new Set(rows.map((r) => r.nhan_vien).filter((n) => !KHONG_NGUOI.includes(n))).size;
+    const coGio = Object.keys(anCa).filter((n) => (Number(anCa[n].so_gio) || 0) > 0 && !KHONG_NGUOI.includes(n));
+    const tongGio = coGio.reduce((a, n) => a + (Number(anCa[n].so_gio) || 0), 0);
+    const soNguoi = new Set([...rows.map((r) => r.nhan_vien), ...coGio]
+      .filter((n) => !KHONG_NGUOI.includes(n))).size;
     const hopCN = rows.filter((r) => r.nhan_vien === CONG_NHAT)
       .reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const hopKC = rows.filter((r) => r.nhan_vien === KHOAN_CHUNG)
@@ -182,7 +206,9 @@ export async function render({ container, boot, call, ensureNgay }) {
     footer.innerHTML = `<span class="sx-field-label">Tổng</span>
       <span>${formatNumber(tongHop)} sp${hopCN || hopKC
         ? ` <span class="sx-muted">(${[hopKC ? `công khoán chung ${formatNumber(hopKC)}` : '',
-          hopCN ? `công nhật ${formatNumber(hopCN)}` : ''].filter(Boolean).join(' · ')})</span>` : ''}</span>`;
+          hopCN ? `công nhật ${formatNumber(hopCN)}` : ''].filter(Boolean).join(' · ')})</span>` : ''}${
+        tongGio ? ` <span class="sx-muted">· làm theo giờ ${formatNumber(tongGio, 2)} giờ (${coGio.length} người)</span>`
+          : ''}</span>`;
 
     // Dải SKU: mỗi loại công việc một ô, cuộn ngang — nhìn ra ngay hôm nay chạy loại gì
     const theoAct = {};
@@ -206,11 +232,22 @@ export async function render({ container, boot, call, ensureNgay }) {
       : '<span class="sx-muted">Chưa chấm ăn ca / ăn đêm.</span>';
 
     if (!daChot) {
-      tbody.querySelectorAll('.sx-vh-del').forEach((btn) => {
+      tbody.querySelectorAll('.sx-vh-del[data-i]').forEach((btn) => {
         btn.addEventListener('click', async () => { rows.splice(Number(btn.dataset.i), 1); await save(); });
       });
-      tbody.querySelectorAll('.sx-vh-sl').forEach((btn) => {
+      tbody.querySelectorAll('.sx-vh-sl[data-i]').forEach((btn) => {
         btn.addEventListener('click', () => suaSoLuong(Number(btn.dataset.i)));
+      });
+      const nvCua = (ma) => nhanVien.find((x) => x.name === ma) || { name: ma };
+      tbody.querySelectorAll('.sx-vh-gio-sl').forEach((btn) => {
+        const nv = nvCua(btn.dataset.gio);
+        btn.addEventListener('click', () => nhapGio(nv, tenNgan[nv.name] || nv.name, anCa, save, boot, null));
+      });
+      tbody.querySelectorAll('.sx-vh-gio-del').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (anCa[btn.dataset.gio]) anCa[btn.dataset.gio].so_gio = 0;
+          await save();
+        });
       });
       tbody.querySelectorAll('.sx-vh-them').forEach((btn) => {
         const nv = btn.dataset.nv === CONG_NHAT ? NV_CONG_NHAT
@@ -270,13 +307,18 @@ export async function render({ container, boot, call, ensureNgay }) {
   async function save() {
     try {
       const ng = await ensureNgay();
+      // Chỉ gửi người VỪA ĐỔI, và trong đó chỉ khoá vừa đổi (D225): QC khác vừa ghi giờ / chấm ăn cho cùng người
+      // thì phần họ ghi không bị máy này đè bằng số cũ.
       const doiAn = Object.entries(anCa)
-        .filter(([nv, v]) => {
-          const g = anCaGoc[nv] || { an_ca: 0, an_dem: 0 };
-          return (Number(v.an_ca) || 0) !== (Number(g.an_ca) || 0)
-            || (Number(v.an_dem) || 0) !== (Number(g.an_dem) || 0);
+        .map(([nv, v]) => {
+          const g = anCaGoc[nv] || {};
+          const d = { nhan_vien: nv };
+          ['an_ca', 'an_dem', 'so_gio'].forEach((k) => {
+            if ((Number(v[k]) || 0) !== (Number(g[k]) || 0)) d[k] = Number(v[k]) || 0;
+          });
+          return d;
         })
-        .map(([nv, v]) => ({ nhan_vien: nv, an_ca: v.an_ca, an_dem: v.an_dem }));
+        .filter((d) => Object.keys(d).length > 1);
       const r = await call('sx.api.portal.luu_bang_vao_hop', {
         ngay_sx: ng.name,
         rows: JSON.stringify(rows.map((x) => ({
@@ -291,9 +333,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       (r && r.dong ? r.dong : []).forEach((x) => rows.push(x));
       biet = rows.map((x) => x.name).filter(Boolean);
       Object.keys(anCa).forEach((k) => delete anCa[k]);
-      ((r && r.an_ca) || []).forEach((x) => {
-        anCa[x.nhan_vien] = { an_ca: Number(x.an_ca) || 0, an_dem: Number(x.an_dem) || 0 };
-      });
+      ((r && r.an_ca) || []).forEach((x) => { anCa[x.nhan_vien] = theoNguoiMoi(x); });
       anCaGoc = JSON.parse(JSON.stringify(anCa));
       // Chấm xong một người là xong việc với lưới tên — thu lại để bảng ghi hôm nay
       // trở về đúng tầm mắt, khỏi phải cuộn qua 45 cái tên.
@@ -337,6 +377,8 @@ export async function render({ container, boot, call, ensureNgay }) {
       daNhap[r.nhan_vien] = (daNhap[r.nhan_vien] || 0) + (Number(r.so_hop) || 0);
       (soLoai[r.nhan_vien] = soLoai[r.nhan_vien] || new Set()).add(r.san_pham);
     });
+    const gioCua = (ma) => Number((anCa[ma] || {}).so_gio) || 0;     // D225
+    const xong = (ma) => !!(daNhap[ma] || gioCua(ma));
 
     // Chưa nhập lên trước: câu hỏi duy nhất trong đầu QC khi đi dọc chuyền là
     // "còn ai chưa hỏi". Không tìm gì thì chỉ hiện người chưa nhập + người đã nhập.
@@ -345,7 +387,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       || (tenNgan[nv.name] || '').toLowerCase().includes(loc)
       || (nv.employee_name || '').toLowerCase().includes(loc);
     const sapXep = nhanVien.filter(khop)
-      .sort((a, b) => (daNhap[a.name] ? 1 : 0) - (daNhap[b.name] ? 1 : 0));
+      .sort((a, b) => (xong(a.name) ? 1 : 0) - (xong(b.name) ? 1 : 0));
     // Mặc định chỉ 8 người "hay nhập" — 43 thẻ đổ ra màn hình thì không ai đọc.
     // Gõ tìm hoặc bấm "Xem hết" thì hiện toàn bộ.
     const ds = (loc || xemHet) ? sapXep : sapXep.slice(0, 12);
@@ -361,10 +403,10 @@ export async function render({ container, boot, call, ensureNgay }) {
       // không còn là thông tin, chỉ là mỗi ô cao gấp đôi. Chưa nhập = ô xám
       // trống; đã nhập = ô tô màu mùa CÓ số. Chỗ tiết kiệm được đủ hiện thêm
       // một hàng người.
-      const phu = q
-        ? `${formatNumber(q)} sp${nLoai > 1 ? ` · ${nLoai} loại` : ''}${nhanAn ? ` · ${nhanAn}` : ''}`
-        : nhanAn;
-      return `<button type="button" class="sx-nv-row${q ? ' sx-nv-row-xong' : ''}"
+      const h = gioCua(nv.name);
+      const phu = [q ? `${formatNumber(q)} sp${nLoai > 1 ? ` · ${nLoai} loại` : ''}` : '',
+        h ? `${formatNumber(h, 2)} giờ` : '', nhanAn].filter(Boolean).join(' · ');
+      return `<button type="button" class="sx-nv-row${xong(nv.name) ? ' sx-nv-row-xong' : ''}"
           data-nv="${esc(nv.name)}" title="${esc(nv.employee_name || nv.name)}">
         <span class="sx-nv-ten">${esc(tenNgan[nv.name])}</span>
         ${phu ? `<span class="sx-nv-qty">${esc(phu)}</span>` : ''}
@@ -479,6 +521,8 @@ function nutAnCa(nv, anCa, save) {
  */
 function themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot) {
   const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
+  // D225: công khoán ra làm việc tính theo giờ — lối thay cho mã hàng (công nhật / công khoán chung không phải người)
+  const gio = KHONG_NGUOI.includes(nv.name) ? null : () => nhapGio(nv, ten, anCa, save, boot, chonMa);
   const chonMa = () => openSanPhamPicker(ten, danhMuc, spGanDay, (sp) => {
     // Mã có nhiều cách làm -> hỏi thêm một bước, vì mỗi cách một đơn giá.
     // Chỉ một cách (và không có giá chung) -> tự chọn, QC không phải bấm.
@@ -492,8 +536,43 @@ function themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot) {
     } else {
       tiep(null);
     }
-  }, boot);
+  }, boot, gio);
   chonMa();
+}
+
+/** Một người trong bảng chấm theo người (ăn ca / ăn đêm / số giờ) — dạng màn hình dùng. */
+function theoNguoiMoi(r) {
+  return { an_ca: Number(r.an_ca) || 0, an_dem: Number(r.an_dem) || 0, so_gio: Number(r.so_gio) || 0 };
+}
+
+/** Làm theo giờ (D225): công khoán ra làm việc tính tiền theo giờ như công nhật. Một số giờ cho cả ngày của người
+ * đó — nhập lại là SỬA (bàn số điền sẵn số đang có), muốn bỏ thì ✕ ở dòng giờ. Giờ lẻ dùng phím phẩy (2,5).
+ * Tiền = số giờ × đơn giá / giờ (SX Settings), server chốt lúc lưu; chốt ngày vào phiếu lương như lương sản phẩm. */
+function nhapGio(nv, ten, anCa, save, boot, ghiTiep) {
+  const gia = Number(boot && boot.don_gia_gio) || 0;
+  const luu = async (v) => {
+    const h = Math.round(Number(v) * 100) / 100;
+    if (!(h > 0)) { toastErr('Số giờ phải > 0. Muốn bỏ thì bấm ✕ ở dòng giờ.'); return false; }
+    if (h > 24) { toastErr('Một ngày không quá 24 giờ.'); return false; }
+    anCa[nv.name] = { ...theoNguoiMoi(anCa[nv.name] || {}), so_gio: h };
+    await save();
+    return true;
+  };
+  openNumpad({
+    kicker: '⏱ Làm theo giờ',
+    title: ten,
+    unitLabel: 'Số giờ',
+    allowDecimal: true,
+    initial: Number((anCa[nv.name] || {}).so_gio) || '',
+    titleActions: nutAnCa(nv, anCa, save),
+    hint: (n) => (gia && n ? `${formatNumber(n * gia)} đ` : ''),
+    okLabel: 'XONG',
+    onOk: (v) => { luu(v); },
+    okPhu: ghiTiep ? {
+      label: '+ GHI TIẾP',
+      onOk: async (v) => { if (await luu(v)) ghiTiep(); },
+    } : null,
+  });
 }
 
 function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa, ghiTiep) {
@@ -533,7 +612,8 @@ function nhapSoLuong(nv, ten, sp, cachLam, rows, save, anCa, ghiTiep) {
 
 // Chọn MÃ HÀNG: mã hay dùng lên đầu, còn lại tìm theo tên. Mã chưa khai đơn giá vẫn
 // chọn được (đánh dấu) — chặn QC giữa xưởng vì một dòng thiếu giá là bắt chuyền dừng.
-function openSanPhamPicker(ten, danhMuc, spGanDay, onPick, boot) {
+// `onGio` (D225): có thì thêm lối "Làm theo giờ" thay cho mã hàng.
+function openSanPhamPicker(ten, danhMuc, spGanDay, onPick, boot, onGio) {
   const m = openModal({ kicker: 'Chọn mã hàng', title: ten });
   m.body.innerHTML = `
     <div class="sx-vh-hang2">
@@ -541,8 +621,11 @@ function openSanPhamPicker(ten, danhMuc, spGanDay, onPick, boot) {
         placeholder="Tìm trong ${danhMuc.length} mã hàng…">
       <button type="button" class="sx-btn sx-quet-nut" id="sx-sp-quet">⌗ QUÉT HỘP</button>
     </div>
+    ${onGio ? `<button type="button" class="sx-btn sx-vh-congnhat" id="sx-sp-gio"
+      >⏱ LÀM THEO GIỜ <span>tính tiền theo giờ như công nhật</span></button>` : ''}
     <div id="sx-sp-ds"></div>
   `;
+  if (onGio) m.body.querySelector('#sx-sp-gio').addEventListener('click', () => { m.close(); onGio(); });
   const box = m.body.querySelector('#sx-sp-ds');
   const oTim = m.body.querySelector('#sx-sp-tim');
   const byItem = {};
@@ -618,7 +701,8 @@ export function vanBanSanLuong(nhomVao, ngay, tenSP) {
   const d = (ngay || '').split('-');
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
   const dong = nhom.map((g) => {
-    const ct = g.dong.map((r) => `${tenSP(r.san_pham) || '?'}: ${formatNumber(r.so_hop)}`).join(', ');
+    const ct = g.dong.map((r) => (r._gio ? `Làm theo giờ: ${formatNumber(r._gio, 2)} giờ`      // D225
+      : `${tenSP(r.san_pham) || '?'}: ${formatNumber(r.so_hop)}`)).join(', ');
     return `${g.ten} (${ct})`;
   });
   const tong = nhom.reduce((a, g) => a + g.dong.reduce((x, r) => x + (Number(r.so_hop) || 0), 0), 0);

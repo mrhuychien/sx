@@ -181,6 +181,11 @@ def _khoi(ten, dong):
     return {"ten": ten, "dong": dong} if dong else None
 
 
+def _so_gio(h):
+    """2.5 → "2,5" — số giờ kiểu Việt (D225)."""
+    return f"{flt(h):g}".replace(".", ",")
+
+
 @frappe.whitelist()
 def chi_tiet(loai, ngay):
     """Chi tiết một ngày, khuôn chung: {ngay, so, don_vi, chips[], khoi[{ten, dong[]}]}.
@@ -244,7 +249,18 @@ def _ct_vao_hop(d, ra):
         p["sl"] += sl
         p["ma"].append(f"{ten.get(r.san_pham, r.san_pham)}{' · ' + r.cach_lam if r.cach_lam else ''}"
                        f" {sl}")
+    # D225: làm theo giờ — số giờ theo người ở bảng chấm theo người (cạnh ăn ca), chung cho mọi QC như màn Ghi hộp
+    tong_gio = 0.0
+    for r in frappe.get_all("SX Bang Vao Hop An Ca", filters={"parent": ("in", list(_b)), "parenttype": "SX Bang Vao Hop",
+                                                              "so_gio": (">", 0)},
+                            fields=["nhan_vien", "ten_nhan_vien", "so_gio"]) if _b else []:
+        p = theo_nguoi.setdefault(r.nhan_vien, {"ten": r.ten_nhan_vien or r.nhan_vien, "sl": 0, "ma": []})
+        p["gio"] = p.get("gio", 0.0) + flt(r.so_gio)
+        p["ma"].append(_("làm theo giờ {0} giờ").format(_so_gio(r.so_gio)))
+        tong_gio += flt(r.so_gio)
     ra["so"] = sum(cint(r.so_hop) for r in dong)
+    if tong_gio:
+        ra["chips"].append(_("làm theo giờ {0} giờ").format(_so_gio(tong_gio)))
     if cn:
         ra["chips"].append(_("công nhật {0} hộp").format(cn))
     if kc:
@@ -256,7 +272,8 @@ def _ct_vao_hop(d, ra):
          "phu": _("khoán {0} · công nhật {1}").format(g["khoan"], g["cn"]) if g["cn"] else None}
         for ma, g in sorted(theo_ma.items(), key=lambda x: -(x[1]["khoan"] + x[1]["cn"]))]))
     ra["khoi"].append(_khoi(_("Theo người"), [
-        {"trai": p["ten"], "phai": p["sl"], "phu": ", ".join(p["ma"])}
+        {"trai": p["ten"], "phai": p["sl"] if p["sl"] or not p.get("gio") else _("{0} giờ").format(_so_gio(p["gio"])),
+         "phu": ", ".join(p["ma"])}
         for _k, p in sorted(theo_nguoi.items(), key=lambda x: (x[0] is None, x[1]["ten"] or ""))]))
 
 

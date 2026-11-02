@@ -30,6 +30,31 @@ class SXBangVaoHop(Document):
         self.validate_nguoi()
         self.gop_theo_nguoi()
         self.tinh_tien()
+        self.tinh_gio()
+
+    def tinh_gio(self):
+        """Làm theo giờ (D225): công khoán ra làm việc tính giờ như công nhật — số giờ ở bảng chấm theo người (cạnh ăn ca),
+        tiền = số giờ × đơn giá / giờ, cộng vào tổng tiền của bảng; chốt ngày vào phiếu lương như lương sản phẩm.
+
+        Đơn giá chốt lúc ghi giờ LẦN ĐẦU (SX Settings) và giữ qua các lần lưu sau — đổi đơn giá ở Settings không làm
+        ngày cũ còn mở tính lại theo giá mới. Bỏ giờ (0) thì bỏ luôn đơn giá."""
+        gia = None
+        for r in self.get("an_ca") or []:
+            r.so_gio = round(flt(r.get("so_gio")), 2)
+            if r.so_gio < 0 or r.so_gio > 24:
+                frappe.throw(_("{0}: số giờ làm theo giờ phải từ 0 đến 24 (đang ghi {1}).").format(
+                    r.get("ten_nhan_vien") or r.nhan_vien, r.so_gio))
+            if r.so_gio <= 0:
+                r.so_gio, r.don_gia_gio, r.tien_gio = 0, 0, 0
+                continue
+            if flt(r.get("don_gia_gio")) <= 0:
+                if gia is None:
+                    from sx.utils import don_gia_gio
+
+                    gia = don_gia_gio()
+                r.don_gia_gio = gia
+            r.tien_gio = flt(r.so_gio) * flt(r.don_gia_gio)
+            self.tong_tien = flt(self.tong_tien) + flt(r.tien_gio)
 
     def on_trash(self):
         """Xoá bảng (D106: xoá hết dòng ở màn Ghi hộp) — gỡ nợ đơn giá trỏ vào bảng TRƯỚC khi Frappe kiểm tra liên kết,

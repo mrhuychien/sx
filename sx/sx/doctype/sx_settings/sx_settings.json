@@ -27,6 +27,7 @@
   "tien_an_ca",
   "column_break_ac",
   "tien_an_dem",
+  "don_gia_gio",
   "section_luong",
   "he_so_ngay_le",
   "ngay_cong_chuan",
@@ -122,7 +123,7 @@
   {
    "fieldname": "section_an_ca",
    "fieldtype": "Section Break",
-   "label": "Ăn ca / ăn đêm (lương khoán)"
+   "label": "Ăn ca / ăn đêm / làm theo giờ (lương khoán)"
   },
   {
    "fieldname": "tien_an_ca",
@@ -139,6 +140,13 @@
    "fieldtype": "Currency",
    "label": "Tiền ăn đêm / người / ngày",
    "description": "Bỏ trống (0) nếu bên lương tự quy đổi từ dấu chấm ăn đêm."
+  },
+  {
+   "fieldname": "don_gia_gio",
+   "fieldtype": "Currency",
+   "label": "Đơn giá làm theo giờ (công khoán) / giờ",
+   "default": "33000",
+   "description": "D225: QC ghi số giờ ở màn Ghi hộp (Làm theo giờ); chốt ngày ghi số giờ × đơn giá này vào phiếu lương như lương sản phẩm. Bỏ trống = 33.000."
   },
   {
    "fieldname": "section_nhom_tp",
@@ -258,7 +266,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-10-08 19:00:00.000000",
+ "modified": "2026-11-02 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

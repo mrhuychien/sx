@@ -7,7 +7,10 @@
   "nhan_vien",
   "ten_nhan_vien",
   "an_ca",
-  "an_dem"
+  "an_dem",
+  "so_gio",
+  "don_gia_gio",
+  "tien_gio"
  ],
  "fields": [
   {
@@ -40,11 +43,33 @@
    "in_list_view": 1,
    "non_negative": 1,
    "description": "Số suất trong ngày (0 = không ăn). Nới từ Check sang Int — giá trị 0/1 cũ vẫn đúng."
+  },
+  {
+   "fieldname": "so_gio",
+   "fieldtype": "Float",
+   "label": "Làm theo giờ (giờ)",
+   "in_list_view": 1,
+   "non_negative": 1,
+   "precision": "2",
+   "description": "D225: công khoán ra làm việc tính theo giờ như công nhật — số giờ trong ngày (0 = không)."
+  },
+  {
+   "fieldname": "don_gia_gio",
+   "fieldtype": "Currency",
+   "label": "Đơn giá / giờ",
+   "read_only": 1,
+   "description": "Chốt lúc ghi giờ lần đầu, theo SX Settings → Đơn giá làm theo giờ."
+  },
+  {
+   "fieldname": "tien_gio",
+   "fieldtype": "Currency",
+   "label": "Tiền làm theo giờ",
+   "read_only": 1
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2026-07-29 10:00:00.000000",
+ "modified": "2026-11-02 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Bang Vao Hop An Ca",

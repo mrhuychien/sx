@@ -107,6 +107,8 @@ for ten in ("bang_don_gia", "cach_lam_cua", "dat_ten_hien_thi", "get_bom_active"
 ut.don_gia_ap_dung = lambda ngay=None: {("SEN", ""): 1000.0, ("TT", ""): 800.0}
 ut.tra_don_gia = lambda b, sp, cl=None: b.get((sp, cl or ""), b.get((sp, "")))
 ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
+GIA_GIO = [33000.0]      # D225: SX Settings → đơn giá làm theo giờ
+ut.don_gia_gio = lambda: GIA_GIO[0]
 ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
 ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
@@ -294,6 +296,7 @@ kiem("màn Ghi sổ: chỉ danh mục báo mẻ", GOI == ["ghiso"] and "loai_dau
      and "items_tp" not in r and r["phan"] == ["ghiso"], (GOI, sorted(r)))
 GOI.clear()
 r = dm({"vaohop"}, "2026-10-06", set(VAI), True)
+kiem("D225: danh mục Ghi hộp kèm đơn giá làm theo giờ (bàn số hiện thành tiền)", r.get("don_gia_gio") == 33000.0, r)
 kiem("màn Ghi hộp: danh mục vào hộp + mã quét (không kèm báo mẻ)", "items_tp" in r
      and "ma_quet" in r and "loai_dau" not in r
      and "ghiso" not in GOI, sorted(r))
@@ -312,6 +315,68 @@ sh = open("sx/public/sx/shell.js", encoding="utf-8").read()
 kiem("shell và server dùng CÙNG bảng màn → phần",
      "const PHAN_VIEW = { ghiso: ['ghiso'], vaohop: ['vaohop'], nhapkho: ['quet'] };" in sh
      and PT.VIEW_PHAN == {"ghiso": ["ghiso"], "vaohop": ["vaohop"], "nhapkho": ["quet"]})
+
+print("\n-- D225: làm theo giờ (bảng chấm theo người) --")
+BANG.clear()
+la("qcA@x")
+
+
+def nguoi(nv):
+    return next((r for r in BANG["BVH-1"]["an_ca"] if r["nhan_vien"] == nv), None)
+
+
+def gio_luu(an_ca, rows=None):
+    return luu(rows if rows is not None else [dong("NV1", "SEN", 10)], biet=[r["name"] for r in tat_ca()],
+               an_ca=an_ca)
+
+
+gio_luu([{"nhan_vien": "NV2", "so_gio": 2.5}])
+g = nguoi("NV2")
+kiem("ghi 2,5 giờ cho NV2 (chưa vào hộp, chưa ăn): có dòng người, đơn giá chốt từ Settings, tiền = giờ × giá",
+     g and (g["so_gio"], g["don_gia_gio"], g["tien_gio"], g["an_ca"], g["an_dem"]) == (2.5, 33000.0, 82500.0, 0, 0),
+     g)
+kiem("… tổng tiền bảng cộng tiền giờ (10 hộp SEN × 1000 + 82.500)", BANG["BVH-1"]["tong_tien"] == 92500.0,
+     BANG["BVH-1"]["tong_tien"])
+sm = PT._bang_summary("NSX-1")
+kiem("… màn Ghi hộp nhận lại số giờ + tiền giờ", [(x["nhan_vien"], x["so_gio"], x["tien_gio"]) for x in sm["an_ca"]]
+     == [("NV2", 2.5, 82500.0)], sm["an_ca"])
+gio_luu([{"nhan_vien": "NV2", "an_ca": 1, "an_dem": 0}])
+g = nguoi("NV2")
+kiem("máy bản cũ chấm ăn (không gửi khoá so_gio) → GIỮ số giờ đã ghi", (g["an_ca"], g["so_gio"]) == (1, 2.5), g)
+gio_luu([{"nhan_vien": "NV2", "an_dem": 1}])
+g = nguoi("NV2")
+kiem("chỉ gửi khoá vừa đổi: bật ăn đêm không xoá ăn ca / số giờ", (g["an_ca"], g["an_dem"], g["so_gio"]) == (1, 1, 2.5),
+     g)
+GIA_GIO[0] = 35000.0
+gio_luu([{"nhan_vien": "NV2", "so_gio": 3}, {"nhan_vien": "NV9", "so_gio": 1}])
+kiem("đổi đơn giá ở Settings: người đã có giờ GIỮ giá lúc ghi lần đầu (33.000), người mới ghi theo giá mới",
+     (nguoi("NV2")["don_gia_gio"], nguoi("NV2")["tien_gio"], nguoi("NV9")["don_gia_gio"])
+     == (33000.0, 99000.0, 35000.0), (nguoi("NV2"), nguoi("NV9")))
+gio_luu([{"nhan_vien": "NV9", "so_gio": 0}])
+kiem("số giờ 0 = bỏ: người chỉ có giờ thì mất dòng", nguoi("NV9") is None, BANG["BVH-1"]["an_ca"])
+gio_luu([{"nhan_vien": "NV2", "so_gio": 0}])
+g = nguoi("NV2")
+kiem("… người còn chấm ăn thì giữ dòng, bỏ giờ + bỏ luôn đơn giá (ghi lại sẽ theo giá Settings lúc đó)",
+     g and (g["an_ca"], g["so_gio"], g["don_gia_gio"], g["tien_gio"]) == (1, 0, 0, 0), g)
+gio_luu([{"nhan_vien": "NV2", "so_gio": 1.5}])
+kiem("… ghi lại → đơn giá Settings hiện tại", nguoi("NV2")["don_gia_gio"] == 35000.0, nguoi("NV2"))
+GIA_GIO[0] = 33000.0
+try:
+    gio_luu([{"nhan_vien": "NV2", "so_gio": 25}])
+    loi = ""
+except Loi as e:
+    loi = str(e)
+kiem("quá 24 giờ → báo lỗi, không lưu", "từ 0 đến 24" in loi, loi)
+kiem("… số cũ giữ nguyên", nguoi("NV2")["so_gio"] == 1.5)
+gio_luu([{"nhan_vien": "CONG_NHAT", "so_gio": 3}, {"nhan_vien": "KHOAN_CHUNG", "so_gio": 3}])
+kiem("công nhật / công khoán chung không phải một người → không ghi giờ",
+     not nguoi("CONG_NHAT") and not nguoi("KHOAN_CHUNG") and not nguoi(None))
+luu([], biet=[r["name"] for r in tat_ca()], an_ca=[{"nhan_vien": "NV2", "an_ca": 0, "an_dem": 0}])
+kiem("xoá hết dòng hộp, bỏ chấm ăn mà còn giờ → GIỮ bảng (giờ là tiền công)", "BVH-1" in BANG
+     and nguoi("NV2") and nguoi("NV2")["so_gio"] == 1.5, BANG.get("BVH-1"))
+js = open("sx/public/sx/cards/vaohop.js", encoding="utf-8").read()
+kiem("màn Ghi hộp: lối Làm theo giờ, bàn số giờ lẻ, gửi khoá so_gio vừa đổi",
+     "⏱ LÀM THEO GIỜ" in js and "allowDecimal: true" in js and "['an_ca', 'an_dem', 'so_gio']" in js)
 
 print("GHIHOP-OK" if not hong else f"GHIHOP: {hong} HỎNG")
 sys.exit(1 if hong else 0)

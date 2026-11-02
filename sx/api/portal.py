@@ -169,6 +169,9 @@ def _danh_muc(phan, ngay_xem, roles, super_):
         ra["items_tp"] = items_tp(["name", "item_name", "item_group"])
         ra["tien_an_ca"] = flt(settings.get("tien_an_ca"))
         ra["tien_an_dem"] = flt(settings.get("tien_an_dem"))
+        from sx.utils import don_gia_gio
+
+        ra["don_gia_gio"] = don_gia_gio()                  # D225: làm theo giờ — bàn số hiện thành tiền
         ra["danh_muc_khoan"] = _danh_muc_khoan(ngay_xem)
         ra["sp_gan_day"] = _sp_gan_day()
         ra["bang_don_gia"] = bang_don_gia(ngay_xem)
@@ -320,7 +323,8 @@ def _bang_summary(ngay_sx):
             for r in dong
         ],
         "an_ca": [
-            {"nhan_vien": r.nhan_vien, "an_ca": cint(r.an_ca), "an_dem": cint(r.an_dem)}
+            {"nhan_vien": r.nhan_vien, "an_ca": cint(r.an_ca), "an_dem": cint(r.an_dem),
+             "so_gio": flt(r.get("so_gio")), "tien_gio": flt(r.get("tien_gio"))}
             for r in (doc.get("an_ca") or [])
         ],
     }
@@ -548,8 +552,10 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None, biet=None):
         và dòng người gửi thêm từ máy khác (không có trong `biet`), giữ nguyên.
       · Máy bản cũ không gửi `biet` → coi như biết mọi dòng CỦA MÌNH (vẫn không
         đụng được dòng người khác).
-      · `an_ca` = [{nhan_vien, an_ca, an_dem}] chỉ những người VỪA ĐỔI; gộp theo
-        người, 0/0 là bỏ chấm. Bỏ qua (None) thì giữ nguyên.
+      · `an_ca` = [{nhan_vien, an_ca, an_dem, so_gio}] chỉ những người VỪA ĐỔI; gộp theo
+        người, 0/0 là bỏ chấm. Bỏ qua (None) thì giữ nguyên. Khoá nào không gửi thì GIỮ số đã
+        ghi (D225: máy gửi đúng khoá vừa đổi — QC khác vừa ghi giờ / chấm ăn cho cùng người thì
+        không bị đè; máy bản cũ không biết `so_gio` thì không xoá giờ). `so_gio` = làm theo giờ.
     Đơn giá luôn tính lại server-side.
     """
     guard_card("vaohop")
@@ -613,20 +619,21 @@ def luu_bang_vao_hop(ngay_sx, rows, an_ca=None, biet=None):
         doc.append("dong", v)
 
     if an_ca is not None:
-        hien = {r.nhan_vien: r for r in (doc.get("an_ca") or [])}
+        hien = {r.nhan_vien: {"nhan_vien": r.nhan_vien, "an_ca": cint(r.an_ca), "an_dem": cint(r.an_dem),
+                              "so_gio": flt(r.get("so_gio")), "don_gia_gio": flt(r.get("don_gia_gio"))}
+                for r in (doc.get("an_ca") or [])}
         for r in frappe.parse_json(an_ca) or []:
             nv = r.get("nhan_vien")
             if not nv or nv in (CONG_NHAT, KHOAN_CHUNG):
-                continue   # công nhật / công khoán chung không phải một người — không chấm ăn
-            hien[nv] = {"nhan_vien": nv, "an_ca": cint(r.get("an_ca")),
-                        "an_dem": cint(r.get("an_dem"))}
+                continue   # công nhật / công khoán chung không phải một người — không chấm ăn, không ghi giờ
+            g = hien.setdefault(nv, {"nhan_vien": nv, "an_ca": 0, "an_dem": 0, "so_gio": 0.0, "don_gia_gio": 0.0})
+            for k, doi in (("an_ca", cint), ("an_dem", cint), ("so_gio", flt)):
+                if k in r:
+                    g[k] = doi(r.get(k))
         doc.set("an_ca", [])
-        for nv, r in hien.items():
-            g = r if isinstance(r, dict) else {"nhan_vien": nv, "an_ca": r.an_ca,
-                                                "an_dem": r.an_dem}
-            if cint(g["an_ca"]) or cint(g["an_dem"]):
-                doc.append("an_ca", {"nhan_vien": nv, "an_ca": cint(g["an_ca"]),
-                                     "an_dem": cint(g["an_dem"])})
+        for nv, g in hien.items():
+            if g["an_ca"] or g["an_dem"] or g["so_gio"] > 0:
+                doc.append("an_ca", g)
     doc.flags.ignore_permissions = True
     # Xoá hết dòng mà cũng không chấm ăn ca → không còn gì để lưu: xoá luôn bảng
     # NHÁP thay vì giữ một bảng rỗng (D106). Trước D106 bảng bắt buộc có ít nhất một

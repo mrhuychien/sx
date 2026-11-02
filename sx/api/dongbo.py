@@ -285,7 +285,9 @@ def dong_bo_vaohop(doc):
         doc.db_set({
             "salary_products_json": json.dumps(moi) if moi else None,
             "tong_hop_tp": sum(cint(r.so_hop) for r in (bang.dong if bang else [])),
-            "tong_luong_sp": sum(flt(r.thanh_tien) for r in (bang.dong if bang else [])),
+            # D225: tiền làm theo giờ của công khoán là lương sản phẩm của ngày như tiền hộp
+            "tong_luong_sp": sum(flt(r.thanh_tien) for r in (bang.dong if bang else []))
+            + sum(flt(r.get("tien_gio")) for r in ((bang.get("an_ca") or []) if bang else [])),
         }, update_modified=False)
         return []
     except Exception as ex:

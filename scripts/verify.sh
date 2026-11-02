@@ -125,6 +125,15 @@ python3 scripts/test-taymay.py > /tmp/sx-taymay.log 2>&1 \
   && tail -1 /tmp/sx-taymay.log \
   || { cat /tmp/sx-taymay.log; loi=1; }
 
+# D225: công khoán làm theo giờ (33.000đ/giờ) — chốt ngày ghi phiếu lương NHƯ lương sản phẩm (hệ số Chủ nhật, thâm
+# niên), người chỉ làm theo giờ vẫn có dòng lương; màn Ghi hộp gõ giờ lẻ, chỉ gửi khoá vừa đổi (Chromium thật).
+python3 scripts/test-giocong.py > /tmp/sx-giocong.log 2>&1 \
+  && tail -1 /tmp/sx-giocong.log \
+  || { cat /tmp/sx-giocong.log; loi=1; }
+node scripts/test-giocong.mjs > /tmp/sx-giocong-js.log 2>&1 \
+  && tail -1 /tmp/sx-giocong-js.log \
+  || { cat /tmp/sx-giocong-js.log; loi=1; }
+
 # Màn tạo tài khoản là chỗ DUY NHẤT app cấp quyền cho người khác, và mã QR trên thẻ
 # là thứ ai cầm cũng vào được. Hỏng ở đây không hiện ra như một lỗi.
 python3 scripts/test-nguoidung.py > /tmp/sx-nd.log 2>&1 \

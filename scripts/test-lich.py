@@ -44,6 +44,8 @@ def _khop(h, f):
                 return False
             if op == "between" and not (m[0] <= x <= m[1]):
                 return False
+            if op == ">" and not (x or 0) > m:
+                return False
         elif x != v:
             return False
     return True
@@ -197,6 +199,21 @@ kiem("chips: công khoán chung có số hộp riêng, KHÔNG tính là một ng
      "công khoán chung 18 hộp" in c["chips"] and "1 người" in c["chips"], str(c["chips"]))
 kiem("theo mã: công khoán chung tính vào phần KHOÁN", mh[0]["phai"] == 78 and mh[0]["phu"] is None, str(mh))
 kiem("ô lịch: công khoán chung cộng vào sản lượng ngày", L.thang("vaohop", 2026, 10)["ngay"]["2026-10-05"]["so"] == 78)
+
+print("\n-- D225: làm theo giờ --")
+BANG["SX Bang Vao Hop An Ca"] = [
+    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV1", "ten_nhan_vien": "An", "so_gio": 1.5},
+    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV7", "ten_nhan_vien": "Hoa", "so_gio": 2.5},
+    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV8", "ten_nhan_vien": "Lan", "so_gio": 0},
+    {"parent": "B9", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV9", "ten_nhan_vien": "Mai", "so_gio": 8}]
+c = L.chi_tiet("vaohop", "2026-10-05")
+ng = next(k for k in c["khoi"] if k["ten"] == "Theo người")["dong"]
+kiem("theo người: người CHỈ làm theo giờ hiện số giờ ở cột phải; người có hộp giữ số hộp, giờ ghi kèm",
+     [(x["trai"], x["phai"]) for x in ng] == [("An", 60), ("Hoa", "2,5 giờ"), ("★ Công khoán chung", 18)]
+     and "làm theo giờ 1,5 giờ" in ng[0]["phu"] and ng[1]["phu"] == "làm theo giờ 2,5 giờ", str(ng))
+kiem("chips: tổng giờ của ngày; người chỉ làm theo giờ cũng tính là một người (0 giờ / bảng khác thì không)",
+     "làm theo giờ 4 giờ" in c["chips"] and "2 người" in c["chips"], str(c["chips"]))
+del BANG["SX Bang Vao Hop An Ca"]
 
 print("\n-- D113: mỗi QC chỉ thấy phần mình ghi --")
 kiem("QC1 không thấy 40 hộp QC2 ghi (tổng ngày 1 vẫn 230)",

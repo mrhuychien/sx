@@ -77,8 +77,18 @@ def chi_tiet(name):
     """Một phiếu: các khoản, sản phẩm gộp theo mã, từng ngày, lỗi phạt."""
     guard_card("phieuluong")
     p = frappe.get_doc(PL, name)
-    sp = {}
+    sp, gio_ngay = {}, {}
     for r in p.chi_tiet:
+        if cint(r.get("theo_gio")):
+            # D225: làm theo giờ — gộp theo đơn giá / giờ, số lượng là số GIỜ
+            g = sp.setdefault(("", "gio", flt(r.don_gia)), {
+                "ten": _("Làm theo giờ"), "cach_lam": "", "theo_gio": True, "don_gia": flt(r.don_gia),
+                "so_luong": 0.0, "thanh_tien": 0.0})
+            g["so_luong"] += flt(r.so_gio)
+            g["thanh_tien"] += flt(r.thanh_tien)
+            k = str(getdate(r.ngay))
+            gio_ngay[k] = gio_ngay.get(k, 0.0) + flt(r.so_gio)
+            continue
         k = (r.san_pham, r.cach_lam or "", flt(r.don_gia))
         g = sp.setdefault(k, {"ten": r.ten_san_pham or r.san_pham, "cach_lam": r.cach_lam or "",
                               "don_gia": flt(r.don_gia), "so_luong": 0, "thanh_tien": 0.0})
@@ -102,6 +112,7 @@ def chi_tiet(name):
         "san_pham": sorted(sp.values(), key=lambda g: -g["thanh_tien"]),
         "ngay": [{"ngay": str(getdate(r.ngay)), "thu": r.thu, "an_ca": cint(r.an_ca),
                   "an_dem": cint(r.an_dem), "luong_sp": flt(r.luong_sp), "he_so": flt(r.he_so),
+                  "so_gio": gio_ngay.get(str(getdate(r.ngay)), 0.0),
                   "thu_nhap": flt(r.thu_nhap_ngay)} for r in p.dong],
         "phat": [{"ly_do": r.ly_do, "tien": flt(r.thanh_tien)} for r in p.phat],
         "ghi_chu": p.ghi_chu or "",

@@ -14,6 +14,15 @@ def get_settings():
     return frappe.get_cached_doc("SX Settings")
 
 
+# D225: công khoán ra làm việc tính theo giờ như công nhật — đơn giá / giờ (SX Settings), bỏ trống = mức đang dùng.
+DON_GIA_GIO = 33000
+
+
+def don_gia_gio():
+    """Đơn giá làm theo giờ của công khoán (D225)."""
+    return flt(get_settings().get("don_gia_gio")) or DON_GIA_GIO
+
+
 # ───────────────────────────── nhớ tạm trong MỘT request (D120) ──
 #
 # Các màn tải trang gọi get_bom_active / items_tp / get_bot_from_dau trong VÒNG LẶP

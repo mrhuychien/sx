@@ -14,7 +14,7 @@ Script), chỉ khác: tính ở SERVER lúc validate, nên gọi bằng API hay 
 
 ═══ QUY TẮC (giữ nguyên từ bảng lương hiện hành) ═══
   tiền ăn ngày   = ăn ca × đơn giá ăn ca + ăn đêm × đơn giá ăn đêm
-  lương SP ngày  = Σ (số lượng × đơn giá) các dòng chi tiết của ngày
+  lương SP ngày  = Σ (số lượng × đơn giá) các dòng chi tiết của ngày — dòng làm theo giờ (D225): số giờ × đơn giá
   thu nhập ngày  = lương SP ngày × HỆ SỐ + tiền ăn        (hệ số 1.2 nếu Chủ nhật / 1-1)
   ngày công      = số ngày có ăn ca  +  0,5 × số ngày chỉ có ăn đêm
   chuyên cần     = ngưỡng thường nếu ngày công > 25 hoặc ≥ (ngày SX − 0,5)
@@ -107,7 +107,20 @@ class SXPhieuLuong(Document):
                 )
 
     def tinh_chi_tiet(self, cf):
+        """Thành tiền từng dòng. Dòng làm theo giờ (D225) = số giờ × đơn giá / giờ — công khoán ra làm việc tính giờ,
+        trả như lương sản phẩm của ngày đó (hệ số ngày lễ, thâm niên). Dòng sản phẩm phải có mã hàng (ô Mã hàng hết
+        bắt buộc trên form vì dòng làm theo giờ không có mã)."""
         for r in self.chi_tiet:
+            if cint(r.get("theo_gio")):
+                if flt(r.get("so_gio")) <= 0:
+                    frappe.throw(_("Dòng chi tiết {0}: làm theo giờ mà chưa có số giờ.").format(r.idx))
+                r.san_pham, r.cach_lam, r.so_luong = None, None, 0
+                r.ten_san_pham = _("Làm theo giờ")      # cột Tên hàng trên lưới Desk
+                r.thanh_tien = flt(r.don_gia) * flt(r.so_gio)
+                continue
+            if not r.san_pham:
+                frappe.throw(_("Dòng chi tiết {0}: chưa chọn mã hàng.").format(r.idx))
+            r.so_gio = 0
             r.thanh_tien = flt(r.don_gia) * cint(r.so_luong)
 
     def tinh_theo_ngay(self, cf):

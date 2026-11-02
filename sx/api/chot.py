@@ -105,9 +105,9 @@ def _validate_chung(doc):
 
 
 def _co_gi_de_ghi(bang):
-    """Bảng vào hộp có gì để ghi lương không: sản lượng khoán HOẶC chấm ăn ca (D30).
+    """Bảng vào hộp có gì để ghi lương không: sản lượng khoán, chấm ăn ca (D30) HOẶC làm theo giờ (D225).
 
-    Ngày chỉ chấm ăn mà không ai vào hộp vẫn phải ra dòng lương — nếu chỉ nhìn
+    Ngày chỉ chấm ăn / chỉ làm theo giờ mà không ai vào hộp vẫn phải ra dòng lương — nếu chỉ nhìn
     `tong_hop` thì ngày đó bị bỏ qua im lặng.
     """
     if not bang:
@@ -115,7 +115,7 @@ def _co_gi_de_ghi(bang):
     if cint(bang.tong_hop) > 0:
         return True
     return any(
-        cint(r.an_ca) or cint(r.an_dem) for r in (bang.get("an_ca") or [])
+        cint(r.an_ca) or cint(r.an_dem) or flt(r.get("so_gio")) > 0 for r in (bang.get("an_ca") or [])
     )
 
 
@@ -360,10 +360,13 @@ def _ghi_luong_khoan(doc, bang):
     for (nv, sp, cl), g in gop.items():
         theo_nguoi.setdefault(nv, []).append((sp, cl or None, g["sl"], g["dg"]))
 
-    # Ăn ca / ăn đêm (D30): người CHỈ được chấm ăn (không vào hộp) vẫn phải có dòng
-    an = {}
+    # Ăn ca / ăn đêm (D30), làm theo giờ (D225): người CHỈ được chấm ăn / chỉ làm theo giờ (không vào hộp) vẫn
+    # phải có dòng
+    an, gio = {}, {}
     for r in bang.get("an_ca") or []:
-        if not (cint(r.an_ca) or cint(r.an_dem)):
+        if flt(r.get("so_gio")) > 0:
+            gio[r.nhan_vien] = (flt(r.so_gio), flt(r.don_gia_gio))
+        if not (cint(r.an_ca) or cint(r.an_dem) or r.nhan_vien in gio):
             continue
         an[r.nhan_vien] = (cint(r.an_ca), cint(r.an_dem))
         theo_nguoi.setdefault(r.nhan_vien, [])
@@ -372,7 +375,7 @@ def _ghi_luong_khoan(doc, bang):
     for nv, cong_viec in theo_nguoi.items():
         co_an_ca, co_an_dem = an.get(nv, (0, 0))
         phieu = _phieu_luong_thang(nv, ngay)
-        _thay_ngay(phieu, ngay, cong_viec, co_an_ca, co_an_dem)
+        _thay_ngay(phieu, ngay, cong_viec, co_an_ca, co_an_dem, gio.get(nv))
         phieu.flags.ignore_permissions = True
         phieu.save()
         ds_ghi.append({"phieu": phieu.name, "employee": nv, "ngay": str(ngay)})
@@ -404,11 +407,13 @@ def _phieu_luong_thang(employee, ngay):
     return phieu
 
 
-def _thay_ngay(phieu, ngay, cong_viec, an_ca, an_dem):
+def _thay_ngay(phieu, ngay, cong_viec, an_ca, an_dem, gio=None):
     """Ghi đè TRỌN dữ liệu của MỘT ngày trong phiếu tháng.
 
     Ghi đè chứ không cộng dồn: chốt lại ngày sau khi sửa bảng vào hộp phải ra đúng
     số mới, không phải số cũ cộng số mới. Ngày khác trong phiếu không bị đụng tới.
+    `gio` = (số giờ, đơn giá / giờ) làm theo giờ (D225) → một dòng chi tiết "làm theo giờ": cộng vào lương sản
+    phẩm của ngày như hộp (hệ số ngày lễ, thâm niên).
     """
     ngay_s = str(ngay)
     phieu.set("chi_tiet", [r for r in phieu.chi_tiet if str(getdate(r.ngay)) != ngay_s])
@@ -419,6 +424,8 @@ def _thay_ngay(phieu, ngay, cong_viec, an_ca, an_dem):
             "ngay": ngay, "san_pham": sp, "cach_lam": cach_lam,
             "so_luong": cint(sl), "don_gia": flt(dg),
         })
+    if gio and flt(gio[0]) > 0:
+        phieu.append("chi_tiet", {"ngay": ngay, "theo_gio": 1, "so_gio": flt(gio[0]), "don_gia": flt(gio[1])})
     dong = next((r for r in phieu.dong if str(getdate(r.ngay)) == ngay_s), None)
     if not dong:
         dong = phieu.append("dong", {"ngay": ngay})
