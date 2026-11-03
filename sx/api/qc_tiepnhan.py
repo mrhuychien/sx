@@ -35,7 +35,8 @@ LOAI = ("Purchase Receipt", "Purchase Invoice")
 ANH_TOI_DA = 8
 # Ô QC của dòng hàng = đúng custom field có sẵn (sx/fixtures/custom_field.json — test đối chiếu).
 #   None = chữ tự do · tuple = lựa chọn của ô Select · NGAY = ô ngày (YYYY-MM-DD)
-# D226: NSX / HSD lô NCC — duyệt phiếu thì app tạo lô theo Lô NCC, hai ngày này ghi vào lô (sx/api/lo_mua.py).
+# D226: NSX / HSD lô NCC — duyệt phiếu thì app tạo lô (D227: mã NCC + mã hàng + ngày nhập), số lô NCC + hai ngày này ghi
+# vào lô (sx/api/lo_mua.py).
 NGAY = "ngay"
 O_DONG = {
     "custom_ncc_lo": None,
@@ -140,10 +141,16 @@ def _dict(doc, bao=None):
              "qty": flt(r.qty, 3), "uom": r.get("uom") or r.get("stock_uom") or "", "kho": r.get("warehouse") or "",
              "batch_no": r.get("batch_no") or "", "giay_to": r.get("custom_giay_to") or "",
              "can_coa": bool(nhom & can_coa), "can_aflatoxin": bool(nhom & can_af),
-             # D226: mã quản lý theo lô — chưa chọn Batch No thì duyệt phiếu tạo lô theo Lô NCC (màn nói cho QC biết).
+             # D226: mã quản lý theo lô — chưa chọn Batch No thì duyệt phiếu tự tạo lô (màn nói cho QC biết).
              "co_lo": bool(r.item_code and cint(frappe.get_cached_value("Item", r.item_code, "has_batch_no")))}
         for f in O_DONG:
             d[f] = r.get(f) or ""       # ô ngày: frappe trả JSON "YYYY-MM-DD"
+        if d["co_lo"] and not d["batch_no"] and doc.docstatus == 0:
+            # D227: mã lô sẽ tạo lúc duyệt (NCC + mã hàng + ngày nhập) — để QC ghi lên bao. Chỉ xem: không ghi viết tắt /
+            # prefix vào NCC, Item; trùng lô cùng ngày thì lúc duyệt còn thêm -2.
+            from sx.api.lo_mua import ten_goc
+
+            d["lo_du_kien"] = ten_goc(doc, r.item_code, luu=False)
         dong.append(d)
     xe = None
     if doc.doctype == "Purchase Receipt":

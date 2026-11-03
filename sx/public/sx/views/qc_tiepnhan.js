@@ -3,7 +3,8 @@
 // QC chế biến không có Desk, mà phần QC của tiếp nhận nằm trên phiếu nhập mua (Purchase Receipt) /
 // hoá đơn mua có trừ kho. Màn này: danh sách phiếu NHÁP 14 ngày → mở một phiếu → kiểm xe (cùng lúc
 // với hàng) + từng dòng: lô NCC, CQ/CO, COA vi sinh, aflatoxin, cảm quan, kết luận → LƯU.
-// D226: lô NCC kèm NSX / HSD trên bao bì — thủ kho duyệt phiếu thì app tạo lô ERPNext theo đúng số lô đó.
+// D226/D227: lô NCC kèm NSX / HSD trên bao bì; thủ kho duyệt phiếu thì app tạo lô ERPNext mã {NCC}-{mã hàng}-{ngày nhập}
+// (màn hiện trước mã đó để ghi lên bao), số lô NCC + NSX / HSD ghi vào lô.
 // Server lưu bằng doc.save() nên luật y như Desk: xe không đạt / thiếu COA / thiếu giấy tờ → ép
 // Cách ly, lô Cách ly vào kho cách ly; lời cảnh báo hiện ngay dưới đầu phiếu. Duyệt phiếu là việc
 // của thủ kho. Ảnh (hàng, giấy tờ, xe) chụp xong gửi ngay, nén trên máy.
@@ -172,9 +173,13 @@ function dongHang(r, d, khoa) {
   ngay.appendChild(oNgay('NSX', r.custom_ncc_nsx, (v) => { r.custom_ncc_nsx = v; }, khoa));
   ngay.appendChild(oNgay('HSD', r.custom_ncc_hsd, (v) => { r.custom_ncc_hsd = v; }, khoa));
   o.appendChild(ngay);
-  // D226: mã quản lý theo lô — lô ERPNext lấy từ đây lúc thủ kho duyệt (đã chọn sẵn lô thì nói lô đó).
+  // D226/D227: mã quản lý theo lô — duyệt phiếu thì tạo lô (đã chọn sẵn lô thì nói lô đó).
   if (r.batch_no) o.appendChild(el('div', 'sx-qc-goiy', `Lô: <b>${esc(r.batch_no)}</b>`));
-  else if (r.co_lo) o.appendChild(el('div', 'sx-qc-goiy', 'Mã quản lý theo lô — duyệt phiếu sẽ tạo lô theo số lô NCC + NSX / HSD này.'));
+  else if (r.co_lo) {
+    o.appendChild(el('div', 'sx-qc-goiy', r.lo_du_kien
+      ? `Duyệt phiếu sẽ tạo lô <b>${esc(r.lo_du_kien)}</b> (NCC + mã hàng + ngày nhập) — ghi mã này lên bao.`
+      : 'Mã quản lý theo lô — duyệt phiếu sẽ tạo lô (NCC + mã hàng + ngày nhập).'));
+  }
   o.appendChild(oChon('CQ / CO', lc.custom_co_cq, r.custom_co_cq, (v) => { r.custom_co_cq = v; }, khoa));
   o.appendChild(oChon('COA vi sinh', lc.custom_coa_vi_sinh, r.custom_coa_vi_sinh, (v) => { r.custom_coa_vi_sinh = v; },
     khoa, r.can_coa ? 'nhóm hàng bắt buộc COA' : ''));

@@ -95,8 +95,9 @@ qua `Quản lý → Tài khoản portal` (xem mục dưới), không tạo tay t
 - **Activity Type + `SX Bang Don Gia`** → không có thì bảng vào hộp trống
 - Manufacturing Settings: Backflush = BOM, Overproduction 5%, **giữ tắt** *Validate
   Components Quantities Per BOM*
-- Nhập mua NVL (Purchase Receipt / hoá đơn mua có trừ kho): ghi **Lô NCC** (số lô trên bao bì, kèm NSX / HSD) trên
-  dòng hàng — duyệt phiếu thì app tự tạo lô ERPNext theo số đó (D226; điều kiện FIFO truy xuất)
+- Nhập mua NVL (Purchase Receipt / hoá đơn mua có trừ kho): duyệt phiếu thì app tự tạo lô mã
+  `{viết tắt NCC}-{prefix mã hàng}-{DDMMYY ngày nhập}` (D227); QC ghi **Lô NCC** (số trên bao bì) + NSX / HSD để
+  truy ngược về NCC (điều kiện FIFO truy xuất)
 - Tồn đầu — chạy thử thì dùng `seed_ton_dau` ở mục dưới
 
 **6. Kiểm lại:** mở `/sx` bằng một tài khoản đã gán role, thấy đúng số tab của vai đó.
@@ -324,8 +325,33 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Mã lô nguyên liệu mua = viết tắt NCC + mã hàng + ngày nhập (D227)
+
+- **Hỏi** (03/11/2026): lô tự tạo theo số lô NCC (D226) không ổn — tạo số lô theo ngày nhập hàng: viết tắt của NCC, tên
+  sản phẩm và ngày nhập. **Đã làm**: mã lô `{viết tắt NCC}-{prefix mã hàng}-{DDMMYY}`, vd Công ty TNHH Hương liệu ABC
+  giao Hương cốm ngày 03/11/2026 → **`HLABC-HC-031126`**. Không cần ghi số lô NCC mới duyệt được nữa.
+- **Viết tắt NCC**: ô mới *Viết tắt (mã lô)* trên NCC (ngay dưới tên). Trống thì lần duyệt phiếu nhập đầu tiên app rút
+  gọn tên NCC — bỏ dấu, bỏ "Công ty / TNHH / Cổ phần / Thương mại / Dịch vụ / Sản xuất…", lấy chữ đầu mỗi từ, giữ
+  nguyên cụm viết hoa sẵn (ABC) — rồi **lưu vào ô đó**; sửa được (lô đã tạo giữ tên cũ). Hai NCC trùng chữ thì NCC sau
+  thêm số (`HLABC2`). Tối đa 8 ký tự.
+- **Prefix mã hàng**: ô *Prefix mã lô* của Item — cùng ô lô sản xuất đang dùng (D102/D103): trống thì rút gọn mã hàng
+  (Hương cốm → `HC`, Bơ → `BO`) và lưu lại; hai mã trùng chữ thì mã sau thêm số (`HC2`).
+- **Ngày nhập** = ngày ghi sổ của phiếu nhập mua / hoá đơn mua.
+- **Cùng NCC + cùng mã + cùng ngày** = một lô (nhiều dòng / nhiều phiếu trong ngày nhập vào lô đó), trừ khi số lô NCC
+  hoặc HSD khác nhau (một bên chưa ghi thì vẫn tính là cùng) → lô riêng `-2`, `-3`…. Ngày khác = lô khác.
+- **Số lô NCC** (ô Lô NCC, không bắt buộc) + NSX / HSD lô NCC vẫn ghi vào lô — truy ngược về NCC, sổ BM.07.03 vẫn có cột
+  số lô NCC. Ngày sai vẫn chặn như D226.
+- **Màn Tiếp nhận NL**: dòng mã có lô hiện trước "Duyệt phiếu sẽ tạo lô **HLABC-HC-031126** … — ghi mã này lên bao"
+  (chỉ xem, chưa ghi viết tắt / prefix; trùng lô cùng ngày thì lúc duyệt còn thêm `-2`).
+- Test `test-lomua.py` (viết tắt NCC, cùng ngày / khác lô NCC / khác HSD / khác ngày, trùng chữ NCC / mã, xem trước,
+  site chưa migrate), `test-tiepnhanqc.py`, `test-tiepnhanqc.mjs`.
+- **Thêm custom field** (Supplier: Viết tắt (mã lô); đổi nhãn Item: Prefix mã lô): `git pull` →
+  `bench --site site1.local migrate` → `bench restart`. Build **sx-169**.
+
 ## Nhập mua nguyên liệu: duyệt phiếu tự tạo lô từ ô Lô NCC (+ NSX / HSD) (D226)
 
+- **D227 đổi cách đặt tên**: mã lô không còn = số lô NCC mà là viết tắt NCC + mã hàng + ngày nhập, và không bắt ghi số
+  lô NCC nữa — xem mục D227. Phần dưới giữ làm lịch sử.
 - **Hỏi** (03/11/2026): nhập hoá đơn mua báo "Serial No / Batch No are mandatory for Item Hương cốm". Nguyên nhân: mã
   nguyên liệu quản lý theo lô (seed bật *Has Batch No*, tắt *Automatically Create New Batch* — mã lô phải là số lô
   NCC, không để ERPNext đặt mã) mà dòng hàng chưa chọn Batch No. **Đã chốt**: app tự tạo lô từ ô Lô NCC.

@@ -1,16 +1,18 @@
-"""D226 — duyệt phiếu nhập mua / hoá đơn mua có trừ kho: tự tạo lô nguyên liệu từ ô Lô NCC.
+"""D226 / D227 — duyệt phiếu nhập mua / hoá đơn mua có trừ kho: tự tạo lô nguyên liệu, mã {NCC}-{mã hàng}-{ngày nhập}.
 
 Vì sao phải có bài này: mã nguyên liệu quản lý theo lô mà dòng hàng chưa chọn Batch No thì lúc duyệt ERPNext báo
 "Serial No / Batch No are mandatory for Item …" — tiếng Anh, từng mã một. Lô tự tạo thì phải:
-  · đúng số lô NCC QC đã ghi (truy xuất / thu hồi theo số in trên bao bì), NSX / HSD trên bao bì — không bịa NSX;
-  · chuyến sau cùng lô NCC (cùng mã, HSD khớp) nhập VÀO lô cũ, không đẻ lô mới; trùng số lô của mã khác hoặc khác HSD
-    thì lô riêng -2, -3…;
+  · mã lô đọc ra được của ai, hàng gì, về ngày nào: viết tắt NCC + prefix mã hàng + DDMMYY ngày nhập; viết tắt / prefix
+    giữ ổn định (lưu lại, sửa được), hai NCC / hai mã trùng chữ thì cái sau thêm số;
+  · cùng NCC + mã + ngày, cùng lô NCC / HSD (hoặc chưa ghi) → nhập vào lô đó; khác lô NCC / HSD → lô riêng -2, -3…;
+  · số lô NCC, NSX / HSD trên bao bì vào lô — không bịa NSX;
   · không đụng dòng đã chọn lô / có bundle, mã không lô, hoá đơn không trừ kho, phiếu trả hàng;
-  · thiếu Lô NCC / ngày sai → báo MỘT lần đủ các dòng, và khi đã báo thì không tạo lô nào.
+  · NSX / HSD sai → báo MỘT lần đủ các dòng, và khi đã báo thì không tạo lô nào.
 
-Nạp sx/api/lo_mua.py + sx/hooks.py THẬT trên frappe giả. Batch giả như ERPNext v16: tên = batch_id, mã phải bật lô,
-NSX mặc định hôm nay, mã Has Expiry Date bắt buộc HSD (có Shelf Life thì tự tính). Duyệt giả như ERPNext: chạy
-before_submit của app theo hooks.py, rồi ghi sổ kho — mã có lô mà dòng không lô / bundle → lỗi tiếng Anh như thật.
+Nạp sx/api/lo_mua.py, sx/utils.py, sx/hooks.py THẬT trên frappe giả. Batch giả như ERPNext v16: tên = batch_id, mã phải
+bật lô, NSX mặc định hôm nay, mã Has Expiry Date bắt buộc HSD (có Shelf Life thì tự tính), người duyệt không có quyền tạo
+Batch. Duyệt giả như ERPNext: chạy before_submit của app theo hooks.py, rồi ghi sổ kho — mã có lô mà dòng không lô /
+bundle → lỗi tiếng Anh như thật.
 Chạy: python3 scripts/test-lomua.py   (verify.sh gọi sẵn)
 """
 
@@ -26,12 +28,14 @@ os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import fakefrappe as F  # noqa: E402
 
 frappe = F.cai()
+U = F.nap("sx.utils", "sx/utils.py")
 LM = F.nap("sx.api.lo_mua", "sx/api/lo_mua.py")
 H = F.nap("sx.hooks", "sx/hooks.py")
 kiem, thu = F.kiem, F.thu
 F.dat_ngay("2026-11-03")
 LUC = {"n": 0}
 SO_KHO = []
+cint = sys.modules["frappe.utils"].cint
 
 
 class LoGia(F.Document):
@@ -70,7 +74,7 @@ class PhieuMua(F.Document):
 
     def on_submit(self):
         """Như ERPNext: make_bundle_using_old_serial_batch_fields + sổ kho (SLE.validate_serial_batch_no_bundle)."""
-        if F.fu_cint(self.is_return) or (self.doctype == "Purchase Invoice" and not F.fu_cint(self.update_stock)):
+        if cint(self.is_return) or (self.doctype == "Purchase Invoice" and not cint(self.update_stock)):
             return
         for r in self.items or []:
             it = F.bang("Item").get(r.item_code) or {}
@@ -90,31 +94,36 @@ class PhieuMua(F.Document):
             SO_KHO.append((self.name, r.idx, r.item_code, r.get("batch_no")))
 
 
-F.fu_cint = sys.modules["frappe.utils"].cint
 F.dang_ky("Batch", LoGia, ten_theo="batch_id")
 F.dang_ky("Purchase Receipt", PhieuMua)
 F.dang_ky("Purchase Invoice", PhieuMua)
-F.bang("Item").update({
-    "Hương cốm": {"name": "Hương cốm", "has_batch_no": 1, "is_stock_item": 1},
-    "Hương sen": {"name": "Hương sen", "has_batch_no": 1, "is_stock_item": 1},
-    "Bột sữa": {"name": "Bột sữa", "has_batch_no": 1, "is_stock_item": 1, "create_new_batch": 0},
-    "Đường kính": {"name": "Đường kính", "has_batch_no": 0, "is_stock_item": 1},
-    "Men": {"name": "Men", "has_batch_no": 1, "is_stock_item": 1, "has_expiry_date": 1},
-    "Bơ": {"name": "Bơ", "has_batch_no": 1, "is_stock_item": 1, "has_expiry_date": 1, "shelf_life_in_days": 180},
-    "Tem tự sinh": {"name": "Tem tự sinh", "has_batch_no": 1, "is_stock_item": 1, "create_new_batch": 1},
-    "Máy seri": {"name": "Máy seri", "has_batch_no": 1, "has_serial_no": 1, "is_stock_item": 1},
-    "Phí lô": {"name": "Phí lô", "has_batch_no": 1, "is_stock_item": 0},
+F.bang("Item").update({k: dict({"name": k, "has_batch_no": 1, "is_stock_item": 1}, **v) for k, v in {
+    "Hương cốm": {}, "Hương sen": {}, "Bột sữa": {}, "Hạt chia": {}, "Cốm xanh": {"custom_batch_prefix": "COM"},
+    "Đường kính": {"has_batch_no": 0},
+    "Men": {"has_expiry_date": 1},
+    "Bơ": {"has_expiry_date": 1, "shelf_life_in_days": 180},
+    "Tem tự sinh": {"create_new_batch": 1},
+    "Máy seri": {"has_serial_no": 1},
+    "Phí lô": {"is_stock_item": 0},
+}.items()})
+F.bang("Supplier").update({
+    "NCC-HUONG": {"name": "NCC-HUONG", "supplier_name": "Công ty TNHH Hương liệu ABC"},
+    "NCC-SEN": {"name": "NCC-SEN", "supplier_name": "Cơ sở Sen Hồ Tây", "custom_viet_tat": "s.h t"},
+    "NCC-TRUNG": {"name": "NCC-TRUNG", "supplier_name": "Hương Liệu Á Bắc Cường"},
+    "NCC-HOA": {"name": "NCC-HOA", "supplier_name": "CÔNG TY TNHH HƯƠNG LIỆU XYZ"},
+    "NCC-MOI": {"name": "NCC-MOI", "supplier_name": "Công ty Gia vị Nam Á"},
+    "NCC-DAI": {"name": "NCC-DAI", "supplier_name": "Công ty TNHH Nông sản Thực phẩm Miền Bắc Việt Nam"},
+    "NCC-DAI2": {"name": "NCC-DAI2", "supplier_name": "Nông Sản Thực Phẩm Miền Bắc Việt Nam Mới"},
 })
 F.bang("Batch").update({
     "SEN-CU": {"name": "SEN-CU", "item": "Hương sen", "disabled": 0, "creation": "2026-09-01 08:00:00"},
-    "M77": {"name": "M77", "item": "Hương cốm", "manufacturing_date": date(2026, 10, 1), "disabled": 0,
-            "creation": "2026-10-01 08:00:00"},
-    "X1": {"name": "X1", "item": "Hương sen", "disabled": 0, "creation": "2026-10-02 08:00:00"},
-    "D9": {"name": "D9", "item": "Hương cốm", "disabled": 1, "creation": "2026-10-03 08:00:00"},
-    "DA1": {"name": "DA1", "item": "Hương cốm", "custom_ncc_lo": "DA9", "disabled": 1, "creation": "2026-10-03 09:00:00"},
-    "PF": {"name": "PF", "item": "Bột sữa", "custom_ncc_lo": "PF", "disabled": 0, "creation": "2026-10-04 08:00:00"},
-    "PF-2": {"name": "PF-2", "item": "Bột sữa", "custom_ncc_lo": "PF", "expiry_date": date(2027, 12, 12), "disabled": 0,
-             "creation": "2026-10-05 08:00:00"},
+    "SHT-HS-031126": {"name": "SHT-HS-031126", "item": "Hương sen", "disabled": 1, "creation": "2026-11-03 07:00:00"},
+    "HLABC-BS-041126": {"name": "HLABC-BS-041126", "item": "Hương cốm", "disabled": 0, "creation": "2026-11-01 07:00:00"},
+    # lô tạo tay mang tên giống họ lô mà không phải goc / goc-N — không được coi là cùng lô
+    "HLABC-HC-031126-X": {"name": "HLABC-HC-031126-X", "item": "Hương cốm", "disabled": 0,
+                          "creation": "2026-11-01 07:00:00"},
+    "SHT-HC-031126-12": {"name": "SHT-HC-031126-12", "item": "Hương cốm", "custom_ncc_lo": "Z12", "disabled": 0,
+                         "creation": "2026-11-01 07:00:00"},
 })
 SO = {"n": 0}
 
@@ -131,12 +140,12 @@ def dong(item, lo=None, nsx=None, hsd=None, **k):
     return r
 
 
-def phieu(*ds, dt="Purchase Receipt", ngay="2026-11-03", **k):
+def phieu(*ds, dt="Purchase Receipt", ngay="2026-11-03", ncc="NCC-HUONG", **k):
     SO["n"] += 1
     ten = f"{'PR' if dt == 'Purchase Receipt' else 'PI'}-{SO['n']:03d}"
     items = [F.Doc(dict({"name": f"{ten}-{i}", "idx": i, "qty": 10, "warehouse": "Kho NVL"}, **r))
              for i, r in enumerate(ds, 1)]
-    d = F.get_doc(dict({"doctype": dt, "name": ten, "supplier": "NCC-HUONG", "posting_date": ngay, "docstatus": 0,
+    d = F.get_doc(dict({"doctype": dt, "name": ten, "supplier": ncc, "posting_date": ngay, "docstatus": 0,
                         "is_return": 0, "items": items}, **k))
     d.insert()
     return d
@@ -170,149 +179,158 @@ kiem("không móc vào validate / on_update: lưu nháp không tạo lô (phiế
      all("lo_mua" not in json.dumps(H.doc_events[dt].get(e)) for dt in ("Purchase Receipt", "Purchase Invoice")
          for e in ("validate", "on_update", "before_save", "on_submit")))
 
-# ═══ 1. Lỗi người dùng gặp: mã có lô, dòng chưa có lô ════════════════════════
-print("\n-- dòng mã có lô chưa có Lô NCC: báo tiếng Việt, đủ các dòng --")
-n_lo = len(F.bang("Batch"))
-d = phieu(dong("Hương cốm"), dong("Đường kính"), dong("Bột sữa"), dong("Hương sen", "S1", hsd="2027-01-01"))
-loi = duyet(d)
-kiem("báo MỘT lần đủ các dòng thiếu lô (tiếng Việt), không phải lỗi tiếng Anh từng mã",
-     loi and "Chưa có số lô cho các dòng: 1 (Hương cốm), 3 (Bột sữa)." in loi and "mandatory" not in loi, loi)
-kiem("… chỉ cách sửa: ghi số lô trên bao bì vào ô Lô NCC (màn Tiếp nhận NL hoặc trên dòng), hoặc chọn Batch No",
-     "ô <b>Lô NCC</b>" in loi and "Tiếp nhận NL" in loi and "Batch No" in loi)
-kiem("… mã không lô (đường) không bị kể; dòng đủ (Hương sen S1) cũng KHÔNG tạo lô — một dòng hỏng là chưa tạo gì",
-     "Đường kính" not in loi and len(F.bang("Batch")) == n_lo and not da_duyet(d))
-d = phieu(dong("Hương cốm"))
-kiem("một dòng → 'dòng' (không 'các dòng')", "Chưa có số lô cho dòng: 1 (Hương cốm)." in (duyet(d) or ""))
+# ═══ 1. Viết tắt NCC (hàm thuần) ═════════════════════════════════════════════
+print("\n-- viết tắt tên NCC --")
+for ten, mong in (("Công ty TNHH Hương liệu ABC", "HLABC"), ("Công ty CP Thực phẩm Á Châu", "TPAC"),
+                  ("Công ty TNHH Thương mại và Dịch vụ Minh Phát", "MP"), ("Vinamilk", "VINAMILK"),
+                  ("CÔNG TY TNHH HƯƠNG LIỆU XYZ", "HLX"), ("Hộ kinh doanh Nguyễn Văn A", "NVA"),
+                  ("Cơ sở Đỗ xanh Bà Hai", "DXBH"), ("Công ty 3A Food", "3AF"), ("Cơ sở Bột mì 79", "BM79"),
+                  ("Công ty Hương liệu VN", "HLVN"),
+                  ("Công ty TNHH Nông sản Thực phẩm Miền Bắc Việt Nam", "NSTPMBVN"),
+                  ("Công ty TNHH Nông sản Thực phẩm Xuất khẩu Miền Bắc Việt Nam", "NSTPXKMB"), ("", "")):
+    kiem(f"'{ten}' → '{mong}'", LM.rut_gon_ncc(ten) == mong, LM.rut_gon_ncc(ten))
+kiem("tên chỉ có chữ loại hình ('Công ty TNHH') → vẫn ra chữ, không rỗng", bool(LM.rut_gon_ncc("Công ty TNHH")))
+kiem("không có NCC → 'NCC'", LM.viet_tat_ncc(None) == "NCC")
 
-# ═══ 2. Tạo lô theo Lô NCC ═══════════════════════════════════════════════════
-print("\n-- có Lô NCC: tạo lô đúng số lô, NSX / HSD trên bao bì --")
-d = phieu(dong("Hương cốm", "HC-2409", nsx="2026-09-24", hsd="2027-09-24"), dong("Đường kính"),
-          dong("Hương sen", batch_no="SEN-CU"), dong("Bột sữa", serial_and_batch_bundle="SABB-0001"))
+# ═══ 2. Tạo lô ════════════════════════════════════════════════════════════════
+print("\n-- duyệt: tạo lô {NCC}-{mã hàng}-{ngày nhập} --")
+d = phieu(dong("Hương cốm", " L2409 ", nsx="2026-09-24", hsd="2027-09-24"), dong("Đường kính"),
+          dong("Hương sen", batch_no="SEN-CU"), dong("Bột sữa", serial_and_batch_bundle="SABB-0001"), dong("Bột sữa"))
 loi = duyet(d)
-b = lo("HC-2409")
-kiem("duyệt được (ERPNext không còn báo thiếu lô)", loi is None and da_duyet(d), loi)
-kiem("lô tên = số lô NCC, đúng mã, NSX / HSD trên bao bì, NCC + chứng từ nguồn, ô Lô NCC của lô",
-     (b.get("item"), b.get("manufacturing_date"), b.get("expiry_date"), b.get("supplier"), b.get("reference_doctype"),
-      b.get("reference_name"), b.get("custom_ncc_lo"))
-     == ("Hương cốm", date(2026, 9, 24), date(2027, 9, 24), "NCC-HUONG", "Purchase Receipt", d.name, "HC-2409"), b)
+b = lo("HLABC-HC-031126")
+kiem("duyệt được (ERPNext không còn báo thiếu lô) — không cần ghi số lô NCC", loi is None and da_duyet(d), loi)
+kiem("mã lô = viết tắt NCC (rút gọn tên) + prefix mã hàng (rút gọn mã) + DDMMYY ngày nhập",
+     dong_db(d, 1).get("batch_no") == "HLABC-HC-031126" and dong_db(d, 5).get("batch_no") == "HLABC-BS-031126",
+     [dong_db(d, i).get("batch_no") for i in (1, 5)])
+kiem("viết tắt NCC / prefix mã hàng LƯU lại (lần sau ra đúng chữ đó, sửa được trên Desk)",
+     (F.bang("Supplier")["NCC-HUONG"].get("custom_viet_tat"), F.bang("Item")["Hương cốm"].get("custom_batch_prefix"))
+     == ("HLABC", "HC"))
+kiem("lô ghi số lô NCC (gộp khoảng trắng), NSX / HSD trên bao bì, NCC, chứng từ nguồn",
+     (b.get("item"), b.get("custom_ncc_lo"), b.get("manufacturing_date"), b.get("expiry_date"), b.get("supplier"),
+      b.get("reference_doctype"), b.get("reference_name"))
+     == ("Hương cốm", "L2409", date(2026, 9, 24), date(2027, 9, 24), "NCC-HUONG", "Purchase Receipt", d.name), b)
+kiem("dòng không ghi gì vẫn có lô; NSX để trống (không bịa ngày nhận), không có số lô NCC",
+     (lo("HLABC-BS-031126").get("manufacturing_date"), lo("HLABC-BS-031126").get("custom_ncc_lo")) == (None, None))
 kiem("dòng mang lô vừa tạo, bật 'dùng ô Batch No' (ERPNext lập bundle từ ô này) — lưu cả vào phiếu",
-     (dong_db(d, 1).get("batch_no"), dong_db(d, 1).get("use_serial_batch_fields")) == ("HC-2409", 1))
+     dong_db(d, 1).get("use_serial_batch_fields") == 1)
 kiem("không đụng: mã không lô, dòng đã chọn lô, dòng đã có bundle",
      not dong_db(d, 2).get("batch_no") and dong_db(d, 3).get("batch_no") == "SEN-CU"
      and not dong_db(d, 4).get("batch_no") and not dong_db(d, 4).get("use_serial_batch_fields"))
 kiem("sổ kho ghi đúng lô từng dòng", [x for x in SO_KHO if x[0] == d.name] == [
-    (d.name, 1, "Hương cốm", "HC-2409"), (d.name, 2, "Đường kính", None), (d.name, 3, "Hương sen", "SEN-CU"),
-    (d.name, 4, "Bột sữa", None)])
-kiem("báo lại lô đã gán (tạo mới)", any("dòng 1 (Hương cốm): lô <b>HC-2409</b> — tạo mới" in m for m in F.BAO), F.BAO)
+    (d.name, 1, "Hương cốm", "HLABC-HC-031126"), (d.name, 2, "Đường kính", None), (d.name, 3, "Hương sen", "SEN-CU"),
+    (d.name, 4, "Bột sữa", None), (d.name, 5, "Bột sữa", "HLABC-BS-031126")])
+kiem("báo lại lô đã gán", any("dòng 1 (Hương cốm): lô <b>HLABC-HC-031126</b> — tạo mới" in m for m in F.BAO), F.BAO)
 
-print("\n-- chuyến sau: cùng lô NCC → nhập vào lô cũ; trùng số mà khác mã / khác HSD → lô riêng --")
+print("\n-- cùng NCC + mã + ngày: một lô; khác lô NCC / HSD: lô riêng --")
 n_lo = len(F.bang("Batch"))
-d = phieu(dong("Hương cốm", "HC-2409", hsd="2027-09-24"))
-kiem("cùng mã + cùng số lô NCC + cùng HSD → nhập thêm vào lô cũ, không tạo lô mới",
-     duyet(d) is None and dong_db(d, 1)["batch_no"] == "HC-2409" and len(F.bang("Batch")) == n_lo
-     and any("lô <b>HC-2409</b> — nhập thêm vào lô đã có" in m for m in F.BAO), F.BAO)
-d = phieu(dong("Hương sen", "HC-2409", hsd="2027-06-30"))
-loi = duyet(d)
-b = lo("HC-2409-2")
-kiem("số lô trùng lô của MÃ KHÁC → lô riêng 'HC-2409-2' (ô Lô NCC giữ số gốc); không NSX → NSX để trống, không bịa "
-     "ngày nhận", loi is None and dong_db(d, 1)["batch_no"] == "HC-2409-2"
-     and (b.get("item"), b.get("custom_ncc_lo"), b.get("expiry_date"), b.get("manufacturing_date"))
-     == ("Hương sen", "HC-2409", date(2027, 6, 30), None), b)
-d = phieu(dong("Hương sen", "HC-2409", nsx="2026-06-30"))
-kiem("… chuyến sau của Hương sen cùng lô NCC (không ghi HSD) → tìm ra đúng 'HC-2409-2' qua ô Lô NCC của lô; NSX lô "
-     "đang trống thì điền", duyet(d) is None and dong_db(d, 1)["batch_no"] == "HC-2409-2"
-     and lo("HC-2409-2")["manufacturing_date"] == date(2026, 6, 30), lo("HC-2409-2"))
-d = phieu(dong("Hương cốm", "HC-2409", hsd="2028-01-15"))
-kiem("cùng mã, cùng số lô NCC mà KHÁC HSD (NCC quay vòng số lô) → lô mới 'HC-2409-3'",
-     duyet(d) is None and dong_db(d, 1)["batch_no"] == "HC-2409-3" and lo("HC-2409-3")["expiry_date"] == date(2028, 1, 15))
-for hsd, mong in ((None, "HC-2409"), ("2027-09-24", "HC-2409"), ("2028-01-15", "HC-2409-3")):
-    d = phieu(dong("Hương cốm", "HC-2409", hsd=hsd))
-    kiem(f"… lần sau HSD {hsd or 'trống'} → lô {mong} (khớp HSD trước, không có thì lô cũ nhất)",
-         duyet(d) is None and dong_db(d, 1)["batch_no"] == mong, dong_db(d, 1).get("batch_no"))
-
-print("\n-- lô tạo tay trên Desk --")
-d = phieu(dong("Hương cốm", "M77", nsx="2026-09-01", hsd="2027-03-01"))
-loi = duyet(d)
-b = lo("M77")
-kiem("lô tạo tay đặt tên đúng số lô NCC → nhập vào đó; điền HSD + ô Lô NCC còn trống, NSX đã có thì giữ",
-     loi is None and dong_db(d, 1)["batch_no"] == "M77"
-     and (b.get("expiry_date"), b.get("custom_ncc_lo"), b.get("manufacturing_date"))
-     == (date(2027, 3, 1), "M77", date(2026, 10, 1)), b)
-d = phieu(dong("Hương cốm", "X1"))
-kiem("tên đã là lô tạo tay của mã khác → 'X1-2'", duyet(d) is None and dong_db(d, 1)["batch_no"] == "X1-2"
-     and lo("X1-2")["item"] == "Hương cốm" and lo("X1")["item"] == "Hương sen")
-d = phieu(dong("Hương cốm", "D9"), dong("Hương cốm", "DA9"))
-kiem("lô đã tắt (Disabled) — lô tạo tay cùng tên, hay lô app tạo có ô Lô NCC đó — không nhập vào: 'D9-2', 'DA9'",
-     duyet(d) is None and (dong_db(d, 1)["batch_no"], dong_db(d, 2)["batch_no"]) == ("D9-2", "DA9"))
-d = phieu(dong("Bột sữa", "PF", hsd="2027-12-12"))
-kiem("lô khớp đúng HSD được chọn trước lô chưa có HSD (dù lô kia cũ hơn) — không dồn hai HSD vào một lô",
-     duyet(d) is None and dong_db(d, 1)["batch_no"] == "PF-2" and not lo("PF").get("expiry_date"))
-
-print("\n-- trong một phiếu --")
+d = phieu(dong("Hương cốm", "l2409", hsd="2027-09-24"), dong("Hương cốm"))
+kiem("chuyến sau cùng ngày, cùng số lô NCC (khác hoa / thường) + cùng HSD → nhập vào lô đó; dòng không ghi gì cũng vậy",
+     duyet(d) is None and dong_db(d, 1)["batch_no"] == dong_db(d, 2)["batch_no"] == "HLABC-HC-031126"
+     and len(F.bang("Batch")) == n_lo
+     and any("dòng 2 (Hương cốm): lô <b>HLABC-HC-031126</b> — nhập thêm vào lô đã có" in m for m in F.BAO), F.BAO)
+d = phieu(dong("Hương cốm", "L2410"))
+kiem("cùng ngày mà KHÁC số lô NCC → lô riêng '-2' (giữ số lô NCC của nó)", duyet(d) is None
+     and dong_db(d, 1)["batch_no"] == "HLABC-HC-031126-2" and lo("HLABC-HC-031126-2")["custom_ncc_lo"] == "L2410")
+d = phieu(dong("Hương cốm", "L2409", hsd="2028-01-01"))
+kiem("cùng số lô NCC mà KHÁC HSD → lô riêng '-3'", duyet(d) is None and dong_db(d, 1)["batch_no"] == "HLABC-HC-031126-3")
+d = phieu(dong("Hương cốm", "L2410", hsd="2027-10-10"))
+kiem("… chuyến sau của lô NCC thứ hai → đúng lô '-2', điền HSD còn trống", duyet(d) is None
+     and dong_db(d, 1)["batch_no"] == "HLABC-HC-031126-2" and lo("HLABC-HC-031126-2")["expiry_date"] == date(2027, 10, 10))
+d = phieu(dong("Hương cốm", "L2409", hsd="2027-09-24"), ngay="2026-11-04")
+kiem("khác NGÀY nhập (dù cùng NCC, mã, lô NCC) → lô của ngày đó", duyet(d) is None
+     and dong_db(d, 1)["batch_no"] == "HLABC-HC-041126")
+F.bang("Batch")["HLABC-BS-031126-2"] = {"name": "HLABC-BS-031126-2", "item": "Bột sữa", "custom_ncc_lo": "PF",
+                                        "expiry_date": date(2027, 12, 12), "disabled": 0,
+                                        "creation": "2026-11-03 23:00:00"}
+d = phieu(dong("Bột sữa", "PF", nsx="2026-10-01", hsd="2027-12-12"))
+kiem("lô khớp hẳn (cùng lô NCC + HSD) được chọn trước lô cũ hơn khớp nhờ ô trống — không dồn hai lô NCC vào một",
+     duyet(d) is None and dong_db(d, 1)["batch_no"] == "HLABC-BS-031126-2"
+     and not lo("HLABC-BS-031126").get("expiry_date") and lo("HLABC-BS-031126-2")["manufacturing_date"] == date(2026, 10, 1))
+d = phieu(dong("Bột sữa", "BS9", hsd="2027-02-02"))
+kiem("lô cũ chưa có số lô NCC / HSD khớp mọi dòng → nhập vào, điền số lô NCC + HSD", duyet(d) is None
+     and dong_db(d, 1)["batch_no"] == "HLABC-BS-031126"
+     and (lo("HLABC-BS-031126")["custom_ncc_lo"], lo("HLABC-BS-031126")["expiry_date"]) == ("BS9", date(2027, 2, 2)))
+d = phieu(dong("Bột sữa"), ngay="2026-11-04")
+kiem("tên đã là lô của MÃ KHÁC (lô tạo tay) → '-2'", duyet(d) is None and dong_db(d, 1)["batch_no"] == "HLABC-BS-041126-2"
+     and lo("HLABC-BS-041126")["item"] == "Hương cốm")
+d = phieu(dong("Hương sen"), ncc="NCC-SEN")
+kiem("NCC có sẵn viết tắt (gõ 's.h t') → dùng, chỉ lấy chữ / số viết hoa; không ghi đè ô của NCC; lô cùng tên đã tắt "
+     "(Disabled) → '-2'", duyet(d) is None and dong_db(d, 1)["batch_no"] == "SHT-HS-031126-2"
+     and F.bang("Supplier")["NCC-SEN"]["custom_viet_tat"] == "s.h t")
+d = phieu(dong("Hương cốm", "Z12"), ncc="NCC-SEN")
+kiem("lô hậu tố hai chữ số (-12) vẫn là cùng họ lô → nhập vào đúng lô cùng số lô NCC",
+     duyet(d) is None and dong_db(d, 1)["batch_no"] == "SHT-HC-031126-12")
+d = phieu(dong("Hương cốm"), ncc="NCC-DAI")
+d2 = phieu(dong("Hương cốm"), ncc="NCC-DAI2")
+kiem("viết tắt dài đủ 8 chữ mà trùng → NCC sau cắt bớt rồi thêm số, vẫn 8 chữ ('NSTPMBV2')",
+     duyet(d) is None and duyet(d2) is None and dong_db(d2, 1)["batch_no"] == "NSTPMBV2-HC-031126"
+     and dong_db(d, 1)["batch_no"] == "NSTPMBVN-HC-031126", dong_db(d2, 1).get("batch_no"))
+d = phieu(dong("Hương cốm"), ncc="NCC-TRUNG")
+kiem("hai NCC rút gọn trùng chữ (Hương Liệu Á Bắc Cường cũng ra HLABC) → NCC sau thêm số, lưu lại",
+     duyet(d) is None and dong_db(d, 1)["batch_no"] == "HLABC2-HC-031126"
+     and F.bang("Supplier")["NCC-TRUNG"]["custom_viet_tat"] == "HLABC2")
+d = phieu(dong("Hạt chia"), dong("Cốm xanh"), dong("Tem tự sinh"), ncc="NCC-HOA")
+kiem("hai mã rút gọn trùng chữ (Hạt chia / Hương cốm) → mã sau 'HC2'; prefix có sẵn (COM) dùng luôn; mã ERPNext tự "
+     "sinh lô cũng đặt tên theo cách này; tên NCC gõ toàn chữ hoa → chữ đầu", duyet(d) is None
+     and [dong_db(d, i)["batch_no"] for i in (1, 2, 3)] == ["HLX-HC2-031126", "HLX-COM-031126", "HLX-TTS-031126"],
+     [dong_db(d, i).get("batch_no") for i in (1, 2, 3)])
 n_lo = len(F.bang("Batch"))
-d = phieu(dong("Bột sữa", "BS1", hsd="2027-02-02"), dong("Bột sữa", "BS1", hsd="2027-02-02", qty=5))
-kiem("hai dòng cùng mã + cùng lô NCC + cùng HSD → MỘT lô, cả hai dòng mang lô đó",
-     duyet(d) is None and dong_db(d, 1)["batch_no"] == dong_db(d, 2)["batch_no"] == "BS1"
-     and len(F.bang("Batch")) == n_lo + 1
-     and any("dòng 1 (Bột sữa): lô <b>BS1</b> — tạo mới" in m and "dòng 2 (Bột sữa): lô <b>BS1</b> — nhập thêm" in m
-             for m in F.BAO), F.BAO)
-d = phieu(dong("Hương cốm", "  AB  12<x> "))
-kiem("số lô gõ thừa khoảng trắng / ký tự Frappe cấm (< >) → tên lô sạch, ô Lô NCC của lô cũng sạch",
-     duyet(d) is None and dong_db(d, 1)["batch_no"] == "AB 12 x" and lo("AB 12 x")["custom_ncc_lo"] == "AB 12 x")
-d = phieu(dong("Hương cốm", "Z" * 140), dong("Hương sen", "Z" * 140))
-kiem("số lô 140 ký tự → tên lô 130 + hậu tố vẫn ≤ 140", duyet(d) is None and dong_db(d, 1)["batch_no"] == "Z" * 130
-     and dong_db(d, 2)["batch_no"] == "Z" * 130 + "-2")
+d = phieu(dong("Hương sen", "Q1", hsd="2027-03-03"), dong("Hương sen", "Q1", hsd="2027-03-03", qty=5),
+          dong("Hương sen", "Q2"), ncc="NCC-HOA")
+kiem("trong một phiếu: hai dòng cùng lô NCC + HSD → một lô; dòng lô NCC khác → '-2'", duyet(d) is None
+     and [dong_db(d, i)["batch_no"] for i in (1, 2, 3)] == ["HLX-HS-031126", "HLX-HS-031126", "HLX-HS-031126-2"]
+     and len(F.bang("Batch")) == n_lo + 2, [dong_db(d, i).get("batch_no") for i in (1, 2, 3)])
 
 # ═══ 3. Ngày của lô NCC ══════════════════════════════════════════════════════
 print("\n-- NSX / HSD sai: báo đủ, không tạo lô --")
 n_lo = len(F.bang("Batch"))
-d = phieu(dong("Hương cốm", "E1", hsd="2026-11-02"), dong("Hương sen", "E2", nsx="2027-09-24", hsd="2026-09-24"),
-          dong("Bột sữa", "E3", nsx="2026-11-04", hsd="2027-11-04"), dong("Men", "E4"), dong("Bơ", "E5"),
-          dong("Hương cốm", "E6", hsd="2026-11-03"), dong("Hương sen", "E7", nsx="2026-11-03", hsd="2026-11-03"),
-          dong("Bột sữa", "E8", nsx="2026-11-03", hsd="2027-11-03"))
+d = phieu(dong("Hương cốm", hsd="2026-11-02"), dong("Hương sen", nsx="2027-09-24", hsd="2026-09-24"),
+          dong("Bột sữa", nsx="2026-11-04", hsd="2027-11-04"), dong("Men"), dong("Bơ"),
+          dong("Hương cốm", hsd="2026-11-03"), dong("Hương sen", nsx="2026-11-03", hsd="2026-11-03"),
+          dong("Bột sữa", nsx="2026-11-03", hsd="2027-11-03"), ngay="2026-11-03", ncc="NCC-MOI")
 loi = duyet(d) or ""
-kiem("HSD trước ngày nhập (hàng đã hết hạn) → chặn như ERPNext", "dòng 1 (Hương cốm): HSD 02/11/2026 đã qua ngày nhập "
-     "03/11/2026" in loi, loi)
+kiem("HSD trước ngày nhập (hàng đã hết hạn) → chặn như ERPNext",
+     "dòng 1 (Hương cốm): HSD 02/11/2026 đã qua ngày nhập 03/11/2026" in loi, loi)
 kiem("HSD không sau NSX (gõ đảo hai ô) → nói đúng chỗ sai, không chỉ 'đã qua ngày nhập'",
      "dòng 2 (Hương sen): HSD 24/09/2026 không sau NSX 24/09/2027 — gõ đảo hai ô?" in loi)
 kiem("NSX sau ngày nhập → chặn", "dòng 3 (Bột sữa): NSX 04/11/2026 sau ngày nhập 03/11/2026" in loi)
-kiem("HSD = NSX → chặn", "dòng 7 (Hương sen): HSD 03/11/2026 không sau NSX 03/11/2026" in loi)
 kiem("mã bắt HSD (Has Expiry Date, không Shelf Life) mà chưa ghi HSD → chặn trước khi ERPNext báo tiếng Anh",
      "dòng 4 (Men): mã bắt buộc HSD" in loi)
-kiem("… mã có Shelf Life (ERPNext tự tính HSD) và HSD đúng ngày nhập thì không kể; chưa tạo lô nào",
-     "(Bơ)" not in loi and "dòng 6" not in loi and "dòng 8" not in loi and len(F.bang("Batch")) == n_lo
-     and "Sửa ô NSX / HSD lô NCC" in loi, loi)
-d = phieu(dong("Bơ", "E5"), dong("Hương cốm", "E6", hsd="2026-11-03"), dong("Bột sữa", "E8", nsx="2026-11-03",
-                                                                            hsd="2027-11-03"))
+kiem("HSD = NSX → chặn", "dòng 7 (Hương sen): HSD 03/11/2026 không sau NSX 03/11/2026" in loi)
+kiem("… mã có Shelf Life (ERPNext tự tính HSD), HSD = ngày nhập, NSX = ngày nhập thì không kể; chưa tạo lô nào; viết "
+     "tắt NCC chưa ghi", "(Bơ)" not in loi and "dòng 6" not in loi and "dòng 8" not in loi
+     and len(F.bang("Batch")) == n_lo and "Sửa ô NSX / HSD lô NCC" in loi and "Chưa tạo lô nào" in loi
+     and not F.bang("Supplier")["NCC-MOI"].get("custom_viet_tat"), loi)
+d = phieu(dong("Bơ"), dong("Hương cốm", hsd="2026-11-03"), dong("Bột sữa", nsx="2026-11-03", hsd="2027-11-03"),
+          ngay="2026-11-03", ncc="NCC-MOI")
 kiem("Bơ: ERPNext tự tính HSD = NSX mặc định + 180 ngày; ô NSX của lô vẫn để trống (không bịa); HSD = ngày nhập, NSX "
      "= ngày nhập vẫn nhận", duyet(d) is None
-     and (lo("E5").get("expiry_date"), lo("E5").get("manufacturing_date")) == (date(2027, 5, 2), None)
-     and (dong_db(d, 2)["batch_no"], dong_db(d, 3)["batch_no"]) == ("E6", "E8"), lo("E5"))
-ten, moi = LM.lo_cho(F.Doc(doctype="Purchase Receipt", name="PR-CHUA-LUU", supplier="NCC-HUONG"), "Hương cốm", "API1")
-kiem("lập + duyệt một lượt (phiếu chưa vào DB): vẫn tạo lô, chỉ không gắn chứng từ nguồn (Frappe chặn link chưa có)",
-     (ten, moi, lo("API1").get("reference_name"), lo("API1").get("supplier")) == ("API1", True, None, "NCC-HUONG"),
-     lo("API1"))
-r = {"custom_ncc_nsx": "2026-01-01", "custom_ncc_hsd": "2027-01-01"}
+     and (lo("GVNA-BO-031126").get("expiry_date"), lo("GVNA-BO-031126").get("manufacturing_date")) == (date(2027, 5, 2), None)
+     and [dong_db(d, i)["batch_no"] for i in (2, 3)] == ["GVNA-HC-031126", "GVNA-BS-031126"],
+     [dong_db(d, i).get("batch_no") for i in (1, 2, 3)])
 kiem("kiem_ngay (hàm thuần): ngày ổn → None; thiếu ngày nhập thì không xét quá hạn",
-     LM.kiem_ngay(r, {}, date(2026, 11, 3)) is None and LM.kiem_ngay({"custom_ncc_hsd": "2020-01-01"}, {}, None) is None)
+     LM.kiem_ngay({"custom_ncc_nsx": "2026-01-01", "custom_ncc_hsd": "2027-01-01"}, {}, date(2026, 11, 3)) is None
+     and LM.kiem_ngay({"custom_ncc_hsd": "2020-01-01"}, {}, None) is None)
 
 # ═══ 4. Chứng từ / dòng không xét ═════════════════════════════════════════════
 print("\n-- chứng từ / dòng không xét --")
 n_lo = len(F.bang("Batch"))
-d = phieu(dong("Hương cốm"), dong("Hương cốm", "PI0"), dt="Purchase Invoice", update_stock=0)
-kiem("hoá đơn mua KHÔNG trừ kho → không đòi lô, không tạo lô", duyet(d) is None and len(F.bang("Batch")) == n_lo
+d = phieu(dong("Hương cốm"), dong("Hương cốm", "PI0"), dt="Purchase Invoice", update_stock=0, ngay="2026-11-05")
+kiem("hoá đơn mua KHÔNG trừ kho → không tạo lô", duyet(d) is None and len(F.bang("Batch")) == n_lo
      and not dong_db(d, 2).get("batch_no"))
-d = phieu(dong("Hương cốm", "PI1", hsd="2027-04-04"), dt="Purchase Invoice", update_stock=1)
+d = phieu(dong("Hương cốm", "PI1"), dt="Purchase Invoice", update_stock=1, ngay="2026-11-05")
 kiem("hoá đơn mua CÓ trừ kho → tạo lô như phiếu nhập (chứng từ nguồn = hoá đơn)", duyet(d) is None
-     and dong_db(d, 1)["batch_no"] == "PI1" and lo("PI1")["reference_doctype"] == "Purchase Invoice")
-d = phieu(dong("Hương cốm", "TRA"), dong("Bột sữa"), is_return=1)
-kiem("phiếu trả hàng NCC → không đụng (lô lấy theo phiếu gốc)", duyet(d) is None and "TRA" not in F.bang("Batch"))
-d = phieu(dong("Tem tự sinh"), dong("Máy seri"), dong("Phí lô"), dong("Hương cốm", qty=0),
-          dong("Hương cốm", from_warehouse="Kho khác"))
-kiem("không kể: mã ERPNext tự sinh lô, mã có serial, mã không giữ kho, dòng số lượng 0, dòng nhận chuyển nội bộ",
-     duyet(d) is None, F.BAO)
-d = phieu(dong("Hương cốm", qty=0, rejected_qty=3))
-kiem("dòng chỉ có số lượng trả lại (rejected) vẫn vào kho → vẫn phải có lô", "1 (Hương cốm)" in (duyet(d) or ""))
+     and dong_db(d, 1)["batch_no"] == "HLABC-HC-051126" and lo("HLABC-HC-051126")["reference_doctype"] == "Purchase Invoice")
+d = phieu(dong("Hương cốm"), dong("Bột sữa"), is_return=1, ngay="2026-11-06")
+kiem("phiếu trả hàng NCC → không đụng (lô lấy theo phiếu gốc)", duyet(d) is None
+     and not any(k.endswith("061126") for k in F.bang("Batch")))
+d = phieu(dong("Máy seri"), dong("Phí lô"), dong("Hương cốm", qty=0), dong("Hương cốm", from_warehouse="Kho khác"),
+          ngay="2026-11-07")
+kiem("không đụng: mã có serial, mã không giữ kho, dòng số lượng 0, dòng nhận chuyển nội bộ",
+     duyet(d) is None and not any(dong_db(d, i).get("batch_no") for i in (1, 2, 3, 4)))
+d = phieu(dong("Hương cốm", qty=0, rejected_qty=3), ngay="2026-11-07")
+kiem("dòng chỉ có số lượng trả lại (rejected) vẫn vào kho → vẫn có lô", duyet(d) is None
+     and dong_db(d, 1)["batch_no"] == "HLABC-HC-071126")
 _gv = frappe.db.get_value
 
 
@@ -324,54 +342,84 @@ def _gv_nhu_frappe(dt, ten, *a, **k):
 
 
 frappe.db.get_value = _gv_nhu_frappe
-d = phieu(dong(None, description="Cước vận chuyển"), dong("Hương cốm", "PI2"), dt="Purchase Invoice", update_stock=1)
+d = phieu(dong(None, description="Cước vận chuyển"), dong("Hương cốm"), dt="Purchase Invoice", update_stock=1,
+          ngay="2026-11-08")
 kiem("hoá đơn mua có dòng chi phí không mã hàng (chỉ diễn giải) → bỏ qua dòng đó, không tra nhầm mã khác",
-     duyet(d) is None and not dong_db(d, 1).get("batch_no") and dong_db(d, 2)["batch_no"] == "PI2", F.BAO)
+     duyet(d) is None and not dong_db(d, 1).get("batch_no") and dong_db(d, 2)["batch_no"] == "HLABC-HC-081126", F.BAO)
 frappe.db.get_value = _gv
-kiem("can_lo (hàm thuần): không có cờ mã → không xét", LM.can_lo({"qty": 1}, {}) is False
-     and LM.can_lo({"qty": 1}, None) is False)
-kiem("nhap_kho: phiếu nhập mua luôn; hoá đơn chỉ khi trừ kho; trả hàng không",
-     LM.nhap_kho(F.Doc(doctype="Purchase Receipt")) and not LM.nhap_kho(F.Doc(doctype="Purchase Invoice"))
+ten, moi = LM.lo_cho(F.Doc(doctype="Purchase Receipt", name="PR-CHUA-LUU", supplier="NCC-HUONG", posting_date="2026-11-09"),
+                     "Hương cốm", "API1")
+kiem("lập + duyệt một lượt (phiếu chưa vào DB): vẫn tạo lô, chỉ không gắn chứng từ nguồn (Frappe chặn link chưa có)",
+     (ten, moi, lo(ten).get("reference_name"), lo(ten).get("supplier"), lo(ten).get("custom_ncc_lo"))
+     == ("HLABC-HC-091126", True, None, "NCC-HUONG", "API1"), lo(ten))
+kiem("can_lo / nhap_kho / sach (hàm thuần)", LM.can_lo({"qty": 1}, {}) is False and LM.can_lo({"qty": 1}, None) is False
+     and LM.nhap_kho(F.Doc(doctype="Purchase Receipt")) and not LM.nhap_kho(F.Doc(doctype="Purchase Invoice"))
      and LM.nhap_kho(F.Doc(doctype="Purchase Invoice", update_stock=1))
-     and not LM.nhap_kho(F.Doc(doctype="Purchase Receipt", is_return=1)))
+     and not LM.nhap_kho(F.Doc(doctype="Purchase Receipt", is_return=1)) and LM.sach("  L  24 ") == "L 24")
 
-# ═══ 5. Site chưa migrate D226 ════════════════════════════════════════════════
-print("\n-- site chưa migrate (Batch chưa có ô Lô NCC) --")
+# ═══ 5. Xem trước (màn QC) ════════════════════════════════════════════════════
+print("\n-- xem trước mã lô (màn Tiếp nhận NL) --")
+F.bang("Supplier")["NCC-XEM"] = {"name": "NCC-XEM", "supplier_name": "Công ty Bột Ngọt Sài Gòn"}
+F.bang("Item")["Bột ngọt"] = {"name": "Bột ngọt", "has_batch_no": 1, "is_stock_item": 1}
+kiem("xem trước = mã lô gốc sẽ tạo, KHÔNG ghi viết tắt / prefix vào NCC, Item",
+     LM.ten_goc(F.Doc(doctype="Purchase Receipt", supplier="NCC-XEM", posting_date="2026-11-10"), "Bột ngọt", luu=False)
+     == "BNSG-BN-101126" and not F.bang("Supplier")["NCC-XEM"].get("custom_viet_tat")
+     and not F.bang("Item")["Bột ngọt"].get("custom_batch_prefix"))
+kiem("… prefix / viết tắt đã có thì xem trước dùng đúng chữ đó",
+     LM.ten_goc(F.Doc(doctype="Purchase Receipt", supplier="NCC-SEN", posting_date="2026-11-10"), "Cốm xanh", luu=False)
+     == "SHT-COM-101126")
+
+# ═══ 6. Site chưa migrate ═════════════════════════════════════════════════════
+print("\n-- site chưa migrate (chưa có ô Lô NCC của lô, Viết tắt của NCC) --")
 _meta, _ga = frappe.get_meta, frappe.get_all
-frappe.get_meta = lambda dt: types.SimpleNamespace(has_field=lambda f: dt != "Batch")
+frappe.get_meta = lambda dt: types.SimpleNamespace(has_field=lambda f: dt not in ("Batch", "Supplier"))
 
 
 def _ga_chua_migrate(dt, filters=None, fields=None, **k):
     """Như MariaDB: lọc / đọc cột chưa có → lỗi SQL."""
-    if dt == "Batch" and "custom_ncc_lo" in json.dumps([filters, fields], default=str):
-        raise RuntimeError("(1054, \"Unknown column 'custom_ncc_lo' in 'where clause'\")")
+    if (dt == "Batch" and "custom_ncc_lo" in json.dumps([filters, fields], default=str)) or (
+            dt == "Supplier" and "custom_viet_tat" in json.dumps([filters, fields], default=str)):
+        raise RuntimeError("(1054, \"Unknown column\")")
     return _ga(dt, filters, fields, **k)
 
 
 def _gv_chua_migrate(dt, ten, fld=None, *a, **k):
-    if dt == "Batch" and "custom_ncc_lo" in json.dumps([ten, fld], default=str):
-        raise RuntimeError("(1054, \"Unknown column 'custom_ncc_lo' in 'field list'\")")
+    if (dt == "Batch" and "custom_ncc_lo" in json.dumps([ten, fld], default=str)) or (
+            dt in ("Supplier",) and "custom_viet_tat" in json.dumps([ten, fld], default=str)):
+        raise RuntimeError("(1054, \"Unknown column\")")
     return _gv(dt, ten, fld, *a, **k)
 
 
-frappe.get_all, frappe.db.get_value = _ga_chua_migrate, _gv_chua_migrate
-d = phieu(dong("Hương cốm", "HC-2409", hsd="2027-09-24"), dong("Hương cốm", "NM1"))
-kiem("vẫn duyệt được: tìm lô theo tên (HC-2409), lô mới không ghi ô Lô NCC chưa có",
-     duyet(d) is None and dong_db(d, 1)["batch_no"] == "HC-2409" and dong_db(d, 2)["batch_no"] == "NM1"
-     and "custom_ncc_lo" not in lo("NM1"), lo("NM1"))
-frappe.get_meta = lambda dt: (_ for _ in ()).throw(RuntimeError("meta hỏng"))
-kiem("… đọc meta lỗi → coi như chưa có ô, không văng lỗi", LM._co_o_lo_ncc() is False)
-frappe.get_meta, frappe.get_all, frappe.db.get_value = _meta, _ga, _gv
+def _ex_chua_migrate(dt, ten=None):
+    if dt == "Supplier" and "custom_viet_tat" in json.dumps(ten, default=str):
+        raise RuntimeError("(1054, \"Unknown column\")")
+    return F.exists(dt, ten)
 
-# ═══ 6. Tài liệu ═════════════════════════════════════════════════════════════
+
+frappe.get_all, frappe.db.get_value, frappe.db.exists = _ga_chua_migrate, _gv_chua_migrate, _ex_chua_migrate
+F.bang("Supplier")["NCC-CU"] = {"name": "NCC-CU", "supplier_name": "Công ty Đường Biên Hoà"}
+d = phieu(dong("Hương cốm", "C1", hsd="2027-01-01"), dong("Hương cốm", "C1", hsd="2027-01-01"), ncc="NCC-CU",
+          ngay="2026-11-11")
+kiem("vẫn duyệt được: viết tắt rút gọn từ tên (không lưu), lô mới không ghi ô chưa có; dòng sau nhập vào lô đó",
+     duyet(d) is None and dong_db(d, 1)["batch_no"] == dong_db(d, 2)["batch_no"] == "DBH-HC-111126"
+     and "custom_ncc_lo" not in lo("DBH-HC-111126") and "custom_viet_tat" not in F.bang("Supplier")["NCC-CU"], F.BAO)
+frappe.get_meta = lambda dt: (_ for _ in ()).throw(RuntimeError("meta hỏng"))
+kiem("… đọc meta lỗi → coi như chưa có ô, không văng lỗi", LM._co_o("Batch", "custom_ncc_lo") is False)
+frappe.get_meta, frappe.get_all, frappe.db.get_value, frappe.db.exists = _meta, _ga, _gv, F.exists
+
+# ═══ 7. Tài liệu ═════════════════════════════════════════════════════════════
 print("\n-- fixtures, README --")
 fx = {f["name"]: f for f in json.load(open("sx/fixtures/custom_field.json", encoding="utf-8"))}
 b = fx.get("Batch-custom_ncc_lo") or {}
 kiem("Batch có ô Lô NCC (chỉ đọc, đánh chỉ mục, không chép khi nhân bản) — module trong bộ lọc fixtures",
      (b.get("fieldtype"), b.get("read_only"), b.get("search_index"), b.get("no_copy"), b.get("module"))
      == ("Data", 1, 1, 1, "SX"), b)
+v = fx.get("Supplier-custom_viet_tat") or {}
+kiem("NCC có ô 'Viết tắt (mã lô)' ngay sau tên NCC (sửa được); Item: 'Prefix mã lô' nói cả lô nguyên liệu mua",
+     (v.get("fieldtype"), v.get("insert_after"), v.get("module"), v.get("read_only")) == ("Data", "supplier_name", "SX", None)
+     and fx["Item-custom_batch_prefix"]["label"] == "Prefix mã lô"
+     and "{viết tắt NCC}-{prefix}-DDMMYY" in fx["Item-custom_batch_prefix"]["description"], v)
 rd = open("README.md", encoding="utf-8").read()
-kiem("README: mục D226 + 'Còn phải làm tay' không còn bắt tạo lô tay", "(D226)" in rd
-     and "Purchase Receipt NVL phải có batch = lô NCC (điều kiện FIFO truy xuất)" not in rd)
+kiem("README: mục D227", "(D227)" in rd and "HLABC-HC-031126" in rd)
 
 F.ket_thuc("LOMUA")

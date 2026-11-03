@@ -32,7 +32,8 @@ const phieu = (them = {}) => ({
     custom_xe_tai_xe: '', custom_xe_ghi_chu: '', custom_xe_sach_kho: '', custom_xe_mui: '', custom_xe_kin_che: '',
     custom_xe_hang_chung: '', custom_xe_san: '', custom_xe_ket_luan: '' },
   dong: [{ name: 'r1', idx: 1, item_code: 'SUA', item_name: 'Sữa bột', qty: 50, uom: 'Kg', kho: 'Kho NVL', batch_no: '',
-    giay_to: 'Nhập khẩu — COA lô: KHÔNG', can_coa: true, can_aflatoxin: false, co_lo: true, custom_ncc_lo: '',
+    giay_to: 'Nhập khẩu — COA lô: KHÔNG', can_coa: true, can_aflatoxin: false, co_lo: true, lo_du_kien: 'SABC-SUA-091026',
+    custom_ncc_lo: '',
     custom_ncc_nsx: '', custom_ncc_hsd: '', custom_co_cq: '', custom_coa_vi_sinh: '', custom_aflatoxin: '',
     custom_cam_quan_dat: '', custom_ket_luan: '' }],
   so_anh: 0,
@@ -96,9 +97,9 @@ const o = (nhan) => tim(dong, (e) => e.classList.contains('sx-tn-o') && e.kids[0
 tim(o('Lô NCC'), (e) => e.tagName === 'INPUT')[0].doi('LOT-2610');
 // D226: NSX / HSD trên bao bì — hai ô ngày cạnh số lô; mã quản lý theo lô thì nói trước duyệt phiếu sẽ tạo lô.
 const oNgay = (nhan) => tim(o(nhan), (e) => e.tagName === 'INPUT')[0];
-kiem('D226: ô NSX, HSD là ô ngày; mã có lô chưa chọn lô → nói duyệt phiếu sẽ tạo lô theo số lô NCC + NSX / HSD',
+kiem('D226/D227: ô NSX, HSD là ô ngày; mã có lô chưa chọn lô → nói trước mã lô sẽ tạo (NCC + mã hàng + ngày nhập)',
   oNgay('NSX').type === 'date' && oNgay('HSD').type === 'date'
-  && dong.chu.includes('duyệt phiếu sẽ tạo lô theo số lô NCC + NSX / HSD này'));
+  && dong.chu.includes('Duyệt phiếu sẽ tạo lô SABC-SUA-091026 (NCC + mã hàng + ngày nhập) — ghi mã này lên bao.'));
 oNgay('NSX').doi('2026-09-01');
 oNgay('HSD').doi('2027-09-01');
 nut(o('COA vi sinh'), 'Có').bam();
@@ -139,15 +140,18 @@ kiem('server cũ còn gửi ngưỡng / dòng còn số độ ẩm cũ → màn 
 console.log('\n-- phiếu đã duyệt / hoá đơn mua --');
 traVe = phieu({ docstatus: 1, sua: false, xe: { ...phieu().xe, ap_dung: false },
   dong: [{ ...phieu().dong[0], batch_no: 'LOT-2610-2', custom_ncc_lo: 'LOT-2610', custom_ncc_hsd: '2027-09-01' },
-    { ...phieu().dong[0], name: 'r2', idx: 2, item_code: 'TUI', item_name: 'Túi PE', co_lo: false }] });
+    { ...phieu().dong[0], name: 'r2', idx: 2, item_code: 'TUI', item_name: 'Túi PE', co_lo: false, lo_du_kien: '' },
+    { ...phieu().dong[0], name: 'r3', idx: 3, lo_du_kien: '' }] });
 nut(api.container, 'KIỂM TIẾP NHẬN').bam();
 await cho();
 m = MO[MO.length - 1];
-const [d1, d2] = tim(m.body, (e) => e.classList.contains('sx-xx-muc'));
+const [d1, d2, d3] = tim(m.body, (e) => e.classList.contains('sx-xx-muc'));
 kiem('D226: dòng đã có lô → hiện đúng lô ERPNext (không hứa tạo lô); HSD hiện lại trong ô ngày',
-  d1.chu.includes('Lô: LOT-2610-2') && !d1.chu.includes('duyệt phiếu sẽ tạo lô')
+  d1.chu.includes('Lô: LOT-2610-2') && !d1.chu.includes('sẽ tạo lô')
   && tim(d1, (e) => e.tagName === 'INPUT' && e.type === 'date').map((e) => e.value).join('|') === '|2027-09-01');
-kiem('… mã không quản lý lô → không nói gì về lô', !d2.chu.includes('duyệt phiếu sẽ tạo lô') && !d2.chu.includes('Lô:'));
+kiem('… mã không quản lý lô → không nói gì về lô', !d2.chu.includes('sẽ tạo lô') && !d2.chu.includes('Lô:'));
+kiem('… server không gửi mã xem trước → vẫn nói duyệt phiếu sẽ tạo lô (không in mã rỗng)',
+  d3.chu.includes('Mã quản lý theo lô — duyệt phiếu sẽ tạo lô (NCC + mã hàng + ngày nhập).') && !d3.chu.includes('tạo lô  ('));
 kiem('phiếu đã duyệt: nói rõ chỉ xem; không còn nút lưu; ô khoá; vẫn thêm ảnh được',
   m.body.chu.includes('Phiếu đã duyệt — chỉ xem, thêm ảnh.') && !nut(m.body, 'LƯU KẾT QUẢ KIỂM')
   && tim(m.body, (e) => e.tagName === 'INPUT').every((e) => e.disabled) && !!nut(m.body, '📷 CHỤP ẢNH'));

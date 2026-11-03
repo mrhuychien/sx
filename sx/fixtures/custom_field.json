@@ -44,11 +44,11 @@
   "fieldname": "custom_batch_prefix",
   "fieldtype": "Data",
   "insert_after": "custom_sx_nhom",
-  "label": "Prefix mã lô SX",
+  "label": "Prefix mã lô",
   "module": "SX",
   "name": "Item-custom_batch_prefix",
   "translatable": 0,
-  "description": "Đầu mã lô: {prefix}-DDMMYY. Bỏ trống = tự rút gọn từ mã hàng (vd Bánh đậu xanh sen 300g → BDXS300G) và lưu lại vào đây; sửa được."
+  "description": "Đầu mã lô: {prefix}-DDMMYY (sản xuất); nguyên liệu mua: {viết tắt NCC}-{prefix}-DDMMYY ngày nhập (D227). Bỏ trống = tự rút gọn từ mã hàng (vd Bánh đậu xanh sen 300g → BDXS300G) và lưu lại vào đây; sửa được."
  },
  {
   "doctype": "Custom Field",
@@ -188,7 +188,7 @@
   "module": "QC",
   "name": "Purchase Invoice Item-custom_ncc_nsx",
   "translatable": 0,
-  "description": "Ngày sản xuất in trên bao bì. Duyệt phiếu: dòng mã có lô chưa chọn Batch No thì app tạo lô theo Lô NCC, NSX / HSD này ghi vào lô (D226)."
+  "description": "Ngày sản xuất in trên bao bì. Duyệt phiếu: dòng mã có lô chưa chọn Batch No thì app tạo lô (mã viết tắt NCC + mã hàng + ngày nhập), số lô NCC + NSX / HSD này ghi vào lô (D226, D227)."
  },
  {
   "doctype": "Custom Field",
@@ -542,6 +542,20 @@
  {
   "doctype": "Custom Field",
   "dt": "Supplier",
+  "fieldname": "custom_viet_tat",
+  "fieldtype": "Data",
+  "insert_after": "supplier_name",
+  "label": "Viết tắt (mã lô)",
+  "module": "SX",
+  "name": "Supplier-custom_viet_tat",
+  "length": 20,
+  "search_index": 1,
+  "translatable": 0,
+  "description": "Đầu mã lô nguyên liệu mua: {viết tắt}-{prefix mã hàng}-DDMMYY ngày nhập (D227), vd HLABC-HC-031126. Bỏ trống = lần duyệt phiếu nhập đầu tiên app tự rút gọn từ tên NCC và lưu vào đây; sửa được (lô đã tạo giữ tên cũ)."
+ },
+ {
+  "doctype": "Custom Field",
+  "dt": "Supplier",
   "fieldname": "custom_section_ncc",
   "fieldtype": "Section Break",
   "insert_after": "image",
@@ -706,7 +720,7 @@
   "module": "QC",
   "name": "Purchase Receipt Item-custom_ncc_nsx",
   "translatable": 0,
-  "description": "Ngày sản xuất in trên bao bì. Duyệt phiếu: dòng mã có lô chưa chọn Batch No thì app tạo lô theo Lô NCC, NSX / HSD này ghi vào lô (D226)."
+  "description": "Ngày sản xuất in trên bao bì. Duyệt phiếu: dòng mã có lô chưa chọn Batch No thì app tạo lô (mã viết tắt NCC + mã hàng + ngày nhập), số lô NCC + NSX / HSD này ghi vào lô (D226, D227)."
  },
  {
   "doctype": "Custom Field",
@@ -1486,7 +1500,7 @@
   "no_copy": 1,
   "search_index": 1,
   "translatable": 0,
-  "description": "Lô app tạo lúc duyệt phiếu nhập mua / hoá đơn mua có trừ kho từ ô Lô NCC của dòng hàng (D226). Tên lô = số lô NCC; trùng tên lô của mã khác (hoặc cùng mã khác HSD) thì thêm -2, -3… — ô này giữ số lô NCC gốc để chuyến sau cùng lô nhập đúng vào đây."
+  "description": "Số lô in trên bao bì — QC / thủ kho ghi ở dòng phiếu nhập mua (D226). Mã lô app đặt theo NCC + mã hàng + ngày nhập (D227); ô này giữ số lô NCC để truy ngược về NCC, và để chuyến cùng ngày của cùng lô NCC nhập đúng vào lô này."
  },
  {
   "doctype": "Custom Field",
