@@ -95,7 +95,8 @@ qua `Quản lý → Tài khoản portal` (xem mục dưới), không tạo tay t
 - **Activity Type + `SX Bang Don Gia`** → không có thì bảng vào hộp trống
 - Manufacturing Settings: Backflush = BOM, Overproduction 5%, **giữ tắt** *Validate
   Components Quantities Per BOM*
-- Purchase Receipt NVL phải có batch = lô NCC (điều kiện FIFO truy xuất)
+- Nhập mua NVL (Purchase Receipt / hoá đơn mua có trừ kho): ghi **Lô NCC** (số lô trên bao bì, kèm NSX / HSD) trên
+  dòng hàng — duyệt phiếu thì app tự tạo lô ERPNext theo số đó (D226; điều kiện FIFO truy xuất)
 - Tồn đầu — chạy thử thì dùng `seed_ton_dau` ở mục dưới
 
 **6. Kiểm lại:** mở `/sx` bằng một tài khoản đã gán role, thấy đúng số tab của vai đó.
@@ -322,6 +323,38 @@ bao bì đã trừ, nợ BOM / nợ vào hộp của phiếu → *Đã huỷ*, s
 bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ chứng từ xuất trước. Duyệt lại
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
+
+## Nhập mua nguyên liệu: duyệt phiếu tự tạo lô từ ô Lô NCC (+ NSX / HSD) (D226)
+
+- **Hỏi** (03/11/2026): nhập hoá đơn mua báo "Serial No / Batch No are mandatory for Item Hương cốm". Nguyên nhân: mã
+  nguyên liệu quản lý theo lô (seed bật *Has Batch No*, tắt *Automatically Create New Batch* — mã lô phải là số lô
+  NCC, không để ERPNext đặt mã) mà dòng hàng chưa chọn Batch No. **Đã chốt**: app tự tạo lô từ ô Lô NCC.
+- **Duyệt** phiếu nhập mua / hoá đơn mua có trừ kho (`before_submit` → `sx/api/lo_mua.py`, trước on_submit của ERPNext
+  — nơi lập bundle lô từ ô Batch No). Dòng mã có lô chưa chọn Batch No / bundle mà có **Lô NCC**:
+  - cùng mã + cùng số lô NCC + HSD khớp (một bên chưa có HSD cũng tính khớp) → **nhập thêm vào lô đó**, điền HSD /
+    NSX / ô Lô NCC còn trống — kể cả lô tạo tay trên Desk đặt tên đúng số lô;
+  - chưa có → **tạo lô tên = số lô NCC**; tên đã dùng (lô của mã khác, cùng mã mà khác HSD, lô đã tắt) thì `-2`,
+    `-3`… như lô tồn đầu `TD-`. Lô ghi NSX / HSD lô NCC, NCC, chứng từ nguồn và ô *Lô NCC (số lô trên bao bì)* (chỉ
+    đọc) — chuyến sau tìm đúng lô qua ô này. Không ghi NSX thì NSX của lô để trống (ERPNext mặc định ngày tạo lô =
+    ngày nhận hàng, không phải NSX in trên bao bì);
+  - duyệt xong báo lại từng dòng: lô nào, tạo mới hay nhập thêm.
+- **Chặn**, báo một lần đủ các dòng bằng tiếng Việt (thay cho lỗi tiếng Anh từng mã): dòng mã có lô chưa có Lô NCC;
+  HSD không sau NSX (gõ đảo hai ô?); HSD đã qua ngày nhập (ERPNext cũng chặn lô hết hạn); NSX sau ngày nhập; mã tích
+  *Has Expiry Date* (không có Shelf Life) mà chưa ghi HSD. Đã chặn thì chưa tạo lô nào.
+- **Không đụng**: dòng đã chọn Batch No / có bundle, mã không lô, mã serial, hàng không giữ kho, dòng nhận chuyển nội
+  bộ, mã bật *Automatically Create New Batch* mà không ghi Lô NCC (ERPNext tự sinh), hoá đơn mua không trừ kho, phiếu
+  trả hàng NCC. Lưu nháp không tạo lô (xoá phiếu nháp không để lại lô rác); duyệt hỏng ở bước sau thì lô rút theo.
+- **Màn Tiếp nhận NL** (QC, điện thoại): dưới Lô NCC thêm hai ô ngày **NSX**, **HSD**; dòng mã có lô ghi "duyệt phiếu
+  sẽ tạo lô theo số lô NCC + NSX / HSD này", dòng đã chọn lô thì hiện lô đó. Ngày lạ bị chặn khi lưu. Desk: dòng hàng
+  phiếu nhập mua / hoá đơn mua có *NSX lô NCC*, *HSD lô NCC* ngay sau *Lô NCC* — thủ kho gõ thẳng cũng được. NSX /
+  HSD tính là ô QC như Lô NCC (đã ghi thì dòng phải có kết luận tiếp nhận). Phiếu sự cố của lô Không đạt / Cách ly
+  gắn đúng lô vừa tạo (W11).
+- Sổ BM.07.03: cột NSX / HSD lấy theo bao bì QC ghi trên dòng trước, thiếu mới lấy của lô.
+- Test `test-lomua.py` (tạo / dùng lại / trùng tên / lô tạo tay / ngày sai / chứng từ không xét / site chưa migrate),
+  `test-tiepnhanqc.py` (ghi ngày, ngày lạ, duyệt → lô + phiếu sự cố gắn lô, BM.07.03), `test-tiepnhanqc.mjs`,
+  `test-tiepnhan.py`, `test-kiemxe.py`.
+- **Thêm custom field** (dòng phiếu nhập mua / hoá đơn mua, Batch): `git pull` → `bench --site site1.local migrate` →
+  `bench restart`. Build **sx-168**.
 
 ## Công khoán làm theo giờ (33.000đ/giờ) — QC ghi ở màn Ghi hộp, tính như lương sản phẩm (D225)
 

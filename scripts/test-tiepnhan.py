@@ -129,6 +129,8 @@ print("-- dòng nào là nguyên liệu, dòng nào không --")
 kiem("dòng trống phần QC → bỏ qua (bao bì, dịch vụ, vật tư sửa chữa)",
      not T.co_kiem(dong("TUI-01")))
 kiem("chỉ ghi mỗi số lô → đã là dòng cần kiểm", T.co_kiem(dong(ncc_lo="L123")))
+kiem("D226: chỉ ghi NSX hoặc HSD lô NCC (thông tin lô như số lô) → đã là dòng cần kiểm",
+     T.co_kiem(dong(ncc_nsx="2026-09-01")) and T.co_kiem(dong(ncc_hsd="2027-09-01")))
 kiem("D187: ô độ ẩm không còn là ô QC — dòng chỉ còn số độ ẩm cũ không phải dòng cần kiểm",
      "custom_do_am" not in T.O_QC and not T.co_kiem(dong(do_am=12.0)))
 kiem("ghi kết luận Đạt → đã là dòng cần kiểm", T.co_kiem(dong(ket_luan="Đạt")))

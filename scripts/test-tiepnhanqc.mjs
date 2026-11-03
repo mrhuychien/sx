@@ -32,8 +32,9 @@ const phieu = (them = {}) => ({
     custom_xe_tai_xe: '', custom_xe_ghi_chu: '', custom_xe_sach_kho: '', custom_xe_mui: '', custom_xe_kin_che: '',
     custom_xe_hang_chung: '', custom_xe_san: '', custom_xe_ket_luan: '' },
   dong: [{ name: 'r1', idx: 1, item_code: 'SUA', item_name: 'Sữa bột', qty: 50, uom: 'Kg', kho: 'Kho NVL', batch_no: '',
-    giay_to: 'Nhập khẩu — COA lô: KHÔNG', can_coa: true, can_aflatoxin: false, custom_ncc_lo: '', custom_co_cq: '',
-    custom_coa_vi_sinh: '', custom_aflatoxin: '', custom_cam_quan_dat: '', custom_ket_luan: '' }],
+    giay_to: 'Nhập khẩu — COA lô: KHÔNG', can_coa: true, can_aflatoxin: false, co_lo: true, custom_ncc_lo: '',
+    custom_ncc_nsx: '', custom_ncc_hsd: '', custom_co_cq: '', custom_coa_vi_sinh: '', custom_aflatoxin: '',
+    custom_cam_quan_dat: '', custom_ket_luan: '' }],
   so_anh: 0,
   lua_chon: { custom_co_cq: ['Có', 'Không'], custom_coa_vi_sinh: ['Có', 'Không', 'Không yêu cầu'],
     custom_aflatoxin: ['Có', 'Không', 'Không yêu cầu'], custom_cam_quan_dat: ['Đạt', 'Không đạt'],
@@ -93,6 +94,13 @@ kiem('dòng hàng: tên, số lượng, kho; COA báo nhóm hàng bắt buộc; 
 kiem('aflatoxin chỉ hiện với nhóm hàng phải có (hoặc đã ghi)', !dong.chu.includes('Kết quả aflatoxin'));
 const o = (nhan) => tim(dong, (e) => e.classList.contains('sx-tn-o') && e.kids[0] && e.kids[0].textContent.startsWith(nhan))[0];
 tim(o('Lô NCC'), (e) => e.tagName === 'INPUT')[0].doi('LOT-2610');
+// D226: NSX / HSD trên bao bì — hai ô ngày cạnh số lô; mã quản lý theo lô thì nói trước duyệt phiếu sẽ tạo lô.
+const oNgay = (nhan) => tim(o(nhan), (e) => e.tagName === 'INPUT')[0];
+kiem('D226: ô NSX, HSD là ô ngày; mã có lô chưa chọn lô → nói duyệt phiếu sẽ tạo lô theo số lô NCC + NSX / HSD',
+  oNgay('NSX').type === 'date' && oNgay('HSD').type === 'date'
+  && dong.chu.includes('duyệt phiếu sẽ tạo lô theo số lô NCC + NSX / HSD này'));
+oNgay('NSX').doi('2026-09-01');
+oNgay('HSD').doi('2027-09-01');
 nut(o('COA vi sinh'), 'Có').bam();
 nut(o('Cảm quan'), 'Đạt').bam();
 nut(o('Kết luận tiếp nhận'), 'Đạt').bam();
@@ -105,8 +113,10 @@ await cho();
 const p = JSON.parse(GOI.filter(([k]) => k.endsWith('luu_phieu')).pop()[1].payload);
 kiem('LƯU gửi đúng ô QC của dòng — KHÔNG gửi số lượng / kho / đơn giá',
   bang(Object.keys(p.dong[0]).sort(), ['custom_aflatoxin', 'custom_cam_quan_dat', 'custom_co_cq', 'custom_coa_vi_sinh',
-    'custom_ket_luan', 'custom_ncc_lo', 'name'])
+    'custom_ket_luan', 'custom_ncc_hsd', 'custom_ncc_lo', 'custom_ncc_nsx', 'name'])
   && p.dong[0].custom_ncc_lo === 'LOT-2610' && p.dong[0].custom_ket_luan === 'Đạt', p);
+kiem('D226: … kèm NSX / HSD lô NCC (YYYY-MM-DD như ô ngày)', p.dong[0].custom_ncc_nsx === '2026-09-01'
+  && p.dong[0].custom_ncc_hsd === '2027-09-01', p.dong[0]);
 kiem('… kèm kiểm xe: biển số, đơn vị VC, lái xe, các mục, kết luận', p.xe.custom_xe_bien_so === '29C-123.45'
   && p.xe.custom_xe_don_vi === 'Nhà xe Minh Phát' && p.xe.custom_xe_tai_xe === 'Anh Ba'
   && MUC.every((x) => p.xe[x.f] === 'Đạt') && p.xe.custom_xe_ket_luan === 'Không đạt', p.xe);
@@ -127,10 +137,17 @@ kiem('server cũ còn gửi ngưỡng / dòng còn số độ ẩm cũ → màn 
   && !m.body.chu.includes('12.5'));
 
 console.log('\n-- phiếu đã duyệt / hoá đơn mua --');
-traVe = phieu({ docstatus: 1, sua: false, xe: { ...phieu().xe, ap_dung: false } });
+traVe = phieu({ docstatus: 1, sua: false, xe: { ...phieu().xe, ap_dung: false },
+  dong: [{ ...phieu().dong[0], batch_no: 'LOT-2610-2', custom_ncc_lo: 'LOT-2610', custom_ncc_hsd: '2027-09-01' },
+    { ...phieu().dong[0], name: 'r2', idx: 2, item_code: 'TUI', item_name: 'Túi PE', co_lo: false }] });
 nut(api.container, 'KIỂM TIẾP NHẬN').bam();
 await cho();
 m = MO[MO.length - 1];
+const [d1, d2] = tim(m.body, (e) => e.classList.contains('sx-xx-muc'));
+kiem('D226: dòng đã có lô → hiện đúng lô ERPNext (không hứa tạo lô); HSD hiện lại trong ô ngày',
+  d1.chu.includes('Lô: LOT-2610-2') && !d1.chu.includes('duyệt phiếu sẽ tạo lô')
+  && tim(d1, (e) => e.tagName === 'INPUT' && e.type === 'date').map((e) => e.value).join('|') === '|2027-09-01');
+kiem('… mã không quản lý lô → không nói gì về lô', !d2.chu.includes('duyệt phiếu sẽ tạo lô') && !d2.chu.includes('Lô:'));
 kiem('phiếu đã duyệt: nói rõ chỉ xem; không còn nút lưu; ô khoá; vẫn thêm ảnh được',
   m.body.chu.includes('Phiếu đã duyệt — chỉ xem, thêm ảnh.') && !nut(m.body, 'LƯU KẾT QUẢ KIỂM')
   && tim(m.body, (e) => e.tagName === 'INPUT').every((e) => e.disabled) && !!nut(m.body, '📷 CHỤP ẢNH'));

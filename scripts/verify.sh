@@ -134,6 +134,13 @@ node scripts/test-giocong.mjs > /tmp/sx-giocong-js.log 2>&1 \
   && tail -1 /tmp/sx-giocong-js.log \
   || { cat /tmp/sx-giocong-js.log; loi=1; }
 
+# D226: duyệt phiếu nhập mua / hoá đơn mua có trừ kho → tự tạo lô nguyên liệu từ ô Lô NCC (+ NSX / HSD): đúng số lô NCC,
+# chuyến sau cùng lô nhập vào lô cũ, trùng số khác mã / khác HSD thành lô riêng; thiếu lô / ngày sai báo đủ một lần và
+# không tạo lô nào. Màn Tiếp nhận NL ghi NSX / HSD: test-tiepnhanqc.
+python3 scripts/test-lomua.py > /tmp/sx-lomua.log 2>&1 \
+  && tail -1 /tmp/sx-lomua.log \
+  || { cat /tmp/sx-lomua.log; loi=1; }
+
 # Màn tạo tài khoản là chỗ DUY NHẤT app cấp quyền cho người khác, và mã QR trên thẻ
 # là thứ ai cầm cũng vào được. Hỏng ở đây không hiện ra như một lỗi.
 python3 scripts/test-nguoidung.py > /tmp/sx-nd.log 2>&1 \

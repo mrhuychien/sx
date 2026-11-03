@@ -133,9 +133,9 @@ kiem("… và tiếp nhận đưa dòng Cách ly vào kho cách ly (thứ tự h
      d["items"][0]["warehouse"] == "Kho cách ly - RV")
 hk = open("sx/hooks.py", encoding="utf-8").read()
 khoi = re.search(r'"Purchase Receipt": \{(.*?)\n    \}', hk, re.S).group(1)
-kiem("hook Purchase Receipt: kiem_xe.validate đứng TRƯỚC tiep_nhan.validate, có before_submit",
+kiem("hook Purchase Receipt: kiem_xe.validate đứng TRƯỚC tiep_nhan.validate, before_submit kiem_xe đứng ĐẦU",
      khoi.index("sx.qc.kiem_xe.validate") < khoi.index("sx.qc.tiep_nhan.validate")
-     and '"before_submit": "sx.qc.kiem_xe.before_submit"' in khoi)
+     and re.search(r'"before_submit": \[?"sx\.qc\.kiem_xe\.before_submit"', khoi))
 khoi = re.search(r'"Sales Invoice": \{(.*?)\},\n', hk, re.S).group(1)
 kiem("hook Sales Invoice: kiem_xe.validate + before_submit", "sx.qc.kiem_xe.validate" in khoi
      and "sx.qc.kiem_xe.before_submit" in khoi)

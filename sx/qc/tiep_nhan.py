@@ -37,7 +37,8 @@ KHONG = "Không"
 
 # Dòng nào không ghi gì ở phần QC thì bỏ qua hẳn: hoá đơn mua bao bì, dịch vụ,
 # vật tư sửa chữa… không phải nguyên liệu và không có gì để kiểm.
-O_QC = ("custom_ncc_lo", "custom_co_cq", "custom_coa_vi_sinh",
+# D226: NSX / HSD lô NCC là thông tin lô như số lô — đã ghi là dòng có kiểm.
+O_QC = ("custom_ncc_lo", "custom_ncc_nsx", "custom_ncc_hsd", "custom_co_cq", "custom_coa_vi_sinh",
         "custom_aflatoxin", "custom_cam_quan_dat",
         "custom_ket_luan")
 

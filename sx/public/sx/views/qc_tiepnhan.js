@@ -3,6 +3,7 @@
 // QC chế biến không có Desk, mà phần QC của tiếp nhận nằm trên phiếu nhập mua (Purchase Receipt) /
 // hoá đơn mua có trừ kho. Màn này: danh sách phiếu NHÁP 14 ngày → mở một phiếu → kiểm xe (cùng lúc
 // với hàng) + từng dòng: lô NCC, CQ/CO, COA vi sinh, aflatoxin, cảm quan, kết luận → LƯU.
+// D226: lô NCC kèm NSX / HSD trên bao bì — thủ kho duyệt phiếu thì app tạo lô ERPNext theo đúng số lô đó.
 // Server lưu bằng doc.save() nên luật y như Desk: xe không đạt / thiếu COA / thiếu giấy tờ → ép
 // Cách ly, lô Cách ly vào kho cách ly; lời cảnh báo hiện ngay dưới đầu phiếu. Duyệt phiếu là việc
 // của thủ kho. Ảnh (hàng, giấy tờ, xe) chụp xong gửi ngay, nén trên máy.
@@ -108,6 +109,18 @@ function oChu(nhan, gt, onSet, khoa, goiY = '') {
   return o;
 }
 
+function oNgay(nhan, gt, onSet, khoa) {
+  const o = el('label', 'sx-tn-o');
+  o.appendChild(el('span', 'sx-qc-goiy', esc(nhan)));
+  const n = el('input', 'sx-textarea');
+  n.type = 'date';
+  n.value = gt || '';
+  n.disabled = khoa;
+  n.addEventListener('change', () => onSet(n.value));     // ô ngày: 'change' là sự kiện chắc chắn có trên mọi máy
+  o.appendChild(n);
+  return o;
+}
+
 function oChon(nhan, lua, gt, onSet, khoa, goiY = '') {
   const o = el('div', 'sx-tn-o');
   o.appendChild(el('span', 'sx-qc-goiy', `${esc(nhan)}${goiY ? ` · <b>${esc(goiY)}</b>` : ''}`));
@@ -155,6 +168,13 @@ function dongHang(r, d, khoa) {
     `<b>${r.idx}.</b> ${esc(r.item_name)} · ${esc(String(r.qty))} ${esc(r.uom)}${r.kho ? ` · <span class="sx-qc-goiy">${esc(r.kho)}</span>` : ''}`));
   const lc = d.lua_chon;
   o.appendChild(oChu('Lô NCC (số lô trên bao bì)', r.custom_ncc_lo, (v) => { r.custom_ncc_lo = v; }, khoa));
+  const ngay = el('div', 'sx-xx-ngay');
+  ngay.appendChild(oNgay('NSX', r.custom_ncc_nsx, (v) => { r.custom_ncc_nsx = v; }, khoa));
+  ngay.appendChild(oNgay('HSD', r.custom_ncc_hsd, (v) => { r.custom_ncc_hsd = v; }, khoa));
+  o.appendChild(ngay);
+  // D226: mã quản lý theo lô — lô ERPNext lấy từ đây lúc thủ kho duyệt (đã chọn sẵn lô thì nói lô đó).
+  if (r.batch_no) o.appendChild(el('div', 'sx-qc-goiy', `Lô: <b>${esc(r.batch_no)}</b>`));
+  else if (r.co_lo) o.appendChild(el('div', 'sx-qc-goiy', 'Mã quản lý theo lô — duyệt phiếu sẽ tạo lô theo số lô NCC + NSX / HSD này.'));
   o.appendChild(oChon('CQ / CO', lc.custom_co_cq, r.custom_co_cq, (v) => { r.custom_co_cq = v; }, khoa));
   o.appendChild(oChon('COA vi sinh', lc.custom_coa_vi_sinh, r.custom_coa_vi_sinh, (v) => { r.custom_coa_vi_sinh = v; },
     khoa, r.can_coa ? 'nhóm hàng bắt buộc COA' : ''));
@@ -253,7 +273,8 @@ export function moPhieu(d, api) {
       b.disabled = true;
       const goi = {
         dong: f.dong.map((r) => ({
-          name: r.name, custom_ncc_lo: r.custom_ncc_lo, custom_co_cq: r.custom_co_cq,
+          name: r.name, custom_ncc_lo: r.custom_ncc_lo, custom_ncc_nsx: r.custom_ncc_nsx || '',
+          custom_ncc_hsd: r.custom_ncc_hsd || '', custom_co_cq: r.custom_co_cq,
           custom_coa_vi_sinh: r.custom_coa_vi_sinh, custom_aflatoxin: r.custom_aflatoxin,
           custom_cam_quan_dat: r.custom_cam_quan_dat, custom_ket_luan: r.custom_ket_luan,
         })),

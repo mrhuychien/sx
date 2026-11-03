@@ -35,13 +35,17 @@ doc_events = {
     # W09 (D138): mua của NCC chưa duyệt BM.07.02 → chỉ cảnh báo.
     # W14 (D139): kiểm xe BM.09.01 — chạy TRƯỚC tiep_nhan: xe không đạt ép dòng Cách ly,
     # tiep_nhan mới đưa dòng Cách ly vào kho cách ly.
+    # D226: duyệt phiếu → dòng mã có lô chưa chọn Batch No thì tự tạo lô từ ô Lô NCC (+ NSX / HSD); thiếu Lô NCC thì
+    # báo đủ các dòng một lần. before_submit = trước on_submit của ERPNext (lập bundle lô từ ô Batch No); đứng SAU
+    # kiem_xe (xe chặn thì khỏi tạo lô).
     "Purchase Receipt": {
         "validate": ["sx.qc.kiem_xe.validate", "sx.qc.tiep_nhan.validate", "sx.qc.ncc.canh_bao_mua"],
-        "before_submit": "sx.qc.kiem_xe.before_submit",
+        "before_submit": ["sx.qc.kiem_xe.before_submit", "sx.api.lo_mua.tao_lo"],
         "on_submit": "sx.qc.tiep_nhan.on_submit",
     },
     "Purchase Invoice": {
         "validate": ["sx.qc.tiep_nhan.validate", "sx.qc.ncc.canh_bao_mua"],
+        "before_submit": "sx.api.lo_mua.tao_lo",
         "on_submit": "sx.qc.tiep_nhan.on_submit",
     },
     "Purchase Order": {"validate": "sx.qc.ncc.canh_bao_mua"},

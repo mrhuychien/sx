@@ -36,12 +36,13 @@ NCC = F.nap("sx.qc.ncc", "sx/qc/ncc.py")
 TN = F.nap("sx.qc.tiep_nhan", "sx/qc/tiep_nhan.py")
 KX = F.nap("sx.qc.kiem_xe", "sx/qc/kiem_xe.py")
 A = F.nap("sx.api.qc_tiepnhan", "sx/api/qc_tiepnhan.py")
+LM = F.nap("sx.api.lo_mua", "sx/api/lo_mua.py")
 kiem, thu = F.kiem, F.thu
 F.dat_ngay("2026-10-09")
 
 
 class PhieuMua(F.Document):
-    """Hook như sx/hooks.py: kiem_xe → tiep_nhan → ncc (validate), kiem_xe (before_submit),
+    """Hook như sx/hooks.py: kiem_xe → tiep_nhan → ncc (validate), kiem_xe → lo_mua (before_submit, D226),
     tiep_nhan (on_submit). Dòng con chép ra bảng "<doctype> Item" như frappe lưu bảng con."""
 
     def validate(self):
@@ -53,6 +54,7 @@ class PhieuMua(F.Document):
     def before_submit(self):
         if self.doctype == "Purchase Receipt":
             KX.before_submit(self)
+        LM.tao_lo(self)
 
     def on_update(self):
         b = F.bang(f"{self.doctype} Item")
@@ -70,9 +72,24 @@ class TepGia(F.DocThuong):
         return self.get("content")
 
 
+class LoGia(F.Document):
+    """Batch như ERPNext: tên = batch_id; NSX mặc định hôm nay."""
+
+    def before_insert(self):
+        self.manufacturing_date = self.manufacturing_date or F.hom_nay()
+        self.disabled = self.disabled or 0
+
+
+class SuCoGia(F.DocThuong):
+    def append(self, k, v):
+        self.setdefault(k, []).append(dict(v))
+
+
 F.dang_ky("Purchase Receipt", PhieuMua)
 F.dang_ky("Purchase Invoice", PhieuMua)
 F.dang_ky("File", TepGia)
+F.dang_ky("Batch", LoGia, ten_theo="batch_id")
+F.dang_ky("SX Su Co", SuCoGia)
 
 # ── dữ liệu nền ────────────────────────────────────────────────────────
 F.bang("Item Group").update({
@@ -81,8 +98,8 @@ F.bang("Item Group").update({
     "Nguyên liệu": {"name": "Nguyên liệu", "parent_item_group": None},
     "Đỗ": {"name": "Đỗ", "parent_item_group": "Nguyên liệu"},
 })
-F.bang("Item").update({"SUA": {"name": "SUA", "item_group": "Sữa bột"},
-                       "DX": {"name": "DX", "item_group": "Đỗ"}})
+F.bang("Item").update({"SUA": {"name": "SUA", "item_group": "Sữa bột", "has_batch_no": 1, "is_stock_item": 1},
+                       "DX": {"name": "DX", "item_group": "Đỗ", "has_batch_no": 0, "is_stock_item": 1}})
 F.bang("Supplier").update({
     "NCC-SUA": {"name": "NCC-SUA", "custom_ncc_duyet": 1, "custom_loai_ncc": NCC.TP, "custom_nguon_goc": NCC.TRONG_NUOC},
     "NCC-DV": {"name": "NCC-DV", "custom_ncc_duyet": 1, "custom_loai_ncc": NCC.DV},
@@ -163,6 +180,9 @@ kiem("kiểm xe: áp dụng, năm mục hiện hành của sx/qc/kiem_xe.py (phi
      and [(m["f"], m["nhan"], m["yc"]) for m in p["xe"]["muc"]] == list(KX.MUC)
      and "custom_xe_don_vi" in p["xe"] and p["xe"]["qc_kiem"] == "")
 kiem("QC sửa được phiếu nháp, thêm ảnh được", p["sua"] and p["them_anh"])
+kiem("D226: dòng nói mã có quản lý lô không (sữa có, đỗ không); NSX / HSD lô NCC trống thì là chuỗi rỗng",
+     (p["dong"][0]["co_lo"], p["dong"][1]["co_lo"], p["dong"][0]["custom_ncc_nsx"], p["dong"][0]["custom_ncc_hsd"])
+     == (True, False, "", ""), p["dong"][0])
 F.bang("Stock Entry")["SE-1"] = {"name": "SE-1", "docstatus": 0, "items": []}
 kiem("chứng từ khác phiếu mua (có thật) → chặn", "phiếu nhập mua" in (thu(lambda: A.xem_phieu("Stock Entry", "SE-1")) or ""))
 kiem("hoá đơn mua không trừ kho / phiếu trả hàng → chặn",
@@ -174,6 +194,14 @@ kiem("lựa chọn của từng ô = đúng ô Select trên phiếu nhập mua V
          for dt in ("Purchase Receipt Item", "Purchase Invoice Item") for f, k in A.O_DONG.items() if isinstance(k, tuple))
      and "custom_do_am" not in A.O_DONG
      and all(fx[("Purchase Receipt", f)]["options"].split("\n") == ["", KX.DAT, KX.KHONG_DAT] for f in A.XE_CHON))
+kiem("D226: ô NSX / HSD lô NCC = ô Date trên phiếu nhập mua VÀ hoá đơn mua, đứng ngay sau Lô NCC (CQ/CO lùi sau HSD)",
+     [f for f, k in A.O_DONG.items() if k == A.NGAY] == ["custom_ncc_nsx", "custom_ncc_hsd"]
+     and all(fx[(dt, f)]["fieldtype"] == "Date" and fx[(dt, f)]["module"] == "QC"
+             for dt in ("Purchase Receipt Item", "Purchase Invoice Item") for f in ("custom_ncc_nsx", "custom_ncc_hsd"))
+     and all((fx[(dt, "custom_ncc_nsx")]["insert_after"], fx[(dt, "custom_ncc_hsd")]["insert_after"],
+              fx[(dt, "custom_co_cq")]["insert_after"]) == ("custom_ncc_lo", "custom_ncc_nsx", "custom_ncc_hsd")
+             for dt in ("Purchase Receipt Item", "Purchase Invoice Item"))
+     and all(f in TN.O_QC for f in ("custom_ncc_nsx", "custom_ncc_hsd")))
 
 # ═══ 3. Lưu: chỉ ô QC, luật như Desk ═════════════════════════════════════
 print("\n-- lưu: chỉ ô QC, luật như Desk --")
@@ -189,9 +217,20 @@ def luu(ten, dong=None, xe=None, dt="Purchase Receipt", **k):
 XE_DAT = {"custom_xe_bien_so": "29C-123.45", "custom_xe_don_vi": "Nhà xe Minh Phát", "custom_xe_tai_xe": "Anh Ba",
           **{f: "Đạt" for f, _c, _y in KX.MUC}}
 r = luu("PR-1", [{"name": "PR-1-1", "custom_ncc_lo": " L2610 ", "custom_co_cq": "Có", "custom_coa_vi_sinh": "Có",
-                  "custom_cam_quan_dat": "Đạt", "custom_ket_luan": "Đạt", "qty": 1, "rate": 1, "warehouse": "Kho X"}],
+                  "custom_cam_quan_dat": "Đạt", "custom_ket_luan": "Đạt", "qty": 1, "rate": 1, "warehouse": "Kho X",
+                  "custom_ncc_nsx": "2026-09-01", "custom_ncc_hsd": " 2027-09-01 "}],
         xe=XE_DAT, ghi_chu_qc="Hàng khô, bao nguyên")
 pr = F.bang("Purchase Receipt")["PR-1"]
+kiem("D226: ghi NSX / HSD lô NCC (cắt khoảng trắng, YYYY-MM-DD); mở lại trả đúng ngày",
+     (pr["items"][0]["custom_ncc_nsx"], pr["items"][0]["custom_ncc_hsd"]) == ("2026-09-01", "2027-09-01")
+     and (r["dong"][0]["custom_ncc_nsx"], r["dong"][0]["custom_ncc_hsd"]) == ("2026-09-01", "2027-09-01"), pr["items"][0])
+for sai in ("01/09/2027", "2027-02-30", "0207-09-01", "2100-01-01", "2027-9-1", "20270901", "abc"):
+    kiem(f"D226: ngày lạ '{sai}' → chặn, nói dòng nào, không ghi gì",
+         "Dòng 1 (SUA): ngày không hợp lệ" in (thu(lambda: luu("PR-1", [{"name": "PR-1-1", "custom_ncc_hsd": sai}])) or "")
+         and F.bang("Purchase Receipt")["PR-1"]["items"][0]["custom_ncc_hsd"] == "2027-09-01")
+luu("PR-1", [{"name": "PR-1-2", "custom_ncc_hsd": "2027-01-01"}])
+luu("PR-1", [{"name": "PR-1-2", "custom_ncc_hsd": ""}])
+kiem("D226: xoá ngày (ô trống) → bỏ ngày", F.bang("Purchase Receipt")["PR-1"]["items"][1].get("custom_ncc_hsd") is None)
 kiem("ghi đúng ô QC của dòng (lô NCC cắt khoảng trắng), KHÔNG đụng số lượng / đơn giá / kho dù gửi kèm",
      (pr["items"][0]["custom_ncc_lo"], pr["items"][0]["custom_ket_luan"], pr["items"][0]["qty"], pr["items"][0]["rate"],
       pr["items"][0]["warehouse"]) == ("L2610", "Đạt", 50, 120000, "Kho NVL - HG"), pr["items"][0])
@@ -281,6 +320,15 @@ pr.submit()
 sc = [s for s in F.bang("SX Su Co").values() if s.get("khoa_cu", "").startswith("PR-1#")]
 kiem("duyệt phiếu QC đã kiểm trên điện thoại → lô Cách ly sinh phiếu sự cố như trên Desk",
      len(sc) == 2 and all(s["nguon"] == "Tiếp nhận NL" for s in sc), sc)
+lo = F.bang("Batch").get("L2610") or {}
+kiem("D226: duyệt → dòng sữa (mã có lô) có lô ERPNext = đúng số lô NCC QC ghi, NSX / HSD từ màn điện thoại, NCC + "
+     "phiếu nguồn; dòng đỗ (mã không lô) không có lô",
+     (F.bang("Purchase Receipt")["PR-1"]["items"][0].get("batch_no"), lo.get("item"), str(lo.get("manufacturing_date")),
+      str(lo.get("expiry_date")), lo.get("supplier"), lo.get("reference_name"))
+     == ("L2610", "SUA", "2026-09-01", "2027-09-01", "NCC-SUA", "PR-1")
+     and not F.bang("Purchase Receipt")["PR-1"]["items"][1].get("batch_no"), lo)
+kiem("D226 + W11: phiếu sự cố của lô sữa Cách ly gắn đúng lô vừa tạo",
+     next(s for s in sc if s["khoa_cu"] == "PR-1#1").get("ds_lo") == [{"batch": "L2610"}], sc)
 kiem("phiếu đã duyệt → QC không sửa được phần QC nữa",
      "đã duyệt" in (thu(lambda: luu("PR-1", [{"name": "PR-1-1", "custom_ket_luan": "Đạt"}])) or ""))
 kiem("… vẫn mở xem được, không còn nút sửa", A.xem_phieu("Purchase Receipt", "PR-1")["sua"] is False)
@@ -374,6 +422,12 @@ _dong("Purchase Receipt", "PR-NHAP", "2026-10-06", [{"custom_ket_luan": "Đạt"
 _dong("Purchase Receipt", "PR-TRA2", "2026-10-06", [{"custom_ket_luan": "Đạt"}], is_return=1)
 _dong("Purchase Receipt", "PR-T9", "2026-09-30", [{"custom_ket_luan": "Đạt"}])
 F.bang("Batch")["LO-SUA-1"] = {"name": "LO-SUA-1", "manufacturing_date": date(2026, 9, 1), "expiry_date": date(2027, 9, 1)}
+# D226: lô tạo tay (NSX mặc định = ngày tạo lô, chưa có HSD) mà QC ghi NSX / HSD trên bao bì → sổ ghi theo bao bì.
+_dong("Purchase Receipt", "PR-IN2", "2026-10-05", [
+    {"batch_no": "LO-TAY", "custom_ncc_lo": "T05", "custom_ncc_nsx": date(2026, 8, 15), "custom_ncc_hsd": date(2027, 8, 15),
+     "custom_cam_quan_dat": "Đạt", "custom_ket_luan": "Đạt"},
+    {"batch_no": "LO-SUA-1", "custom_ncc_lo": "L2610", "custom_cam_quan_dat": "Đạt", "custom_ket_luan": "Đạt"}])
+F.bang("Batch")["LO-TAY"] = {"name": "LO-TAY", "manufacturing_date": date(2026, 10, 5)}
 F.bang("User")["qc@x"] = {"name": "qc@x", "full_name": "QC Lan"}
 if F.jinja2:
     html = A.in_bm0703("2026-10")
@@ -397,6 +451,9 @@ if F.jinja2:
     kiem("dòng Cách ly: nội dung kiểm (cảm quan, aflatoxin), xử lý = kho cách ly + phiếu sự cố + xe không đạt",
          b[8] == "Cảm quan: Không đạt; aflatoxin: Có" and b[9] == "Cách ly" and "vào Kho cách ly - HG" in b[11]
          and "phiếu sự cố SC-TN" in b[11] and "xe giao hàng Không đạt" in b[11], b)
+    c = [h for h in hang if h[2].endswith("PR-IN2")]
+    kiem("D226: NSX / HSD lấy theo bao bì QC ghi ở dòng trước, thiếu mới lấy của lô",
+         [h[6] for h in c] == ["NSX 15/08/2026 · HSD 15/08/2027", "NSX 01/09/2026 · HSD 01/09/2027"], c)
     kiem("tháng không có lô nào → nói rõ", "chưa có lô nào" in A.in_bm0703("2026-08"))
 F.vai("SX Vao Hop")
 kiem("người ngoài QC không in được BM.07.03", thu(lambda: A.in_bm0703("2026-10")) is not None)

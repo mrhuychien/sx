@@ -18,6 +18,7 @@ import base64
 import binascii
 import json
 import re
+from datetime import date
 
 import frappe
 from frappe import _
@@ -33,9 +34,13 @@ SO_NGAY = 14
 LOAI = ("Purchase Receipt", "Purchase Invoice")
 ANH_TOI_DA = 8
 # Ô QC của dòng hàng = đúng custom field có sẵn (sx/fixtures/custom_field.json — test đối chiếu).
-#   None = chữ tự do · tuple = lựa chọn của ô Select
+#   None = chữ tự do · tuple = lựa chọn của ô Select · NGAY = ô ngày (YYYY-MM-DD)
+# D226: NSX / HSD lô NCC — duyệt phiếu thì app tạo lô theo Lô NCC, hai ngày này ghi vào lô (sx/api/lo_mua.py).
+NGAY = "ngay"
 O_DONG = {
     "custom_ncc_lo": None,
+    "custom_ncc_nsx": NGAY,
+    "custom_ncc_hsd": NGAY,
     "custom_co_cq": ("", "Có", "Không"),
     "custom_coa_vi_sinh": ("", "Có", "Không", "Không yêu cầu"),
     "custom_aflatoxin": ("", "Có", "Không", "Không yêu cầu"),
@@ -134,9 +139,11 @@ def _dict(doc, bao=None):
         d = {"name": r.name, "idx": r.idx, "item_code": r.item_code, "item_name": r.item_name or r.item_code,
              "qty": flt(r.qty, 3), "uom": r.get("uom") or r.get("stock_uom") or "", "kho": r.get("warehouse") or "",
              "batch_no": r.get("batch_no") or "", "giay_to": r.get("custom_giay_to") or "",
-             "can_coa": bool(nhom & can_coa), "can_aflatoxin": bool(nhom & can_af)}
+             "can_coa": bool(nhom & can_coa), "can_aflatoxin": bool(nhom & can_af),
+             # D226: mã quản lý theo lô — chưa chọn Batch No thì duyệt phiếu tạo lô theo Lô NCC (màn nói cho QC biết).
+             "co_lo": bool(r.item_code and cint(frappe.get_cached_value("Item", r.item_code, "has_batch_no")))}
         for f in O_DONG:
-            d[f] = r.get(f) or ""
+            d[f] = r.get(f) or ""       # ô ngày: frappe trả JSON "YYYY-MM-DD"
         dong.append(d)
     xe = None
     if doc.doctype == "Purchase Receipt":
@@ -169,6 +176,16 @@ def xem_phieu(doctype, name):
 def _chuan(f, kieu, v, r):
     if kieu is None:
         return str(v or "").strip()[:140] or None
+    if kieu == NGAY:
+        s = str(v or "").strip()
+        if not s:
+            return None
+        try:        # ô ngày của màn gửi đúng YYYY-MM-DD; năm ngoài 2000–2099 là gõ nhầm
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", s) or not 2000 <= date.fromisoformat(s).year <= 2099:
+                raise ValueError(s)
+        except ValueError:
+            frappe.throw(_("Dòng {0} ({1}): ngày không hợp lệ — {2}.").format(r.idx, r.item_code, s))
+        return s
     v = v or ""
     if v not in kieu:
         frappe.throw(_("Dòng {0} ({1}): giá trị không hợp lệ — {2}.").format(r.idx, r.item_code, v))
@@ -283,6 +300,10 @@ def in_bm0703(thang=None):
     hang = []
     for p, r in ra:
         b = han.get(r.batch_no) or {}
+        # D226: NSX / HSD QC đọc trên bao bì của chính lần nhận này trước, rồi mới tới ngày của lô (lô tạo tay có NSX
+        # mặc định = ngày tạo lô, không phải NSX thật).
+        nsx = r.get("custom_ncc_nsx") or b.get("manufacturing_date")
+        hsd = r.get("custom_ncc_hsd") or b.get("expiry_date")
         kiem = [f"Cảm quan: {r.custom_cam_quan_dat}" if r.custom_cam_quan_dat else ""]
         kiem += [f"aflatoxin: {r.custom_aflatoxin}" if r.custom_aflatoxin else "",
                  f"CQ/CO: {r.custom_co_cq}" if r.custom_co_cq else ""]
@@ -297,8 +318,8 @@ def in_bm0703(thang=None):
                      "ncc": p.supplier_name or p.supplier, "phieu": p.name, "so_lo": r.custom_ncc_lo or "",
                      "dvt": r.uom or "", "so_luong": f"{flt(r.qty):g}",
                      "nsx_hsd": " · ".join(t for t in (
-                         _("NSX {0}").format(_ngay_vn(b.get("manufacturing_date"))) if b.get("manufacturing_date") else "",
-                         _("HSD {0}").format(_ngay_vn(b.get("expiry_date"))) if b.get("expiry_date") else "") if t),
+                         _("NSX {0}").format(_ngay_vn(nsx)) if nsx else "",
+                         _("HSD {0}").format(_ngay_vn(hsd)) if hsd else "") if t),
                      "ho_so": ho_so, "kiem": "; ".join(t for t in kiem if t), "ket_luan": r.custom_ket_luan,
                      "nguoi_kiem": ten(p.custom_nguoi_kiem), "xu_ly": "; ".join(t for t in xu if t)})
     return frappe.render_template("sx/qc/bm0703.html", {"thang": dau.strftime("%m/%Y"), "ds": hang})
