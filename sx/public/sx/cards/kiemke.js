@@ -36,11 +36,13 @@ import { khungNoHtml } from '/assets/sx/sx/components/gapno.js';
 const BTP = 'Bán thành phẩm';
 const KEM_HSD = 'Kèm hạn sử dụng';
 const CHI_SL = 'Chỉ số lượng';
+const GIU = 'Giữ nguyên';               // D228: mã không đếm khi chốt — giữ nguyên tồn (kiểm một số mã)
+const VE_0 = 'Về 0';                    //       hay về 0 (đặt lại toàn kho, D188); phiếu cũ ô trống = Về 0
 const NHO_KHO = 'sx-kk-kho';            // kho đang kiểm của máy này — mở lại thẻ vào đúng kho đó
 
 // Mặc định xem TẤT CẢ, thứ tự cố định (server xếp): lưu một dòng xong mã vẫn đứng nguyên chỗ, nút "+ HSD"
 // ngay đó cho HSD tiếp theo — lọc "Chưa đếm" mà mã biến mất sau dòng đầu là bắt người ta đi tìm lại.
-const st = { loc: 'het', tim: '' };     // giữ bộ lọc qua các lần vẽ lại
+const st = { loc: 'het', tim: '', khongDem: GIU };     // giữ bộ lọc + lựa chọn lúc bắt đầu qua các lần vẽ lại
 
 // [khoá, [nhãn thành phẩm, nhãn bán thành phẩm], lọc]. Bán thành phẩm: "chưa cân" = còn lô trên sổ chưa cân.
 const LOC = [
@@ -95,6 +97,7 @@ export async function render({ container, call, boot }) {
   const $ = (q) => container.querySelector(q);
   const laBtp = () => dl.loai === BTP;
   const laSl = () => !laBtp() && !!dl.phieu && dl.phieu.cach_dem === CHI_SL;      // D219
+  const giu = () => !laBtp() && !!dl.phieu && dl.phieu.khong_dem === GIU;         // D228
   const so = (n) => (laBtp() ? kg(n) : formatNumber(n));
   const le = () => (laBtp() ? 3 : 0);
   const dem = () => (laBtp() ? 'cân' : 'đếm');
@@ -117,6 +120,17 @@ export async function render({ container, call, boot }) {
   function ve() {
     if (dl.phieu) veDangDem(dl.phieu);
     else veChuaMo();
+  }
+
+  // D228: mã không đếm khi chốt — Giữ nguyên (kiểm một số mã) / Về 0 (đặt lại toàn kho). `moTa`: câu giải thích dưới.
+  function veKhongDem(gt, moTa) {
+    return `<div class="sx-field-label">Mã không đếm khi chốt</div>
+      <div class="sx-kk-loc" role="group" aria-label="Mã không đếm khi chốt">${[[GIU, 'Giữ nguyên'],
+    [VE_0, 'Về 0 — đặt lại toàn kho']].map(([v, nhan]) => `<button type="button" class="sx-np-chip${
+    gt === v ? ' sx-np-chip-on' : ''}" data-kd="${esc(v)}" aria-pressed="${gt === v}">${esc(nhan)}</button>`).join('')}</div>${
+  moTa ? `<div class="sx-muted">${gt === GIU
+    ? 'Chốt chỉ đặt lại các mã đã đếm (kể cả mã bấm Không còn) — mã không đếm giữ nguyên tồn. Dùng khi hôm nay chỉ kiểm một số mã.'
+    : 'Chốt đặt lại toàn bộ kho thành phẩm — mã có tồn mà không đếm về 0.'}</div>` : ''}`;
   }
 
   function tieuDe() {
@@ -194,10 +208,11 @@ export async function render({ container, call, boot }) {
       ${veKho()}
       <div class="sx-muted">${laBtp()
     ? 'Cân từng lô (kg) rồi chốt: lô đã cân thì số cân thay số sổ của lô đó, lô chưa cân giữ nguyên; thừa / thiếu ghi điều chỉnh kho.'
-    : `Đếm số thùng / hộp từng loại rồi chốt. Chốt = <b>đặt lại toàn bộ kho thành phẩm</b>
-        theo số đếm: mỗi loại, mỗi HSD một lô; mã không đếm về 0; thừa / thiếu ghi điều chỉnh kho.`}</div>
+    : `Đếm số thùng / hộp từng loại rồi chốt: mã đã đếm đặt lại theo số đếm — mỗi loại, mỗi HSD một lô; thừa /
+        thiếu ghi điều chỉnh kho.`}</div>
       ${tom}
       ${veCanhBao()}
+      ${laBtp() ? '' : veKhongDem(st.khongDem, true)}
       ${laBtp() ? '<button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-bat">BẮT ĐẦU KIỂM KÊ</button>'
     : `<button type="button" class="sx-btn sx-btn-primary sx-btn-big" id="kk-bat-sl">KIỂM KÊ CHỈ SỐ LƯỢNG</button>
       <div class="sx-muted">Đếm tổng số thùng / hộp từng loại, không phải đọc HSD — HSD tự tính theo sổ: lô còn hạn ngắn
@@ -206,13 +221,15 @@ export async function render({ container, call, boot }) {
       <div class="sx-muted">Đếm theo từng HSD in trên hộp — sổ ghi đúng HSD của từng hộp.</div>`}
       ${veGanDay()}
       ${veNutAm()}`);
-    $('#kk-bat').addEventListener('click', (e) => lam(() => call('sx.api.kiemke.bat_dau',
-      laBtp() ? khoNay() : { ...khoNay(), cach_dem: KEM_HSD }), e.currentTarget));
+    // D228: lựa chọn đã nằm trên phiếu — lần bắt đầu sau lại mặc định Giữ nguyên.
+    const batDau = (cach, nut) => lam(() => call('sx.api.kiemke.bat_dau', laBtp() ? khoNay()
+      : { ...khoNay(), cach_dem: cach, khong_dem: st.khongDem }), nut).then((xong) => { if (xong) st.khongDem = GIU; });
+    $('#kk-bat').addEventListener('click', (e) => batDau(KEM_HSD, e.currentTarget));
     const batSl = $('#kk-bat-sl');
-    if (batSl) {
-      batSl.addEventListener('click', (e) => lam(() => call('sx.api.kiemke.bat_dau', { ...khoNay(), cach_dem: CHI_SL }),
-        e.currentTarget));
-    }
+    if (batSl) batSl.addEventListener('click', (e) => batDau(CHI_SL, e.currentTarget));
+    container.querySelectorAll('[data-kd]').forEach((b) => b.addEventListener('click', () => {
+      st.khongDem = b.dataset.kd; ve();
+    }));
     ganKho();
     ganGanDay();
   }
@@ -467,11 +484,13 @@ export async function render({ container, call, boot }) {
   esc(String(p.bat_dau_luc).slice(11, 16))} · ${esc(dl.kho)}</div>
       <div class="sx-kk-moc">Chốt sổ tại: <b>${p.thoi_diem ? esc(veLuc(p.thoi_diem)) : 'lúc bấm chốt'}</b>${
   dl.duoc_chot ? ' <button type="button" class="sx-np-chip" id="kk-td">✎ Đổi</button>' : ''}</div>
+      ${laBtp() ? '' : veKhongDem(p.khong_dem || VE_0, false)}
       <div class="sx-kk-tien">${tien}${daDem.length ? ` · lệch <span class="${Math.abs(lech) > 1e-9 ? 'sx-kk-lech'
     : 'sx-kk-khop'}">${coDau(lech, le())}${laBtp() ? ' kg' : ''}</span>` : ''}</div>
       <div class="sx-kk-nhac">${laBtp()
     ? 'Đang kiểm kê: lô đã cân thì đừng xuất / nhập lô đó. Có chứng từ kho của lô sau lúc cân thì phải cân lại lô đó mới chốt được.'
-    : 'Đang kiểm kê: đừng bán / nhập / xuất thành phẩm. Chốt sẽ đặt lại toàn kho theo số đếm — mã có tồn mà không đếm về 0.'
+    : (giu() ? 'Đang kiểm kê: mã đã đếm thì đừng bán / nhập / xuất tới lúc chốt. Chốt chỉ đặt lại các mã đã đếm — mã không đếm giữ nguyên tồn.'
+      : 'Đang kiểm kê: đừng bán / nhập / xuất thành phẩm. Chốt sẽ đặt lại toàn kho theo số đếm — mã có tồn mà không đếm về 0.')
       + (laSl() ? ' HSD tự chia theo sổ: lô còn hạn ngắn nhất coi như đã xuất trước.' : '')}${
   p.thoi_diem ? ` Số sổ sách tính tới ${esc(veLuc(p.thoi_diem))}; chốt ghi chứng từ kho lùi về lúc đó. Có chứng từ kho giữa lúc ${
     dem()} và lúc đó thì ${dem()} lại; chứng từ sau lúc đó không được rút từ lô mà chốt giảm.`
@@ -549,6 +568,10 @@ export async function render({ container, call, boot }) {
       }));
     }
     $('#kk-xem').addEventListener('click', (e) => xemTruoc(e.currentTarget));
+    container.querySelectorAll('[data-kd]').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.kd === (p.khong_dem || VE_0)) return;
+      lam(() => call('sx.api.kiemke.dat_khong_dem', { name: p.name, khong_dem: b.dataset.kd }), b);
+    }));
     const td = $('#kk-td');
     if (td) td.addEventListener('click', () => moThoiDiem(p));
     $('#kk-in').addEventListener('click', () => inBienBan(p.name));
@@ -625,7 +648,7 @@ export async function render({ container, call, boot }) {
       ? `đếm <b>${formatNumber(x.tong_dem)}</b> · sổ ${formatNumber(x.so_sach)} · ${Math.abs(l) > 1e-9
         ? `<span class="sx-kk-lech">${coDau(l)}</span>` : '<span class="sx-kk-khop">khớp</span>'}`
       : `sổ <b>${formatNumber(x.so_sach)}</b> · <span class="sx-kk-chua">chưa đếm${
-        x.so_sach > 0 ? ' — chốt về 0' : ''}</span>`;
+        x.so_sach > 0 ? (giu() ? ' — giữ nguyên' : ' — chốt về 0') : ''}</span>`;
   }
 
   const trenMa = (x) => [x.chua_hsd > 0 ? `chưa có HSD ${formatNumber(x.chua_hsd)}` : '',
@@ -936,18 +959,21 @@ export async function render({ container, call, boot }) {
     || 'khớp sổ — không đổi gì')}</div></div>
           <span class="sx-nv-qty">${n(r.so_sach)} → ${n(r.dem)}</span></div>`).join('')}</div>
       <div class="sx-muted">${btp ? `Chốt sẽ sinh ${t.phieu_kho} chứng từ kho: thiếu / thừa từng lô ghi điều chỉnh kho.
-        Lô chưa cân giữ nguyên số sổ sách.` : `Chốt sẽ <b>đặt lại toàn bộ kho thành phẩm</b> theo số đếm, sinh ${
-  t.phieu_kho} chứng từ kho: chuyển lô giữ nguyên giá vốn; thiếu / thừa ghi điều chỉnh kho. Sau chốt mỗi loại,
-        mỗi HSD một lô${t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${
-  t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}.`}</div>`;
+        Lô chưa cân giữ nguyên số sổ sách.` : `Chốt sẽ <b>${t.khong_dem === GIU ? 'đặt lại các mã đã đếm'
+    : 'đặt lại toàn bộ kho thành phẩm'}</b> theo số đếm, sinh ${
+  t.phieu_kho} chứng từ kho: chuyển lô giữ nguyên giá vốn; thiếu / thừa ghi điều chỉnh kho. Sau chốt mỗi loại${
+  t.khong_dem === GIU ? ' đã đếm' : ''}, mỗi HSD một lô${t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${
+  t.giu ? `; ${t.giu} mã không đếm giữ nguyên` : ''}${t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}.`}</div>`;
     if (x.duoc_chot && !x.loi.length && x.ma.length) {
       const b = el('button', 'sx-btn sx-btn-primary sx-btn-big', 'CHỐT KIỂM KÊ');
       b.type = 'button';
       b.addEventListener('click', () => confirm2Step({
         title: `Chốt kiểm kê ${x.name}`,
-        message: `${btp ? '' : 'Đặt lại toàn bộ kho thành phẩm theo số đếm. '}${t.so_ma} mã${btp ? `, ${t.so_lo} lô` : ''}: sổ ${
+        message: `${btp ? '' : (t.khong_dem === GIU ? 'Đặt lại các mã đã đếm theo số đếm — mã không đếm giữ nguyên. '
+          : 'Đặt lại toàn bộ kho thành phẩm theo số đếm. ')}${t.so_ma} mã${btp ? `, ${t.so_lo} lô` : ''}: sổ ${
           n(t.so_sach)} → ${btp ? 'cân' : 'đếm'} ${n(t.dem)}${dv} (${coDau(t.dem - t.so_sach, d)})${
-          t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}${
+          t.ve_0 ? `; ${t.ve_0} mã chưa đếm về 0` : ''}${t.giu ? `; ${t.giu} mã không đếm giữ nguyên` : ''}${
+          t.bat_lo ? `; ${t.bat_lo} mã bật quản lý lô` : ''}${
           (t.kho_am || []).length ? `; tồn âm ở kho khác đưa về 0: ${t.kho_am.map((k) => `${k.ten} ở ${k.kho} ${
             formatNumber(k.so)}`).join(', ')}` : ''}.\n`
           + `Sinh ${t.phieu_kho} chứng từ kho${t.thoi_diem ? `, ghi lùi về ${veLuc(t.thoi_diem)}${t.bat_lui

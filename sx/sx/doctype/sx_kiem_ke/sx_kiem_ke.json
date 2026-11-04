@@ -11,6 +11,7 @@
   "kho",
   "loai",
   "cach_dem",
+  "khong_dem",
   "nguoi_lap",
   "bat_dau_luc",
   "thoi_diem",
@@ -93,6 +94,14 @@
    "read_only": 1,
    "depends_on": "eval:doc.loai!='Bán thành phẩm'",
    "description": "Thành phẩm. Kèm hạn sử dụng: đếm theo HSD in trên hộp. Chỉ số lượng (D219): đếm tổng từng mã, HSD tự chia lúc chốt — lô còn hạn ngắn nhất coi như đã xuất trước."
+  },
+  {
+   "fieldname": "khong_dem",
+   "fieldtype": "Select",
+   "label": "Mã không đếm khi chốt",
+   "options": "\nGiữ nguyên\nVề 0",
+   "depends_on": "eval:doc.loai!='Bán thành phẩm'",
+   "description": "Thành phẩm (D228). Giữ nguyên: chốt chỉ đặt lại các mã đã đếm — mã không đếm giữ nguyên tồn (kiểm một số mã). Về 0: đặt lại toàn kho (D188) — mã có tồn mà không đếm về 0. Để trống (phiếu lập trước D228) = Về 0."
   },
   {
    "fieldname": "nguoi_lap",
@@ -215,7 +224,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-21 09:00:00.000000",
+ "modified": "2026-11-04 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Kiem Ke",

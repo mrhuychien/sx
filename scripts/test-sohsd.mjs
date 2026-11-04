@@ -775,9 +775,16 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   await KK.render({ container: c, call, boot: {} });
   kiem('chưa có phiếu: nhắc số mã còn hàng chưa ghi HSD (cả mã chưa quản lý lô) + nút BẮT ĐẦU',
     /4 mã còn hàng chưa ghi HSD · 10\.637/.test(c.innerHTML) && !!c.querySelector('#kk-bat'), c.innerHTML.slice(0, 600));
-  kiem('D188: nói rõ chốt = đặt lại toàn bộ kho thành phẩm, mỗi loại mỗi HSD một lô, mã không đếm về 0',
-    /đặt lại toàn bộ kho thành phẩm/.test(c.innerHTML) && /mỗi loại, mỗi HSD một lô/.test(c.innerHTML)
-    && /mã không đếm về 0/.test(c.innerHTML));
+  kiem('D228: chưa có phiếu — chọn "Mã không đếm khi chốt", mặc định GIỮ NGUYÊN (nói rõ); mã đã đếm mỗi loại mỗi HSD một lô',
+    /Mã không đếm khi chốt/.test(c.innerHTML) && /data-kd="Giữ nguyên" aria-pressed="true"/.test(c.innerHTML)
+    && /class="sx-np-chip sx-np-chip-on" data-kd="Giữ nguyên"/.test(c.innerHTML)
+    && /class="sx-np-chip" data-kd="Về 0"/.test(c.innerHTML)
+    && /data-kd="Về 0" aria-pressed="false"/.test(c.innerHTML) && /mã không đếm giữ nguyên tồn/.test(c.innerHTML)
+    && /mỗi loại, mỗi HSD một lô/.test(c.innerHTML), c.innerHTML.slice(0, 1200));
+  c.querySelector('[data-kd="Về 0"]').bam();
+  kiem('… bấm "Về 0 — đặt lại toàn kho" → nói rõ D188: đặt lại toàn bộ kho thành phẩm, mã có tồn mà không đếm về 0',
+    /data-kd="Về 0" aria-pressed="true"/.test(c.innerHTML)
+    && /đặt lại toàn bộ kho thành phẩm — mã có tồn mà không đếm về 0/.test(c.innerHTML));
   const tomKK = () => (c.innerHTML.match(/<summary class="sx-no-tom">([\s\S]*?)<\/summary>/) || [])[1] || '';
   kiem('D209: thẻ GẬP sẵn (details không open); dòng gập: tên thẻ + mã còn hàng chưa ghi HSD (đỏ)',
     /^<details class="sx-no-gap"><summary/.test(c.innerHTML) && tomKK().includes('Kiểm kê kho thành phẩm')
@@ -786,6 +793,8 @@ console.log('\n-- Kiểm kê (D154): đếm bằng cùng bàn số --');
   await choRe();
   kiem('D209: đang đếm → dòng gập nói phiếu đang đếm dở + tiến độ (xanh)',
     tomKK().includes('<span class="sx-no-nhac-lam">Đang đếm dở phiếu KK-1 — Đã đếm 0/4 mã</span>'), tomKK());
+  kiem('D228: BẮT ĐẦU gửi lựa chọn đã bấm (Về 0)', loiGoi('sx.api.kiemke.bat_dau')[1].khong_dem === 'Về 0',
+    loiGoi('sx.api.kiemke.bat_dau'));
   kiem('BẮT ĐẦU → phiếu đang đếm, mã chưa đếm có nút + HSD / Không còn',
     !!c.querySelector('[data-them="0"]') && !!c.querySelector('[data-het="1"]'), c.innerHTML.slice(0, 200));
   kiem('… mã có tồn chưa đếm ghi "chưa đếm — chốt về 0"; nhắc đang kiểm kê nói chốt đặt lại toàn kho',
@@ -1225,6 +1234,85 @@ console.log('\n-- D219: kiểm kê CHỈ SỐ LƯỢNG — một số mỗi mã,
     goi.find((x) => x[0] === 'sx.api.kiemke.bat_dau')[1].cach_dem === 'Kèm hạn sử dụng'
     && tom.includes('Kiểm kê kèm hạn sử dụng — kho thành phẩm') && /data-them="0">\+ HSD/.test(c.innerHTML)
     && !c.querySelector('[data-sl="0"]'), tom);
+}
+
+// ═════════════════════════════════════════════════════════════════════
+console.log('\n-- D228: mã không đếm GIỮ NGUYÊN — chọn lúc bắt đầu, đổi được tới lúc chốt --');
+{
+  const goi = [];
+  const st = { phieu: null, hsd: {} };
+  const HANG = [
+    { item: 'TP-SEN', ten: 'Bánh sen', dvt: 'Hộp', uoms: UOMS, so_sach: 30, chua_hsd: 0, thu_hoi: 0,
+      theo_hsd: [{ hsd: '2027-06-08', so: 30 }], khong_lo: false, tu_chia: true },
+    { item: 'TP-DO', ten: 'Bánh đỗ', dvt: 'Hộp', uoms: [], so_sach: 12, chua_hsd: 0, thu_hoi: 0,
+      theo_hsd: [{ hsd: '2027-03-10', so: 12 }], khong_lo: false, tu_chia: true },
+  ];
+  const tq = () => ({
+    kho: 'Kho TP', duoc_chot: true, hom_nay: NGAY, bay_gio: '2026-10-09T10:00', phieu: st.phieu, danh_muc: [],
+    gan_day: [], canh_bao: [],
+    hang: HANG.map((h) => {
+      const dem = st.hsd[h.item] || [];
+      return { ...h, da_dem: dem.length > 0, sl: null, dem, chia: [], tong_dem: dem.reduce((a, x) => a + x.so, 0) };
+    }),
+  });
+  const call = async (m, a = {}) => {
+    goi.push([m, a]);
+    if (m === 'sx.api.kiemke.bat_dau') {
+      st.phieu = { name: 'KK-28', bat_dau_luc: '2026-10-09 08:15', duoc_huy: true, cach_dem: a.cach_dem,
+        khong_dem: a.khong_dem };
+    }
+    if (m === 'sx.api.kiemke.dat_khong_dem') st.phieu = { ...st.phieu, khong_dem: a.khong_dem };
+    if (m === 'sx.api.kiemke.xem_truoc') {
+      const g = st.phieu.khong_dem === 'Giữ nguyên';
+      return { name: 'KK-28', loi: [], duoc_chot: true, loai: 'Thành phẩm',
+        canh_bao: g ? ['1 mã có tồn trên sổ mà không đếm — GIỮ NGUYÊN số sổ, chốt không đụng tới: Bánh đỗ.'] : [],
+        ma: [{ item: 'TP-SEN', ten: 'Bánh sen', so_sach: 30, dem: 28, chuyen: 0, lo_cu: 0, thieu: 2, thua: 0, bu_am: 0,
+          thu_hoi: 0, chia: null, khong_chia: false }],
+        tong: { so_ma: 1, so_sach: 30, dem: 28, phieu_kho: 1, ve_0: g ? 0 : 1, giu: g ? 1 : 0, khong_dem: st.phieu.khong_dem,
+          bat_lo: 0, kho_am: [], thoi_diem: '', bat_lui: 0 } };
+    }
+    return tq();
+  };
+  const loiGoi = (m) => goi.filter((g) => g[0] === m).pop();
+  const c = new E('div');
+  await KK.render({ container: c, call, boot: {} });
+  kiem('lần bắt đầu sau (phiếu trước đã bấm Về 0) lại mặc định GIỮ NGUYÊN',
+    /data-kd="Giữ nguyên" aria-pressed="true"/.test(c.innerHTML), c.innerHTML.slice(0, 1200));
+  c.querySelector('#kk-bat').bam();
+  await choRe();
+  kiem('BẮT ĐẦU (kèm HSD) gửi khong_dem = Giữ nguyên', loiGoi('sx.api.kiemke.bat_dau')[1].khong_dem === 'Giữ nguyên'
+    && loiGoi('sx.api.kiemke.bat_dau')[1].cach_dem === 'Kèm hạn sử dụng', loiGoi('sx.api.kiemke.bat_dau'));
+  kiem('đang đếm: lựa chọn trên phiếu (Giữ nguyên đang bật); mã chưa đếm "chưa đếm — giữ nguyên", không "chốt về 0"; '
+    + 'nhắc đúng phạm vi', /data-kd="Giữ nguyên" aria-pressed="true"/.test(c.innerHTML)
+    && (c.innerHTML.match(/chưa đếm — giữ nguyên/g) || []).length === 2 && !/chốt về 0/.test(c.innerHTML)
+    && /Chốt chỉ đặt lại các mã đã đếm — mã không đếm giữ nguyên tồn/.test(c.innerHTML), c.innerHTML.slice(0, 1500));
+  const n0 = goi.length;
+  c.querySelector('[data-kd="Giữ nguyên"]').bam();
+  await choRe();
+  kiem('bấm lại lựa chọn đang bật → không gọi gì', goi.length === n0, goi.slice(n0));
+  c.querySelector('[data-kd="Về 0"]').bam();
+  await choRe();
+  kiem('đổi sang Về 0 → dat_khong_dem(phiếu, Về 0); vẽ lại: mã chưa đếm "chưa đếm — chốt về 0", nhắc đặt lại toàn kho',
+    loiGoi('sx.api.kiemke.dat_khong_dem')[1].name === 'KK-28'
+    && loiGoi('sx.api.kiemke.dat_khong_dem')[1].khong_dem === 'Về 0'
+    && (c.innerHTML.match(/chưa đếm — chốt về 0/g) || []).length === 2 && /đặt lại toàn kho theo số đếm/.test(c.innerHTML)
+    && /data-kd="Về 0" aria-pressed="true"/.test(c.innerHTML), c.innerHTML.slice(0, 1500));
+  st.hsd['TP-SEN'] = [{ hsd: '2027-06-08', so: 28 }];
+  c.querySelector('[data-kd="Giữ nguyên"]').bam();
+  await choRe();
+  c.querySelector('#kk-xem').bam();
+  await choRe();
+  const xm = MO[MO.length - 1];
+  kiem('xem trước (giữ nguyên): báo mã không đếm giữ nguyên; cuối: đặt lại CÁC MÃ ĐÃ ĐẾM, mỗi loại đã đếm mỗi HSD một '
+    + 'lô, 1 mã không đếm giữ nguyên; không nói "về 0"', /GIỮ NGUYÊN số sổ/.test(xm.body.innerHTML)
+    && /đặt lại các mã đã đếm<\/b>/.test(xm.body.innerHTML)
+    && /Sau chốt mỗi loại đã đếm, mỗi HSD một lô; 1 mã không đếm giữ nguyên\./.test(xm.body.innerHTML)
+    && !/về 0/.test(xm.body.innerHTML), xm.body.innerHTML.slice(-500));
+  xm.body.kids.find((k) => k.textContent === 'CHỐT KIỂM KÊ').bam();
+  kiem('… hộp xác nhận: "Đặt lại các mã đã đếm theo số đếm — mã không đếm giữ nguyên." + số mã giữ nguyên',
+    /^Đặt lại các mã đã đếm theo số đếm — mã không đếm giữ nguyên\. 1 mã/.test(HOI[HOI.length - 1].message)
+    && /; 1 mã không đếm giữ nguyên/.test(HOI[HOI.length - 1].message) && !/về 0/.test(HOI[HOI.length - 1].message),
+    HOI[HOI.length - 1].message);
 }
 
 // ═════════════════════════════════════════════════════════════════════

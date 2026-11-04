@@ -4,7 +4,9 @@ THÀNH PHẨM (D154, Kho TP): ĐẾM theo HSD in trên hộp — mỗi mã một
 ĐẶT LẠI TOÀN KHO theo số đếm (D188): mỗi (mã, HSD) đúng một lô, mã có tồn mà không đếm về 0, lô cũ chuyển sang lô
 theo HSD, thừa / thiếu ghi điều chỉnh kho. D219: hai cách đếm, chọn lúc bắt đầu — "Kiểm kê kèm hạn sử dụng" (như trên)
 và "Kiểm kê chỉ số lượng": đếm tổng từng mã (ghi_so), HSD tự chia lúc xem trước / chốt (lô còn hạn ngắn nhất coi như đã
-xuất trước — sx.kiem_ke.chia_fefo); mã mà sổ không có lô nào có HSD thì đếm kèm HSD ngay trên phiếu đó.
+xuất trước — sx.kiem_ke.chia_fefo); mã mà sổ không có lô nào có HSD thì đếm kèm HSD ngay trên phiếu đó. D228: mã
+không đếm — "Giữ nguyên" (mặc định phiếu mới: chốt chỉ đặt lại mã đã đếm, kiểm một số mã) hay "Về 0" (đặt lại toàn
+kho như trên); chọn lúc bắt đầu, đổi được tới lúc chốt (dat_khong_dem).
 
 BÁN THÀNH PHẨM (D155, Kho BTP / Kho xưởng): hàng rời tính kg — CÂN TỪNG LÔ. Lô đã cân thì số cân thay số sổ của
 lô đó, lô chưa cân giữ nguyên. Chốt: thiếu / thừa từng lô ghi điều chỉnh kho.
@@ -23,7 +25,8 @@ from frappe.utils import cint, flt, get_datetime, getdate, now_datetime, nowdate
 
 from sx.config.roles import QUAN_LY, THU_KHO, guard_card, is_super, user_roles
 from sx.kiem_ke import theo_lo
-from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import BTP, CHI_SL, KEM_HSD, TP, cong_ty_kho, ton_kho_khac, ton_lo
+from sx.sx.doctype.sx_kiem_ke.sx_kiem_ke import (BTP, CHI_SL, GIU, KEM_HSD, TP, VE_0, cong_ty_kho, ton_kho_khac,
+                                                 ton_lo)
 from sx.utils import get_settings, items_tp, kho_xuong, nap_cong_bo
 
 CARD = "kiemke"
@@ -202,6 +205,8 @@ def tong_quan(kho=None, loai=None):
                        "bat_dau_luc": str(p.bat_dau_luc or "")[:16],
                        "thoi_diem": str(p.get("thoi_diem") or "")[:16],
                        "cach_dem": None if k["loai"] == BTP else (p.get("cach_dem") or KEM_HSD),
+                       # D228: ô trống (phiếu lập trước D228) = Về 0 như D188.
+                       "khong_dem": None if k["loai"] == BTP else (p.get("khong_dem") or VE_0),
                        "duoc_huy": bool(_la_quan_ly() or p.nguoi_lap == frappe.session.user)}
     return ra
 
@@ -335,17 +340,25 @@ def _hang_btp(kho, p):
     return {"hang": hang, "danh_muc": [_mo_ta_btp(i) for n, i in btp.items() if n not in hien] if p else []}
 
 
+def _kiem_khong_dem(v):
+    if v and v not in (GIU, VE_0):
+        frappe.throw(_("Lựa chọn mã không đếm không hợp lệ: {0}.").format(v))
+
+
 @frappe.whitelist()
-def bat_dau(kho=None, loai=None, cach_dem=None):
+def bat_dau(kho=None, loai=None, cach_dem=None, khong_dem=None):
     """Mở phiếu kiểm kê (mỗi kho, mỗi loại một phiếu đang đếm). Thành phẩm: `cach_dem` = "Kèm hạn sử dụng" (mặc định) /
-    "Chỉ số lượng" (D219). Kho đang có phiếu đang đếm thì trả phiếu đó (cách đếm của nó giữ nguyên)."""
+    "Chỉ số lượng" (D219); `khong_dem` = "Giữ nguyên" (mặc định — chốt chỉ đặt lại mã đã đếm) / "Về 0" (đặt lại toàn
+    kho, D228). Kho đang có phiếu đang đếm thì trả phiếu đó (lựa chọn của nó giữ nguyên)."""
     guard_card(CARD)
     k = _chon_kho(kho, loai)
     if cach_dem and cach_dem not in (KEM_HSD, CHI_SL):
         frappe.throw(_("Cách đếm không hợp lệ: {0}.").format(cach_dem))
+    _kiem_khong_dem(khong_dem)
     if not _nhap(k["kho"], k["loai"]):
         d = frappe.get_doc({"doctype": PT, "ngay": nowdate(), "kho": k["kho"], "loai": k["loai"],
                             "cach_dem": None if k["loai"] == BTP else (cach_dem or KEM_HSD),
+                            "khong_dem": None if k["loai"] == BTP else (khong_dem or GIU),
                             "nguoi_lap": frappe.session.user, "bat_dau_luc": now_datetime(), "trang_thai": "Đang đếm"})
         d.flags.ignore_permissions = True
         d.insert()
@@ -356,6 +369,20 @@ def _luu(d):
     d.flags.ignore_permissions = True
     d.save()
     return tong_quan(d.kho, _loai(d))
+
+
+@frappe.whitelist()
+def dat_khong_dem(name, khong_dem):
+    """D228: đổi cách xử lý mã không đếm của phiếu thành phẩm đang đếm — "Giữ nguyên" / "Về 0". Đổi tới lúc chốt; xem
+    trước và hộp xác nhận chốt nói lại lựa chọn này."""
+    guard_card(CARD)
+    d = _phieu(name)
+    if d.la_btp():
+        frappe.throw(_("Kiểm kê bán thành phẩm: lô chưa cân luôn giữ nguyên — không có lựa chọn này."))
+    if khong_dem not in (GIU, VE_0):
+        _kiem_khong_dem(khong_dem or "?")
+    d.khong_dem = khong_dem
+    return _luu(d)
 
 
 @frappe.whitelist()
@@ -636,6 +663,9 @@ def xem_truoc(name):
     doi = {} if btp else (getattr(d.flags, "doi_lo", None) or {})
     chia = {} if btp else (getattr(d.flags, "chia_fefo", None) or {})
     khong = set() if btp else (getattr(d.flags, "khong_chia", None) or set())
+    giu_ma = set() if btp else (getattr(d.flags, "giu", None) or set())      # D228
+    ten_giu = {i.name: i.item_name or i.name for i in frappe.get_all(
+        "Item", filters={"name": ("in", list(giu_ma))}, fields=["name", "item_name"])} if giu_ma else {}
     ma = _tom_tat(ke, ten, {i: len(v) for i, v in d.dem_theo_lo().items()} if btp else None, chua, doi, chia, khong)
     sl = d.dem_so_luong() if khong else {}
     for x in ma:
@@ -649,7 +679,11 @@ def xem_truoc(name):
 
     if chua:
         canh.append(_("{0} mã có tồn trên sổ mà CHƯA ĐẾM — chốt sẽ đưa về 0 (xuất thiếu toàn bộ): {1}. Còn hàng thì "
-                      "đếm mã đó trước khi chốt.").format(len(chua), liet_ke(ten.get(i, i) for i in chua)))
+                      "đếm mã đó trước khi chốt — hoặc chọn \"Mã không đếm: Giữ nguyên\" nếu hôm nay chỉ kiểm một số "
+                      "mã.").format(len(chua), liet_ke(ten.get(i, i) for i in chua)))
+    if giu_ma:
+        canh.append(_("{0} mã có tồn trên sổ mà không đếm — GIỮ NGUYÊN số sổ, chốt không đụng tới: {1}.").format(
+            len(giu_ma), liet_ke(ten_giu.get(i, i) for i in giu_ma)))
     if chia:
         canh.append(_("Kiểm kê chỉ số lượng: {0} mã tự chia HSD — mỗi mã, lô còn hạn ngắn nhất coi như đã xuất trước, "
                       "hàng còn lại là các lô hạn dài nhất; đếm nhiều hơn sổ thì phần dư vào HSD sớm nhất đang có. Mã "
@@ -708,6 +742,9 @@ def xem_truoc(name):
                  "chuyen": flt(sum(x["chuyen"] for x in ma), 6),
                  "so_lo": sum(x["lo_can"] or 0 for x in ma),
                  "ve_0": len(chua), "bat_lo": sum(1 for c in doi.values() if c == "bat"),
+                 # D228: số mã có tồn không đếm mà phiếu giữ nguyên — chốt không đụng.
+                 "giu": len(giu_ma),
+                 "khong_dem": None if btp else (d.get("khong_dem") or VE_0),
                  "kho_am": [] if btp else [{"ten": ten.get(i, i), "kho": w, "so": flt(q, 3)} for i, v in sorted(
                      (getattr(d.flags, "kho_khac", None) or {}).items()) if doi.get(i) == "bat" for w, q in v if q < 0],
                  "thoi_diem": str(d.get("thoi_diem") or "")[:16],
@@ -778,6 +815,7 @@ def huy_chot(name, ly_do=None):
     d.flags.ignore_permissions = True
     d.cancel()
     moi = frappe.get_doc({"doctype": PT, "ngay": d.ngay, "kho": d.kho, "loai": loai, "cach_dem": d.get("cach_dem"),
+                          "khong_dem": d.get("khong_dem"),
                           "nguoi_lap": d.nguoi_lap or frappe.session.user, "bat_dau_luc": d.bat_dau_luc,
                           "thoi_diem": d.get("thoi_diem"), "trang_thai": "Đang đếm", "dong": dong,
                           "ghi_chu": _("Mở lại từ phiếu đã huỷ chốt {0}: {1}").format(d.name, ly_do)})
@@ -840,6 +878,7 @@ def bien_ban(name):
     kho_khac.sort(key=lambda k: (k["ten"], k["kho"]))
     return frappe.render_template("sx/sx/doctype/sx_kiem_ke/bien_ban.html", {
         "d": d, "ma": ma, "tong": tong, "se": se, "bat_lo": bat_lo, "kho_khac": kho_khac, "chi_sl": d.chi_so_luong(),
+        "giu": d.giu_chua_dem(),
         "cong_ty": get_settings().get("cong_ty") or "",
         "nhap": d.docstatus == 0, "huy": d.docstatus == 2, "btp": btp,
         "vn": lambda x: getdate(x).strftime("%d/%m/%Y") if x else "", "so": so_vn,
@@ -853,7 +892,8 @@ def _bien_ban_tp(d, ten):
         dem.setdefault(r.item, []).append({"hsd": r.hsd, "so": flt(r.so_dem, 3)})
     ten = dict(ten)
     if d.docstatus == 0:
-        # Bản nháp: số sổ sách tính tới lúc in — để soát trước khi chốt. D188: kế hoạch có cả mã chưa đếm (về 0).
+        # Bản nháp: số sổ sách tính tới lúc in — để soát trước khi chốt. D188: kế hoạch có cả mã chưa đếm (về 0) —
+        # trừ phiếu giữ nguyên mã không đếm (D228): mã đó không trong kế hoạch, không có trong biên bản.
         ke, _ten_lo, ten_ke = d.lap_ke()
         so_sach = {i: k["so_sach"] for i, k in ke.items()}
         for i in ke:

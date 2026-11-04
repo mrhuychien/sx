@@ -16,6 +16,11 @@ chứng từ kho:
     đó đi đường xuất + nhập (sx/kiem_ke.chia_chung_tu). Phiếu NHẬP vào lô hết hạn ERPNext cũng chặn
     (StockController.validate_serialized_batch: "The batch … has already expired") — D190: tạm bỏ HSD của lô đó
     lúc ghi phiếu nhập, ghi xong trả lại ngay (tam_bo_hsd / tra_hsd).
+MÃ KHÔNG ĐẾM (D228, `khong_dem`): "Về 0" — như trên, đặt lại toàn kho; "Giữ nguyên" — chốt chỉ đặt lại các mã ĐÃ
+đếm (kể cả mã bấm Không còn), mã có tồn mà không đếm KHÔNG vào kế hoạch: không chứng từ, không chuyển lô, không bật lô,
+không chặn vì chứng từ sau lúc bắt đầu kiểm kê — tồn giữ nguyên như sổ. Phiếu mới mặc định Giữ nguyên (kiểm một số mã
+là việc thường ngày; quên đếm một mã mà chốt về 0 là xoá hàng đang có); phiếu lập trước D228 (ô trống) = Về 0.
+
 Lô theo HSD nhận hàng được đánh dấu custom_kiem_ke = hàng TỒN CŨ, bán không cần phiếu xuất xưởng — TRỪ lô của hàng
 làm từ ngày áp dụng BM.08.04 mà chưa duyệt (chua_duyet_xx): D188 không chặn chốt nữa (đặt lại kho phải chốt được),
 lô đó vẫn vào kho nhưng không đánh dấu — bán phải có BM.08.04 duyệt; QC thấy nó ở màn Xuất xưởng (Lô chờ kiểm).
@@ -70,6 +75,7 @@ from sx.kiem_ke import chia_chung_tu, chia_fefo, co_thay_doi, lap_ke_hoach, lap_
 DANG_DEM, DA_CHOT, DA_HUY = "Đang đếm", "Đã chốt", "Đã huỷ"
 TP, BTP = "Thành phẩm", "Bán thành phẩm"
 KEM_HSD, CHI_SL = "Kèm hạn sử dụng", "Chỉ số lượng"      # cách đếm thành phẩm (D219)
+GIU, VE_0 = "Giữ nguyên", "Về 0"                         # mã không đếm khi chốt (D228); ô trống = Về 0
 
 VIEC = {"chuyen_di": "chuyển {so} sang lô HSD {hsd}", "nhan": "nhận {so} từ lô {lo}",
         "nhan_kl": "nhận {so} từ tồn không lô",
@@ -310,6 +316,10 @@ class SXKiemKe(Document):
         """D219: phiếu thành phẩm đếm CHỈ SỐ LƯỢNG (HSD tự chia lúc chốt)."""
         return not self.la_btp() and self.get("cach_dem") == CHI_SL
 
+    def giu_chua_dem(self):
+        """D228: phiếu thành phẩm GIỮ NGUYÊN mã không đếm (chốt chỉ đặt lại mã đã đếm). Ô trống = Về 0 (như D188)."""
+        return not self.la_btp() and self.get("khong_dem") == GIU
+
     # ─────────────────────────────── nháp ───────────────────────────────
     def validate(self):
         if self.docstatus == 0:
@@ -408,8 +418,8 @@ class SXKiemKe(Document):
     # ─────────────────────────────── chốt ───────────────────────────────
     def lap_ke(self):
         """Kế hoạch ({item: kế hoạch}, {(item, hsd): lô nhận}, {item: tên}) — thành phẩm: mọi mã đã đếm + mọi
-        thành phẩm có tồn mà chưa đếm (về 0, D188); bán thành phẩm: mã đã cân. Dùng chung cho xem trước (API) và
-        chốt — một chỗ tính."""
+        thành phẩm có tồn mà chưa đếm (về 0, D188 — trừ phiếu GIỮ NGUYÊN mã không đếm, D228: flags.giu); bán thành
+        phẩm: mã đã cân. Dùng chung cho xem trước (API) và chốt — một chỗ tính."""
         from sx.utils import items_tp, ma_lo_hsd, nsx_tu_hsd
 
         if self.la_btp():
@@ -441,6 +451,11 @@ class SXKiemKe(Document):
         self.flags.chia_fefo, self.flags.khong_chia = chia, khong
         chua = [i for i in tp if i not in dem and any(
             abs(l["qty"]) > 1e-9 and not l["thu_hoi"] for l in lots.get(i, []))]
+        # D228: giữ nguyên mã không đếm — không vào kế hoạch (không chứng từ, không bật lô, không xét chứng từ sau lúc
+        # bắt đầu kiểm kê); chỉ nhớ để xem trước / thẻ nói "N mã không đếm giữ nguyên".
+        self.flags.giu = set(chua) if self.giu_chua_dem() else set()
+        if self.flags.giu:
+            chua = []
         for i in chua:
             dem[i] = {}
         self.flags.chua_dem = set(chua)

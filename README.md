@@ -325,6 +325,30 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Kiểm kê thành phẩm: mã không đếm GIỮ NGUYÊN — kiểm một số mã (D228)
+
+- **Hỏi** (04/11/2026): kiểm kê ở màn Nhập kho — hôm nay chỉ kiểm một số mã, các mã không đếm muốn giữ nguyên hiện trạng.
+  Trước đây chốt luôn **đặt lại toàn kho** (D188): mã có tồn mà không đếm bị đưa về 0 — đếm sót một mã là xoá mất hàng
+  đang có (rồi phải nhập lại).
+- **Nay** mỗi phiếu kiểm kê thành phẩm có lựa chọn **Mã không đếm khi chốt**:
+  - **Giữ nguyên** (mặc định phiếu mới): chốt chỉ đặt lại các mã **đã đếm** (kể cả mã bấm **Không còn** — về 0 vì đã
+    đếm là hết). Mã không đếm không vào kế hoạch: không chứng từ kho, không chuyển lô, không bật quản lý lô, không bị
+    chặn vì có chứng từ sau lúc bắt đầu kiểm kê — tồn giữ nguyên như sổ.
+  - **Về 0 — đặt lại toàn kho**: như D188 — dùng khi kiểm toàn kho.
+- **Chọn** ở màn bắt đầu kiểm kê (hai nút chọn ngay trên nút KIỂM KÊ CHỈ SỐ LƯỢNG / KÈM HẠN SỬ DỤNG; lần bắt đầu sau lại
+  mặc định Giữ nguyên), **đổi được** trên phiếu đang đếm tới lúc chốt (`sx.api.kiemke.dat_khong_dem`). Dòng mã chưa đếm
+  ghi "chưa đếm — giữ nguyên" / "chưa đếm — chốt về 0" theo lựa chọn; xem trước báo "N mã có tồn mà không đếm — GIỮ
+  NGUYÊN" (kèm tên), hộp xác nhận chốt nói "Đặt lại các mã đã đếm theo số đếm — mã không đếm giữ nguyên"; biên bản ghi
+  phạm vi ("Chỉ các mã đã đếm — mã không đếm giữ nguyên tồn" / "Đặt lại toàn kho"). Huỷ chốt, mở lại (D196) giữ lựa chọn.
+- Phiếu đang đếm lập trước D228 (ô trống) vẫn là **Về 0** như cũ — thẻ hiện rõ, bấm Giữ nguyên nếu cần. Kiểm kê bán
+  thành phẩm không có lựa chọn này (lô chưa cân luôn giữ nguyên).
+- Test `test-kiemke.py` (D228: chỉ mã đã đếm vào kế hoạch, mã không đếm giữ tồn — kể cả mã không lô không bị bật lô,
+  không chặn vì chứng từ sau lúc bắt đầu, đổi Về 0 ra đúng D188, biên bản, huỷ chốt giữ lựa chọn, phiếu cũ = Về 0, bán
+  thành phẩm; các phần D154 → D227 mở phiếu "Về 0"), `test-sohsd.mjs` (chọn lúc bắt đầu, đổi trên phiếu, chữ trên dòng
+  mã / xem trước / hộp xác nhận).
+- **Thêm ô** (SX Kiem Ke: Mã không đếm khi chốt): `git pull` → `bench --site site1.local migrate` → `bench restart`.
+  Build **sx-170**.
+
 ## Mã lô nguyên liệu mua = viết tắt NCC + mã hàng + ngày nhập (D227)
 
 - **Hỏi** (03/11/2026): lô tự tạo theo số lô NCC (D226) không ổn — tạo số lô theo ngày nhập hàng: viết tắt của NCC, tên
@@ -1190,6 +1214,7 @@ bench --site site1.local execute sx.api.pos_huy.lap_lai --kwargs "{'ngay': '2026
 
 ## Kiểm kê thành phẩm: chốt = đặt lại toàn bộ Kho TP, mỗi loại mỗi HSD một lô (D188)
 
+- **D228**: nay chọn được **giữ nguyên mã không đếm** (mặc định phiếu mới); đặt lại toàn kho như dưới là lựa chọn "Về 0".
 - **Yêu cầu**: chốt kiểm kê coi như **đặt lại (reset) lô toàn bộ kho thành phẩm** — thủ kho nhập bao nhiêu thùng /
   hộp loại gì, HSD nào; chốt xong Kho TP đúng bằng số đếm, mỗi (loại, HSD) đúng **một lô**.
 - **Cách đếm không đổi** (màn Nhập kho → Kiểm kê kho thành phẩm): từng loại bấm **+ HSD**, nhập số thùng / hộp theo
