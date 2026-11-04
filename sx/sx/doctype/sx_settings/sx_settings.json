@@ -23,6 +23,7 @@
   "column_break_vh",
   "gia_tri_cong_khoan",
   "field_don_gia_activity",
+  "no_gia_tu_ngay",
   "section_an_ca",
   "tien_an_ca",
   "column_break_ac",
@@ -119,6 +120,13 @@
    "fieldtype": "Data",
    "label": "Field đơn giá trên Activity Type",
    "description": "Để trống -> tự dò (custom_don_gia, don_gia, billing_rate, costing_rate…)"
+  },
+  {
+   "fieldname": "no_gia_tu_ngay",
+   "fieldtype": "Date",
+   "label": "Tính nợ đơn giá từ ngày",
+   "read_only": 1,
+   "description": "D229: ngày sản xuất trước mốc không ghi nợ đơn giá — lưu lại bảng vào hộp cũ không sinh nợ. Đặt bằng lệnh bench --site site1.local execute sx.api.nogia.bo_no_truoc (lệnh đồng thời Bỏ qua các khoản nợ trước mốc)."
   },
   {
    "fieldname": "section_an_ca",
@@ -266,7 +274,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-11-02 12:00:00.000000",
+ "modified": "2026-11-04 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

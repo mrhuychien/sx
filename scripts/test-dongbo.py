@@ -263,6 +263,14 @@ def ham_that(tep, ten, **g):
 ng.gom_thieu_gia = ham_that("sx/api/nogia.py", "gom_thieu_gia", cint=lambda v: int(float(v or 0)),
                             tra_don_gia=ham_that("sx/utils.py", "tra_don_gia", la_gia_tam=ham_that(
                                 "sx/utils.py", "la_gia_tam", flt=lambda v, p=None: float(v or 0), GIA_TAM=1)))
+# D229: mốc tính nợ — mã THẬT của moc_tinh_no / truoc_moc, SX Settings giả
+from datetime import date  # noqa: E402
+
+MOC = {"v": None}
+_ngay = lambda x=None: x if isinstance(x, date) else date.fromisoformat(str(x)[:10])  # noqa: E731
+ng.moc_tinh_no = ham_that("sx/api/nogia.py", "moc_tinh_no", get_settings=lambda: D(no_gia_tu_ngay=MOC["v"]),
+                          getdate=_ngay, TRUONG_MOC="no_gia_tu_ngay")
+ng.truoc_moc = ham_that("sx/api/nogia.py", "truoc_moc", moc_tinh_no=ng.moc_tinh_no, getdate=_ngay)
 sys.modules["sx.api.nogia"] = ng
 ut = types.ModuleType("sx.utils")
 ut.get_bom_active = lambda i: i if i in BOM else None
@@ -449,6 +457,26 @@ loi = B.dong_bo_vaohop(get_doc("SX Ngay San Xuat", "SXN-1"))
 kiem("phiếu lương đã duyệt → lỗi rõ ràng", loi == ["Phiếu lương PL-An tháng 10 ĐÃ DUYỆT"], loi)
 kiem("… và không để nửa vời (tổng / danh sách lương giữ như trước)",
      ST["ngay"]["SXN-1"]["salary_products_json"] == truoc["salary_products_json"])
+
+print("\n-- D229: ngày trước mốc tính nợ → sổ nợ đơn giá để nguyên --")
+lam_sach()
+ngay()                                                               # 06/10/2026
+ST["bang"] = D(name="BVH-1", dong=[SXBangVaoHopItem(nhan_vien="An", san_pham="SEN", so_hop=100, thanh_tien=100000),
+                                   SXBangVaoHopItem(nhan_vien="Bình", san_pham="MOI", so_hop=30, thanh_tien=0)])
+ST["no"].append(D(name="NO-CU", ngay_sx="SXN-1", san_pham="CU", cach_lam=None, so_hop=5, so_nguoi=1,
+                  trang_thai="Chờ giá"))
+MOC["v"] = "2026-11-01"
+kiem("ngày trước mốc: không lỗi", B.dong_bo_vaohop(get_doc("SX Ngay San Xuat", "SXN-1")) == [])
+kiem("… lương vẫn ghi đủ, tổng ngày vẫn tính", ST["luong"][-1] == ["An", "Bình"]
+     and ST["ngay"]["SXN-1"]["tong_luong_sp"] == 100000, ST["ngay"]["SXN-1"])
+kiem("… mã chưa có giá KHÔNG sinh nợ mới; nợ sẵn có của ngày để nguyên (không huỷ, không sửa)",
+     [(x.name, x.trang_thai, x.so_hop) for x in ST["no"]] == [("NO-CU", "Chờ giá", 5)], ST["no"])
+MOC["v"] = "2026-10-06"
+B.dong_bo_vaohop(get_doc("SX Ngay San Xuat", "SXN-1"))
+kiem("ngày ĐÚNG mốc → tính nợ như thường (hết thiếu → huỷ, mới thiếu → thêm)",
+     sorted((x.san_pham, x.so_hop, x.trang_thai) for x in ST["no"]) == [("CU", 5, "Đã huỷ"), ("MOI", 30, "Chờ giá")],
+     ST["no"])
+MOC["v"] = None
 
 print("\n-- D202: ngày đã dính lỗi 'not subscriptable' → bản vá ghi lại phiếu lương --")
 lam_sach()

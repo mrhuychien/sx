@@ -4,8 +4,8 @@ Một dòng = một (ngày sản xuất, mã hàng, cách làm) chốt Vào hộ
 dụng hôm đó chưa có giá. Lương khoán của những người làm mã đó đã nằm trong phiếu
 lương tháng, nhưng ở mức 0 đồng — sổ này nhớ hộ để giá được bù vào sau.
 
-Chuyển trạng thái chỉ đi qua sx/api/nogia.py (ap_gia / bo_qua_no_gia) và qua lúc
-huỷ chốt Vào hộp — không sửa tay trên Desk: đổi sang "Đã cập nhật" mà phiếu lương
+Chuyển trạng thái chỉ đi qua sx/api/nogia.py (ap_gia / bo_qua_no_gia / lệnh bench
+bo_no_truoc — D229) và qua lúc huỷ chốt Vào hộp — không sửa tay trên Desk: đổi sang "Đã cập nhật" mà phiếu lương
 vẫn 0 đồng là sổ nói đã trả mà công nhân chưa được trả.
 """
 

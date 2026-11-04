@@ -297,11 +297,14 @@ def dong_bo_vaohop(doc):
 
 def _dong_bo_no_gia(doc, bang):
     """Sổ nợ đơn giá của ngày khớp bảng hiện tại — KHÔNG huỷ-tạo lại mỗi lần lưu:
-    nợ vẫn thiếu thì cập nhật số, nợ hết thiếu thì huỷ, chỗ mới thiếu thì thêm."""
-    from sx.api.nogia import CHO, gom_thieu_gia
+    nợ vẫn thiếu thì cập nhật số, nợ hết thiếu thì huỷ, chỗ mới thiếu thì thêm.
+    Ngày trước mốc tính nợ (D229, lệnh nogia.bo_no_truoc) thì để nguyên sổ nợ: nợ cũ đã Bỏ qua không mọc lại."""
+    from sx.api.nogia import CHO, gom_thieu_gia, truoc_moc
     from sx.utils import bang_don_gia, don_gia_ap_dung
 
     ngay = getdate(doc.ngay)
+    if truoc_moc(ngay):
+        return
     thieu = gom_thieu_gia(bang.dong, don_gia_ap_dung(ngay)) if bang else {}
     dang = {(x.san_pham, x.cach_lam or ""): x for x in frappe.get_all(
         "SX No Don Gia", filters={"ngay_sx": doc.name, "trang_thai": CHO},

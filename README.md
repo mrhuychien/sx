@@ -282,6 +282,8 @@ một dòng vào **sổ nợ đơn giá** (`SX No Don Gia`), và hộp cảnh b�
 - **Bỏ qua** — từng ngày, **bắt buộc lý do** (hàng mẫu, làm thử…) — giữ 0 đồng.
 - Huỷ chốt Vào hộp / huỷ chốt ngày: nợ đang mở → *Đã huỷ*; chốt lại tra giá từ đầu.
 - Chỉ **Quản lý** xem và xử lý.
+- **Bỏ hàng loạt nợ trước một mốc** (vd. cả tháng trước), từ đó chỉ tính nợ từ mốc: lệnh bench
+  `sx.api.nogia.bo_no_truoc` — xem D229.
 
 ## Thẻ Phiếu lương trên màn Quản lý (D110)
 
@@ -324,6 +326,35 @@ bao bì đã trừ, nợ BOM / nợ vào hộp của phiếu → *Đã huỷ*, s
 bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ chứng từ xuất trước. Duyệt lại
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
+
+## Bỏ nợ đơn giá vào hộp tháng trước — chỉ tính nợ từ đầu tháng này (D229)
+
+- **Hỏi** (04/11/2026): viết lệnh bỏ nợ đơn giá của ghi hộp tháng trước, chỉ tính nợ từ đầu tháng này.
+- **Lệnh** (chạy trên site; gọi trần là xem trước, không ghi gì):
+  ```
+  bench --site site1.local execute sx.api.nogia.bo_no_truoc                                   # xem trước, mốc = đầu tháng này
+  bench --site site1.local execute sx.api.nogia.bo_no_truoc --kwargs "{'chay': 1}"            # làm thật
+  bench --site site1.local execute sx.api.nogia.bo_no_truoc --kwargs "{'tu_ngay': '2026-11-01', 'chay': 1}"   # mốc tự chọn
+  ```
+  - Mọi khoản nợ **Chờ giá** của ngày sản xuất **trước mốc** → **Bỏ qua**, lý do *"Bỏ nợ trước 01/11/2026 — chỉ tính nợ
+    đơn giá từ 01/11/2026 (D229)"*, ghi người / lúc xử lý như bấm Bỏ qua ở thẻ. Nợ đã áp giá / đã bỏ qua / đã huỷ giữ
+    nguyên; nợ từ mốc trở đi (kể cả đúng ngày mốc) không đụng.
+  - **Đặt mốc** ở SX Settings → ô mới *Tính nợ đơn giá từ ngày* (chỉ đọc — chỉ lệnh này đặt, để mốc luôn đi kèm việc bỏ
+    nợ cũ). Từ đó đồng bộ lương của ngày **trước mốc** (lưu lại / sửa / xoá dòng bảng vào hộp, Ghi cho công khoán, THỬ
+    LẠI, job 5 phút) **không thêm / sửa / huỷ nợ đơn giá** — nợ đã bỏ không mọc lại (không có mốc thì ngày còn thiếu giá
+    mà đồng bộ lại là khoản đã Bỏ qua sinh thành nợ Chờ giá mới). Ngày từ mốc trở đi vẫn ghi nợ như D99.
+  - Báo cáo in mốc (và mốc cũ), số khoản / mã / hộp, từng mã · cách làm kèm các ngày, số nợ còn giữ từ mốc.
+  - Chặn: `tu_ngay` sai dạng (phải `YYYY-MM-DD` — `01/11/2026` Frappe đọc thành 11/01), mốc sau hôm nay (là bỏ luôn nợ
+    của ngày đang làm), site chưa migrate ô mốc. Chạy lại an toàn: hết nợ trước mốc thì chỉ đặt lại mốc.
+- **Lương**: các dòng đó **giữ 0 đồng** trong phiếu lương (như Bỏ qua từng khoản); phiếu lương tháng trước hết bị chặn
+  duyệt vì nợ giá. Muốn trả khoản nào thì sửa phiếu lương trên Desk. Thẻ Sổ nợ đơn giá (màn Quản lý) chỉ còn nợ từ mốc.
+- Không có nút trên màn hình (không whitelist): bỏ nợ hàng loạt là quyết định về lương, chạy bằng bench.
+- Test `test-nogia.py` (D229: xem trước không ghi gì, đúng các khoản chờ giá trước mốc, nợ đã xử lý / từ mốc không đụng,
+  lưu qua validate, đặt mốc + xoá cache, phiếu lương tháng trước duyệt được — tháng này vẫn chặn, thẻ sổ nợ, chạy lại,
+  mốc tự chọn, chặn ngày sai dạng / tương lai / chưa migrate, báo cáo), `test-dongbo.py` (ngày trước mốc: lương vẫn ghi,
+  không sinh nợ, nợ sẵn có để nguyên; ngày đúng mốc tính như thường).
+- **Thêm ô** (SX Settings): `git pull` → `bench --site site1.local migrate` → `bench restart` → chạy lệnh xem trước →
+  làm thật.
 
 ## Kiểm kê thành phẩm: mã không đếm GIỮ NGUYÊN — kiểm một số mã (D228)
 

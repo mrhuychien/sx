@@ -14,19 +14,27 @@ Nguồn giá DUY NHẤT vẫn là bảng đơn giá áp dụng cho ngày sản x
 một con số ở đây. Gõ tay thì hai nơi giữ giá, chốt lại ngày đó sẽ ra số khác.
 
 Xem + xử lý: CHỈ QUẢN LÝ (card nogia) — áp giá là sửa lương của người khác.
+
+MỐC TÍNH NỢ (D229): lệnh bench `bo_no_truoc` Bỏ qua (giữ 0 đồng, có lý do) mọi khoản nợ đang chờ giá của ngày sản xuất
+trước mốc và đặt mốc vào SX Settings (no_gia_tu_ngay) — từ đó đồng bộ lương của ngày trước mốc không sinh / sửa nợ đơn
+giá nữa (lưu lại bảng vào hộp tháng cũ không làm nợ đã bỏ hiện lại).
 """
 
 import json
+import re
 
 import frappe
 from frappe import _
 from frappe.utils import cint, flt, getdate, nowdate
 
 from sx.config.roles import guard_card
-from sx.utils import bang_don_gia, don_gia_ap_dung, tra_don_gia
+from sx.utils import bang_don_gia, don_gia_ap_dung, get_settings, tra_don_gia
 
 CHO = "Chờ giá"
+BO_QUA = "Bỏ qua"
 NGAY_NO_LAU = 7
+TRUONG_MOC = "no_gia_tu_ngay"       # SX Settings — D229
+LY_DO_MOC = "Bỏ nợ trước {0} — chỉ tính nợ đơn giá từ {0} (D229)"
 
 
 def gom_thieu_gia(dong, bang_gia):
@@ -279,13 +287,17 @@ def bo_qua_no_gia(name, ly_do=None):
     no = frappe.get_doc("SX No Don Gia", name)
     if no.trang_thai != CHO:
         frappe.throw(_("Khoản nợ {0} đã ở trạng thái {1}.").format(name, no.trang_thai))
-    no.trang_thai = "Bỏ qua"
-    no.ly_do = ly_do.strip()
+    _bo_qua(no, ly_do.strip())
+    return {"name": name}
+
+
+def _bo_qua(no, ly_do):
+    no.trang_thai = BO_QUA
+    no.ly_do = ly_do
     no.xu_ly_boi = frappe.session.user
     no.xu_ly_luc = frappe.utils.now_datetime()
     no.flags.ignore_permissions = True
     no.save()
-    return {"name": name}
 
 
 def chan_duyet_phieu_luong(phieu):
@@ -304,3 +316,100 @@ def chan_duyet_phieu_luong(phieu):
                      + "<br>".join(sorted(set(ton))) + "<br><br>"
                      + _("Khai giá rồi Áp giá ở màn Quản lý, hoặc Bỏ qua có lý do, "
                          "trước khi duyệt."))
+
+
+# ═══════════════════════════ mốc tính nợ (D229) ═══════════════════════════
+
+def moc_tinh_no():
+    """Ngày bắt đầu tính nợ đơn giá (SX Settings → no_gia_tu_ngay) — None: tính mọi ngày."""
+    v = get_settings().get(TRUONG_MOC)
+    return getdate(v) if v else None
+
+
+def truoc_moc(ngay):
+    """Ngày sản xuất TRƯỚC mốc tính nợ: sổ nợ đơn giá của ngày đó đã khoá — đồng bộ không thêm / sửa / huỷ nợ."""
+    moc = moc_tinh_no()
+    return bool(moc) and getdate(ngay) < moc
+
+
+def bo_no_truoc(tu_ngay=None, chay=0):
+    """bench: Bỏ qua mọi khoản nợ đơn giá ĐANG CHỜ GIÁ của ngày sản xuất trước `tu_ngay` (mặc định đầu tháng này) và
+    đặt mốc tính nợ = `tu_ngay` — gọi trần là xem trước:
+      bench --site site1.local execute sx.api.nogia.bo_no_truoc                          # xem trước
+      bench --site site1.local execute sx.api.nogia.bo_no_truoc --kwargs "{'chay': 1}"   # làm thật
+    KHÔNG whitelist: chỉ chạy bằng bench (xoá nợ hàng loạt là quyết định về lương, không phải nút trên màn)."""
+    print(bao_cao_bo_no(xu_ly_bo_no(tu_ngay, chay)))
+
+
+def _ngay_moc(tu_ngay):
+    hom_nay = getdate(nowdate())
+    if not tu_ngay:
+        return hom_nay.replace(day=1)
+    try:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(tu_ngay).strip()):
+            raise ValueError
+        moc = getdate(str(tu_ngay).strip())
+        if not moc:                         # '0000-00-00': Frappe trả None thay vì báo lỗi
+            raise ValueError
+    except Exception:
+        frappe.throw(_("tu_ngay phải có dạng YYYY-MM-DD (vd. '2026-11-01'), nhận được: {0}").format(tu_ngay))
+    if moc > hom_nay:
+        frappe.throw(_("Mốc {0} chưa tới — mốc sau hôm nay là bỏ luôn nợ của những ngày đang làm.").format(
+            moc.strftime("%d/%m/%Y")))
+    return moc
+
+
+def xu_ly_bo_no(tu_ngay=None, chay=0):
+    """Xem trước (chay=0) / làm thật (chay=1) — trả dict cho báo cáo và test."""
+    if not frappe.get_meta("SX Settings").has_field(TRUONG_MOC):
+        frappe.throw(_("SX Settings chưa có ô mốc tính nợ — chạy bench --site site1.local migrate trước."))
+    moc = _ngay_moc(tu_ngay)
+    moc_cu = moc_tinh_no()
+    ds = frappe.get_all("SX No Don Gia", filters={"trang_thai": CHO, "ngay": ("<", moc)},
+                        fields=["name", "san_pham", "ten_san_pham", "cach_lam", "so_hop", "ngay"],
+                        order_by="ngay asc, creation asc")
+    con = frappe.db.count("SX No Don Gia", {"trang_thai": CHO, "ngay": (">=", moc)})
+    ly_do = LY_DO_MOC.format(moc.strftime("%d/%m/%Y"))
+    if cint(chay):
+        for x in ds:
+            _bo_qua(frappe.get_doc("SX No Don Gia", x.name), ly_do)
+        frappe.db.set_single_value("SX Settings", TRUONG_MOC, str(moc))
+        frappe.clear_document_cache("SX Settings", "SX Settings")
+    nhom = {}
+    for x in ds:
+        g = nhom.setdefault((x.san_pham, x.cach_lam or ""), {
+            "san_pham": x.san_pham, "ten": x.ten_san_pham or x.san_pham, "cach_lam": x.cach_lam or "",
+            "so_hop": 0, "ngay": []})
+        g["so_hop"] += cint(x.so_hop)
+        g["ngay"].append(getdate(x.ngay))
+    return {"chay": cint(chay), "moc": moc, "moc_cu": moc_cu, "ly_do": ly_do, "dong": [x.name for x in ds],
+            "nhom": sorted(nhom.values(), key=lambda g: (g["ten"], g["cach_lam"])), "con": cint(con)}
+
+
+def bao_cao_bo_no(kq):
+    """Báo cáo tiếng Việt của bo_no_truoc."""
+    dmy = lambda d: d.strftime("%d/%m/%Y")
+    so = lambda n: f"{n:,}".replace(",", ".")
+    moc = dmy(kq["moc"])
+    ra = [_("BỎ NỢ ĐƠN GIÁ TRƯỚC {0} — ĐÃ GHI").format(moc) if kq["chay"] else
+          _("BỎ NỢ ĐƠN GIÁ TRƯỚC {0} — XEM TRƯỚC, chưa ghi gì (làm thật: thêm --kwargs \"{{'chay': 1}}\")").format(moc),
+          _("Mốc tính nợ: {0} (trước đó: {1})").format(moc, dmy(kq["moc_cu"]) if kq["moc_cu"] else _("chưa đặt"))]
+    if kq["dong"]:
+        ngay = sorted(d for g in kq["nhom"] for d in g["ngay"])
+        ra.append(_("{0} khoản nợ đang chờ giá trước mốc — {1} mã, {2} hộp, ngày {3} → {4}:").format(
+            len(kq["dong"]), len({g["san_pham"] for g in kq["nhom"]}), so(sum(g["so_hop"] for g in kq["nhom"])),
+            dmy(ngay[0]), dmy(ngay[-1])))
+        for g in kq["nhom"]:
+            ten = g["ten"] if g["ten"] == g["san_pham"] else "{0} ({1})".format(g["ten"], g["san_pham"])
+            ds_ngay = ", ".join(d.strftime("%d/%m") for d in g["ngay"][:10]) + (", …" if len(g["ngay"]) > 10 else "")
+            ra.append(_("  • {0}{1} — {2} ngày, {3} hộp: {4}").format(
+                ten, " · " + g["cach_lam"] if g["cach_lam"] else "", len(g["ngay"]), so(g["so_hop"]), ds_ngay))
+        ra.append((_("→ đã chuyển sang Bỏ qua") if kq["chay"] else _("→ sẽ chuyển sang Bỏ qua"))
+                  + _(", lý do \"{0}\".").format(kq["ly_do"]))
+        ra.append(_("  Lương khoán các dòng này GIỮ 0 đồng trong phiếu lương — muốn trả thì sửa phiếu lương trên Desk."))
+    else:
+        ra.append(_("Không có khoản nợ nào đang chờ giá trước {0}.").format(moc))
+    ra.append(_("Giữ nguyên {0} khoản nợ từ {1} trở đi.").format(kq["con"], moc))
+    ra.append((_("Đã đặt mốc") if kq["chay"] else _("Làm thật sẽ đặt mốc"))
+              + _(" ở SX Settings: lưu lại / sửa bảng vào hộp của ngày trước {0} KHÔNG sinh nợ đơn giá mới.").format(moc))
+    return "\n".join(ra)
