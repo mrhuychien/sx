@@ -34,6 +34,50 @@ from sx.utils import get_bom_active, get_settings, items_tp, nap_bom, nho, nhom_
 # số mà lúc duyệt lại bảo vượt trần.
 SO_NGAY_TRAN = 30
 
+# D230: mốc tính nợ vào hộp (SX Settings) + phần đã chấm trước mốc mà chưa nhập kho, chụp lúc đặt mốc.
+TRUONG_MOC_VH, TRUONG_MANG_SANG = "no_vh_tu_ngay", "no_vh_mang_sang"
+
+
+def _moc_vh():
+    """(mốc tính nợ vào hộp, {mã: [(ngày chấm, số chưa nhập kho)]}) — chưa đặt mốc: (None, {}).
+
+    Phần mang sang giữ NGÀY CHẤM để hết hạn như hàng chấm thường (cửa sổ SO_NGAY_TRAN ngày): hàng chấm 03/10 mà
+    không bao giờ nhập kho thì cũng thôi che nợ từ 02/11, không nằm lì tới hết 30 ngày sau mốc."""
+    s = get_settings()
+    moc = s.get(TRUONG_MOC_VH)
+    if not moc:
+        return None, {}
+    try:
+        mang = json.loads(s.get(TRUONG_MANG_SANG) or "{}")
+    except (ValueError, TypeError):
+        mang = {}
+    ra = {}
+    for item, ds in (mang.items() if isinstance(mang, dict) else []):
+        try:
+            ra[item] = [(getdate(d), flt(q)) for d, q in ds]
+        except Exception:
+            continue                    # dòng hỏng (sửa tay?) — bỏ, đừng làm hỏng cả màn nhập kho
+    return getdate(moc), ra
+
+
+def _cua_so(tu, den, mm=None):
+    """Cửa sổ "đã chấm − đã nhận" khi đã đặt mốc tính nợ vào hộp (D230) → (từ ngày, {mã: số chấm mang sang}).
+
+    Cửa sổ chạm vào trước mốc mà kết thúc từ mốc trở đi thì bắt đầu ĐÚNG mốc — chứng từ trước mốc không tính nữa —
+    và cộng phần đã chấm trước mốc mà chưa nhập kho (chụp lúc đặt mốc): hàng chấm 31/10, 01/11 mới nhập kho không
+    thành nợ. Cửa sổ nằm hẳn trước / hẳn sau mốc: như cũ. Mọi chỗ tính chấm − nhận (chờ nhận, tải, vượt lúc duyệt,
+    đối soát nợ) đi qua đây — lệch nhau là màn hình mời nhập một số mà lúc duyệt lại ghi nợ."""
+    tu = getdate(tu)
+    moc, mang = mm or _moc_vh()
+    if moc and tu < moc <= getdate(den):
+        cong = {}
+        for item, ds in mang.items():
+            q = sum(q for d, q in ds if d >= tu)            # chỉ phần chấm còn nằm trong cửa sổ
+            if q > 1e-6:
+                cong[item] = flt(q, 3)
+        return moc, cong
+    return tu, {}
+
 
 @frappe.whitelist()
 def danh_muc_tp():
@@ -686,7 +730,10 @@ def tran_con_lai(tu_ngay, den_ngay, tru_phieu=None):
     đang sửa: dòng của chính nó không tính vào phần đã nhận, nếu không sửa phiếu
     nháp lần thứ hai sẽ tự trừ mình.
     """
+    tu_ngay, mang = _cua_so(tu_ngay, den_ngay)
     cham = _da_cham_theo_ma(tu_ngay, den_ngay)
+    for item, q in mang.items():
+        cham[item] = cham.get(item, 0) + q
     # CÙNG khoảng ngày với số đã chấm. Lấy đã nhận từ đầu thời gian mà đã chấm chỉ
     # trong 7 ngày thì phiếu tháng trước trừ vào bảng chấm tuần này -> ra âm, mã hàng
     # biến mất khỏi danh sách "chờ nhận" dù xưởng vừa đóng xong.
@@ -762,10 +809,16 @@ def vuot_so_cham(ngay, dong, tru_phieu=None):
         hàng công nhật không có chỗ chấm; giờ công nhật chấm ở màn Ghi hộp, nên
         một mã không có dòng chấm nào là đúng thứ cần hỏi.
     Gộp theo mã: hai dòng cùng mã so với MỘT trần, không mỗi dòng một trần.
+    D230: phiếu ghi ngày trước mốc tính nợ vào hộp không sinh nợ.
     """
     den = getdate(ngay)
-    tu = add_days(den, -SO_NGAY_TRAN + 1)
+    mm = _moc_vh()
+    if mm[0] and den < mm[0]:
+        return {}
+    tu, mang = _cua_so(add_days(den, -SO_NGAY_TRAN + 1), den, mm)
     cham = _da_cham_theo_ma(tu, den)
+    for item, q in mang.items():
+        cham[item] = cham.get(item, 0) + q
     nhan = _da_nhan_theo_ma(tu)
     if tru_phieu and frappe.db.get_value("SX Phieu Nhap TP", tru_phieu, "docstatus") == 1:
         for r in frappe.get_all("SX Phieu Nhap TP Item",
@@ -1100,8 +1153,12 @@ def doi_soat_no_vao_hop():
         return dong
     # D120: đọc nhận / chấm MỘT lần từ ngày sớm nhất, cộng theo từng mã trong bộ nhớ
     # — trước đây mỗi mã nợ 5 truy vấn quét lại cả khoảng ngày.
-    tu_cua = {item: getdate(add_days(getdate(ds_no[0].ngay), -SO_NGAY_TRAN + 1))
-              for item, ds_no in theo_ma.items()}
+    # D230: cửa sổ cắt ở mốc tính nợ vào hộp + phần chấm mang sang (_cua_so).
+    mm = _moc_vh()
+    tu_cua, mang_cua = {}, {}
+    for item, ds_no in theo_ma.items():
+        tu, mang = _cua_so(add_days(getdate(ds_no[0].ngay), -SO_NGAY_TRAN + 1), hom_nay, mm)
+        tu_cua[item], mang_cua[item] = tu, flt(mang.get(item))
     tu_min = min(tu_cua.values())
     nhan_ds = _nhan_theo_ngay(tu_min, list(theo_ma))
     cham_ds = _cham_theo_ngay(tu_min, hom_nay, list(theo_ma))
@@ -1112,7 +1169,7 @@ def doi_soat_no_vao_hop():
     for item, ds_no in theo_ma.items():
         tu = tu_cua[item]
         da_nhan = sum(q for (ng, it, q) in nhan_ds if it == item and ng >= tu)
-        da_cham = sum(q for (ng, it, q) in cham_ds if it == item and ng >= tu)
+        da_cham = sum(q for (ng, it, q) in cham_ds if it == item and ng >= tu) + mang_cua[item]
         da_bo = sum(flt(x.con_lai) for x in bo_qua if x.item == item and getdate(x.ngay) >= tu)
         thieu = max(0.0, flt(da_nhan) - flt(da_cham) - flt(da_bo))
         giam = sum(flt(x.con_lai) for x in ds_no) - thieu
@@ -1212,6 +1269,10 @@ def ghi_no_khoan_chung(ngay_sx, item, so_hop, cach_lam=None):
     if cint(so_hop) != can:
         frappe.throw(_("Nợ vào hộp của {0} vừa đổi: còn {1} hộp (màn đang hiện {2}). Mở lại thẻ rồi bấm lại.")
                      .format(ten, can, cint(so_hop)))
+    moc = _moc_vh()[0]
+    if moc and ngay < moc:
+        frappe.throw(_("Ngày {0} trước mốc tính nợ vào hộp ({1}) — chấm vào ngày đó không trả được nợ từ mốc. Chọn "
+                       "ngày từ {1} tới hôm nay.").format(ngay.strftime("%d/%m/%Y"), moc.strftime("%d/%m/%Y")))
     tu = getdate(add_days(getdate(ds[0].ngay), -SO_NGAY_TRAN + 1))
     if ngay < tu:
         frappe.throw(_("Ngày {0} quá xa khoản nợ cũ nhất ({1}) — chọn ngày từ {2} tới hôm nay.").format(
@@ -1256,10 +1317,192 @@ def bo_qua_no_vao_hop(name, ly_do=None):
     no = frappe.get_doc(NO_VH, name)
     if no.trang_thai != "Chờ chấm":
         frappe.throw(_("Khoản nợ {0} đã ở trạng thái {1}.").format(name, no.trang_thai))
+    _bo_qua_vh(no, ly_do.strip())
+    return {"name": name}
+
+
+def _bo_qua_vh(no, ly_do):
     no.trang_thai = "Bỏ qua"
-    no.ly_do = ly_do.strip()
+    no.ly_do = ly_do
     no.xu_ly_boi = frappe.session.user
     no.xu_ly_luc = frappe.utils.now_datetime()
     no.flags.ignore_permissions = True
     no.save()
-    return {"name": name}
+
+
+# ═══════════════════════════ mốc tính nợ vào hộp (D230) ═══════════════════════════
+#
+# "Bỏ nợ vào hộp tháng trước, chỉ tính từ đầu tháng này": nợ chờ chấm trước mốc → Bỏ qua, và từ đó mọi cửa sổ
+# chấm − nhận bắt đầu ở mốc (_cua_so). Sổ nợ GỘP theo mã nên chỉ Bỏ qua là chưa đủ: phần kho nhận vượt tháng trước
+# (nhập lại tồn sau kiểm kê…) vẫn nằm trong cửa sổ 30 ngày — nhập kho tháng mới lại sinh nợ, đối soát lấy chấm tháng
+# mới trả nợ cũ trước. Cắt cứng ở mốc thì ngược lại: hàng chấm 31/10 mà 01/11 mới nhập kho thành nợ, QC chấm bù là
+# trả lương hai lần — nên phần đã chấm trước mốc mà chưa nhập kho được mang sang (_mang_sang).
+
+LY_DO_MOC_VH = "Bỏ nợ vào hộp trước {0} — chỉ tính nợ vào hộp từ {0} (D230)"
+
+
+def _mang_sang(moc):
+    """{mã: [[ngày chấm, số]]} — hàng đã chấm vào hộp trước mốc mà CHƯA nhập kho: đúng danh sách "Vừa vào hộp — chưa
+    nhập kho" của hôm trước mốc — SO_NGAY_TRAN ngày trước mốc, chỉ chứng từ ghi ngày trước mốc, theo luật đang chạy
+    (mốc cũ + phần mang sang cũ còn trong cửa sổ; phiếu Tết nháp như tran_con_lai); phần kho nhận vượt đã Bỏ qua — và nợ
+    chờ chấm trước mốc, lệnh sắp Bỏ qua — trừ khỏi "đã nhận" theo số CÒN NỢ, như đối soát nợ (D203). Phần chưa nhập gán
+    cho các ngày chấm MỚI nhất (nhận trước là hàng chấm trước — như con_theo_hsd).
+
+    Giới hạn: sổ nợ gộp theo mã, đối soát lấy chấm mới trả nợ cũ trước — mã có phần nhập vượt chưa ai chấm (vd. nhập
+    lại tồn sau kiểm kê) thì hàng chấm cuối tháng chưa nhập kho đã bị tính là trả nợ cũ → không mang sang được, nhập
+    kho từ mốc sẽ hiện nợ. Cố ý lệch về phía HIỆN nợ (thấy, Bỏ qua được): lấy số ghi nợ ban đầu thì mỗi lần nhập kho
+    bình thường sau phần vượt — cũng bị ghi nợ cả phiếu — thành "chấm chưa nhập", che mất nợ thật, im lặng."""
+    den = getdate(add_days(moc, -1))
+    tu0 = getdate(add_days(moc, -SO_NGAY_TRAN))
+    mm = _moc_vh()
+    tu = _cua_so(tu0, den, mm)[0]
+    theo = {}                                      # {mã: {ngày chấm: số}}
+    for d, item, q in _cham_theo_ngay(tu, den, list(_da_cham_theo_ma(tu, den))):
+        theo.setdefault(item, {})
+        theo[item][d] = theo[item].get(d, 0) + q
+    if tu != tu0:                                  # cửa sổ bị mốc cũ cắt → phần mang sang cũ còn trong cửa sổ
+        for item, ds in mm[1].items():
+            for d, q in ds:
+                if d >= tu0:
+                    theo.setdefault(item, {})
+                    theo[item][d] = theo[item].get(d, 0) + q
+    if not theo:
+        return {}
+    items = list(theo)
+    nhan = {}
+    for ng, item, q in _nhan_theo_ngay(tu, items):
+        if ng <= den:
+            nhan[item] = nhan.get(item, 0) + q
+    tet = frappe.get_all("SX Phieu Nhap TP", filters={"docstatus": 0, "nguon": "Tết", "ngay": ("between", (tu, den))},
+                         pluck="name")
+    if tet:
+        for r in frappe.get_all("SX Phieu Nhap TP Item", filters={"parent": ("in", tet), "parenttype": "SX Phieu Nhap TP",
+                                                                 "item": ("in", items)}, fields=["item", "so_dem"]):
+            nhan[r.item] = nhan.get(r.item, 0) + flt(r.so_dem)
+    for x in frappe.get_all(NO_VH, filters={"item": ("in", items), "ngay": ("between", (tu, den)),
+                                            "trang_thai": ("in", ["Chờ chấm", "Bỏ qua"])}, fields=["item", "con_lai"]):
+        nhan[x.item] = nhan.get(x.item, 0) - flt(x.con_lai)
+    ra = {}
+    for item, ngay_so in theo.items():
+        con = flt(sum(ngay_so.values()) - nhan.get(item, 0), 3)
+        ds = []
+        for d, q in sorted(ngay_so.items(), reverse=True):
+            if con <= 1e-6:
+                break
+            lay = flt(min(q, con), 3)
+            ds.append([str(d), lay])
+            con -= lay
+        if ds:
+            ra[item] = sorted(ds)
+    return ra
+
+
+def bo_no_vh_truoc(tu_ngay=None, chay=0):
+    """bench: Bỏ qua mọi khoản nợ vào hộp ĐANG CHỜ CHẤM ghi ngày trước `tu_ngay` (mặc định đầu tháng này), đặt mốc tính
+    nợ vào hộp + phần đã chấm trước mốc chưa nhập kho, rồi đối soát lại nợ từ mốc — gọi trần là xem trước:
+      bench --site site1.local execute sx.api.khotp.bo_no_vh_truoc                          # xem trước
+      bench --site site1.local execute sx.api.khotp.bo_no_vh_truoc --kwargs "{'chay': 1}"   # làm thật
+    KHÔNG whitelist: chỉ chạy bằng bench (xoá nợ hàng loạt là quyết định về lương / kho, không phải nút trên màn)."""
+    print(bao_cao_bo_no_vh(xu_ly_bo_no_vh(tu_ngay, chay)))
+
+
+def xu_ly_bo_no_vh(tu_ngay=None, chay=0):
+    """Xem trước (chay=0) / làm thật (chay=1) — trả dict cho báo cáo và test."""
+    from sx.api.nogia import _ngay_moc
+
+    meta = frappe.get_meta("SX Settings")
+    if not (meta.has_field(TRUONG_MOC_VH) and meta.has_field(TRUONG_MANG_SANG)):
+        frappe.throw(_("SX Settings chưa có ô mốc tính nợ vào hộp — chạy bench --site site1.local migrate trước."))
+    moc = _ngay_moc(tu_ngay)
+    moc_cu = _moc_vh()[0]
+    ds = frappe.get_all(NO_VH, filters={"trang_thai": "Chờ chấm", "ngay": ("<", moc)},
+                        fields=["name", "item", "ten", "ngay", "con_lai"], order_by="ngay asc, creation asc")
+    mang = _mang_sang(moc)
+    ly_do = LY_DO_MOC_VH.format(moc.strftime("%d/%m/%Y"))
+    ve_0 = []
+    if cint(chay):
+        for x in ds:
+            _bo_qua_vh(frappe.get_doc(NO_VH, x.name), ly_do)
+        frappe.db.set_single_value("SX Settings", TRUONG_MOC_VH, str(moc))
+        frappe.db.set_single_value("SX Settings", TRUONG_MANG_SANG, json.dumps(mang, ensure_ascii=False,
+                                                                             sort_keys=True))
+        frappe.clear_document_cache("SX Settings", "SX Settings")
+        ve_0 = doi_soat_no_vao_hop()            # nợ từ mốc tính lại theo luật mới — ngay, không đợi lần lưu bảng sau
+    nhom = {}
+    for x in ds:
+        g = nhom.setdefault(x.item, {"item": x.item, "ten": x.ten or x.item, "con_lai": 0.0, "ngay": []})
+        g["con_lai"] += flt(x.con_lai)
+        g["ngay"].append(getdate(x.ngay))
+    con = {}
+    for x in frappe.get_all(NO_VH, filters={"trang_thai": "Chờ chấm", "ngay": (">=", moc)},
+                            fields=["item", "ten", "con_lai"]):
+        g = con.setdefault(x.item, {"item": x.item, "ten": x.ten or x.item, "so": 0.0, "khoan": 0,
+                                    "bo_cu": x.item in nhom})
+        g["so"] += flt(x.con_lai)
+        g["khoan"] += 1
+    ten = {i.name: i.item_name for i in frappe.get_all("Item", filters={"name": ("in", list(mang))},
+                                                      fields=["name", "item_name"])} if mang else {}
+    return {"chay": cint(chay), "moc": moc, "moc_cu": moc_cu, "ly_do": ly_do, "dong": [x.name for x in ds],
+            "nhom": sorted(nhom.values(), key=lambda g: g["ten"]),
+            "mang": sorted(({"item": k, "ten": ten.get(k) or k, "so": flt(sum(q for _d, q in v), 3),
+                             "ngay": [getdate(d) for d, _q in v]} for k, v in mang.items()), key=lambda m: -m["so"]),
+            "ve_0": ve_0, "con": sorted(con.values(), key=lambda g: -g["so"])}
+
+
+def bao_cao_bo_no_vh(kq):
+    """Báo cáo tiếng Việt của bo_no_vh_truoc."""
+    def dmy(d):
+        return d.strftime("%d/%m/%Y")
+
+    def so(n):
+        t = f"{flt(n, 3):,.3f}".rstrip("0").rstrip(".")
+        return t.replace(",", "_").replace(".", ",").replace("_", ".")
+
+    def ten(g, ma):
+        return g["ten"] if g["ten"] == ma else "{0} ({1})".format(g["ten"], ma)
+
+    moc = dmy(kq["moc"])
+    ra = [_("BỎ NỢ VÀO HỘP TRƯỚC {0} — ĐÃ GHI").format(moc) if kq["chay"] else
+          _("BỎ NỢ VÀO HỘP TRƯỚC {0} — XEM TRƯỚC, chưa ghi gì (làm thật: thêm --kwargs \"{{'chay': 1}}\")").format(moc),
+          _("Mốc tính nợ vào hộp: {0} (trước đó: {1})").format(moc, dmy(kq["moc_cu"]) if kq["moc_cu"] else _("chưa đặt"))]
+    if kq["dong"]:
+        ngay = sorted(d for g in kq["nhom"] for d in g["ngay"])
+        ra.append(_("{0} khoản nợ đang chờ chấm trước mốc — {1} mã, {2} hộp, ngày {3} → {4}:").format(
+            len(kq["dong"]), len(kq["nhom"]), so(sum(g["con_lai"] for g in kq["nhom"])), dmy(ngay[0]), dmy(ngay[-1])))
+        for g in kq["nhom"]:
+            ds_ngay = ", ".join(d.strftime("%d/%m") for d in g["ngay"][:10]) + (", …" if len(g["ngay"]) > 10 else "")
+            ra.append(_("  • {0} — {1} khoản, {2} hộp: {3}").format(ten(g, g["item"]), len(g["ngay"]), so(g["con_lai"]),
+                                                                    ds_ngay))
+        ra.append((_("→ đã chuyển sang Bỏ qua") if kq["chay"] else _("→ sẽ chuyển sang Bỏ qua"))
+                  + _(", lý do \"{0}\".").format(kq["ly_do"]))
+    else:
+        ra.append(_("Không có khoản nợ nào đang chờ chấm trước {0}.").format(moc))
+    if kq["mang"]:
+        ra.append(_("Hàng chấm trước mốc mà chưa nhập kho — mang sang, nhập kho từ {0} không thành nợ: {1} mã, {2} hộp:")
+                  .format(moc, len(kq["mang"]), so(sum(m["so"] for m in kq["mang"]))))
+        for m in kq["mang"][:15]:
+            ra.append(_("  • {0} — {1} hộp (chấm {2})").format(ten(m, m["item"]), so(m["so"]), ", ".join(
+                d.strftime("%d/%m") for d in m["ngay"])))
+        if len(kq["mang"]) > 15:
+            ra.append(_("  … và {0} mã khác").format(len(kq["mang"]) - 15))
+    else:
+        ra.append(_("Không có hàng chấm trước mốc mà chưa nhập kho."))
+    khoan, hop = sum(g["khoan"] for g in kq["con"]), sum(g["so"] for g in kq["con"])
+    if kq["chay"]:
+        ra.append(_("Đối soát lại nợ từ {0} theo mốc: {1} khoản về 0; còn {2} khoản, {3} hộp{4}").format(
+            moc, len(kq["ve_0"]), khoan, so(hop), ":" if kq["con"] else "."))
+    else:
+        ra.append(_("Nợ từ {0} trở đi hiện có: {1} khoản, {2} hộp — làm thật sẽ đối soát lại theo mốc (chấm từ mốc "
+                    "không còn bị trừ vào nợ cũ){3}").format(moc, khoan, so(hop), ":" if kq["con"] else "."))
+    for g in kq["con"][:15]:
+        ra.append(_("  • {0} — {1} hộp{2}").format(
+            ten(g, g["item"]), so(g["so"]),
+            _("  ← mã vừa bỏ nợ cũ: thường là hàng chấm cuối tháng trước mà từ mốc mới nhập kho (phần nhập vượt cũ "
+              "che mất nên không mang sang được) — xem lại, đúng thì Bỏ qua, ĐỪNG chấm bù")
+            if kq["chay"] and g["bo_cu"] else ""))
+    if len(kq["con"]) > 15:
+        ra.append(_("  … và {0} mã khác").format(len(kq["con"]) - 15))
+    ra.append((_("Đã đặt mốc") if kq["chay"] else _("Làm thật sẽ đặt mốc"))
+              + _(" ở SX Settings: nợ vào hộp chỉ tính hàng chấm / nhập kho từ {0} (cộng phần mang sang); phiếu nhập ghi "
+                  "ngày trước mốc không sinh nợ.").format(moc))
+    return "\n".join(ra)

@@ -11,6 +11,9 @@ phần vượt ghi thành một dòng nợ ở đây — nghĩa duy nhất: CH�
 Nợ tự giảm khi QC chấm bù (xem sx/api/khotp.py doi_soat_no_vao_hop — cùng công
 thức "đã chấm − đã nhận" với trần nhập kho), về 0 thì tự đóng. Không có nút "đã
 chấm bù" bấm tay: bấm tay được thì đóng được mà không chấm.
+
+D230: lệnh bench khotp.bo_no_vh_truoc Bỏ qua nợ trước một mốc và đặt mốc tính nợ
+vào hộp (SX Settings) — từ đó chấm − nhận chỉ tính từ mốc (cộng phần mang sang).
 """
 
 import frappe

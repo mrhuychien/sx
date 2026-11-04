@@ -17,6 +17,7 @@ sx/api/nogia.py, sx/api/portal.py (luu_bang_vao_hop) và sx/api/chot.py
 Chạy: python3 scripts/test-novaohop.py   (verify.sh gọi sẵn)
 """
 
+import ast
 import importlib.util
 import json
 import os
@@ -179,9 +180,14 @@ def _get_doc(x, n=None):
 
 
 frappe.get_doc = _get_doc
+GHI_SINGLE = []
+O_SETTINGS = {"no_vh_tu_ngay", "no_vh_mang_sang"}       # ô đã migrate
+frappe.get_meta = lambda dt: types.SimpleNamespace(has_field=lambda f: dt == "SX Settings" and f in O_SETTINGS)
+frappe.clear_document_cache = lambda dt, n=None: GHI_SINGLE.append(("xoá cache", dt, n))
 frappe.db = types.SimpleNamespace(
     get_value=_get_value, set_value=_set_value,
-    exists=lambda dt, f=None: next(iter(get_all(dt, f)), None) and "x")
+    exists=lambda dt, f=None: next(iter(get_all(dt, f)), None) and "x",
+    set_single_value=lambda dt, f, v: (SETTINGS.update({f: v}), GHI_SINGLE.append(("ghi", dt, f, v))))
 frappe.__dict__["_"] = lambda s: s
 fu = types.ModuleType("frappe.utils")
 fu.flt = lambda v, p=None: round(float(v or 0), p) if p is not None else float(v or 0)
@@ -218,8 +224,9 @@ def _tra_don_gia(b, sp, cl=None):
 ut.tra_don_gia = _tra_don_gia
 ut.bang_don_gia = lambda ngay=None: "BG-1"
 ut.get_bom_active = lambda item: "BOM-" + item
+SETTINGS = {}      # D230: mốc tính nợ vào hộp + phần mang sang (SX Settings)
 ut.get_settings = lambda: Doc({"cong_ty": "RVHG", "kho_nvl": "NVL", "kho_btp": "BTP",
-                               "kho_tp": "TP"})
+                               "kho_tp": "TP", **SETTINGS})
 ut.items_tp = lambda *a, **k: []
 ut.nhom_tp = lambda: []
 ut.sinh_ma_lo = lambda item, ngay: f"{item}-LO"
@@ -347,9 +354,10 @@ def bang_vh(*dong, ngay=HOM_NAY, ten="NSX-1"):
 
 
 def lam_sach():
-    for x in (NGAY, PHIEU, NO, MSG, SE, NO_GIA):
+    for x in (NGAY, PHIEU, NO, MSG, SE, NO_GIA, GHI_SINGLE):
         x.clear()
     BANG.clear()
+    SETTINGS.clear()
     VAI.clear(); VAI.add("SX Quan Ly")
 
 
@@ -726,6 +734,257 @@ kq = K.ghi_no_khoan_chung("NSX-H", "TP-A", 20)
 kiem("… và Ghi cho công khoán trả hết nợ còn mở (không vướng phần Bỏ qua)",
      kq["so_hop"] == 20 and no_ma("TP-A") == [("Bỏ qua", 30), ("Đã chấm bù", 0)], str(no_ma("TP-A")))
 VAI.clear(); VAI.add("SX Quan Ly")
+
+# ═══ D230. Mốc tính nợ vào hộp: bỏ nợ trước mốc, mang sang hàng chấm chưa nhập ═══
+print("\n-- D230: bỏ nợ vào hộp trước mốc, chỉ tính từ mốc --")
+lam_sach()
+HOM_NAY_GOC, now_goc = HOM_NAY, fu.now_datetime
+fu.now_datetime = lambda: f"{HOM_NAY} 10:00:00"
+NSX_DEM = {"n": 0}
+
+
+def O(d):
+    return date(2026, 10, d)
+
+
+def N_(d):
+    return date(2026, 11, d)
+
+
+def hom_nay(d):
+    global HOM_NAY
+    HOM_NAY = d
+
+
+def cham_vh(d, item, so):
+    """QC chấm một mã một ngày (bảng riêng) — lưu bảng là đối soát nợ (hook)."""
+    hom_nay(d)
+    NSX_DEM["n"] += 1
+    ten = f"NSX-D{NSX_DEM['n']}"
+    bang_vh({"nhan_vien": "NV1", "san_pham": item, "so_hop": so}, ngay=d, ten=ten)
+    K.doi_soat_no_vao_hop()
+    return ten
+
+
+def nhap_vh(d, item, so):
+    hom_nay(d)
+    ph = duyet(phieu({"item": item, "ten": item, "so_dem": so}, ngay=d))
+    K.doi_soat_no_vao_hop()
+    return ph
+
+
+def no_cua(item):
+    return sorted((str(x.ngay), x.trang_thai, x.con_lai) for x in NO if x.item == item)
+
+
+# ── tháng 10 + 01–02/11, luật CŨ (chưa đặt mốc) ──
+cham_vh(O(3), "TP-W", 10)                        # chấm 03/10, không bao giờ nhập kho
+nhap_vh(O(12), "TP-A", 9940)                     # nhập lại tồn sau kiểm kê — không ai chấm
+nhap_vh(O(15), "TP-D", 10)                       # hàng trả về nhập lại …
+K.bo_qua_no_vao_hop(next(x for x in NO if x.item == "TP-D").name, "  hàng trả về ")  # … quản lý đã Bỏ qua
+ph_g = nhap_vh(O(18), "TP-G", 5)                 # phiếu nhập rồi huỷ → nợ Đã huỷ
+P.SXPhieuNhapTP.on_cancel(ph_g)
+ph_g["docstatus"] = 2
+cham_vh(O(20), "TP-A", 100)
+nhap_vh(O(20), "TP-A", 100)                      # sản xuất bình thường — vẫn bị ghi nợ (cửa sổ âm vì 9.940)
+nhap_vh(O(25), "TP-C", 20)                       # chấm sót 20 hộp
+cham_vh(O(27), "TP-K", 20)                       # chấm 27/10 …
+cham_vh(O(28), "TP-D", 15)                       # chấm, chưa nhập
+nhap_vh(O(29), "TP-K", 20)                       # … nhập 29/10 (hàng 27/10)
+cham_vh(O(30), "TP-K", 30)                       # chấm 30/10, chưa nhập
+PHIEU.append(Doc(name="PN-TET", ngay=O(29), docstatus=0, nguon="Tết", dong=[Doc(item="TP-H", so_dem=12)]))
+cham_vh(O(29), "TP-H", 12)                       # hàng Tết: phiếu nháp đã giữ chỗ
+cham_vh(O(30), "TP-B", 40)                       # chấm 30/10 …
+nsx_a31 = cham_vh(O(31), "TP-A", 50)             # chấm 31/10, chưa nhập
+cham_vh(O(31), "TP-F", 70)                       # chấm 31/10, tới 04/11 vẫn chưa nhập
+nhap_vh(N_(1), "TP-B", 40)                       # … 01/11 mới nhập kho
+nhap_vh(N_(1), "TP-A", 50)
+cham_vh(N_(2), "TP-A", 80)
+cham_vh(N_(2), "TP-C", 30)                       # sản xuất tháng 11 — đối soát lấy trả nợ C tháng 10
+nhap_vh(N_(2), "TP-A", 80)
+nhap_vh(N_(2), "TP-C", 30)
+nhap_vh(N_(2), "TP-E", 25)                       # chấm sót thật tháng 11
+hom_nay(N_(4))
+kiem("luật cũ: nợ tháng 10 của mã nhập lại tồn còn nguyên, tháng 11 nhập bao nhiêu nợ thêm bấy nhiêu",
+     no_cua("TP-A") == [("2026-10-12", "Chờ chấm", 9710), ("2026-10-20", "Chờ chấm", 100),
+                        ("2026-11-01", "Chờ chấm", 50), ("2026-11-02", "Chờ chấm", 80)], str(no_cua("TP-A")))
+kiem("luật cũ: chấm tháng 11 bị lấy trả nợ tháng 10 → nợ chấm sót chuyển sang tháng 11",
+     no_cua("TP-C") == [("2026-10-25", "Đã chấm bù", 0), ("2026-11-02", "Chờ chấm", 20)], str(no_cua("TP-C")))
+goc = [dict(x) for x in NO]
+
+loi = thu(lambda: K.xu_ly_bo_no_vh(tu_ngay="2026-11-05", chay=1))
+kiem("mốc sau hôm nay → dừng (kiểm ngày dùng chung với D229)", loi and "chưa tới" in loi, loi or "")
+O_SETTINGS.discard("no_vh_mang_sang")
+loi = thu(lambda: K.xu_ly_bo_no_vh(chay=1))
+O_SETTINGS.add("no_vh_mang_sang")
+kiem("site chưa migrate đủ ô → dừng, bảo chạy migrate", loi and "migrate" in loi, loi or "")
+kiem("… các lần dừng không ghi gì", [dict(x) for x in NO] == goc and not SETTINGS and not GHI_SINGLE)
+
+kq = K.xu_ly_bo_no_vh()
+kiem("mặc định mốc = đầu tháng này; xem trước KHÔNG ghi gì",
+     kq["moc"] == N_(1) and kq["moc_cu"] is None and [dict(x) for x in NO] == goc and not SETTINGS
+     and not GHI_SINGLE and kq["ve_0"] == [])
+kiem("xem trước: đúng các nợ CHỜ CHẤM trước mốc (đã bỏ qua / đã huỷ / đã chấm bù không tính)",
+     [(g["item"], g["con_lai"], g["ngay"]) for g in kq["nhom"]] == [("TP-A", 9810, [O(12), O(20)])], str(kq["nhom"]))
+kiem("mang sang = hàng chấm trước mốc chưa nhập kho, theo ngày chấm (B 30/10, D sau phần đã Bỏ qua, F, W); Tết "
+     "nháp giữ chỗ; mã nhập vượt lớn (A) bị che", [(m["item"], m["so"], m["ngay"]) for m in kq["mang"]]
+     == [("TP-F", 70, [O(31)]), ("TP-B", 40, [O(30)]), ("TP-K", 30, [O(30)]), ("TP-D", 15, [O(28)]),
+         ("TP-W", 10, [O(3)])], str(kq["mang"]))
+bc = K.bao_cao_bo_no_vh(kq)
+for cau in ("BỎ NỢ VÀO HỘP TRƯỚC 01/11/2026 — XEM TRƯỚC, chưa ghi gì (làm thật: thêm --kwargs \"{'chay': 1}\")",
+            "Mốc tính nợ vào hộp: 01/11/2026 (trước đó: chưa đặt)",
+            "2 khoản nợ đang chờ chấm trước mốc — 1 mã, 9.810 hộp, ngày 12/10/2026 → 20/10/2026:",
+            "  • TP-A — 2 khoản, 9.810 hộp: 12/10, 20/10",
+            "→ sẽ chuyển sang Bỏ qua, lý do \"Bỏ nợ vào hộp trước 01/11/2026 — chỉ tính nợ vào hộp từ 01/11/2026 (D230)\".",
+            "Hàng chấm trước mốc mà chưa nhập kho — mang sang, nhập kho từ 01/11/2026 không thành nợ: 5 mã, 165 hộp:",
+            "  • TP-F — 70 hộp (chấm 31/10)",
+            "Nợ từ 01/11/2026 trở đi hiện có: 4 khoản, 175 hộp — làm thật sẽ đối soát lại theo mốc",
+            "  • TP-A — 130 hộp\n",
+            "Làm thật sẽ đặt mốc ở SX Settings: nợ vào hộp chỉ tính hàng chấm / nhập kho từ 01/11/2026"):
+    kiem(f"báo cáo xem trước: {cau[:60]}", cau in bc, "" if cau in bc else bc)
+
+MANG = ('{"TP-B": [["2026-10-30", 40.0]], "TP-D": [["2026-10-28", 15.0]], "TP-F": [["2026-10-31", 70.0]], '
+        '"TP-K": [["2026-10-30", 30.0]], "TP-W": [["2026-10-03", 10.0]]}')
+import contextlib
+import io
+ra_ = io.StringIO()
+with contextlib.redirect_stdout(ra_):
+    K.bo_no_vh_truoc(chay=1)
+bc = ra_.getvalue()
+LD = "Bỏ nợ vào hộp trước 01/11/2026 — chỉ tính nợ vào hộp từ 01/11/2026 (D230)"
+kiem("làm thật: nợ chờ chấm trước mốc → Bỏ qua có lý do (giữ số còn nợ làm dấu vết)",
+     no_cua("TP-A")[:2] == [("2026-10-12", "Bỏ qua", 9710), ("2026-10-20", "Bỏ qua", 100)]
+     and all((x.ly_do, x.xu_ly_boi, x.xu_ly_luc) == (LD, "ql@x", "2026-11-04 10:00:00")
+             for x in NO if x.item == "TP-A" and str(x.ngay) < "2026-11"),
+     str(no_cua("TP-A")))
+kiem("… nợ Bỏ qua cũ giữ lý do cũ (đã cắt khoảng trắng), nợ Đã huỷ / Đã chấm bù không đụng",
+     next(x for x in NO if x.item == "TP-D").ly_do == "hàng trả về"
+     and no_cua("TP-G") == [("2026-10-18", "Đã huỷ", 5)] and no_cua("TP-C")[0] == ("2026-10-25", "Đã chấm bù", 0))
+kiem("… đặt mốc + phần mang sang ở SX Settings, xoá cache",
+     SETTINGS == {"no_vh_tu_ngay": "2026-11-01", "no_vh_mang_sang": MANG}
+     and ("xoá cache", "SX Settings", "SX Settings") in GHI_SINGLE, str(SETTINGS))
+ok_ = (no_cua("TP-C")[1] == ("2026-11-02", "Đã chấm bù", 0)
+       and no_cua("TP-A")[2:] == [("2026-11-01", "Đã chấm bù", 0), ("2026-11-02", "Chờ chấm", 50)])
+kiem("đối soát lại ngay: chấm tháng 11 không còn bị trừ vào nợ cũ — nợ C tháng 11 về 0, nợ A chỉ còn phần "
+     "hàng chấm 31/10 bị che (50)", ok_, "" if ok_ else str(NO))
+kiem("… nợ chấm sót thật tháng 11 giữ nguyên", no_cua("TP-E") == [("2026-11-02", "Chờ chấm", 25)])
+kiem("… thẻ nợ vào hộp chỉ còn nợ từ mốc",
+     sorted((g["item"], g["con_lai"]) for g in K.so_no_vao_hop()["nhom"]) == [("TP-A", 50), ("TP-E", 25)])
+for cau in ("BỎ NỢ VÀO HỘP TRƯỚC 01/11/2026 — ĐÃ GHI", "→ đã chuyển sang Bỏ qua",
+            "Đối soát lại nợ từ 01/11/2026 theo mốc: 2 khoản về 0; còn 2 khoản, 75 hộp:",
+            "  • TP-A — 50 hộp  ← mã vừa bỏ nợ cũ: thường là hàng chấm cuối tháng trước",
+            "  • TP-E — 25 hộp\n", "Đã đặt mốc ở SX Settings"):
+    kiem(f"báo cáo làm thật: {cau[:60]}", cau in bc, "" if cau in bc else bc)
+
+# ── từ mốc: luật mới ──
+kiem("phiếu nhập ghi ngày trước mốc → không sinh nợ",
+     K.vuot_so_cham(O(30), [Doc(item="TP-Z", so_dem=9)]) == {})
+kiem("phiếu ghi ĐÚNG ngày mốc → tính như thường (phần mang sang trừ vào, vượt thật vẫn nợ)",
+     K.vuot_so_cham(N_(1), [Doc(item="TP-F", so_dem=75)]) == {"TP-F": 5.0})
+kiem("phần mang sang hết hạn theo ngày chấm: W chấm 03/10 còn che phiếu 01/11, hết che từ 02/11",
+     K.vuot_so_cham(N_(1), [Doc(item="TP-W", so_dem=10)]) == {}
+     and K.vuot_so_cham(N_(2), [Doc(item="TP-W", so_dem=10)]) == {"TP-W": 10.0})
+hom_nay(N_(3))
+cham_vh(N_(3), "TP-B", 30)
+nhap_vh(N_(3), "TP-B", 30)
+kiem("mã có hàng chấm 30/10 nhập 01/11: chấm 03/11 nhập 03/11 → KHÔNG nợ (nhờ phần mang sang)",
+     no_cua("TP-B") == [], str(no_cua("TP-B")))
+cham_vh(N_(3), "TP-A", 60)
+v_a = K.vuot_so_cham(N_(3), [Doc(item="TP-A", so_dem=60)])
+nhap_vh(N_(3), "TP-A", 60)
+kiem("mã nhập lại tồn tháng 10: chấm 60 nhập 60 ngày 03/11 → báo vượt đúng phần dư 50 (luật cũ: 60 — 9.940 còn trong "
+     "cửa sổ), tổng nợ của mã KHÔNG tăng (dư 50 chỉ dời sang ngày mới)",
+     v_a == {"TP-A": 50.0} and sum(c for d, t, c in no_cua("TP-A") if t == "Chờ chấm") == 50, f"{v_a} {no_cua('TP-A')}")
+hom_nay(N_(4))
+cn = {r["item"]: r for r in K.cho_nhan()["rows"]}
+kiem("danh sách chờ nhập kho: hàng chấm trước mốc chưa nhập vẫn hiện (F 70, K 30, D 15; W 03/10 đã hết hạn)",
+     {k: v["con"] for k, v in cn.items()} == {"TP-F": 70, "TP-K": 30, "TP-D": 15},
+     str({k: v["con"] for k, v in cn.items()}))
+kiem("… chia theo HSD đúng ngày chấm trước mốc (NSX 31/10)",
+     [g["nsx"] for g in cn["TP-F"]["chia"]] == ["2026-10-31"], str(cn["TP-F"]["chia"]))
+kiem("nhập phần mang sang → không nợ; nhập vượt thật → nợ đúng phần vượt",
+     K.vuot_so_cham(N_(4), [Doc(item="TP-F", so_dem=70)]) == {}
+     and K.vuot_so_cham(N_(4), [Doc(item="TP-F", so_dem=75)]) == {"TP-F": 5.0})
+nhap_vh(N_(4), "TP-F", 75)
+kiem("… duyệt thật: nợ 5", no_cua("TP-F") == [("2026-11-04", "Chờ chấm", 5)], str(no_cua("TP-F")))
+cham_vh(N_(4), "TP-F", 5)
+kiem("… QC chấm bù 5 → đối soát (có phần mang sang) trả hết nợ", no_cua("TP-F") == [("2026-11-04", "Đã chấm bù", 0)],
+     str(no_cua("TP-F")))
+NGAY.append(Doc(name="NSX-04", ngay=N_(4), docstatus=0))
+loi = thu(lambda: K.ghi_no_khoan_chung(nsx_a31, "TP-A", 50))
+kiem("Ghi cho công khoán vào ngày trước mốc → chặn, nói rõ mốc",
+     loi and "trước mốc tính nợ vào hộp (01/11/2026)" in loi, loi or "")
+
+kq2 = K.xu_ly_bo_no_vh(chay=1)
+kiem("chạy lại: không còn gì để bỏ, mốc + phần mang sang y như cũ",
+     kq2["dong"] == [] and kq2["moc_cu"] == N_(1) and SETTINGS["no_vh_mang_sang"] == MANG, str(kq2))
+bc = K.bao_cao_bo_no_vh(kq2)
+kiem("… báo cáo nói rõ", "Không có khoản nợ nào đang chờ chấm trước 01/11/2026." in bc
+     and "(trước đó: 01/11/2026)" in bc and "→" not in bc.split("Mốc")[1].split("Hàng")[0], bc)
+
+# ── cửa sổ quanh mốc ──
+kiem("cửa sổ chạm vào trước mốc → bắt đầu ở mốc + phần mang sang CÒN trong cửa sổ (chấm 03/10 đã hết hạn)",
+     K._cua_so(O(10), N_(4)) == (N_(1), {"TP-B": 40.0, "TP-D": 15.0, "TP-F": 70.0, "TP-K": 30.0})
+     and K._cua_so(O(3), N_(1)) == (N_(1), {"TP-B": 40.0, "TP-D": 15.0, "TP-F": 70.0, "TP-K": 30.0, "TP-W": 10.0})
+     and K._cua_so(O(29), N_(20)) == (N_(1), {"TP-B": 40.0, "TP-F": 70.0, "TP-K": 30.0}))
+kiem("cửa sổ bắt đầu đúng mốc / sau mốc, hoặc nằm hẳn trước mốc → như cũ, không mang sang",
+     K._cua_so(N_(1), N_(4)) == (N_(1), {}) and K._cua_so(N_(2), N_(4)) == (N_(2), {})
+     and K._cua_so(O(1), O(31)) == (O(1), {}))
+kiem("cửa sổ kết thúc ĐÚNG mốc → cắt ở mốc", K._cua_so(O(10), N_(1))[0] == N_(1))
+SETTINGS["no_vh_mang_sang"] = "hỏng"
+kiem("phần mang sang hỏng / không phải bảng mã → coi như không có", K._moc_vh() == (N_(1), {}))
+SETTINGS["no_vh_mang_sang"] = "[1, 2]"
+kiem("… (danh sách)", K._moc_vh() == (N_(1), {}))
+SETTINGS["no_vh_mang_sang"] = '{"TP-B": [["2026-10-30", "40"]], "TP-X": [["sai", 1]], "TP-Y": 5}'
+kiem("… dòng hỏng thì bỏ riêng dòng đó, số dạng chữ vẫn đọc", K._moc_vh() == (N_(1), {"TP-B": [(O(30), 40.0)]}),
+     str(K._moc_vh()))
+SETTINGS.clear()
+kiem("chưa đặt mốc → luật cũ", K._moc_vh() == (None, {}) and K._cua_so(O(10), N_(4)) == (O(10), {}))
+
+bc = K.bao_cao_bo_no_vh({"chay": 0, "moc": N_(1), "moc_cu": None, "ly_do": "x", "dong": [], "nhom": [], "ve_0": [],
+                         "mang": [{"item": f"M{i:02d}", "ten": f"Bánh {i}", "so": 1.5, "ngay": [O(30), O(31)]}
+                                  for i in range(16)],
+                         "con": [{"item": f"C{i:02d}", "ten": f"C{i:02d}", "so": 1234.25, "khoan": 1, "bo_cu": True}
+                                 for i in range(16)]})
+bc15 = K.bao_cao_bo_no_vh({"chay": 1, "moc": N_(1), "moc_cu": N_(1), "ly_do": "x", "dong": [], "nhom": [],
+                           "ve_0": [], "mang": [{"item": f"M{i:02d}", "ten": f"M{i:02d}", "so": 1, "ngay": [O(30)]}
+                                                for i in range(15)],
+                           "con": [{"item": f"C{i:02d}", "ten": f"C{i:02d}", "so": 2, "khoan": 1, "bo_cu": i == 0}
+                                   for i in range(15)]})
+kiem("báo cáo: đúng 15 mã thì in đủ, không gộp; làm thật gắn cờ mã vừa bỏ nợ cũ",
+     "M14 — 1 hộp (chấm 30/10)" in bc15 and "C14 — 2 hộp" in bc15 and "… và" not in bc15
+     and bc15.count("← mã vừa bỏ nợ cũ") == 1 and "  • C00 — 2 hộp  ← mã vừa bỏ nợ cũ" in bc15, bc15)
+kiem("báo cáo: tên + mã, số lẻ có dấu phẩy, nghìn dấu chấm, quá 15 mã thì gộp; xem trước không gắn cờ",
+     "  • Bánh 0 (M00) — 1,5 hộp (chấm 30/10, 31/10)" in bc and "  • C00 — 1.234,25 hộp\n" in bc and bc.count("… và 1 mã khác") == 2
+     and "Bánh 15" not in bc and "C15" not in bc and "← mã vừa" not in bc and "16 khoản, 19.748 hộp" in bc, bc)
+cay_k = ast.parse(open("sx/api/khotp.py", encoding="utf-8").read())
+kiem("lệnh bỏ nợ vào hộp KHÔNG whitelist (chỉ chạy bằng bench)",
+     all(not f.decorator_list for f in cay_k.body if isinstance(f, ast.FunctionDef)
+         and f.name in ("bo_no_vh_truoc", "xu_ly_bo_no_vh", "bao_cao_bo_no_vh", "_mang_sang")))
+st = json.load(open("sx/sx/doctype/sx_settings/sx_settings.json", encoding="utf-8"))
+o_ = {f["fieldname"]: f for f in st["fields"]}
+kiem("SX Settings có ô mốc (Date) + phần mang sang, chỉ đọc",
+     (o_.get(K.TRUONG_MOC_VH, {}).get("fieldtype"), o_.get(K.TRUONG_MOC_VH, {}).get("read_only"),
+      o_.get(K.TRUONG_MANG_SANG, {}).get("read_only")) == ("Date", 1, 1)
+     and {K.TRUONG_MOC_VH, K.TRUONG_MANG_SANG} <= set(st["field_order"]))
+SETTINGS.update(no_vh_tu_ngay="2026-11-01", no_vh_mang_sang=MANG)
+NGAY.append(Doc(name="NSX-MOC", ngay=N_(1), docstatus=0))
+MOI.clear()
+kq_kc = K.ghi_no_khoan_chung("NSX-MOC", "TP-A", 50)
+kiem("Ghi cho công khoán vào ĐÚNG ngày mốc → được, trả hết nợ còn lại của mã",
+     kq_kc["so_hop"] == 50 and all(t != "Chờ chấm" for d, t, c in no_cua("TP-A")), str(no_cua("TP-A")))
+hom_nay(N_(20))
+K.xu_ly_bo_no_vh(tu_ngay="2026-11-15", chay=1)
+mang_moi = json.loads(SETTINGS["no_vh_mang_sang"])
+kiem("đặt mốc MỚI (15/11) khi đã có mốc cũ: phần mang sang cũ chưa nhập vẫn được mang tiếp (D 28/10, K 30/10), "
+     "phần đã nhập trong tháng 11 thì thôi (F, B)",
+     SETTINGS["no_vh_tu_ngay"] == "2026-11-15" and mang_moi.get("TP-D") == [["2026-10-28", 15.0]]
+     and mang_moi.get("TP-K") == [["2026-10-30", 30.0]] and "TP-F" not in mang_moi and "TP-B" not in mang_moi,
+     str(mang_moi))
+kiem("… phần mang sang cũ đã hết hạn (W 03/10) không mang tiếp; tháng 10 vẫn không tính lại (A không thành 'chưa nhập')",
+     "TP-W" not in mang_moi and "TP-A" not in mang_moi, str(mang_moi))
+HOM_NAY, fu.now_datetime = HOM_NAY_GOC, now_goc
+lam_sach()
 
 # ═══ 4. Dây nối ══════════════════════════════════════════════════════════
 print("\n-- dây nối --")

@@ -24,6 +24,8 @@
   "gia_tri_cong_khoan",
   "field_don_gia_activity",
   "no_gia_tu_ngay",
+  "no_vh_tu_ngay",
+  "no_vh_mang_sang",
   "section_an_ca",
   "tien_an_ca",
   "column_break_ac",
@@ -127,6 +129,20 @@
    "label": "Tính nợ đơn giá từ ngày",
    "read_only": 1,
    "description": "D229: ngày sản xuất trước mốc không ghi nợ đơn giá — lưu lại bảng vào hộp cũ không sinh nợ. Đặt bằng lệnh bench --site site1.local execute sx.api.nogia.bo_no_truoc (lệnh đồng thời Bỏ qua các khoản nợ trước mốc)."
+  },
+  {
+   "fieldname": "no_vh_tu_ngay",
+   "fieldtype": "Date",
+   "label": "Tính nợ vào hộp từ ngày",
+   "read_only": 1,
+   "description": "D230: nợ vào hộp chỉ tính hàng chấm / nhập kho từ mốc (cộng phần mang sang); phiếu nhập ghi ngày trước mốc không sinh nợ. Đặt bằng lệnh bench --site site1.local execute sx.api.khotp.bo_no_vh_truoc (lệnh đồng thời Bỏ qua nợ trước mốc)."
+  },
+  {
+   "fieldname": "no_vh_mang_sang",
+   "fieldtype": "Long Text",
+   "label": "Hàng chấm trước mốc chưa nhập kho (mang sang)",
+   "read_only": 1,
+   "description": "D230: {mã: số hộp} chụp lúc đặt mốc — nhập kho phần này từ mốc không thành nợ vào hộp."
   },
   {
    "fieldname": "section_an_ca",
@@ -274,7 +290,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-11-04 12:00:00.000000",
+ "modified": "2026-11-04 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

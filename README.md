@@ -327,6 +327,45 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Bỏ nợ vào hộp tháng trước — chỉ tính từ đầu tháng 11 (D230)
+
+- **Hỏi** (04/11/2026): viết lệnh bỏ nợ vào hộp tháng trước, chỉ tính từ đầu tháng 11.
+- **Lệnh** (chạy trên site; gọi trần là xem trước, không ghi gì):
+  ```
+  bench --site site1.local execute sx.api.khotp.bo_no_vh_truoc                                   # xem trước, mốc = đầu tháng này
+  bench --site site1.local execute sx.api.khotp.bo_no_vh_truoc --kwargs "{'chay': 1}"            # làm thật
+  bench --site site1.local execute sx.api.khotp.bo_no_vh_truoc --kwargs "{'tu_ngay': '2026-11-01', 'chay': 1}"   # mốc tự chọn
+  ```
+  - Mọi khoản nợ vào hộp **Chờ chấm** ghi ngày **trước mốc** → **Bỏ qua**, lý do *"Bỏ nợ vào hộp trước 01/11/2026 — chỉ
+    tính nợ vào hộp từ 01/11/2026 (D230)"* (giữ số còn nợ làm dấu vết). Nợ đã chấm bù / bỏ qua / huỷ giữ nguyên.
+  - **Đặt mốc** ở SX Settings: ô *Tính nợ vào hộp từ ngày* + *Hàng chấm trước mốc chưa nhập kho (mang sang)* (chỉ đọc —
+    chỉ lệnh này đặt). Rồi **đối soát lại ngay** nợ từ mốc theo luật mới.
+- **Vì sao không chỉ Bỏ qua**: sổ nợ vào hộp là sổ **gộp theo mã** trong cửa sổ 30 ngày (D101). Phần kho nhận vượt tháng
+  trước (vd. nhập lại tồn sau kiểm kê, 9.940 hộp) vẫn nằm trong cửa sổ: mỗi lần nhập kho tháng 11 lại sinh nợ, và đối
+  soát lấy hộp chấm tháng 11 trả nợ tháng 10 trước — nợ tháng 11 không bao giờ về 0.
+- **Từ mốc** — mọi chỗ tính "đã chấm − đã nhận" (danh sách *Vừa vào hộp — chưa nhập kho*, nút tải, phần vượt lúc duyệt
+  phiếu nhập, đối soát nợ) dùng chung một luật (`khotp._cua_so`): cửa sổ 30 ngày chạm vào trước mốc thì **bắt đầu ở
+  mốc** — chứng từ trước mốc không tính nữa — **cộng phần mang sang**:
+  - **Mang sang** = hàng đã chấm trước mốc mà chưa nhập kho (đúng danh sách chờ nhập kho của hôm trước mốc), giữ theo
+    **ngày chấm** và **hết hạn như hàng chấm thường** (30 ngày). Nhờ vậy hàng chấm 31/10 mà 01/11 mới nhập kho **không**
+    thành nợ — cắt cứng ở mốc thì thành nợ, QC chấm bù là trả lương hai lần.
+  - Phiếu nhập ghi ngày **trước mốc** (duyệt muộn) không sinh nợ. *Ghi cho công khoán* chỉ ghi vào ngày từ mốc.
+  - Cửa sổ nằm hẳn sau mốc (từ 01/12) → như cũ, mốc hết tác dụng.
+- **Giới hạn** (báo cáo chỉ ra): mã có phần nhập vượt lớn chưa ai chấm (nhập lại tồn) thì hàng chấm cuối tháng chưa nhập
+  kho của mã đó đã bị sổ gộp tính là "trả nợ cũ" → không mang sang được; nhập kho từ mốc sẽ hiện nợ đúng phần đó. Báo
+  cáo đánh dấu *"← mã vừa bỏ nợ cũ … xem lại, đúng thì Bỏ qua, ĐỪNG chấm bù"*. Cố ý lệch về phía **hiện nợ** (thấy, Bỏ
+  qua được) chứ không về phía im lặng.
+- Báo cáo in: mốc (và mốc cũ), nợ bỏ theo mã + ngày, phần mang sang theo mã + ngày chấm, nợ từ mốc còn lại theo mã (sau
+  đối soát lại). Chặn: ngày sai dạng / sau hôm nay, site chưa migrate. Chạy lại an toàn; đặt mốc mới (tháng sau) thì
+  phần mang sang cũ còn hạn mà chưa nhập được mang tiếp.
+- Không có nút trên màn hình (không whitelist).
+- Test `test-novaohop.py` (D230: dựng lại đúng tình huống — nhập lại tồn 9.940, sản xuất thường vẫn bị ghi nợ, hàng
+  chấm 30–31/10 nhập 01/11, nợ chấm sót tháng 10 bị chấm tháng 11 trả mất, nợ đã Bỏ qua, phiếu huỷ, Tết nháp, chấm
+  03/10 không bao giờ nhập; xem trước / làm thật / đối soát lại / chạy lại / mốc mới; luật mới: phiếu trước mốc, đúng
+  mốc, phần mang sang hết hạn, chờ nhập kho + chia HSD, Ghi cho công khoán; cửa sổ quanh mốc, dữ liệu mang sang hỏng).
+- **Thêm ô** (SX Settings): `git pull` → `bench --site site1.local migrate` → `bench restart` → chạy lệnh xem trước →
+  làm thật.
+
 ## Bỏ nợ đơn giá vào hộp tháng trước — chỉ tính nợ từ đầu tháng này (D229)
 
 - **Hỏi** (04/11/2026): viết lệnh bỏ nợ đơn giá của ghi hộp tháng trước, chỉ tính nợ từ đầu tháng này.
@@ -2708,6 +2747,9 @@ nợ cũ trả trước. **Không có nút "đã chấm bù"** bấm tay. Quản
 Nợ là **sổ gộp theo mã**, không theo ngày: chấm hôm nay cho hàng chưa chuyển kho cũng trừ
 nợ hôm qua, rồi khi hàng đó vào kho sẽ sinh nợ mới. Tổng nợ luôn bằng đúng phần kho nhận
 vượt số chấm.
+
+**Bỏ hết nợ trước một mốc** (vd. tháng trước), từ đó chỉ tính từ mốc: lệnh bench
+`sx.api.khotp.bo_no_vh_truoc` — xem D230.
 
 ## Module QC — kiểm tra chất lượng (BM.08.01 / BM.08.02)
 
