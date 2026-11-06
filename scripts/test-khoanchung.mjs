@@ -161,9 +161,9 @@ window.SAN_SANG = true;
   await p.evaluate(() => navigator.clipboard.writeText('(cũ)'));
   await p.click('#sx-vh-copy');
   await p.waitForTimeout(300);
-  kiem('chỉ còn công khoán chung: báo "Chưa có dòng công khoán của công nhân nào", không chép',
+  kiem('chỉ còn công khoán chung (không ai được chấm ăn): báo "Chưa có sản lượng hay suất ăn nào…", không chép',
     (await p.evaluate(() => navigator.clipboard.readText())) === '(cũ)'
-    && (await p.textContent('.sx-toast-wrap')).includes('Chưa có dòng công khoán của công nhân nào để copy.'));
+    && (await p.textContent('.sx-toast-wrap')).includes('Chưa có sản lượng hay suất ăn nào của công nhân để copy.'));
 
   console.log('\n-- thẻ Sổ nợ vào hộp: Ghi cho công khoán --');
   const nhom = (x) => ({ nhom: [{ item: 'TP-SEN', ten: 'Bánh sen', con_lai: 29.5, so_hop: 30, so_ngay: 1,

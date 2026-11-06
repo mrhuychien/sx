@@ -301,7 +301,8 @@ export async function render({ container, boot, call, ensureNgay }) {
 
   container.querySelector('#sx-vh-copy').addEventListener('click', () => {
     copySanLuong(theoNguoi(), (boot.ngay_sx && boot.ngay_sx.ngay) || boot.ngay_xem,
-      (code) => { const k = tenSPKhoan(code); return k && k !== code ? k : tenSP(code); });
+      (code) => { const k = tenSPKhoan(code); return k && k !== code ? k : tenSP(code); },
+      anCa, (ma) => tenNgan[ma] || ma);                       // D231: kèm ăn ca / ăn đêm
   });
 
   async function save() {
@@ -395,17 +396,14 @@ export async function render({ container, boot, call, ensureNgay }) {
     const veThe = (nv) => {
       const q = daNhap[nv.name] || 0;
       const nLoai = soLoai[nv.name] ? soLoai[nv.name].size : 0;
-      const an = anCa[nv.name] || {};
-      const suat = (n, ten) => (n ? (n > 1 ? `${ten} ×${n}` : ten) : '');
-      const nhanAn = [suat(Number(an.an_ca) || 0, 'ăn ca'),
-                      suat(Number(an.an_dem) || 0, 'ăn đêm')].filter(Boolean).join(' + ');
+      const an = nhanAn(anCa[nv.name]);
       // Người CHƯA nhập không in dòng "chưa nhập": 45 lần cùng một chữ thì nó
       // không còn là thông tin, chỉ là mỗi ô cao gấp đôi. Chưa nhập = ô xám
       // trống; đã nhập = ô tô màu mùa CÓ số. Chỗ tiết kiệm được đủ hiện thêm
       // một hàng người.
       const h = gioCua(nv.name);
       const phu = [q ? `${formatNumber(q)} sp${nLoai > 1 ? ` · ${nLoai} loại` : ''}` : '',
-        h ? `${formatNumber(h, 2)} giờ` : '', nhanAn].filter(Boolean).join(' · ');
+        h ? `${formatNumber(h, 2)} giờ` : '', an].filter(Boolean).join(' · ');
       return `<button type="button" class="sx-nv-row${xong(nv.name) ? ' sx-nv-row-xong' : ''}"
           data-nv="${esc(nv.name)}" title="${esc(nv.employee_name || nv.name)}">
         <span class="sx-nv-ten">${esc(tenNgan[nv.name])}</span>
@@ -692,28 +690,55 @@ function openCachLamPicker(ten, sp, onPick) {
 /** Văn bản sản lượng gửi nhóm chat. Hàm THUẦN — `tenSP(code)` truyền vào từ
  *  render(), nơi có danh mục mã hàng. (Trước đây hàm này gọi thẳng `tenSP` vốn chỉ
  *  sống TRONG render() → bấm nút là lỗi "tenSP is not defined", không copy gì.) */
-export function vanBanSanLuong(nhomVao, ngay, tenSP) {
+export function vanBanSanLuong(nhomVao, ngay, tenSP, an = {}, tenNguoi = (ma) => ma) {
   // Bỏ dòng CÔNG NHẬT và ★ CÔNG KHOÁN CHUNG (D213): tin gửi nhóm là để từng công nhân
   // khoán đối chiếu số của mình — hai dòng đó không phải một người; tổng tin cũng không cộng.
   const nhom = nhomVao
     .map((g) => ({ ...g, dong: g.dong.filter((r) => !KHONG_NGUOI.includes(r.nhan_vien)) }))
-    .filter((g) => g.dong.length);
+    .filter((g) => g.dong.length)
+    .map((g) => ({ ...g, nv: g.nv || g.dong[0].nhan_vien }));
+  // D231: chấm ăn ca / ăn đêm của từng người đi kèm dòng của họ; người chỉ có chấm ăn (chưa có hộp / giờ) vẫn
+  // có dòng — tin để mỗi người đối chiếu, thiếu dòng là thiếu chỗ để thấy mình được chấm ăn hay chưa.
+  const coDong = new Set(nhom.map((g) => g.nv));
+  const nguoiAn = Object.entries(an || {}).filter(([ma]) => !KHONG_NGUOI.includes(ma));
+  nguoiAn.forEach(([ma, x]) => {
+    if (!coDong.has(ma) && nhanAn(x)) nhom.push({ nv: ma, ten: tenNguoi(ma), dong: [] });
+  });
+  nhom.sort((a, b) => String(a.ten).localeCompare(String(b.ten), 'vi'));
   const d = (ngay || '').split('-');
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
   const dong = nhom.map((g) => {
     const ct = g.dong.map((r) => (r._gio ? `Làm theo giờ: ${formatNumber(r._gio, 2)} giờ`      // D225
       : `${tenSP(r.san_pham) || '?'}: ${formatNumber(r.so_hop)}`)).join(', ');
-    return `${g.ten} (${ct})`;
+    return [ct ? `${g.ten} (${ct})` : g.ten, nhanAn((an || {})[g.nv])].filter(Boolean).join(' · ');
   });
   const tong = nhom.reduce((a, g) => a + g.dong.reduce((x, r) => x + (Number(r.so_hop) || 0), 0), 0);
-  return `${tieuDe}\n${dong.join('\n')}\n— Tổng: ${formatNumber(tong)} sản phẩm`;
+  const suat = (k) => nguoiAn.reduce((a, [, x]) => a + (Number(x[k]) || 0), 0);
+  const ca = suat('an_ca');
+  const dem = suat('an_dem');
+  return `${tieuDe}\n${dong.join('\n')}\n— Tổng: ${formatNumber(tong)} sản phẩm${
+    ca || dem ? `\n— Suất ăn: ăn ca ${formatNumber(ca)} · ăn đêm ${formatNumber(dem)}` : ''}`;
 }
 
-function copySanLuong(nhom, ngay, tenSP) {
-  if (!nhom.some((g) => g.dong.some((r) => !KHONG_NGUOI.includes(r.nhan_vien)))) {
-    toastErr('Chưa có dòng công khoán của công nhân nào để copy.'); return;
+/** Có gì để gửi nhóm không: một dòng hộp / giờ của công nhân, hoặc một người được chấm ăn (D231). */
+export function coGiDeCopy(nhom, an = {}) {
+  return nhom.some((g) => g.dong.some((r) => !KHONG_NGUOI.includes(r.nhan_vien)))
+    || Object.entries(an || {}).some(([ma, x]) => !KHONG_NGUOI.includes(ma) && !!nhanAn(x));
+}
+
+function copySanLuong(nhom, ngay, tenSP, an, tenNguoi) {
+  if (!coGiDeCopy(nhom, an)) {
+    toastErr('Chưa có sản lượng hay suất ăn nào của công nhân để copy.'); return;
   }
-  chepVaoClipboard(vanBanSanLuong(nhom, ngay, tenSP));
+  chepVaoClipboard(vanBanSanLuong(nhom, ngay, tenSP, an, tenNguoi));
+}
+
+/** Chấm ăn của MỘT người: "ăn ca", "ăn ca ×2 + ăn đêm"… — rỗng khi không chấm. Dùng chung cho thẻ tên và tin
+ *  gửi nhóm (D231): hai chỗ viết hai kiểu là công nhân đọc tin không khớp màn QC. */
+function nhanAn(x) {
+  const suat = (n, ten) => (n ? (n > 1 ? `${ten} ×${n}` : ten) : '');
+  return [suat(Number((x || {}).an_ca) || 0, 'ăn ca'),
+    suat(Number((x || {}).an_dem) || 0, 'ăn đêm')].filter(Boolean).join(' + ');
 }
 
 /** Copy kiểu cũ (execCommand) — chạy được cả khi trang mở bằng http hoặc trình

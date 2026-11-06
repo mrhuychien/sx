@@ -327,6 +327,34 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ghi hộp: "Copy sản lượng gửi nhóm" kèm ăn ca / ăn đêm (D231)
+
+- **Hỏi** (06/11/2026): thêm phần ăn ca, ăn đêm (số lượng) vào tin copy sản lượng ở màn Ghi hộp.
+- **Nay** tin gửi nhóm:
+  ```
+  SẢN LƯỢNG 06/11/2026
+  An (Bánh đậu xanh sen: 120) · ăn ca + ăn đêm
+  Bình (Bánh TT: 30) · ăn ca ×2
+  Cúc · ăn ca
+  Dũng (Làm theo giờ: 3 giờ)
+  — Tổng: 150 sản phẩm
+  — Suất ăn: ăn ca 4 · ăn đêm 1
+  ```
+  - Mỗi người: sau sản lượng là phần chấm ăn, **cùng chữ với thẻ tên trên màn** ("ăn ca", "ăn ca ×2", "ăn ca + ăn
+    đêm" — một hàm `nhanAn` dùng chung). Người không chấm ăn thì không thêm gì.
+  - Người **chỉ có chấm ăn** (chưa có hộp / giờ) vẫn có dòng — tin để mỗi người đối chiếu mình được chấm ăn chưa.
+  - Dòng cuối **— Suất ăn: ăn ca N · ăn đêm M**, khớp ô *Suất ăn* dưới bảng (tổng cả ngày). Không ai được chấm ăn thì
+    không có dòng này — tin y như cũ.
+  - Công nhật / công khoán chung vẫn không có trong tin (D213), không chấm ăn.
+  - Chưa có hộp mà đã chấm ăn thì vẫn copy được; chưa có gì thì báo "Chưa có sản lượng hay suất ăn nào của công nhân
+    để copy."
+- Chấm ăn là của cả ngày (mọi QC cùng chấm — như giờ làm D225), nên QC chỉ thấy phần hộp mình ghi (D113) vẫn có đủ
+  chấm ăn của mọi người trong tin.
+- Test `test-copy.mjs` (văn bản: chấm ăn từng người, ×2, người chỉ có chấm ăn, làm theo giờ, xếp theo tên, tổng suất
+  không cộng mã giả, không chấm ăn thì như cũ; có gì để copy; Chromium thật: bấm nút đọc clipboard, thẻ tên cùng chữ),
+  `test-khoanchung.mjs` (câu báo khi chỉ còn công khoán chung).
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-171**.
+
 ## Bỏ nợ vào hộp tháng trước — chỉ tính từ đầu tháng 11 (D230)
 
 - **Hỏi** (04/11/2026): viết lệnh bỏ nợ vào hộp tháng trước, chỉ tính từ đầu tháng 11.
