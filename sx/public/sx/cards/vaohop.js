@@ -709,7 +709,8 @@ export function vanBanSanLuong(nhomVao, ngay, tenSP, an = {}, tenNguoi = (ma) =>
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
   const dong = nhom.map((g) => {
     const ct = g.dong.map((r) => (r._gio ? `Làm theo giờ: ${formatNumber(r._gio, 2)} giờ`      // D225
-      : `${tenSP(r.san_pham) || '?'}: ${formatNumber(r.so_hop)}`)).join(', ');
+      : `${tenSP(r.san_pham) || '?'}${r.cach_lam ? ` (${viTatCachLam(r.cach_lam)})` : ''}: ${   // D232
+        formatNumber(r.so_hop)}`)).join(', ');
     return [ct ? `${g.ten} (${ct})` : g.ten, nhanAn((an || {})[g.nv])].filter(Boolean).join(' · ');
   });
   const tong = nhom.reduce((a, g) => a + g.dong.reduce((x, r) => x + (Number(r.so_hop) || 0), 0), 0);
@@ -718,6 +719,12 @@ export function vanBanSanLuong(nhomVao, ngay, tenSP, an = {}, tenNguoi = (ma) =>
   const dem = suat('an_dem');
   return `${tieuDe}\n${dong.join('\n')}\n— Tổng: ${formatNumber(tong)} sản phẩm${
     ca || dem ? `\n— Suất ăn: ăn ca ${formatNumber(ca)} · ăn đêm ${formatNumber(dem)}` : ''}`;
+}
+
+/** Cách làm viết tắt trong tin gửi nhóm (D232): chữ đầu mỗi từ, viết hoa — Tay → T, Máy (hay "máy") → M,
+ *  "Máy hỗ trợ" → MHT. Tên cách làm khai ở SX Cach Lam, không gõ cứng hai chữ: thêm cách làm mới vẫn ra chữ tắt. */
+export function viTatCachLam(cl) {
+  return String(cl || '').split(/\s+/).map((w) => w.charAt(0)).join('').toUpperCase();
 }
 
 /** Có gì để gửi nhóm không: một dòng hộp / giờ của công nhân, hoặc một người được chấm ăn (D231). */

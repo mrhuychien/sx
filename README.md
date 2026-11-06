@@ -327,14 +327,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ghi hộp: "Copy sản lượng gửi nhóm" kèm cách làm viết tắt — Tay → T, Máy → M (D232)
+
+- **Hỏi** (06/11/2026): phần copy sản lượng gửi nhóm thêm hình thức làm, vd Máy → M, Tay → T.
+- **Nay** mỗi dòng sản phẩm có cách làm viết tắt trong ngoặc ngay sau tên hàng:
+  `An (Bánh sen (T): 50, Bánh sen (M): 70, Bánh TT: 5) · ăn ca`. Dòng không có cách làm giữ như cũ.
+- Viết tắt = chữ đầu mỗi từ, viết hoa (`viTatCachLam`): Tay → T, Máy (hay "máy" chữ thường như site cũ — D224) → M,
+  cách làm nhiều chữ ra nhiều chữ ("Máy hỗ trợ" → MHT). Lấy theo tên khai ở SX Cach Lam, không gõ cứng hai chữ.
+- Test `test-copy.mjs` (văn bản: T / M / "máy", cùng mã hai cách làm, dòng không cách làm; hàm viết tắt; Chromium thật:
+  clipboard có "(M)").
+- Không đổi DocType: `git pull` → `bench restart`. Build **sx-172**.
+
 ## Ghi hộp: "Copy sản lượng gửi nhóm" kèm ăn ca / ăn đêm (D231)
 
 - **Hỏi** (06/11/2026): thêm phần ăn ca, ăn đêm (số lượng) vào tin copy sản lượng ở màn Ghi hộp.
 - **Nay** tin gửi nhóm:
   ```
   SẢN LƯỢNG 06/11/2026
-  An (Bánh đậu xanh sen: 120) · ăn ca + ăn đêm
-  Bình (Bánh TT: 30) · ăn ca ×2
+  An (Bánh đậu xanh sen (M): 120) · ăn ca + ăn đêm
+  Bình (Bánh TT (T): 30) · ăn ca ×2
   Cúc · ăn ca
   Dũng (Làm theo giờ: 3 giờ)
   — Tổng: 150 sản phẩm

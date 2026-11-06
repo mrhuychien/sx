@@ -25,7 +25,7 @@ const src = readFileSync(join(GOC, 'sx/public/sx/cards/vaohop.js'), 'utf8')
   .split('\n').filter((d) => !d.startsWith('import ')).join('\n');
 const tam = join(tmpdir(), `vh-${process.pid}.mjs`);
 writeFileSync(tam, `const formatNumber = (n) => Number(n).toLocaleString('vi-VN');\n${src}`);
-const { vanBanSanLuong, coGiDeCopy } = await import(`file://${tam}`);
+const { vanBanSanLuong, coGiDeCopy, viTatCachLam } = await import(`file://${tam}`);
 rmSync(tam);
 console.log('-- văn bản gửi nhóm --');
 const nhom = [
@@ -67,6 +67,23 @@ kiem('không ai được chấm ăn → không có dòng suất ăn, tin y như 
 kiem('chỉ có ăn đêm → vẫn ghi đủ hai số (ăn ca 0)',
   vanBanSanLuong([], '', tenHang, { NV9: { an_dem: 1 } }, () => 'Hà').endsWith('Hà · ăn đêm\n— Tổng: 0 sản phẩm'
     + '\n— Suất ăn: ăn ca 0 · ăn đêm 1'));
+console.log('\n-- D232: cách làm viết tắt --');
+const vbCl = vanBanSanLuong([
+  { ten: 'An', dong: [{ nhan_vien: 'NV1', san_pham: 'TP-SEN', cach_lam: 'Tay', so_hop: 50 },
+    { nhan_vien: 'NV1', san_pham: 'TP-SEN', cach_lam: 'Máy', so_hop: 70 },
+    { nhan_vien: 'NV1', san_pham: 'TP-TT', so_hop: 5 }] },
+  { ten: 'Bình', dong: [{ nhan_vien: 'NV2', san_pham: 'TP-TT', cach_lam: 'máy', so_hop: 30 }] },
+], '2026-10-05', tenHang, { NV2: { an_ca: 1 } });
+kiem('mỗi dòng sản phẩm kèm cách làm viết tắt: Tay → T, Máy / "máy" → M; dòng không cách làm giữ như cũ',
+  vbCl === 'SẢN LƯỢNG 05/10/2026\n'
+    + 'An (Bánh sen (T): 50, Bánh sen (M): 70, Bánh TT: 5)\n'
+    + 'Bình (Bánh TT (M): 30) · ăn ca\n'
+    + '— Tổng: 155 sản phẩm\n'
+    + '— Suất ăn: ăn ca 1 · ăn đêm 0', JSON.stringify(vbCl));
+kiem('viết tắt: chữ đầu mỗi từ, viết hoa, bỏ khoảng trắng thừa; rỗng thì rỗng',
+  viTatCachLam('Tay') === 'T' && viTatCachLam(' Máy ') === 'M' && viTatCachLam('Máy hỗ  trợ') === 'MHT'
+  && viTatCachLam('đóng tay') === 'ĐT' && viTatCachLam('Máy\thỗ trợ') === 'MHT'   // tên dán từ Excel có tab
+  && viTatCachLam('') === '' && viTatCachLam(null) === '');
 kiem('có gì để copy: dòng hộp của người, hoặc một người được chấm ăn — mã giả / chấm 0 thì không',
   coGiDeCopy([], { NV3: { an_ca: 1 } }) && coGiDeCopy([nhomAn[0]], {})
   && !coGiDeCopy([nhomAn[3]], {}) && !coGiDeCopy([nhomAn[3]], { CONG_NHAT: { an_ca: 1 } })
@@ -90,7 +107,8 @@ const boot = { ngay_xem: '2026-10-05', ngay_sx: { name: 'N1', ngay: '2026-10-05'
   bang_don_gia: 'BG', items_tp: [{ name: 'TP-SEN', item_name: 'Bánh đậu xanh sen' }],
   danh_muc_khoan: [], nhan_vien: [{ name: 'NV1', employee_name: 'Nguyễn Thị An', ten_hien_thi: 'An' },
     { name: 'NV2', employee_name: 'Trần Văn Bình', ten_hien_thi: 'Bình' }],
-  bang_vao_hop: { dong: [{ nhan_vien: 'NV1', ten_nhan_vien: 'Nguyễn Thị An', san_pham: 'TP-SEN', so_hop: 120 },
+  bang_vao_hop: { dong: [{ nhan_vien: 'NV1', ten_nhan_vien: 'Nguyễn Thị An', san_pham: 'TP-SEN', cach_lam: 'Máy',
+    so_hop: 120 },
     { nhan_vien: 'CONG_NHAT', ten_nhan_vien: 'Công nhật', cong_nhat: 1, san_pham: 'TP-SEN', so_hop: 50 }],
     an_ca: [{ nhan_vien: 'NV1', an_ca: 1, an_dem: 1, so_gio: 0 }, { nhan_vien: 'NV2', an_ca: 1, an_dem: 0, so_gio: 0 }] } };
 await render({ container: document.getElementById('c'), boot, call: async () => ({}), ensureNgay: async () => boot.ngay_sx });
@@ -127,11 +145,12 @@ window.SAN_SANG = true;
   await b.close();
   srv.close();
   kiem('bấm nút không lỗi JavaScript', !loi.length, loi.join(' | '));
-  kiem('clipboard có sản lượng, tên hàng thay mã',
-    clip.includes('SẢN LƯỢNG 05/10/2026') && clip.includes('An (Bánh đậu xanh sen: 120)'), JSON.stringify(clip));
+  kiem('clipboard có sản lượng, tên hàng thay mã, cách làm viết tắt (D232: Máy → M)',
+    clip.includes('SẢN LƯỢNG 05/10/2026') && clip.includes('An (Bánh đậu xanh sen (M): 120)'),
+    JSON.stringify(clip));
   kiem('clipboard không có công nhật, tổng 120', !clip.includes('ông nhật') && clip.includes('Tổng: 120'));
   kiem('D231: clipboard kèm chấm ăn từng người (cả người chỉ có chấm ăn) + tổng suất ăn',
-    clip.includes('An (Bánh đậu xanh sen: 120) · ăn ca + ăn đêm\nBình · ăn ca\n')
+    clip.includes('An (Bánh đậu xanh sen (M): 120) · ăn ca + ăn đêm\nBình · ăn ca\n')
     && clip.endsWith('— Suất ăn: ăn ca 2 · ăn đêm 1'), JSON.stringify(clip));
   kiem('… thẻ tên trên màn vẫn ghi chấm ăn y như tin (cùng một hàm)', (theAn || '').includes('ăn ca + ăn đêm'),
     JSON.stringify(theAn));
