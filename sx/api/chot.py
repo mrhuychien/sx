@@ -115,8 +115,16 @@ def _co_gi_de_ghi(bang):
     if cint(bang.tong_hop) > 0:
         return True
     return any(
-        cint(r.an_ca) or cint(r.an_dem) or flt(r.get("so_gio")) > 0 for r in (bang.get("an_ca") or [])
+        cint(r.an_ca) or cint(r.an_dem) or _gio_cua(r) for r in (bang.get("an_ca") or [])
     )
+
+
+def _gio_cua(r):
+    """[(số giờ, đơn giá / giờ)] làm theo giờ của MỘT người trên bảng chấm theo người — mỗi mức có giờ một cặp (D225,
+    D233: mức 33.000 và 30.000 là hai dòng lương riêng, đơn giá chốt lúc ghi)."""
+    from sx.sx.doctype.sx_bang_vao_hop.sx_bang_vao_hop import MUC_GIO
+
+    return [(flt(r.get(k)), flt(r.get(kg))) for k, kg, _h in MUC_GIO if flt(r.get(k)) > 0]
 
 
 def _kho_nguon(item_code, settings):
@@ -364,8 +372,9 @@ def _ghi_luong_khoan(doc, bang):
     # phải có dòng
     an, gio = {}, {}
     for r in bang.get("an_ca") or []:
-        if flt(r.get("so_gio")) > 0:
-            gio[r.nhan_vien] = (flt(r.so_gio), flt(r.don_gia_gio))
+        h = _gio_cua(r)
+        if h:
+            gio[r.nhan_vien] = h
         if not (cint(r.an_ca) or cint(r.an_dem) or r.nhan_vien in gio):
             continue
         an[r.nhan_vien] = (cint(r.an_ca), cint(r.an_dem))
@@ -412,8 +421,8 @@ def _thay_ngay(phieu, ngay, cong_viec, an_ca, an_dem, gio=None):
 
     Ghi đè chứ không cộng dồn: chốt lại ngày sau khi sửa bảng vào hộp phải ra đúng
     số mới, không phải số cũ cộng số mới. Ngày khác trong phiếu không bị đụng tới.
-    `gio` = (số giờ, đơn giá / giờ) làm theo giờ (D225) → một dòng chi tiết "làm theo giờ": cộng vào lương sản
-    phẩm của ngày như hộp (hệ số ngày lễ, thâm niên).
+    `gio` = [(số giờ, đơn giá / giờ)] làm theo giờ (D225; D233: mỗi mức một cặp) → mỗi cặp một dòng chi tiết "làm
+    theo giờ": cộng vào lương sản phẩm của ngày như hộp (hệ số ngày lễ, thâm niên).
     """
     ngay_s = str(ngay)
     phieu.set("chi_tiet", [r for r in phieu.chi_tiet if str(getdate(r.ngay)) != ngay_s])
@@ -424,8 +433,9 @@ def _thay_ngay(phieu, ngay, cong_viec, an_ca, an_dem, gio=None):
             "ngay": ngay, "san_pham": sp, "cach_lam": cach_lam,
             "so_luong": cint(sl), "don_gia": flt(dg),
         })
-    if gio and flt(gio[0]) > 0:
-        phieu.append("chi_tiet", {"ngay": ngay, "theo_gio": 1, "so_gio": flt(gio[0]), "don_gia": flt(gio[1])})
+    for so_gio, don_gia in gio or []:
+        if flt(so_gio) > 0:
+            phieu.append("chi_tiet", {"ngay": ngay, "theo_gio": 1, "so_gio": flt(so_gio), "don_gia": flt(don_gia)})
     dong = next((r for r in phieu.dong if str(getdate(r.ngay)) == ngay_s), None)
     if not dong:
         dong = phieu.append("dong", {"ngay": ngay})

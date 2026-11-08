@@ -16,6 +16,10 @@ CONG_NHAT = "CONG_NHAT"
 KHOAN_CHUNG = "KHOAN_CHUNG"
 
 
+# D225 / D233: các mức làm theo giờ trên bảng chấm theo người — (ô số giờ, ô đơn giá chốt lúc ghi, hàm đơn giá trong
+# sx.utils). Mọi chỗ đọc / ghi giờ (lưu bảng, tóm tắt cho màn hình, chốt ngày → phiếu lương, lịch) đi theo bảng này.
+MUC_GIO = (("so_gio", "don_gia_gio", "don_gia_gio"), ("so_gio_2", "don_gia_gio_2", "don_gia_gio_2"))
+
 class SXBangVaoHop(Document):
     """Bảng vào hộp — sản lượng TP + lương sản phẩm theo NGƯỜI (cả 2 nhánh bánh/bột).
 
@@ -35,25 +39,30 @@ class SXBangVaoHop(Document):
     def tinh_gio(self):
         """Làm theo giờ (D225): công khoán ra làm việc tính giờ như công nhật — số giờ ở bảng chấm theo người (cạnh ăn ca),
         tiền = số giờ × đơn giá / giờ, cộng vào tổng tiền của bảng; chốt ngày vào phiếu lương như lương sản phẩm.
+        D233: hai mức (MUC_GIO) — 33.000 và 30.000 —, mỗi mức một số giờ + đơn giá riêng; `tien_gio` = tiền cả hai mức.
 
         Đơn giá chốt lúc ghi giờ LẦN ĐẦU (SX Settings) và giữ qua các lần lưu sau — đổi đơn giá ở Settings không làm
-        ngày cũ còn mở tính lại theo giá mới. Bỏ giờ (0) thì bỏ luôn đơn giá."""
-        gia = None
-        for r in self.get("an_ca") or []:
-            r.so_gio = round(flt(r.get("so_gio")), 2)
-            if r.so_gio < 0 or r.so_gio > 24:
-                frappe.throw(_("{0}: số giờ làm theo giờ phải từ 0 đến 24 (đang ghi {1}).").format(
-                    r.get("ten_nhan_vien") or r.nhan_vien, r.so_gio))
-            if r.so_gio <= 0:
-                r.so_gio, r.don_gia_gio, r.tien_gio = 0, 0, 0
-                continue
-            if flt(r.get("don_gia_gio")) <= 0:
-                if gia is None:
-                    from sx.utils import don_gia_gio
+        ngày cũ còn mở tính lại theo giá mới. Bỏ giờ (0) thì bỏ luôn đơn giá. Một ngày tối đa 24 giờ — cộng cả hai mức."""
+        from importlib import import_module
 
-                    gia = don_gia_gio()
-                r.don_gia_gio = gia
-            r.tien_gio = flt(r.so_gio) * flt(r.don_gia_gio)
+        for r in self.get("an_ca") or []:
+            ten = r.get("ten_nhan_vien") or r.nhan_vien
+            r.tien_gio = 0
+            for k, kg, ham in MUC_GIO:
+                setattr(r, k, round(flt(r.get(k)), 2))
+                if r.get(k) < 0 or r.get(k) > 24:
+                    frappe.throw(_("{0}: số giờ làm theo giờ phải từ 0 đến 24 (đang ghi {1}).").format(ten, r.get(k)))
+                if r.get(k) <= 0:
+                    setattr(r, k, 0)
+                    setattr(r, kg, 0)
+                    continue
+                if flt(r.get(kg)) <= 0:
+                    setattr(r, kg, getattr(import_module("sx.utils"), ham)())   # get_settings đã nhớ — gọi lại rẻ
+                r.tien_gio = flt(r.tien_gio) + flt(r.get(k)) * flt(r.get(kg))
+            tong = sum(flt(r.get(k)) for k, _kg, _h in MUC_GIO)
+            if tong > 24:
+                frappe.throw(_("{0}: tổng số giờ làm theo giờ (mọi mức) không quá 24 trong một ngày (đang ghi {1}).")
+                             .format(ten, round(tong, 2)))
             self.tong_tien = flt(self.tong_tien) + flt(r.tien_gio)
 
     def on_trash(self):

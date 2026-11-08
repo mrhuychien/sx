@@ -15,12 +15,19 @@ def get_settings():
 
 
 # D225: công khoán ra làm việc tính theo giờ như công nhật — đơn giá / giờ (SX Settings), bỏ trống = mức đang dùng.
+# D233: thêm mức thứ hai (30.000) — hai mức sống cạnh nhau, một người một ngày có thể có giờ ở cả hai.
 DON_GIA_GIO = 33000
+DON_GIA_GIO_2 = 30000
 
 
 def don_gia_gio():
-    """Đơn giá làm theo giờ của công khoán (D225)."""
+    """Đơn giá làm theo giờ của công khoán — mức 1 (D225)."""
     return flt(get_settings().get("don_gia_gio")) or DON_GIA_GIO
+
+
+def don_gia_gio_2():
+    """Đơn giá làm theo giờ — mức 2 (D233)."""
+    return flt(get_settings().get("don_gia_gio_2")) or DON_GIA_GIO_2
 
 
 # ───────────────────────────── nhớ tạm trong MỘT request (D120) ──

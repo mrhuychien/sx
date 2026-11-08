@@ -109,6 +109,8 @@ ut.tra_don_gia = lambda b, sp, cl=None: b.get((sp, cl or ""), b.get((sp, "")))
 ut.nho = lambda ten: {}   # D120: bộ nhớ request — test giả không nhớ
 GIA_GIO = [33000.0]      # D225: SX Settings → đơn giá làm theo giờ
 ut.don_gia_gio = lambda: GIA_GIO[0]
+GIA_GIO_2 = [30000.0]    # D233: mức thứ hai
+ut.don_gia_gio_2 = lambda: GIA_GIO_2[0]
 ut.nap_bom = lambda items: {i: ut.get_bom_active(i) for i in (items or [])} if hasattr(ut, "get_bom_active") else {}
 ut.ton_bin = lambda items, kho: {}
 sys.modules["sx.utils"] = ut
@@ -297,6 +299,7 @@ kiem("màn Ghi sổ: chỉ danh mục báo mẻ", GOI == ["ghiso"] and "loai_dau
 GOI.clear()
 r = dm({"vaohop"}, "2026-10-06", set(VAI), True)
 kiem("D225: danh mục Ghi hộp kèm đơn giá làm theo giờ (bàn số hiện thành tiền)", r.get("don_gia_gio") == 33000.0, r)
+kiem("D233: … và đơn giá mức 2 (nút giờ 30.000 + bàn số)", r.get("don_gia_gio_2") == 30000.0, r)
 kiem("màn Ghi hộp: danh mục vào hộp + mã quét (không kèm báo mẻ)", "items_tp" in r
      and "ma_quet" in r and "loai_dau" not in r
      and "ghiso" not in GOI, sorted(r))
@@ -374,9 +377,56 @@ kiem("công nhật / công khoán chung không phải một người → không 
 luu([], biet=[r["name"] for r in tat_ca()], an_ca=[{"nhan_vien": "NV2", "an_ca": 0, "an_dem": 0}])
 kiem("xoá hết dòng hộp, bỏ chấm ăn mà còn giờ → GIỮ bảng (giờ là tiền công)", "BVH-1" in BANG
      and nguoi("NV2") and nguoi("NV2")["so_gio"] == 1.5, BANG.get("BVH-1"))
+
+print("\n-- D233: làm theo giờ mức 2 (30.000) --")
+gio_luu([{"nhan_vien": "NV2", "so_gio_2": 3}])
+g = nguoi("NV2")
+kiem("ghi 3 giờ mức 2 cho NV2 (đang có 1,5 giờ mức 1): đơn giá mức 2 chốt từ Settings, mức 1 giữ nguyên, "
+     "tiền giờ = cả hai mức", g and (g["so_gio"], g["don_gia_gio"], g["so_gio_2"], g["don_gia_gio_2"], g["tien_gio"])
+     == (1.5, 35000.0, 3.0, 30000.0, 1.5 * 35000 + 90000), g)
+kiem("… tổng tiền bảng cộng tiền giờ cả hai mức", BANG["BVH-1"]["tong_tien"] == 10000 + 1.5 * 35000 + 90000,
+     BANG["BVH-1"]["tong_tien"])
+sm = PT._bang_summary("NSX-1")
+x = next(x for x in sm["an_ca"] if x["nhan_vien"] == "NV2")
+kiem("… màn Ghi hộp nhận lại giờ + đơn giá ĐÃ CHỐT của từng mức (để ghi rõ mức trên dòng giờ)",
+     (x["so_gio"], x["don_gia_gio"], x["so_gio_2"], x["don_gia_gio_2"]) == (1.5, 35000.0, 3.0, 30000.0), x)
+gio_luu([{"nhan_vien": "NV2", "so_gio": 2}])
+kiem("gửi chỉ khoá so_gio → giờ mức 2 giữ nguyên", (nguoi("NV2")["so_gio"], nguoi("NV2")["so_gio_2"]) == (2.0, 3.0),
+     nguoi("NV2"))
+gio_luu([{"nhan_vien": "NV2", "an_ca": 0}])
+kiem("máy bản cũ (không biết so_gio_2) chấm ăn → GIỮ giờ mức 2", nguoi("NV2")["so_gio_2"] == 3.0, nguoi("NV2"))
+GIA_GIO_2[0] = 31000.0
+gio_luu([{"nhan_vien": "NV2", "so_gio_2": 4}])
+kiem("đổi đơn giá mức 2 ở Settings: người đã có giờ mức 2 GIỮ giá lúc ghi (30.000)",
+     (nguoi("NV2")["so_gio_2"], nguoi("NV2")["don_gia_gio_2"]) == (4.0, 30000.0), nguoi("NV2"))
+GIA_GIO_2[0] = 30000.0
+try:
+    gio_luu([{"nhan_vien": "NV2", "so_gio_2": 23}])
+    loi = ""
+except Loi as e:
+    loi = str(e)
+kiem("2 giờ mức 1 + 23 giờ mức 2 = 25 → báo lỗi (tổng mọi mức ≤ 24), không lưu",
+     "không quá 24" in loi and nguoi("NV2")["so_gio_2"] == 4.0, loi)
+try:
+    gio_luu([{"nhan_vien": "NV2", "so_gio": 0, "so_gio_2": 25}])
+    loi = ""
+except Loi as e:
+    loi = str(e)
+kiem("một mức quá 24 → báo lỗi từng mức", "từ 0 đến 24" in loi, loi)
+gio_luu([{"nhan_vien": "NV2", "so_gio_2": 0}])
+kiem("bỏ giờ mức 2 → bỏ luôn đơn giá mức 2, mức 1 còn", (nguoi("NV2")["so_gio"], nguoi("NV2")["so_gio_2"],
+     nguoi("NV2")["don_gia_gio_2"]) == (2.0, 0, 0), nguoi("NV2"))
+gio_luu([{"nhan_vien": "NV7", "so_gio_2": 1}])
+kiem("người CHỈ làm giờ mức 2 → có dòng người", nguoi("NV7") and nguoi("NV7")["so_gio_2"] == 1.0, nguoi("NV7"))
+gio_luu([{"nhan_vien": "NV7", "so_gio_2": 0}])
+kiem("… bỏ giờ mức 2 → mất dòng (không giờ, không ăn)", nguoi("NV7") is None, BANG["BVH-1"]["an_ca"])
+
 js = open("sx/public/sx/cards/vaohop.js", encoding="utf-8").read()
-kiem("màn Ghi hộp: lối Làm theo giờ, bàn số giờ lẻ, gửi khoá so_gio vừa đổi",
-     "⏱ LÀM THEO GIỜ" in js and "allowDecimal: true" in js and "['an_ca', 'an_dem', 'so_gio']" in js)
+kiem("màn Ghi hộp: lối Làm theo giờ, bàn số giờ lẻ, gửi khoá giờ của mọi mức vừa đổi",
+     "⏱ LÀM THEO GIỜ" in js and "allowDecimal: true" in js and "['an_ca', 'an_dem', ...MUC_GIO.map((m) => m.k)]" in js
+     and "const MUC_GIO = [{ k: 'so_gio', kg: 'don_gia_gio' }, { k: 'so_gio_2', kg: 'don_gia_gio_2' }];" in js)
+kiem("… mức trên màn khớp MUC_GIO của server", [(k, kg) for k, kg, _h in BVH.MUC_GIO]
+     == [("so_gio", "don_gia_gio"), ("so_gio_2", "don_gia_gio_2")])
 
 print("GHIHOP-OK" if not hong else f"GHIHOP: {hong} HỎNG")
 sys.exit(1 if hong else 0)

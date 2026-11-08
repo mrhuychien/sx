@@ -54,10 +54,23 @@ sys.modules["frappe.utils"] = fu
 mm, md = types.ModuleType("frappe.model"), types.ModuleType("frappe.model.document")
 md.Document = object
 sys.modules["frappe.model"], sys.modules["frappe.model.document"] = mm, md
-for g in ("sx", "sx.sx", "sx.sx.doctype", "sx.sx.doctype.sx_phieu_luong"):
+for g in ("sx", "sx.sx", "sx.sx.doctype", "sx.sx.doctype.sx_phieu_luong", "sx.sx.doctype.sx_bang_vao_hop"):
     m = types.ModuleType(g)
     m.__path__ = []
     sys.modules[g] = m
+
+
+def hang_that(tep, ten):
+    """ĐÚNG giá trị một hằng trong tệp nguồn (D233: MUC_GIO của bảng vào hộp) — không chép tay vào test."""
+    for n in ast.parse(open(tep, encoding="utf-8").read()).body:
+        if isinstance(n, ast.Assign) and any(getattr(t, "id", None) == ten for t in n.targets):
+            return ast.literal_eval(n.value)
+    raise AssertionError(ten)
+
+
+bvh = types.ModuleType("sx.sx.doctype.sx_bang_vao_hop.sx_bang_vao_hop")
+bvh.MUC_GIO = hang_that("sx/sx/doctype/sx_bang_vao_hop/sx_bang_vao_hop.py", "MUC_GIO")
+sys.modules[bvh.__name__] = bvh
 ut = types.ModuleType("sx.utils")
 ut.get_settings = lambda: D()        # mặc định = mức đang dùng: ăn ca 20.000, hệ số ngày lễ 1,2, thâm niên 5%
 sys.modules["sx.utils"] = ut
@@ -104,10 +117,11 @@ def ham_that(tep, ten, **g):
 PHIEU = {}
 chung = dict(cint=fu.cint, flt=fu.flt, getdate=fu.getdate, frappe=frappe, _=lambda s: s)
 thay_ngay = ham_that("sx/api/chot.py", "_thay_ngay", **chung)
-ghi_luong = ham_that("sx/api/chot.py", "_ghi_luong_khoan", _thay_ngay=thay_ngay,
+gio_cua_nguoi = ham_that("sx/api/chot.py", "_gio_cua", **chung)
+ghi_luong = ham_that("sx/api/chot.py", "_ghi_luong_khoan", _thay_ngay=thay_ngay, _gio_cua=gio_cua_nguoi,
                      _phieu_luong_thang=lambda nv, ngay: PHIEU.setdefault(nv, Phieu(name=f"PL-{nv}", employee=nv)),
                      **chung)
-co_gi = ham_that("sx/api/chot.py", "_co_gi_de_ghi", **chung)
+co_gi = ham_that("sx/api/chot.py", "_co_gi_de_ghi", _gio_cua=gio_cua_nguoi, **chung)
 
 hong = 0
 
@@ -137,8 +151,9 @@ def bang(*an, dong=None):
     return D(dong=dong, an_ca=list(an), tong_hop=sum(r.so_hop for r in dong))
 
 
-def nguoi(nv, an_ca=0, gio=0, gia=33000):
-    return D(nhan_vien=nv, an_ca=an_ca, an_dem=0, so_gio=gio, don_gia_gio=gia if gio else 0)
+def nguoi(nv, an_ca=0, gio=0, gia=33000, gio2=0, gia2=30000):
+    return D(nhan_vien=nv, an_ca=an_ca, an_dem=0, so_gio=gio, don_gia_gio=gia if gio else 0,
+             so_gio_2=gio2, don_gia_gio_2=gia2 if gio2 else 0)
 
 
 def gio_cua(p, ngay=None):
@@ -186,6 +201,24 @@ kiem("… thứ Hai không nhân hệ số", (n.luong_sp, n.he_so, n.thu_nhap_ng
 ghi_luong(D(ngay=CN), bang(nguoi("NV1", an_ca=1, gio=0), nguoi("NV2", gio=3.5)))
 kiem("bỏ giờ của NV1 rồi chốt lại → dòng giờ ngày đó mất, hộp còn", gio_cua(p1, CN) == []
      and [(r.san_pham, r.so_luong) for r in p1.chi_tiet if r.ngay == CN] == [("SEN", 100)], p1.chi_tiet)
+
+print("\n-- D233: hai mức làm theo giờ (33.000 / 30.000) --")
+kiem("bảng CHỈ có người làm giờ mức 2 vẫn phải ghi lương", co_gi(D(tong_hop=0, an_ca=[nguoi("NV5", gio2=2)])))
+PHIEU.clear()
+ghi_luong(D(ngay=CN), bang(nguoi("NV1", gio=2, gio2=3), nguoi("NV5", gio2=1.5), dong=[]))
+kiem("NV1 làm cả hai mức → HAI dòng giờ, mỗi dòng đúng đơn giá chốt (2 × 33.000, 3 × 30.000)",
+     gio_cua(PHIEU["NV1"]) == [(CN, 2.0, 33000.0, 66000.0), (CN, 3.0, 30000.0, 90000.0)], gio_cua(PHIEU["NV1"]))
+n1 = next(r for r in PHIEU["NV1"].dong if r.ngay == CN)
+kiem("… lương SP ngày = cộng cả hai mức, Chủ nhật nhân 1,2 cả hai", (n1.luong_sp, n1.thu_nhap_ngay)
+     == (156000.0, 156000 * 1.2), n1)
+kiem("NV5 chỉ làm giờ mức 2 → có phiếu, một dòng 1,5 × 30.000",
+     gio_cua(PHIEU["NV5"]) == [(CN, 1.5, 30000.0, 45000.0)], gio_cua(PHIEU["NV5"]))
+ghi_luong(D(ngay=CN), bang(nguoi("NV1", gio=2), dong=[]))
+kiem("chốt lại sau khi bỏ giờ mức 2 → còn đúng một dòng mức 1 (ghi đè, không sót dòng mức 2 cũ)",
+     gio_cua(PHIEU["NV1"]) == [(CN, 2.0, 33000.0, 66000.0)], gio_cua(PHIEU["NV1"]))
+kiem("MUC_GIO: mức 1 = so_gio / don_gia_gio (D225, dữ liệu cũ đọc như cũ), mức 2 = so_gio_2 / don_gia_gio_2",
+     [(k, kg) for k, kg, _h in bvh.MUC_GIO] == [("so_gio", "don_gia_gio"), ("so_gio_2", "don_gia_gio_2")]
+     and [h for _k, _kg, h in bvh.MUC_GIO] == ["don_gia_gio", "don_gia_gio_2"])
 
 print("\n-- kiểm dòng chi tiết --")
 p = Phieu(chi_tiet=[D(ngay=T2, theo_gio=1, so_gio=0, don_gia=33000)])

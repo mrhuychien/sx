@@ -327,6 +327,43 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Làm theo giờ thêm mức 30.000đ/giờ — tin gửi nhóm chỉ ghi tổng giờ, Ghi hộp + Quản lý hiện rõ mức (D233)
+
+- **Hỏi** (08/11/2026): đã có làm theo giờ 33.000/giờ (D225), nay phát sinh thêm làm theo giờ **30.000/giờ**. Copy gửi
+  nhóm chỉ ghi giờ làm, **không ghi 33 hay 30** (tránh tị nạnh); màn ghi công và quản lý mới hiện rõ mức.
+- **Ghi** (màn Ghi hộp): bấm tên công nhân (hoặc +) → màn chọn mã có **hai nút** — **⏱ LÀM THEO GIỜ 33.000 đ / giờ**
+  và **⏱ LÀM THEO GIỜ 30.000 đ / giờ** → bàn số *Số giờ*, đầu bàn số ghi mức ("⏱ Làm theo giờ · 30.000 đ/giờ"),
+  tiền = số giờ × mức đó.
+  - Mỗi mức một số giờ riêng cho cả ngày; một người có thể có cả hai mức. Bảng ghi hiện **mỗi mức một dòng**
+    ("⏱ Làm theo giờ · 30.000 đ/giờ" — 3 giờ): bấm số để sửa, ✕ bỏ đúng mức đó.
+  - Chân bảng chia theo đơn giá, giá cao trước: `làm theo giờ 6 giờ (1 người: 3 giờ × 33.000 đ, 3 giờ × 30.000 đ)`.
+    Thẻ tên công nhân ghi tổng giờ mọi mức.
+  - Cộng mọi mức một ngày không quá 24 giờ — máy báo "Một ngày không quá 24 giờ (cộng mọi mức)", server cũng chặn.
+- **Copy sản lượng gửi nhóm**: giờ mọi mức **gộp một mục, không ghi đơn giá** — `An (Bánh đậu xanh sen: 100, Làm theo
+  giờ: 6 giờ)`. Trong tin không có 33.000 hay 30.000.
+- **Quản lý thấy rõ mức**:
+  - Thẻ Phiếu lương: mỗi mức một dòng — "Làm theo giờ — 3 giờ × 33.000 đ", "Làm theo giờ — 3 giờ × 30.000 đ"; từng
+    ngày ghi tổng giờ.
+  - Lịch tháng (khối Theo người): "làm theo giờ 3 giờ × 33.000 đ", "làm theo giờ 3 giờ × 30.000 đ"; chip ngày ghi
+    tổng giờ.
+  - Desk: bảng chấm theo người của bảng vào hộp có thêm cột *Làm theo giờ mức 2 (giờ)*.
+- **Phiếu lương**: chốt ngày ghi **mỗi mức một dòng** chi tiết Làm theo giờ (số giờ × đơn giá mức đó). Vẫn như D225:
+  cộng vào lương SP của ngày (Chủ nhật / 1-1 nhân 1,2, vào thâm niên); chốt lại thì ghi đè. Người chỉ có giờ mức 2
+  vẫn có dòng lương.
+- **Đơn giá**: SX Settings → *Đơn giá làm theo giờ — mức 2 / giờ*, bỏ trống = **30.000** (mức 1 vẫn là ô cũ, mặc định
+  33.000). Mỗi mức chốt giá lúc ghi giờ lần đầu, giữ qua các lần lưu sau — đổi giá chỉ áp cho giờ ghi từ đó; bỏ giờ
+  (✕) thì bỏ luôn giá đã chốt của mức đó.
+- Lưu ở bảng chấm theo người: thêm `so_gio_2`, `don_gia_gio_2`; `tien_gio` = tiền cả hai mức (tổng tiền bảng và lương
+  SP của ngày ở màn Quản lý đã cộng đủ). Máy vẫn chỉ gửi khoá vừa đổi (D225) — máy bản cũ chỉ biết mức 1 thì không xoá
+  giờ mức 2.
+- Test `test-giocong.mjs` (Chromium: hai nút, bàn số mức 2, chỉ gửi `so_gio_2`, hai dòng có mức, chân bảng chia theo
+  giá, trần 24 giờ cộng hai mức, ✕ đúng mức, copy không có đơn giá, giá đã chốt khác giá hiện hành, server bản cũ,
+  thẻ phiếu lương), `test-giocong.py` (chốt ngày → hai dòng lương, Chủ nhật ×1,2, người chỉ có mức 2, chốt lại ghi
+  đè), `test-ghihop.py` (chốt giá từng mức, máy bản cũ, đổi giá giữ giá chốt, trần 24 giờ, bỏ giờ), `test-lich.py`,
+  `test-luong.py`, `test-copy.mjs`.
+- **Đổi DocType** (bảng chấm theo người, SX Settings): `git pull` → `bench --site site1.local migrate` →
+  `bench restart`. Build **sx-173**.
+
 ## Ghi hộp: "Copy sản lượng gửi nhóm" kèm cách làm viết tắt — Tay → T, Máy → M (D232)
 
 - **Hỏi** (06/11/2026): phần copy sản lượng gửi nhóm thêm hình thức làm, vd Máy → M, Tay → T.

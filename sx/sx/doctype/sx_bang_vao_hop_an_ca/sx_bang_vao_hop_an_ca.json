@@ -10,6 +10,8 @@
   "an_dem",
   "so_gio",
   "don_gia_gio",
+  "so_gio_2",
+  "don_gia_gio_2",
   "tien_gio"
  ],
  "fields": [
@@ -47,7 +49,7 @@
   {
    "fieldname": "so_gio",
    "fieldtype": "Float",
-   "label": "Làm theo giờ (giờ)",
+   "label": "Làm theo giờ mức 1 (giờ)",
    "in_list_view": 1,
    "non_negative": 1,
    "precision": "2",
@@ -56,20 +58,33 @@
   {
    "fieldname": "don_gia_gio",
    "fieldtype": "Currency",
-   "label": "Đơn giá / giờ",
+   "label": "Đơn giá mức 1 / giờ",
    "read_only": 1,
    "description": "Chốt lúc ghi giờ lần đầu, theo SX Settings → Đơn giá làm theo giờ."
   },
   {
+   "fieldname": "so_gio_2",
+   "fieldtype": "Float",
+   "label": "Làm theo giờ mức 2 (giờ)",
+   "in_list_view": 1,
+   "description": "D233: mức làm theo giờ thứ hai (SX Settings, mặc định 30.000 / giờ)."
+  },
+  {
+   "fieldname": "don_gia_gio_2",
+   "fieldtype": "Currency",
+   "label": "Đơn giá mức 2 / giờ",
+   "read_only": 1
+  },
+  {
    "fieldname": "tien_gio",
    "fieldtype": "Currency",
-   "label": "Tiền làm theo giờ",
+   "label": "Tiền làm theo giờ (mọi mức)",
    "read_only": 1
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2026-11-02 12:00:00.000000",
+ "modified": "2026-11-08 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Bang Vao Hop An Ca",

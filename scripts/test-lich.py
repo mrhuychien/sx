@@ -72,8 +72,16 @@ fu.getdate = lambda x=None: x if isinstance(x, date) else date.fromisoformat(str
 frappe.utils = fu
 sys.modules["frappe"] = frappe
 sys.modules["frappe.utils"] = fu
-for g in ("sx", "sx.api", "sx.config"):
+for g in ("sx", "sx.api", "sx.config", "sx.sx", "sx.sx.doctype", "sx.sx.doctype.sx_bang_vao_hop"):
     m = types.ModuleType(g); m.__path__ = []; sys.modules[g] = m
+# D233: các mức làm theo giờ — ĐÚNG hằng MUC_GIO trong controller bảng vào hộp (không chép tay)
+import ast  # noqa: E402
+
+bvh = types.ModuleType("sx.sx.doctype.sx_bang_vao_hop.sx_bang_vao_hop")
+bvh.MUC_GIO = next(ast.literal_eval(n.value) for n in ast.parse(open(
+    "sx/sx/doctype/sx_bang_vao_hop/sx_bang_vao_hop.py", encoding="utf-8").read()).body
+    if isinstance(n, ast.Assign) and any(getattr(t, "id", None) == "MUC_GIO" for t in n.targets))
+sys.modules[bvh.__name__] = bvh
 
 
 def nap(ten, p):
@@ -202,17 +210,32 @@ kiem("ô lịch: công khoán chung cộng vào sản lượng ngày", L.thang("
 
 print("\n-- D225: làm theo giờ --")
 BANG["SX Bang Vao Hop An Ca"] = [
-    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV1", "ten_nhan_vien": "An", "so_gio": 1.5},
-    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV7", "ten_nhan_vien": "Hoa", "so_gio": 2.5},
-    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV8", "ten_nhan_vien": "Lan", "so_gio": 0},
-    {"parent": "B9", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV9", "ten_nhan_vien": "Mai", "so_gio": 8}]
+    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV1", "ten_nhan_vien": "An", "so_gio": 1.5,
+     "don_gia_gio": 33000},
+    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV7", "ten_nhan_vien": "Hoa", "so_gio": 2.5,
+     "don_gia_gio": 33000},
+    {"parent": "B5", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV8", "ten_nhan_vien": "Lan", "so_gio": 0, "an_ca": 1},
+    {"parent": "B9", "parenttype": "SX Bang Vao Hop", "nhan_vien": "NV9", "ten_nhan_vien": "Mai", "so_gio": 8,
+     "don_gia_gio": 33000}]
 c = L.chi_tiet("vaohop", "2026-10-05")
 ng = next(k for k in c["khoi"] if k["ten"] == "Theo người")["dong"]
-kiem("theo người: người CHỈ làm theo giờ hiện số giờ ở cột phải; người có hộp giữ số hộp, giờ ghi kèm",
+kiem("theo người: người CHỈ làm theo giờ hiện số giờ ở cột phải; người có hộp giữ số hộp, giờ ghi kèm (D233: kèm "
+     "đơn giá — lịch là màn QC / quản lý)",
      [(x["trai"], x["phai"]) for x in ng] == [("An", 60), ("Hoa", "2,5 giờ"), ("★ Công khoán chung", 18)]
-     and "làm theo giờ 1,5 giờ" in ng[0]["phu"] and ng[1]["phu"] == "làm theo giờ 2,5 giờ", str(ng))
-kiem("chips: tổng giờ của ngày; người chỉ làm theo giờ cũng tính là một người (0 giờ / bảng khác thì không)",
+     and "làm theo giờ 1,5 giờ × 33.000 đ" in ng[0]["phu"] and ng[1]["phu"] == "làm theo giờ 2,5 giờ × 33.000 đ", str(ng))
+kiem("chips: tổng giờ của ngày; người chỉ làm theo giờ cũng tính là một người (0 giờ / chỉ ăn / bảng khác thì không)",
      "làm theo giờ 4 giờ" in c["chips"] and "2 người" in c["chips"], str(c["chips"]))
+BANG["SX Bang Vao Hop An Ca"][1].update(so_gio_2=3, don_gia_gio_2=30000)
+BANG["SX Bang Vao Hop An Ca"][2].update(so_gio_2=2, don_gia_gio_2=30000)
+c = L.chi_tiet("vaohop", "2026-10-05")
+ng = next(k for k in c["khoi"] if k["ten"] == "Theo người")["dong"]
+kiem("D233: người làm cả hai mức → mỗi mức một mục ghi rõ đơn giá; cột phải là tổng giờ",
+     [(x["trai"], x["phai"]) for x in ng] == [("An", 60), ("Hoa", "5,5 giờ"), ("Lan", "2 giờ"),
+                                              ("★ Công khoán chung", 18)]
+     and ng[1]["phu"] == "làm theo giờ 2,5 giờ × 33.000 đ, làm theo giờ 3 giờ × 30.000 đ"
+     and ng[2]["phu"] == "làm theo giờ 2 giờ × 30.000 đ", str(ng))
+kiem("… chips: tổng giờ mọi mức (1,5 + 5,5 + 2 = 9), người chỉ làm giờ mức 2 cũng tính một người",
+     "làm theo giờ 9 giờ" in c["chips"] and "3 người" in c["chips"], str(c["chips"]))
 del BANG["SX Bang Vao Hop An Ca"]
 
 print("\n-- D113: mỗi QC chỉ thấy phần mình ghi --")

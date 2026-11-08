@@ -21,6 +21,9 @@ const NV_CONG_NHAT = { name: CONG_NHAT, employee_name: 'Công nhật' };
 // Ở đây chỉ hiện / sửa số / xoá; không chấm thêm (không có nút +), không chấm ăn.
 const KHOAN_CHUNG = 'KHOAN_CHUNG';
 const KHONG_NGUOI = [CONG_NHAT, KHOAN_CHUNG];
+// Các mức làm theo giờ (D225, D233: 33.000 và 30.000) — khoá số giờ + khoá đơn giá, khớp MUC_GIO của bảng vào hộp.
+// Đơn giá một dòng giờ = giá server đã chốt lúc ghi (an_ca[kg]); chưa ghi thì giá hiện hành ở SX Settings (boot[kg]).
+const MUC_GIO = [{ k: 'so_gio', kg: 'don_gia_gio' }, { k: 'so_gio_2', kg: 'don_gia_gio_2' }];
 
 export async function render({ container, boot, call, ensureNgay }) {
   container.className = 'sx-card';
@@ -39,7 +42,8 @@ export async function render({ container, boot, call, ensureNgay }) {
   const spGanDay = boot.sp_gan_day || [];
   const tenSPKhoan = (code) => (danhMuc.find((d) => d.item === code) || {}).ten || code;
   const nhanVien = boot.nhan_vien || [];
-  // Chấm theo người: ăn ca / ăn đêm (D30), làm theo giờ (D225) — {nhan_vien: {an_ca, an_dem, so_gio}}
+  // Chấm theo người: ăn ca / ăn đêm (D30), làm theo giờ (D225, D233 hai mức) —
+  // {nhan_vien: {an_ca, an_dem, so_gio, so_gio_2, don_gia_gio, don_gia_gio_2}}
   const anCa = {};
   (((boot.bang_vao_hop || {}).an_ca) || []).forEach((r) => { anCa[r.nhan_vien] = theoNguoiMoi(r); });
   // Ảnh chụp ăn ca lần lưu cuối — chỉ gửi người VỪA ĐỔI, để hai QC chấm ăn cho hai
@@ -128,12 +132,16 @@ export async function render({ container, boot, call, ensureNgay }) {
       if (!nhom.has(r.nhan_vien)) nhom.set(r.nhan_vien, { ten: tenNV(r), dong: [] });
       nhom.get(r.nhan_vien).dong.push({ ...r, _i: i });
     });
-    // D225: làm theo giờ — mỗi người MỘT dòng giả (số giờ của cả ngày; sửa / xoá theo người, không theo dòng)
+    // D225: làm theo giờ — mỗi người MỘT dòng giả cho mỗi mức (D233) có giờ: số giờ của cả ngày ở mức đó, sửa / xoá
+    // theo người + mức, không theo dòng hộp.
     Object.entries(anCa).forEach(([nv, v]) => {
-      const h = Number(v.so_gio) || 0;
-      if (h <= 0 || KHONG_NGUOI.includes(nv)) return;
-      if (!nhom.has(nv)) nhom.set(nv, { ten: tenNgan[nv] || nv, dong: [] });
-      nhom.get(nv).dong.push({ nhan_vien: nv, _gio: h });
+      if (KHONG_NGUOI.includes(nv)) return;
+      MUC_GIO.forEach((m) => {
+        const h = Number(v[m.k]) || 0;
+        if (h <= 0) return;
+        if (!nhom.has(nv)) nhom.set(nv, { ten: tenNgan[nv] || nv, dong: [] });
+        nhom.get(nv).dong.push({ nhan_vien: nv, _gio: h, _muc: m.k, _gia: giaGio(v, m) });
+      });
     });
     // Công khoán chung rồi công nhật xuống cuối — bảng đọc theo người, hai dòng này không phải người.
     const hang = (k) => ({ [KHOAN_CHUNG]: 1, [CONG_NHAT]: 2 }[k] || 0);
@@ -141,6 +149,11 @@ export async function render({ container, boot, call, ensureNgay }) {
       .sort(([ka, a], [kb, b]) => (hang(ka) - hang(kb)) || a.ten.localeCompare(b.ten, 'vi'))
       .map(([, g]) => g);
   }
+
+  // Đơn giá / giờ của một mức cho một người: giá đã chốt trên bảng, chưa có thì giá hiện hành (D233)
+  function giaGio(v, m) { return Number((v || {})[m.kg]) || Number(boot[m.kg]) || 0; }
+  // Tổng giờ mọi mức của một người
+  const gioNguoi = (v) => MUC_GIO.reduce((a, m) => a + (Number((v || {})[m.k]) || 0), 0);
 
   // Lưới chưa/đã nhập đổi theo dữ liệu -> vẽ lại CÙNG LÚC với bảng, không để lệch
   function paint() { veBang(); veNV(); }
@@ -155,14 +168,14 @@ export async function render({ container, boot, call, ensureNgay }) {
           html += `<div class="sx-vh-row sx-vh-row-gio">
             <div class="sx-vh-who">
               <div class="sx-vh-name">${esc(g.ten)}</div>
-              <div class="sx-vh-meta">⏱ Làm theo giờ</div>
+              <div class="sx-vh-meta">⏱ Làm theo giờ${r._gia ? ` · ${esc(formatNumber(r._gia))} đ/giờ` : ''}</div>
             </div>
-            <button type="button" class="sx-vh-sl sx-vh-gio-sl" data-gio="${esc(r.nhan_vien)}"${daChot ? ' disabled' : ''}
-              >${esc(formatNumber(r._gio, 2))} giờ</button>
+            <button type="button" class="sx-vh-sl sx-vh-gio-sl" data-gio="${esc(r.nhan_vien)}" data-muc="${r._muc}"${
+  daChot ? ' disabled' : ''}>${esc(formatNumber(r._gio, 2))} giờ</button>
             ${daChot ? '' : `
             <button type="button" class="sx-vh-them" data-nv="${esc(r.nhan_vien)}"
               aria-label="Ghi thêm cho ${esc(g.ten)}" title="Ghi thêm loại khác">+</button>
-            <button type="button" class="sx-vh-del sx-vh-gio-del" data-gio="${esc(r.nhan_vien)}"
+            <button type="button" class="sx-vh-del sx-vh-gio-del" data-gio="${esc(r.nhan_vien)}" data-muc="${r._muc}"
               aria-label="Bỏ giờ làm của ${esc(g.ten)}">✕</button>`}
           </div>`;
           return;
@@ -191,8 +204,16 @@ export async function render({ container, boot, call, ensureNgay }) {
 
     const tongHop = rows.reduce((a, r) => a + (Number(r.so_hop) || 0), 0);
     const tongTien = rows.reduce((a, r) => a + (Number(r.thanh_tien) || 0), 0);
-    const coGio = Object.keys(anCa).filter((n) => (Number(anCa[n].so_gio) || 0) > 0 && !KHONG_NGUOI.includes(n));
-    const tongGio = coGio.reduce((a, n) => a + (Number(anCa[n].so_gio) || 0), 0);
+    const coGio = Object.keys(anCa).filter((n) => gioNguoi(anCa[n]) > 0 && !KHONG_NGUOI.includes(n));
+    const tongGio = coGio.reduce((a, n) => a + gioNguoi(anCa[n]), 0);
+    // D233: giờ theo đơn giá — màn ghi công ghi RÕ mỗi mức (chỉ tin gửi nhóm mới gộp)
+    const theoGia = new Map();
+    coGio.forEach((n) => MUC_GIO.forEach((m) => {
+      const h = Number(anCa[n][m.k]) || 0;
+      if (h > 0) theoGia.set(giaGio(anCa[n], m), (theoGia.get(giaGio(anCa[n], m)) || 0) + h);
+    }));
+    const ctGio = [...theoGia.entries()].sort((a, b) => b[0] - a[0])
+      .map(([gia, h]) => `${formatNumber(h, 2)} giờ × ${formatNumber(gia)} đ`).join(', ');
     const soNguoi = new Set([...rows.map((r) => r.nhan_vien), ...coGio]
       .filter((n) => !KHONG_NGUOI.includes(n))).size;
     const hopCN = rows.filter((r) => r.nhan_vien === CONG_NHAT)
@@ -207,8 +228,8 @@ export async function render({ container, boot, call, ensureNgay }) {
       <span>${formatNumber(tongHop)} sp${hopCN || hopKC
         ? ` <span class="sx-muted">(${[hopKC ? `công khoán chung ${formatNumber(hopKC)}` : '',
           hopCN ? `công nhật ${formatNumber(hopCN)}` : ''].filter(Boolean).join(' · ')})</span>` : ''}${
-        tongGio ? ` <span class="sx-muted">· làm theo giờ ${formatNumber(tongGio, 2)} giờ (${coGio.length} người)</span>`
-          : ''}</span>`;
+        tongGio ? ` <span class="sx-muted">· làm theo giờ ${formatNumber(tongGio, 2)} giờ (${coGio.length} người: ${
+          ctGio})</span>` : ''}</span>`;
 
     // Dải SKU: mỗi loại công việc một ô, cuộn ngang — nhìn ra ngay hôm nay chạy loại gì
     const theoAct = {};
@@ -241,11 +262,12 @@ export async function render({ container, boot, call, ensureNgay }) {
       const nvCua = (ma) => nhanVien.find((x) => x.name === ma) || { name: ma };
       tbody.querySelectorAll('.sx-vh-gio-sl').forEach((btn) => {
         const nv = nvCua(btn.dataset.gio);
-        btn.addEventListener('click', () => nhapGio(nv, tenNgan[nv.name] || nv.name, anCa, save, boot, null));
+        btn.addEventListener('click',
+          () => nhapGio(nv, tenNgan[nv.name] || nv.name, anCa, save, boot, null, btn.dataset.muc));
       });
       tbody.querySelectorAll('.sx-vh-gio-del').forEach((btn) => {
         btn.addEventListener('click', async () => {
-          if (anCa[btn.dataset.gio]) anCa[btn.dataset.gio].so_gio = 0;
+          if (anCa[btn.dataset.gio]) anCa[btn.dataset.gio][btn.dataset.muc] = 0;
           await save();
         });
       });
@@ -314,7 +336,7 @@ export async function render({ container, boot, call, ensureNgay }) {
         .map(([nv, v]) => {
           const g = anCaGoc[nv] || {};
           const d = { nhan_vien: nv };
-          ['an_ca', 'an_dem', 'so_gio'].forEach((k) => {
+          ['an_ca', 'an_dem', ...MUC_GIO.map((m) => m.k)].forEach((k) => {
             if ((Number(v[k]) || 0) !== (Number(g[k]) || 0)) d[k] = Number(v[k]) || 0;
           });
           return d;
@@ -378,7 +400,7 @@ export async function render({ container, boot, call, ensureNgay }) {
       daNhap[r.nhan_vien] = (daNhap[r.nhan_vien] || 0) + (Number(r.so_hop) || 0);
       (soLoai[r.nhan_vien] = soLoai[r.nhan_vien] || new Set()).add(r.san_pham);
     });
-    const gioCua = (ma) => Number((anCa[ma] || {}).so_gio) || 0;     // D225
+    const gioCua = (ma) => gioNguoi(anCa[ma]);     // D225 / D233: tổng giờ mọi mức
     const xong = (ma) => !!(daNhap[ma] || gioCua(ma));
 
     // Chưa nhập lên trước: câu hỏi duy nhất trong đầu QC khi đi dọc chuyền là
@@ -520,7 +542,7 @@ function nutAnCa(nv, anCa, save) {
 function themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot) {
   const ten = (tenNgan && tenNgan[nv.name]) || nv.employee_name || nv.name;
   // D225: công khoán ra làm việc tính theo giờ — lối thay cho mã hàng (công nhật / công khoán chung không phải người)
-  const gio = KHONG_NGUOI.includes(nv.name) ? null : () => nhapGio(nv, ten, anCa, save, boot, chonMa);
+  const gio = KHONG_NGUOI.includes(nv.name) ? null : (muc) => nhapGio(nv, ten, anCa, save, boot, chonMa, muc);
   const chonMa = () => openSanPhamPicker(ten, danhMuc, spGanDay, (sp) => {
     // Mã có nhiều cách làm -> hỏi thêm một bước, vì mỗi cách một đơn giá.
     // Chỉ một cách (và không có giá chung) -> tự chọn, QC không phải bấm.
@@ -540,28 +562,34 @@ function themDong(nv, danhMuc, spGanDay, rows, save, tenNgan, anCa, boot) {
 
 /** Một người trong bảng chấm theo người (ăn ca / ăn đêm / số giờ) — dạng màn hình dùng. */
 function theoNguoiMoi(r) {
-  return { an_ca: Number(r.an_ca) || 0, an_dem: Number(r.an_dem) || 0, so_gio: Number(r.so_gio) || 0 };
+  const v = { an_ca: Number(r.an_ca) || 0, an_dem: Number(r.an_dem) || 0 };
+  MUC_GIO.forEach((m) => { v[m.k] = Number(r[m.k]) || 0; v[m.kg] = Number(r[m.kg]) || 0; });
+  return v;
 }
 
 /** Làm theo giờ (D225): công khoán ra làm việc tính tiền theo giờ như công nhật. Một số giờ cho cả ngày của người
  * đó — nhập lại là SỬA (bàn số điền sẵn số đang có), muốn bỏ thì ✕ ở dòng giờ. Giờ lẻ dùng phím phẩy (2,5).
  * Tiền = số giờ × đơn giá / giờ (SX Settings), server chốt lúc lưu; chốt ngày vào phiếu lương như lương sản phẩm. */
-function nhapGio(nv, ten, anCa, save, boot, ghiTiep) {
-  const gia = Number(boot && boot.don_gia_gio) || 0;
+function nhapGio(nv, ten, anCa, save, boot, ghiTiep, muc) {
+  // D233: mỗi mức một số giờ riêng; đơn giá = giá đã chốt của người đó ở mức này, chưa có thì giá hiện hành
+  const m = MUC_GIO.find((x) => x.k === muc) || MUC_GIO[0];
+  const cu = anCa[nv.name] || {};
+  const gia = Number(cu[m.kg]) || Number(boot && boot[m.kg]) || 0;      // server bỏ giá chốt khi bỏ giờ
   const luu = async (v) => {
     const h = Math.round(Number(v) * 100) / 100;
     if (!(h > 0)) { toastErr('Số giờ phải > 0. Muốn bỏ thì bấm ✕ ở dòng giờ.'); return false; }
-    if (h > 24) { toastErr('Một ngày không quá 24 giờ.'); return false; }
-    anCa[nv.name] = { ...theoNguoiMoi(anCa[nv.name] || {}), so_gio: h };
+    const khac = MUC_GIO.filter((x) => x.k !== m.k).reduce((a, x) => a + (Number((anCa[nv.name] || {})[x.k]) || 0), 0);
+    if (h + khac > 24) { toastErr('Một ngày không quá 24 giờ (cộng mọi mức).'); return false; }
+    anCa[nv.name] = { ...theoNguoiMoi(anCa[nv.name] || {}), [m.k]: h };
     await save();
     return true;
   };
   openNumpad({
-    kicker: '⏱ Làm theo giờ',
+    kicker: `⏱ Làm theo giờ${gia ? ` · ${formatNumber(gia)} đ/giờ` : ''}`,
     title: ten,
     unitLabel: 'Số giờ',
     allowDecimal: true,
-    initial: Number((anCa[nv.name] || {}).so_gio) || '',
+    initial: Number(cu[m.k]) || '',
     titleActions: nutAnCa(nv, anCa, save),
     hint: (n) => (gia && n ? `${formatNumber(n * gia)} đ` : ''),
     okLabel: 'XONG',
@@ -619,11 +647,17 @@ function openSanPhamPicker(ten, danhMuc, spGanDay, onPick, boot, onGio) {
         placeholder="Tìm trong ${danhMuc.length} mã hàng…">
       <button type="button" class="sx-btn sx-quet-nut" id="sx-sp-quet">⌗ QUÉT HỘP</button>
     </div>
-    ${onGio ? `<button type="button" class="sx-btn sx-vh-congnhat" id="sx-sp-gio"
-      >⏱ LÀM THEO GIỜ <span>tính tiền theo giờ như công nhật</span></button>` : ''}
+    ${onGio ? MUC_GIO.map((mg, i) => (Number((boot || {})[mg.kg]) || !i ? `<button type="button"
+      class="sx-btn sx-vh-congnhat sx-sp-gio" id="${i ? `sx-sp-gio-${i + 1}` : 'sx-sp-gio'}" data-muc="${mg.k}"
+      >⏱ LÀM THEO GIỜ <span>${Number((boot || {})[mg.kg]) ? `${formatNumber(boot[mg.kg])} đ / giờ`
+        : 'tính tiền theo giờ như công nhật'}</span></button>` : '')).join('') : ''}
     <div id="sx-sp-ds"></div>
   `;
-  if (onGio) m.body.querySelector('#sx-sp-gio').addEventListener('click', () => { m.close(); onGio(); });
+  if (onGio) {
+    m.body.querySelectorAll('.sx-sp-gio').forEach((b) => b.addEventListener('click', () => {
+      m.close(); onGio(b.dataset.muc);
+    }));
+  }
   const box = m.body.querySelector('#sx-sp-ds');
   const oTim = m.body.querySelector('#sx-sp-tim');
   const byItem = {};
@@ -708,9 +742,12 @@ export function vanBanSanLuong(nhomVao, ngay, tenSP, an = {}, tenNguoi = (ma) =>
   const d = (ngay || '').split('-');
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
   const dong = nhom.map((g) => {
-    const ct = g.dong.map((r) => (r._gio ? `Làm theo giờ: ${formatNumber(r._gio, 2)} giờ`      // D225
-      : `${tenSP(r.san_pham) || '?'}${r.cach_lam ? ` (${viTatCachLam(r.cach_lam)})` : ''}: ${   // D232
-        formatNumber(r.so_hop)}`)).join(', ');
+    // D225 / D233: giờ của MỌI mức gộp một mục, KHÔNG ghi mức (33.000 hay 30.000) — tin cả nhóm đọc, tránh tị nạnh;
+    // mức chỉ hiện ở màn ghi công / quản lý.
+    const gio = g.dong.reduce((a, r) => a + (Number(r._gio) || 0), 0);
+    const ct = [...g.dong.filter((r) => !r._gio).map((r) => `${tenSP(r.san_pham) || '?'}${
+      r.cach_lam ? ` (${viTatCachLam(r.cach_lam)})` : ''}: ${formatNumber(r.so_hop)}`),          // D232
+    ...(gio ? [`Làm theo giờ: ${formatNumber(gio, 2)} giờ`] : [])].join(', ');
     return [ct ? `${g.ten} (${ct})` : g.ten, nhanAn((an || {})[g.nv])].filter(Boolean).join(' · ');
   });
   const tong = nhom.reduce((a, g) => a + g.dong.reduce((x, r) => x + (Number(r.so_hop) || 0), 0), 0);

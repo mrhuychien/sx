@@ -80,6 +80,15 @@ kiem('mỗi dòng sản phẩm kèm cách làm viết tắt: Tay → T, Máy / "
     + 'Bình (Bánh TT (M): 30) · ăn ca\n'
     + '— Tổng: 155 sản phẩm\n'
     + '— Suất ăn: ăn ca 1 · ăn đêm 0', JSON.stringify(vbCl));
+const vbGio = vanBanSanLuong([
+  { ten: 'An', dong: [{ nhan_vien: 'NV1', san_pham: 'TP-SEN', cach_lam: 'Tay', so_hop: 50 },
+    { nhan_vien: 'NV1', _gio: 2, _muc: 'so_gio', _gia: 33000 }, { nhan_vien: 'NV1', _gio: 3.5, _muc: 'so_gio_2', _gia: 30000 }] },
+  { ten: 'Bình', dong: [{ nhan_vien: 'NV2', _gio: 4, _muc: 'so_gio_2', _gia: 30000 }] },
+], '2026-11-08', tenHang);
+kiem('D233: giờ MỌI mức của một người gộp MỘT mục "Làm theo giờ: tổng", không ghi mức / đơn giá (tránh tị nạnh)',
+  vbGio === 'SẢN LƯỢNG 08/11/2026\nAn (Bánh sen (T): 50, Làm theo giờ: 5,5 giờ)\nBình (Làm theo giờ: 4 giờ)\n'
+    + '— Tổng: 50 sản phẩm' && !/30\.000|33\.000|30000|33000|đ\/giờ|mức/.test(vbGio),
+  JSON.stringify(vbGio));
 kiem('viết tắt: chữ đầu mỗi từ, viết hoa, bỏ khoảng trắng thừa; rỗng thì rỗng',
   viTatCachLam('Tay') === 'T' && viTatCachLam(' Máy ') === 'M' && viTatCachLam('Máy hỗ  trợ') === 'MHT'
   && viTatCachLam('đóng tay') === 'ĐT' && viTatCachLam('Máy\thỗ trợ') === 'MHT'   // tên dán từ Excel có tab

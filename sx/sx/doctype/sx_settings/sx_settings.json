@@ -31,6 +31,7 @@
   "column_break_ac",
   "tien_an_dem",
   "don_gia_gio",
+  "don_gia_gio_2",
   "section_luong",
   "he_so_ngay_le",
   "ngay_cong_chuan",
@@ -168,9 +169,15 @@
   {
    "fieldname": "don_gia_gio",
    "fieldtype": "Currency",
-   "label": "Đơn giá làm theo giờ (công khoán) / giờ",
+   "label": "Đơn giá làm theo giờ — mức 1 / giờ",
    "default": "33000",
    "description": "D225: QC ghi số giờ ở màn Ghi hộp (Làm theo giờ); chốt ngày ghi số giờ × đơn giá này vào phiếu lương như lương sản phẩm. Bỏ trống = 33.000."
+  },
+  {
+   "fieldname": "don_gia_gio_2",
+   "fieldtype": "Currency",
+   "label": "Đơn giá làm theo giờ — mức 2 / giờ",
+   "description": "D233: bỏ trống = 30.000. Tin gửi nhóm chỉ ghi tổng số giờ, không ghi mức."
   },
   {
    "fieldname": "section_nhom_tp",
@@ -290,7 +297,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-11-04 15:00:00.000000",
+ "modified": "2026-11-08 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

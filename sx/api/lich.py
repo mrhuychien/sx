@@ -186,6 +186,11 @@ def _so_gio(h):
     return f"{flt(h):g}".replace(".", ",")
 
 
+def _tien(x):
+    """33000 → "33.000 đ" — đơn giá / giờ kiểu Việt (D233)."""
+    return f"{flt(x):,.0f} đ".replace(",", ".")
+
+
 @frappe.whitelist()
 def chi_tiet(loai, ngay):
     """Chi tiết một ngày, khuôn chung: {ngay, so, don_vi, chips[], khoi[{ten, dong[]}]}.
@@ -249,15 +254,23 @@ def _ct_vao_hop(d, ra):
         p["sl"] += sl
         p["ma"].append(f"{ten.get(r.san_pham, r.san_pham)}{' · ' + r.cach_lam if r.cach_lam else ''}"
                        f" {sl}")
-    # D225: làm theo giờ — số giờ theo người ở bảng chấm theo người (cạnh ăn ca), chung cho mọi QC như màn Ghi hộp
+    # D225: làm theo giờ — số giờ theo người ở bảng chấm theo người (cạnh ăn ca), chung cho mọi QC như màn Ghi hộp.
+    # D233: mỗi mức một mục "giờ × đơn giá" (đơn giá chốt lúc ghi) — lịch là màn của QC / quản lý nên ghi RÕ mức; chỉ
+    # tin gửi nhóm công nhân mới gộp giờ, không ghi mức.
+    from sx.sx.doctype.sx_bang_vao_hop.sx_bang_vao_hop import MUC_GIO
+
     tong_gio = 0.0
-    for r in frappe.get_all("SX Bang Vao Hop An Ca", filters={"parent": ("in", list(_b)), "parenttype": "SX Bang Vao Hop",
-                                                              "so_gio": (">", 0)},
-                            fields=["nhan_vien", "ten_nhan_vien", "so_gio"]) if _b else []:
-        p = theo_nguoi.setdefault(r.nhan_vien, {"ten": r.ten_nhan_vien or r.nhan_vien, "sl": 0, "ma": []})
-        p["gio"] = p.get("gio", 0.0) + flt(r.so_gio)
-        p["ma"].append(_("làm theo giờ {0} giờ").format(_so_gio(r.so_gio)))
-        tong_gio += flt(r.so_gio)
+    for r in frappe.get_all("SX Bang Vao Hop An Ca", filters={"parent": ("in", list(_b)), "parenttype": "SX Bang Vao Hop"},
+                            fields=["nhan_vien", "ten_nhan_vien"] + [f for k, kg, _h in MUC_GIO for f in (k, kg)]
+                            ) if _b else []:
+        for k, kg, _h in MUC_GIO:
+            h = flt(r.get(k))
+            if h <= 0:
+                continue
+            p = theo_nguoi.setdefault(r.nhan_vien, {"ten": r.ten_nhan_vien or r.nhan_vien, "sl": 0, "ma": []})
+            p["gio"] = p.get("gio", 0.0) + h
+            p["ma"].append(_("làm theo giờ {0} giờ × {1}").format(_so_gio(h), _tien(r.get(kg))))
+            tong_gio += h
     ra["so"] = sum(cint(r.so_hop) for r in dong)
     if tong_gio:
         ra["chips"].append(_("làm theo giờ {0} giờ").format(_so_gio(tong_gio)))
