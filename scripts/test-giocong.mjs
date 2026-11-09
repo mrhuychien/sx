@@ -66,8 +66,12 @@ const call = async (m, a) => {
       san_pham: [{ ten: 'Làm theo giờ', cach_lam: '', theo_gio: true, don_gia: 33000, so_luong: 2.5, thanh_tien: 82500 },
         { ten: 'Làm theo giờ', cach_lam: '', theo_gio: true, don_gia: 30000, so_luong: 3, thanh_tien: 90000 },
         { ten: 'Bánh sen', cach_lam: '', don_gia: 1200, so_luong: 110, thanh_tien: 132000 }],
-      ngay: [{ ngay: '2026-11-01', thu: 'Chủ nhật', an_ca: 1, an_dem: 0, luong_sp: 214500, he_so: 1.2, so_gio: 2.5,
-        thu_nhap: 257400 }], phat: [], ghi_chu: '' };
+      // D234: mỗi ngày kèm sản phẩm của ngày (server đã gộp, xếp: sản phẩm trước, giờ sau) + tiền ăn
+      ngay: [{ ngay: '2026-11-01', thu: 'Chủ nhật', an_ca: 1, an_dem: 0, tien_an: 20000, luong_sp: 214500, he_so: 1.2,
+        so_gio: 2.5, thu_nhap: 277400,
+        sp: [{ ten: 'Bánh sen', cach_lam: '', don_gia: 1200, so_luong: 110, thanh_tien: 132000 },
+          { ten: 'Làm theo giờ', cach_lam: '', theo_gio: true, don_gia: 33000, so_luong: 2.5, thanh_tien: 82500 }] }],
+      phat: [], ghi_chu: '' };
   }
   return {};
 };
@@ -246,7 +250,10 @@ try {
     pl.includes('Làm theo giờ') && pl.includes('2,5 giờ × 33.000 đ'), pl);
   kiem('… mỗi mức một dòng: "3 giờ × 30.000 đ" (quản lý hiện rõ mức — D233)', pl.includes('3 giờ × 30.000 đ'), pl);
   kiem('… dòng sản phẩm như cũ: "110 × 1.200 đ"', pl.includes('110 × 1.200 đ'), pl);
-  kiem('… từng ngày ghi số giờ của ngày', pl.includes('×1.2 · 2,5 giờ · ăn ca'), pl);
+  const ngayGio = await p.$$eval('.sx-modal .sx-pl-ngay tbody tr', (tr) => tr.map((r) => [...r.cells]
+    .map((c) => c.textContent.replace(/\s+/g, ' ').trim()).join(' | ')));
+  kiem('… từng ngày (D234): dòng giờ của ngày ghi số giờ × đơn giá = thành tiền',
+    ngayGio.includes('Làm theo giờ | 2,5 giờ | 33.000 | 82.500'), JSON.stringify(ngayGio));
   await p.click('.sx-modal .sx-modal-close');
 
   console.log('\n-- D233: đơn giá trên dòng giờ = giá ĐÃ CHỐT, không có thì giá hiện hành --');

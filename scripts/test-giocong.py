@@ -220,6 +220,41 @@ kiem("MUC_GIO: mức 1 = so_gio / don_gia_gio (D225, dữ liệu cũ đọc như
      [(k, kg) for k, kg, _h in bvh.MUC_GIO] == [("so_gio", "don_gia_gio"), ("so_gio_2", "don_gia_gio_2")]
      and [h for _k, _kg, h in bvh.MUC_GIO] == ["don_gia_gio", "don_gia_gio_2"])
 
+print("\n-- D234: lưới Chi tiết trên Desk đọc theo NGÀY --")
+PHIEU.clear()
+T3 = date(2026, 11, 3)
+
+
+def hop(sp, cl, sl, gia, i=1):
+    return D(idx=i, nhan_vien="NV1", san_pham=sp, cach_lam=cl, so_hop=sl, don_gia=gia, cong_nhat=0, khoan_chung=0)
+
+
+def thu_tu(p):
+    return [(r.ngay.day, r.san_pham or f"giờ×{int(r.don_gia)}") for r in p.chi_tiet]
+
+
+ghi_luong(D(ngay=T3), bang(nguoi("NV1", gio=1), dong=[hop("SEN", "Máy", 40, 900)]))
+ghi_luong(D(ngay=T2), bang(nguoi("NV1", gio=1, gio2=2),
+                           dong=[hop("TT", "Tay", 30, 2000), hop("SEN", "Tay", 10, 1100, 2)]))
+p = PHIEU["NV1"]
+kiem("chốt ngày 03 rồi ngày 02 → ngày 02 lên trước; trong ngày giữ thứ tự ghi, sản phẩm trước, giờ sau",
+     thu_tu(p) == [(2, "TT"), (2, "SEN"), (2, "giờ×33000"), (2, "giờ×30000"), (3, "SEN"), (3, "giờ×33000")], thu_tu(p))
+ghi_luong(D(ngay=T3), bang(nguoi("NV1", gio=1.5), dong=[hop("SEN", "Máy", 45, 900)]))
+kiem("chốt LẠI ngày 03 (dòng ngày 03 bị xoá rồi thêm lại ở cuối) → vẫn đúng chỗ, sau ngày 02",
+     thu_tu(p) == [(2, "TT"), (2, "SEN"), (2, "giờ×33000"), (2, "giờ×30000"), (3, "SEN"), (3, "giờ×33000")]
+     and [r.so_luong for r in p.chi_tiet if r.ngay == T3 and r.san_pham] == [45], thu_tu(p))
+p.append("chi_tiet", D(ngay=T2, san_pham="DEN", so_luong=5, don_gia=1000))     # thêm tay trên Desk, nằm cuối lưới
+p.append("chi_tiet", D(ngay=CN, san_pham="SEN", so_luong=7, don_gia=1000))
+p.save()
+kiem("dòng thêm tay ở cuối lưới → về đúng ngày; trong ngày 02 nằm sau sản phẩm, TRƯỚC dòng làm theo giờ",
+     thu_tu(p) == [(1, "SEN"), (2, "TT"), (2, "SEN"), (2, "DEN"), (2, "giờ×33000"), (2, "giờ×30000"), (3, "SEN"),
+                   (3, "giờ×33000")], thu_tu(p))
+kiem("… số thứ tự dòng (idx) đánh lại 1..n theo thứ tự mới", [r.idx for r in p.chi_tiet] == list(range(1, 9)),
+     [r.idx for r in p.chi_tiet])
+kiem("… xếp lại không đổi tiền: lương SP ngày 02 vẫn đủ các dòng của ngày 02 (30×2.000 + 10×1.100 + 5×1.000 + "
+     "1×33.000 + 2×30.000)", next(r for r in p.dong if r.ngay == T2).luong_sp == 60000 + 11000 + 5000 + 33000 + 60000,
+     next(r for r in p.dong if r.ngay == T2))
+
 print("\n-- kiểm dòng chi tiết --")
 p = Phieu(chi_tiet=[D(ngay=T2, theo_gio=1, so_gio=0, don_gia=33000)])
 kiem("dòng làm theo giờ mà 0 giờ → chặn", "chưa có số giờ" in (thu(p.save) or ""))

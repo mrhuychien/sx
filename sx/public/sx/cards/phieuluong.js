@@ -1,7 +1,8 @@
 // Card "Phiếu lương" trên màn Quản lý — xem nhanh, chỉ đọc (D110).
 //
 // Mỗi người một dòng: tên · lương SP · thực nhận · đã duyệt hay chưa. Bấm vào
-// người → các khoản, sản phẩm gộp theo mã, từng ngày. Sửa / duyệt vẫn ở Desk
+// người → các khoản, sản phẩm gộp theo mã, từng ngày (D234: ngày đó làm những gì,
+// số lượng, đơn giá, thành tiền, cộng ngày). Sửa / duyệt vẫn ở Desk
 // (có lịch sử phiên bản) — nút "Mở trên Desk" đưa thẳng tới phiếu.
 //
 // Gập sẵn như lịch tháng: thẻ quản lý đã dài, lương không phải việc mỗi giờ.
@@ -152,11 +153,15 @@ async function moPhieu(name, call) {
     `${x.ten}${x.cach_lam ? ` · ${x.cach_lam}` : ''}`, dong(x.thanh_tien),
     `${x.theo_gio ? `${formatNumber(x.so_luong, 2)} giờ` : formatNumber(x.so_luong)} × ${
       x.don_gia ? `${formatNumber(x.don_gia)} đ` : '⚠ chưa có giá'}`]));
-  khoi('Từng ngày', p.ngay.map((x) => [
-    `${x.ngay.slice(8)}/${x.ngay.slice(5, 7)} ${x.thu || ''}`, dong(x.thu_nhap),
-    [x.luong_sp ? `SP ${dong(x.luong_sp)}${x.he_so > 1 ? ` ×${x.he_so}` : ''}` : '',
-      x.so_gio ? `${formatNumber(x.so_gio, 2)} giờ` : '',
-      x.an_ca ? 'ăn ca' : '', x.an_dem ? 'ăn đêm' : ''].filter(Boolean).join(' · ')]));
+  // D234: từng ngày làm được những gì — số lượng, đơn giá, thành tiền — rồi dòng cộng ngày. Một bảng cho cả tháng,
+  // mỗi ngày một nhóm dòng; đầu bảng dính trên cùng khi cuộn.
+  if (p.ngay.length) {
+    b.appendChild(el('div', 'sx-field-label', 'Từng ngày (đồng)'));
+    const bang = el('table', 'sx-table sx-pl-ngay');
+    bang.innerHTML = `<thead><tr><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead>${
+      p.ngay.map(veNgay).join('')}`;
+    b.appendChild(bang);
+  }
   khoi('Lỗi phạt', p.phat.map((x) => [x.ly_do || '—', `− ${dong(x.tien)}`]));
   if (p.ghi_chu) b.appendChild(el('div', 'sx-muted', esc(p.ghi_chu)));
 
@@ -165,4 +170,27 @@ async function moPhieu(name, call) {
   desk.target = '_blank';
   desk.rel = 'noopener';
   b.appendChild(desk);
+}
+
+/** Một ngày trên phiếu lương (D234): đầu ngày (ngày · thứ · chấm ăn), mỗi sản phẩm một dòng (làm theo giờ: số giờ ×
+ * đơn giá / giờ), rồi CỘNG NGÀY = thu nhập ngày của phiếu. Có hệ số (Chủ nhật / 1-1) hay tiền ăn thì ghi phép tính:
+ * lương SP × hệ số + tiền ăn. Mọi số lấy nguyên từ server — thẻ không tự nhân lại (hai nơi tính là hai con số). */
+export function veNgay(x) {
+  const so = (n) => formatNumber(Math.round(n || 0));
+  const an = [x.an_ca ? 'ăn ca' : '', x.an_dem ? 'ăn đêm' : ''].filter(Boolean).join(' · ');
+  const phepTinh = x.he_so > 1 || x.tien_an ? [
+    x.luong_sp ? `lương SP ${so(x.luong_sp)}${x.he_so > 1 ? ` × ${formatNumber(x.he_so, 2)}` : ''}` : '',
+    x.tien_an ? `tiền ăn ${so(x.tien_an)}` : '',
+  ].filter(Boolean).join(' + ') : '';
+  return `<tbody>
+    <tr class="sx-pl-ngay-dau"><td colspan="4"><b>${esc(`${x.ngay.slice(8)}/${x.ngay.slice(5, 7)}`)}${
+  x.thu ? ` · ${esc(x.thu)}` : ''}</b>${an ? ` <span class="sx-vh-meta">· ${esc(an)}</span>` : ''}</td></tr>
+    ${(x.sp || []).map((r) => `<tr>
+      <td>${esc(r.ten || '')}${r.cach_lam ? ` <span class="sx-vh-meta">· ${esc(r.cach_lam)}</span>` : ''}</td>
+      <td>${r.theo_gio ? `${formatNumber(r.so_luong, 2)}&nbsp;giờ` : formatNumber(r.so_luong)}</td>
+      <td>${r.don_gia ? formatNumber(r.don_gia) : '<span class="sx-warn-text">⚠ chưa có giá</span>'}</td>
+      <td>${so(r.thanh_tien)}</td></tr>`).join('')}
+    <tr class="sx-pl-ngay-cong"><td colspan="3">Cộng ngày${
+  phepTinh ? ` <span class="sx-vh-meta">(${esc(phepTinh)})</span>` : ''}</td><td><b>${so(x.thu_nhap)}</b></td></tr>
+  </tbody>`;
 }

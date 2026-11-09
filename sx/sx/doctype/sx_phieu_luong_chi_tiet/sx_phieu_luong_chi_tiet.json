@@ -33,8 +33,6 @@
    "fieldtype": "Link",
    "options": "Item",
    "label": "Mã hàng",
-   "in_list_view": 1,
-   "columns": 2,
    "mandatory_depends_on": "eval:!doc.theo_gio"
   },
   {
@@ -52,7 +50,7 @@
    "options": "SX Cach Lam",
    "label": "Cách làm",
    "in_list_view": 1,
-   "columns": 2
+   "columns": 1
   },
   {
    "fieldname": "so_luong",
@@ -78,6 +76,8 @@
    "fieldtype": "Currency",
    "label": "Đơn giá",
    "read_only": 1,
+   "in_list_view": 1,
+   "columns": 1,
    "description": "Chốt tại thời điểm ghi, theo bảng đơn giá của THÁNG đó."
   },
   {
@@ -92,7 +92,7 @@
  "actions": [],
  "links": [],
  "creation": "2026-08-25 12:00:00.000000",
- "modified": "2026-11-02 12:00:00.000000",
+ "modified": "2026-11-09 12:00:00.000000",
  "modified_by": "Administrator",
  "owner": "Administrator",
  "module": "SX",

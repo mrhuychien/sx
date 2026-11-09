@@ -122,6 +122,12 @@ class SXPhieuLuong(Document):
                 frappe.throw(_("Dòng chi tiết {0}: chưa chọn mã hàng.").format(r.idx))
             r.so_gio = 0
             r.thanh_tien = flt(r.don_gia) * cint(r.so_luong)
+        # D234: lưới Chi tiết đọc theo NGÀY — một ngày làm những gì, đơn giá, thành tiền. Chốt lại một ngày cũ thì
+        # _thay_ngay xoá dòng của ngày đó rồi thêm lại ở CUỐI danh sách; xếp theo ngày, trong ngày sản phẩm trước, làm
+        # theo giờ sau, còn lại giữ thứ tự ghi (sắp xếp ổn định).
+        self.chi_tiet = sorted(self.chi_tiet, key=lambda r: (getdate(r.ngay), cint(r.get("theo_gio"))))
+        for i, r in enumerate(self.chi_tiet, start=1):
+            r.idx = i
 
     def tinh_theo_ngay(self, cf):
         """Σ chi tiết về từng ngày, rồi áp hệ số ngày lễ."""

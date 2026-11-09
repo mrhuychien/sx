@@ -1996,6 +1996,15 @@ main > .container {
 .sx-lich-nut > span:first-child { white-space: nowrap; }
 .sx-pl-tong b { white-space: nowrap; }
 .sx-modal-body a.sx-btn { box-sizing: border-box; width: 100%; }
+/* D234: từng ngày — sản phẩm, SL, đơn giá, thành tiền; đầu ngày tô nền, cộng ngày gạch đậm ngăn ngày sau.
+   Đầu bảng dính trên cùng khi cuộn (khung cuộn là .sx-modal) — cuộn tới ngày 25 vẫn biết cột nào là đơn giá. */
+.sx-pl-ngay td { padding: var(--sx-s2) var(--sx-s1); vertical-align: top; }
+.sx-pl-ngay td:first-child { overflow-wrap: anywhere; }
+/* top âm = lề trên của .sx-modal (var(--sx-s4)): dính sát mép khung, không để dòng cuộn lộ qua khe lề */
+.sx-pl-ngay thead th { position: sticky; top: calc(-1 * var(--sx-s4)); z-index: 1; }
+.sx-pl-ngay .sx-pl-ngay-dau td { background: var(--sx-surface-2); padding-top: var(--sx-s3); }
+.sx-pl-ngay .sx-pl-ngay-cong td { border-bottom: 2px solid var(--sx-line-2); }
+.sx-pl-ngay .sx-warn-text { font-weight: 600; }
 
 
 /* ══════════════════ HSD LÔ NHẬP KHO (D114) ══════════════════ */

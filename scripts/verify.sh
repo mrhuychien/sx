@@ -214,6 +214,11 @@ node scripts/test-anh.mjs > /tmp/sx-anh.log 2>&1 \
 python3 scripts/test-luong.py > /tmp/sx-luong.log 2>&1 \
   && tail -1 /tmp/sx-luong.log \
   || { cat /tmp/sx-luong.log; loi=1; }
+# D234: thẻ phiếu lương — từng ngày làm được gì, số lượng, đơn giá, thành tiền, cộng ngày. Chromium thật + CSS thật ở
+# màn 360px: đúng cột, dòng chưa có giá không đọc như "0 đồng", không phải kéo ngang, đầu cột dính khi cuộn.
+node scripts/test-phieuluong.mjs > /tmp/sx-phieuluong.log 2>&1 \
+  && tail -1 /tmp/sx-phieuluong.log \
+  || { cat /tmp/sx-phieuluong.log; loi=1; }
 
 # D111: nút copy sản lượng từng hỏng im lặng (hàm ngoài render gọi biến trong render).
 # Bấm đúng nút trong Chromium thật và đọc lại clipboard.

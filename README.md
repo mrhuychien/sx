@@ -327,6 +327,41 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Phiếu lương ghi rõ từng ngày: làm sản phẩm nào, số lượng, đơn giá, thành tiền (D234)
+
+- **Hỏi** (09/11/2026): phiếu lương cần làm rõ một ngày làm được những sản phẩm nào, đơn giá, thành tiền bao nhiêu.
+- **Thẻ Phiếu lương** (màn Quản lý → bấm tên người): mục **Từng ngày** thành một bảng *Sản phẩm · SL · Đơn giá ·
+  Thành tiền*, mỗi ngày một nhóm dòng:
+  ```
+  01/11 · Chủ nhật · ăn ca
+  Bánh đậu xanh sen · Máy     110     1.200     132.000
+  Làm theo giờ            2,5 giờ    33.000      82.500
+  Cộng ngày (lương SP 214.500 × 1,2 + tiền ăn 20.000)   277.400
+  ```
+  - Sản phẩm gộp theo mã + cách làm + đơn giá trong ngày (QC ghi nhiều lần cùng mã thì cộng một dòng), giữ thứ tự ghi;
+    làm theo giờ xuống cuối, mỗi mức một dòng (D233), giá cao trước. Dòng chưa có giá ghi **⚠ chưa có giá**, không
+    hiện "0" như giá thật.
+  - **Cộng ngày** = thu nhập ngày của phiếu. Có hệ số (Chủ nhật / 1-1) hay tiền ăn thì ghi phép tính bên cạnh; ngày
+    chỉ chấm ăn chỉ có dòng cộng ngày. Mọi số lấy nguyên từ phiếu (server), thẻ không tự tính lại.
+  - Vừa màn điện thoại (không kéo ngang); đầu cột dính trên cùng khi cuộn tới cuối tháng. Mục *Sản phẩm trong tháng*
+    (gộp cả tháng) giữ như cũ.
+- **Desk** (SX Phieu Luong):
+  - Lưới *Chi tiết sản lượng* có thêm cột **Đơn giá** (trước chỉ xem được khi mở từng dòng). Để vừa khổ lưới (tổng ≤ 10
+    phần), bỏ cột *Mã hàng* khỏi lưới, giữ *Tên hàng* — đọc rõ sản phẩm (dòng giờ ghi "Làm theo giờ"); xem / sửa mã
+    thì mở dòng. Cột: Ngày · Tên hàng · Cách làm · Số lượng · Số giờ · Đơn giá · Thành tiền.
+  - Lưu phiếu thì dòng chi tiết **xếp theo ngày** (trong ngày sản phẩm trước, giờ sau, còn lại giữ thứ tự ghi) —
+    trước đây chốt lại một ngày cũ là dòng của ngày đó nhảy xuống cuối lưới. Phiếu nháp đang có tự xếp lại ở lần
+    đồng bộ / lưu tới; phiếu đã duyệt giữ nguyên. Bản in mặc định cũng theo thứ tự này.
+  - Lưới *Theo ngày*: *Tiền ăn* gọn một phần để cột *Thu nhập ngày* vừa khổ lưới.
+  - Ai từng tự chọn cột cho hai lưới này (nút ⚙ trên lưới) thì Frappe giữ lựa chọn đó — vào ⚙ chọn lại / khôi phục
+    mặc định để thấy cột mới.
+- Test `test-phieuluong.mjs` (mới — Chromium thật + CSS thật ở màn 360px: đúng cột, giờ lẻ, chưa có giá, phép tính cộng
+  ngày, ngày chỉ chấm ăn, số lớn, tên hàng lạ không chèn HTML, không kéo ngang, đầu cột dính), `test-luong.py` (sản
+  phẩm của đúng ngày, gộp trong ngày, cùng mã khác cách làm, thứ tự, khớp lương SP ngày, không cộng hai lần vào tháng),
+  `test-giocong.py` (xếp theo ngày sau khi chốt lại ngày cũ / thêm tay, idx, không đổi tiền), `test-giocong.mjs`.
+- **Đổi DocType** (lưới hai bảng con của phiếu lương): `git pull` → `bench --site site1.local migrate` →
+  `bench restart`. Build **sx-174**.
+
 ## Làm theo giờ thêm mức 30.000đ/giờ — tin gửi nhóm chỉ ghi tổng giờ, Ghi hộp + Quản lý hiện rõ mức (D233)
 
 - **Hỏi** (08/11/2026): đã có làm theo giờ 33.000/giờ (D225), nay phát sinh thêm làm theo giờ **30.000/giờ**. Copy gửi

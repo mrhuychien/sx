@@ -72,28 +72,41 @@ def thang(nam, thang, q=None):
     }
 
 
+def _sp_cua_ngay(ds):
+    """Dòng sản phẩm của MỘT ngày (D234): sản phẩm trước, làm theo giờ sau (giá cao trước); còn lại giữ thứ tự ghi."""
+    return sorted(ds, key=lambda g: (1, -g["don_gia"]) if g.get("theo_gio") else (0, 0))
+
+
 @frappe.whitelist()
 def chi_tiet(name):
-    """Một phiếu: các khoản, sản phẩm gộp theo mã, từng ngày, lỗi phạt."""
+    """Một phiếu: các khoản, sản phẩm gộp theo mã, từng ngày, lỗi phạt.
+
+    D234: mỗi ngày kèm `sp` — ngày đó làm được những gì, số lượng, đơn giá, thành tiền (cùng cách gộp với "sản phẩm
+    trong tháng": mã + cách làm + đơn giá; làm theo giờ gộp theo đơn giá / giờ) — và `tien_an` của ngày, để thẻ ghi
+    được dòng cộng ngày: lương SP × hệ số + tiền ăn = thu nhập ngày. Mọi số lấy nguyên từ phiếu, không tính lại.
+    """
     guard_card("phieuluong")
     p = frappe.get_doc(PL, name)
-    sp, gio_ngay = {}, {}
+    sp, gio_ngay, sp_ngay = {}, {}, {}
     for r in p.chi_tiet:
+        ngay = str(getdate(r.ngay))
         if cint(r.get("theo_gio")):
             # D225: làm theo giờ — gộp theo đơn giá / giờ, số lượng là số GIỜ
-            g = sp.setdefault(("", "gio", flt(r.don_gia)), {
-                "ten": _("Làm theo giờ"), "cach_lam": "", "theo_gio": True, "don_gia": flt(r.don_gia),
-                "so_luong": 0.0, "thanh_tien": 0.0})
-            g["so_luong"] += flt(r.so_gio)
+            k = ("", "gio", flt(r.don_gia))
+            moi = {"ten": _("Làm theo giờ"), "cach_lam": "", "theo_gio": True, "don_gia": flt(r.don_gia),
+                   "so_luong": 0.0, "thanh_tien": 0.0}
+            sl = flt(r.so_gio)
+            gio_ngay[ngay] = gio_ngay.get(ngay, 0.0) + sl
+        else:
+            k = (r.san_pham, r.cach_lam or "", flt(r.don_gia))
+            moi = {"ten": r.ten_san_pham or r.san_pham, "cach_lam": r.cach_lam or "",
+                   "don_gia": flt(r.don_gia), "so_luong": 0, "thanh_tien": 0.0}
+            sl = cint(r.so_luong)
+        # Cả tháng và từng ngày — mỗi bảng một bản riêng (dict(moi)), không cộng hai lần vào cùng một dòng
+        for bang in (sp, sp_ngay.setdefault(ngay, {})):
+            g = bang.setdefault(k, dict(moi))
+            g["so_luong"] += sl
             g["thanh_tien"] += flt(r.thanh_tien)
-            k = str(getdate(r.ngay))
-            gio_ngay[k] = gio_ngay.get(k, 0.0) + flt(r.so_gio)
-            continue
-        k = (r.san_pham, r.cach_lam or "", flt(r.don_gia))
-        g = sp.setdefault(k, {"ten": r.ten_san_pham or r.san_pham, "cach_lam": r.cach_lam or "",
-                              "don_gia": flt(r.don_gia), "so_luong": 0, "thanh_tien": 0.0})
-        g["so_luong"] += cint(r.so_luong)
-        g["thanh_tien"] += flt(r.thanh_tien)
     khoan = [
         (_("Lương sản phẩm"), p.luong_san_pham), (_("Tiền ăn ca + ăn đêm"), p.tien_an),
         (_("Chuyên cần"), p.chuyen_can), (_("Hỗ trợ ngày công"), p.ho_tro_ngay_cong),
@@ -111,9 +124,10 @@ def chi_tiet(name):
         "thuc_nhan": flt(p.luong_thuc_nhan),
         "san_pham": sorted(sp.values(), key=lambda g: -g["thanh_tien"]),
         "ngay": [{"ngay": str(getdate(r.ngay)), "thu": r.thu, "an_ca": cint(r.an_ca),
-                  "an_dem": cint(r.an_dem), "luong_sp": flt(r.luong_sp), "he_so": flt(r.he_so),
-                  "so_gio": gio_ngay.get(str(getdate(r.ngay)), 0.0),
-                  "thu_nhap": flt(r.thu_nhap_ngay)} for r in p.dong],
+                  "an_dem": cint(r.an_dem), "tien_an": flt(r.tien_an), "luong_sp": flt(r.luong_sp),
+                  "he_so": flt(r.he_so), "so_gio": gio_ngay.get(str(getdate(r.ngay)), 0.0),
+                  "thu_nhap": flt(r.thu_nhap_ngay),
+                  "sp": _sp_cua_ngay(sp_ngay.get(str(getdate(r.ngay)), {}).values())} for r in p.dong],
         "phat": [{"ly_do": r.ly_do, "tien": flt(r.thanh_tien)} for r in p.phat],
         "ghi_chu": p.ghi_chu or "",
     }

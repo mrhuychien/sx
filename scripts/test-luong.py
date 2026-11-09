@@ -71,6 +71,31 @@ PHIEU = [
                     thu_nhap_ngay=49_500)]),
     phieu("PL-3", "Lê Huỷ", 2, luong_san_pham=9_999_999, luong_thuc_nhan=9_999_999),
     phieu("PL-9", "Tháng khác", 0, thang=9, luong_thuc_nhan=1),
+    # D234: một ngày làm những gì. Dòng chi tiết CỐ Ý lộn xộn như sau khi sửa tay trên Desk / chốt lại ngày cũ: dòng giờ
+    # 30.000 đứng trước dòng giờ 33.000 và trước sản phẩm; một mã + cách làm + đơn giá hai dòng trong cùng ngày; mã ghi
+    # trước có thành tiền NHỎ hơn mã ghi sau (thứ tự ghi ≠ thứ tự tiền); dòng nợ giá (0 đồng) cùng mã cùng giá khác cách
+    # làm; ngày 02/08 (Chủ nhật) chỉ chấm ăn. Tháng 8 — không lẫn vào danh sách tháng 10 ở trên.
+    phieu("PL-4", "Phạm Thị Dung", 0, thang=8,
+          chi_tiet=[Doc(ngay=date(2026, 8, 3), theo_gio=1, so_gio=2, san_pham=None, ten_san_pham="Làm theo giờ",
+                        cach_lam=None, so_luong=0, don_gia=30_000, thanh_tien=60_000),
+                    Doc(ngay=date(2026, 8, 3), san_pham="TP-SEN", ten_san_pham="Bánh sen", cach_lam="Máy",
+                        so_luong=40, don_gia=900, thanh_tien=36_000),
+                    Doc(ngay=date(2026, 8, 4), san_pham="TP-TT", ten_san_pham="Bánh TT", cach_lam="Tay",
+                        so_luong=30, don_gia=0, thanh_tien=0),
+                    Doc(ngay=date(2026, 8, 4), san_pham="TP-TT", ten_san_pham="Bánh TT", cach_lam="Máy",
+                        so_luong=12, don_gia=0, thanh_tien=0),
+                    Doc(ngay=date(2026, 8, 3), theo_gio=1, so_gio=1.5, san_pham=None, ten_san_pham="Làm theo giờ",
+                        cach_lam=None, so_luong=0, don_gia=33_000, thanh_tien=49_500),
+                    Doc(ngay=date(2026, 8, 3), san_pham="TP-TT", ten_san_pham="Bánh TT", cach_lam="Tay",
+                        so_luong=30, don_gia=2_000, thanh_tien=60_000),
+                    Doc(ngay=date(2026, 8, 3), san_pham="TP-SEN", ten_san_pham="Bánh sen", cach_lam="Máy",
+                        so_luong=10, don_gia=900, thanh_tien=9_000)],
+          dong=[Doc(ngay=date(2026, 8, 2), thu="Chủ nhật", an_ca=1, an_dem=1, tien_an=30_000, luong_sp=0, he_so=1.2,
+                    thu_nhap_ngay=30_000),
+                Doc(ngay=date(2026, 8, 3), thu="Thứ 2", an_ca=1, an_dem=0, tien_an=20_000, luong_sp=214_500, he_so=1,
+                    thu_nhap_ngay=234_500),
+                Doc(ngay=date(2026, 8, 4), thu="Thứ 3", an_ca=0, an_dem=0, tien_an=0, luong_sp=0, he_so=1,
+                    thu_nhap_ngay=0)]),
 ]
 
 
@@ -171,6 +196,39 @@ kiem("… từng ngày kèm số giờ của ngày (cộng mọi mức: 03/10 = 
      == [("2026-10-01", 2.5), ("2026-10-03", 3.5)], str(c["ngay"]))
 kiem("… mã hàng có đúng tên dòng sản phẩm, không lẫn dòng giờ",
      [(x["ten"], x["so_luong"]) for x in c["san_pham"] if not x.get("theo_gio")] == [("Bánh sen", 10)])
+
+print("\n-- D234: từng ngày làm những gì, đơn giá, thành tiền --")
+c = L.chi_tiet("PL-4")
+ng = {x["ngay"]: x for x in c["ngay"]}
+dong_sp = lambda d: [(x["ten"], x["cach_lam"], x["so_luong"], x["don_gia"], x["thanh_tien"], bool(x.get("theo_gio")))
+                     for x in ng[d]["sp"]]
+kiem("ngày 03/08: sản phẩm của ĐÚNG ngày đó — số lượng, đơn giá, thành tiền; cùng mã + cách làm + đơn giá gộp một "
+     "dòng (40 + 10); sản phẩm giữ thứ tự ghi (sen trước TT dù ít tiền hơn), làm theo giờ sau (giá cao trước) dù "
+     "dòng giờ 30.000 ghi đầu tiên",
+     dong_sp("2026-08-03") == [("Bánh sen", "Máy", 50, 900.0, 45_000.0, False),
+                               ("Bánh TT", "Tay", 30, 2_000.0, 60_000.0, False),
+                               ("Làm theo giờ", "", 1.5, 33_000.0, 49_500.0, True),
+                               ("Làm theo giờ", "", 2.0, 30_000.0, 60_000.0, True)], str(dong_sp("2026-08-03")))
+kiem("… cộng thành tiền các dòng của ngày = lương SP ngày trên phiếu (214.500)",
+     sum(x["thanh_tien"] for x in ng["2026-08-03"]["sp"]) == ng["2026-08-03"]["luong_sp"] == 214_500)
+kiem("… kèm tiền ăn và thu nhập ngày lấy nguyên từ phiếu (dòng cộng ngày trên thẻ)",
+     (ng["2026-08-03"]["tien_an"], ng["2026-08-03"]["thu_nhap"]) == (20_000, 234_500), str(ng["2026-08-03"]))
+kiem("ngày 04/08: dòng chưa có giá vẫn hiện — đơn giá 0, thành tiền 0 (thẻ ghi ⚠ chưa có giá); cùng mã cùng giá "
+     "khác cách làm là HAI dòng",
+     dong_sp("2026-08-04") == [("Bánh TT", "Tay", 30, 0.0, 0.0, False), ("Bánh TT", "Máy", 12, 0.0, 0.0, False)],
+     str(dong_sp("2026-08-04")))
+kiem("ngày 02/08 chỉ chấm ăn: không dòng sản phẩm, tiền ăn 30.000 = thu nhập ngày",
+     ng["2026-08-02"]["sp"] == [] and (ng["2026-08-02"]["tien_an"], ng["2026-08-02"]["thu_nhap"]) == (30_000, 30_000),
+     str(ng["2026-08-02"]))
+kiem("ngày theo đúng thứ tự dòng ngày của phiếu", list(ng) == ["2026-08-02", "2026-08-03", "2026-08-04"], str(list(ng)))
+sen = [x for x in c["san_pham"] if x["ten"] == "Bánh sen"]
+kiem("sản phẩm trong tháng KHÔNG bị cộng hai lần khi tách thêm theo ngày (sen 50, không 100)",
+     [(x["so_luong"], x["thanh_tien"]) for x in sen] == [(50, 45_000.0)], str(sen))
+kiem("… tổng thành tiền cả tháng = tổng các ngày",
+     sum(x["thanh_tien"] for x in c["san_pham"]) == sum(x["thanh_tien"] for d in c["ngay"] for x in d["sp"]) == 214_500)
+c1 = L.chi_tiet("PL-1")
+kiem("phiếu có ngày không có dòng chi tiết (04/10) → danh sách sản phẩm của ngày rỗng, không lỗi",
+     c1["ngay"][0]["sp"] == [], str(c1["ngay"][0]))
 
 print("\n-- quyền --")
 for vai in ("SX Vao Hop", "SX Thu Kho", "SX Ghi So", "SX QC"):
