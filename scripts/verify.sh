@@ -280,6 +280,12 @@ python3 scripts/test-ghihop.py > /tmp/sx-ghihop.log 2>&1 \
   && tail -1 /tmp/sx-ghihop.log \
   || { cat /tmp/sx-ghihop.log; loi=1; }
 
+# D235: công khoán ẩn khỏi bảng ghi hộp (tính lương kiểu khác) — một chỗ lọc cho màn Ghi hộp, mã quét, in thẻ QR;
+# lệnh ẩn theo TÊN không ẩn nhầm (trùng tên, thiếu dấu, gõ một đoạn) và báo dữ liệu tháng này của người sắp ẩn.
+python3 scripts/test-anghihop.py > /tmp/sx-anghihop.log 2>&1 \
+  && tail -1 /tmp/sx-anghihop.log \
+  || { cat /tmp/sx-anghihop.log; loi=1; }
+
 # Điện thoại xưởng chuyền tay giữa hai QC; hàng chờ nằm trong trình duyệt chứ không
 # trong tài khoản. Gửi nhầm thao tác của người trước dưới tên người sau thì nhật ký
 # ghi sai người mà không lỗi nào hiện ra.

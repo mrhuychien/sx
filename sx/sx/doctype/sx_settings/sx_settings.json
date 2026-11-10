@@ -26,6 +26,8 @@
   "no_gia_tu_ngay",
   "no_vh_tu_ngay",
   "no_vh_mang_sang",
+  "section_an_ghi_hop",
+  "an_ghi_hop",
   "section_an_ca",
   "tien_an_ca",
   "column_break_ac",
@@ -144,6 +146,19 @@
    "label": "Hàng chấm trước mốc chưa nhập kho (mang sang)",
    "read_only": 1,
    "description": "D230: {mã: số hộp} chụp lúc đặt mốc — nhập kho phần này từ mốc không thành nợ vào hộp."
+  },
+  {
+   "fieldname": "section_an_ghi_hop",
+   "fieldtype": "Section Break",
+   "label": "Công khoán ẩn khỏi bảng ghi hộp",
+   "description": "D235: người vẫn là công khoán nhưng tính lương kiểu khác."
+  },
+  {
+   "fieldname": "an_ghi_hop",
+   "fieldtype": "Table",
+   "options": "SX Cong Khoan An",
+   "label": "Công khoán ẩn khỏi bảng ghi hộp",
+   "description": "Không hiện ở màn Ghi hộp (không ghi hộp, làm theo giờ, chấm ăn ở đó), không có trong mã quét và in thẻ QR. Muốn hiện lại: xoá dòng. QC tải lại app là thấy."
   },
   {
    "fieldname": "section_an_ca",
@@ -297,7 +312,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-11-08 12:00:00.000000",
+ "modified": "2026-11-10 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

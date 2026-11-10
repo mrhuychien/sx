@@ -327,6 +327,37 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ẩn công khoán khỏi bảng ghi hộp — Hà, Lập, Phúc tính lương kiểu khác (D235)
+
+- **Hỏi** (10/11/2026): ẩn Hà, Lập, Phúc khỏi bảng ghi hộp — họ cũng là công khoán nhưng tính lương kiểu khác.
+- **Cấu hình**: SX Settings → mục **Công khoán ẩn khỏi bảng ghi hộp**, mỗi dòng một nhân viên (chọn Employee, họ tên tự
+  điền). Người trong bảng này:
+  - không hiện ở màn Ghi hộp — không ghi hộp, làm theo giờ, chấm ăn ở đó;
+  - không có trong bảng mã quét (quét thẻ của họ không ra ai) và danh sách in thẻ QR — lọc ở MỘT chỗ
+    (`portal._nhan_vien_vao_hop`), ba nơi luôn khớp nhau;
+  - vẫn là công khoán trên Employee, chỉ ẩn khỏi bảng ghi hộp. Tên ngắn của người còn lại tính trên danh sách còn lại
+    (hai người tên Hà, ẩn một thì người kia hiện "Hà").
+  - Hiện lại: xoá dòng. QC tải lại app là thấy (có mạng thì danh sách lấy mới mỗi lần mở app).
+- **Lệnh** điền bảng theo tên — gọi trần là xem trước:
+  ```
+  bench --site site1.local execute sx.api.portal.an_ghi_hop --kwargs "{'ten': 'Hà, Lập, Phúc'}"              # xem trước
+  bench --site site1.local execute sx.api.portal.an_ghi_hop --kwargs "{'ten': 'Hà, Lập, Phúc', 'chay': 1}"    # ghi
+  ```
+  - Tên = tên đang hiện trên màn Ghi hộp ("Hà"; trùng tên thì "Hà Nguyễn"), họ tên đầy đủ, mã nhân viên hoặc mã chấm
+    công; không phân biệt hoa thường, dấu cách thừa, bộ gõ.
+  - Khớp NGUYÊN tên, không đoán: một tên trùng nhiều người thì in từng người (tên đang hiện, họ tên, mã) để gõ lại; tên
+    không thấy (vd thiếu dấu "Phuc") thì báo. Còn một tên như vậy là **không ghi ai** — tránh ẩn lệch, ẩn nhầm.
+  - Báo luôn người sắp ẩn mà **tháng này đã được ghi** (dòng ghi hộp, ngày chấm ăn / làm theo giờ, phiếu lương): phần
+    đó VẪN tính lương khoán. Không muốn tính thì **dọn trước khi ẩn** — màn Ghi hộp, từng ngày đó xoá dòng / bỏ chấm
+    của họ (phiếu lương tự đồng bộ theo); ẩn rồi thì màn Ghi hộp không còn nút chấm ăn của họ.
+  - Chạy lại an toàn (đã ẩn thì không thêm trùng). Ghi bằng lưu SX Settings nên có lịch sử phiên bản (ai ẩn ai, lúc
+    nào). Không có nút trên màn hình (không whitelist).
+- Test `test-anghihop.py` (lọc: màn Ghi hộp, mã quét, in thẻ QR, dòng trống, chưa migrate; lệnh: xem trước / ghi /
+  chạy lại, hoa thường / dấu tổ hợp / họ tên / mã, trùng tên, thiếu dấu, gõ một đoạn họ tên, người ngoài nhóm, không
+  whitelist; dữ liệu tháng này: dòng hộp, chấm ăn, giờ mức 2, phiếu lương, bỏ tháng trước).
+- **Đổi DocType** (bảng con mới SX Cong Khoan An, ô mới ở SX Settings): `git pull` → `bench --site site1.local
+  migrate` → `bench restart` → chạy lệnh xem trước → ghi. Không đổi giao diện (build giữ **sx-174**).
+
 ## Phiếu lương ghi rõ từng ngày: làm sản phẩm nào, số lượng, đơn giá, thành tiền (D234)
 
 - **Hỏi** (09/11/2026): phiếu lương cần làm rõ một ngày làm được những sản phẩm nào, đơn giá, thành tiền bao nhiêu.

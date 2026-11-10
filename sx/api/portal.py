@@ -3,6 +3,9 @@
 Dữ liệu doc chuẩn chỉ trả field whitelist (Employee: name, employee_name).
 """
 
+import re
+import unicodedata
+
 import frappe
 from frappe import _
 from frappe.utils import add_days, cint, flt, getdate, nowdate
@@ -51,11 +54,21 @@ def _do_nhom_cong_khoan():
     return None
 
 
-def _nhan_vien_vao_hop():
+def _an_ghi_hop(settings=None):
+    """D235: mã Employee của công khoán KHÔNG hiện ở bảng ghi hộp (SX Settings → "Công khoán ẩn khỏi bảng ghi hộp") —
+    vẫn là công khoán nhưng tính lương kiểu khác. Site chưa migrate (chưa có bảng) → rỗng, không ẩn ai."""
+    s = get_settings() if settings is None else settings
+    return {r.get("employee") for r in (s.get("an_ghi_hop") or []) if r.get("employee")}
+
+
+def _nhan_vien_vao_hop(ca_nguoi_an=False):
     """Chỉ công nhân thuộc nhóm CÔNG KHOÁN mới hiện ở bảng vào hộp.
 
     Ưu tiên cấu hình SX Settings (nguồn + giá trị); chưa điền thì tự dò; dò không ra
     thì trả mọi nhân viên Active kèm cảnh báo (để không chặn vận hành).
+    D235: trừ công khoán ở SX Settings → "Công khoán ẩn khỏi bảng ghi hộp" (tính lương kiểu khác). Lọc ở ĐÂY nên một
+    chỗ đủ cho màn Ghi hộp, bảng mã quét và in thẻ QR; tên ngắn tính trên danh sách còn lại. `ca_nguoi_an=True`: lấy cả
+    người đã ẩn (lệnh an_ghi_hop dò tên).
     Trả (danh sách đã gán ten_hien_thi, cảnh báo|None).
     """
     settings = get_settings()
@@ -74,6 +87,9 @@ def _nhan_vien_vao_hop():
                 "Chưa xác định được nhóm công khoán — đang hiện MỌI nhân viên. "
                 "Vào SX Settings điền 'Nguồn nhóm công khoán' + 'Giá trị nhóm công khoán'."
             )
+    an = set() if ca_nguoi_an else _an_ghi_hop(settings)
+    if an:
+        filters["name"] = ("not in", sorted(an))
 
     fields = ["name", "employee_name"]
     # employee_number là mã người ta vốn đã in trên thẻ/bảng công. Ưu tiên nó làm mã
@@ -84,6 +100,140 @@ def _nhan_vien_vao_hop():
         "Employee", filters=filters, fields=fields, order_by="employee_name",
     )
     return dat_ten_hien_thi(ds), canh_bao
+
+
+# ───────────────────────────── D235: ẩn công khoán khỏi bảng ghi hộp (lệnh bench) ──
+
+
+def an_ghi_hop(ten=None, chay=0):
+    """bench: ẨN công khoán khỏi bảng ghi hộp — vẫn là công khoán nhưng tính lương kiểu khác. Ghi vào SX Settings →
+    "Công khoán ẩn khỏi bảng ghi hộp"; gọi trần là xem trước:
+      bench --site site1.local execute sx.api.portal.an_ghi_hop --kwargs "{'ten': 'Hà, Lập, Phúc'}"             # xem
+      bench --site site1.local execute sx.api.portal.an_ghi_hop --kwargs "{'ten': 'Hà, Lập, Phúc', 'chay': 1}"   # ghi
+    KHÔNG whitelist. Hiện lại: SX Settings → xoá dòng của người đó."""
+    print(bao_cao_an_ghi_hop(xu_ly_an_ghi_hop(ten, chay)))
+
+
+def _chuan_ten(s):
+    """So tên: không phân biệt hoa thường, dấu cách thừa; chuẩn Unicode NFC (bộ gõ khác nhau ra mã dấu khác nhau)."""
+    return " ".join(unicodedata.normalize("NFC", str(s or "")).lower().split())
+
+
+def xu_ly_an_ghi_hop(ten=None, chay=0):
+    """Xem trước (chay=0) / ghi (chay=1) — trả dict cho báo cáo và test.
+
+    Dò trong danh sách công khoán của bảng ghi hộp (kể cả người đã ẩn): khớp NGUYÊN tên ngắn như màn Ghi hộp đang hiện
+    ("Hà"; trùng tên thì "Hà Nguyễn"), họ tên đầy đủ, mã nhân viên hoặc employee_number — không đoán gần đúng. Không
+    khớp thì dò theo tên gọi (chữ cuối họ tên) để liệt kê người trùng. Còn một tên mơ hồ / không thấy là KHÔNG ghi ai,
+    kể cả chay=1: ẩn nhầm là một người biến khỏi bảng ghi hộp mà QC không biết vì sao.
+    """
+    if not frappe.get_meta("SX Settings").has_field("an_ghi_hop"):
+        frappe.throw(_("SX Settings chưa có bảng 'Công khoán ẩn khỏi bảng ghi hộp' — chạy bench --site site1.local "
+                       "migrate trước."))
+    go = re.split(r"[,;\n]", ten) if isinstance(ten, str) else list(ten or [])
+    go = [str(t).strip() for t in go if str(t).strip()]
+    if not go:
+        frappe.throw(_("Chưa có tên — vd --kwargs \"{'ten': 'Hà, Lập, Phúc'}\"."))
+    ds, _cb = _nhan_vien_vao_hop(ca_nguoi_an=True)
+    da_an = _an_ghi_hop()
+    khop, mo_ho, khong = {}, [], []
+    for t in go:
+        k = _chuan_ten(t)
+        trung = [e for e in ds if k in {_chuan_ten(e.get(f)) for f in ("ten_hien_thi", "employee_name", "name",
+                                                                       "employee_number") if e.get(f)}]
+        if not trung:
+            trung = [e for e in ds if k == _chuan_ten(((e.get("employee_name") or "").split() or [""])[-1])]
+        if len(trung) == 1:
+            khop.setdefault(trung[0]["name"], dict(trung[0], go=t))
+        elif trung:
+            mo_ho.append({"ten": t, "nguoi": trung})
+        else:
+            khong.append(t)
+    nguoi = list(khop.values())
+    se_an = [e for e in nguoi if e["name"] not in da_an]
+    ghi = bool(cint(chay) and se_an and not mo_ho and not khong)
+    if ghi:
+        s = frappe.get_doc("SX Settings")
+        for e in se_an:
+            s.append("an_ghi_hop", {"employee": e["name"], "ten_nhan_vien": e.get("employee_name")})
+        s.flags.ignore_permissions = True
+        s.save()                                  # lưu cả doc: có lịch sử phiên bản ai ẩn ai
+    return {"chay": cint(chay), "ghi": ghi, "nguoi": nguoi, "se_an": [e["name"] for e in se_an],
+            "da_an": [e["name"] for e in nguoi if e["name"] in da_an], "mo_ho": mo_ho, "khong": khong,
+            "du_lieu": _du_lieu_thang_nay([e["name"] for e in nguoi])}
+
+
+def _du_lieu_thang_nay(nv):
+    """{employee: {hop: số dòng ghi hộp, an: số ngày chấm ăn / làm theo giờ, ngay: [ngày], phieu: [phiếu lương]}} của
+    THÁNG NÀY — người sắp ẩn mà đã được ghi thì phần đó VẪN vào lương khoán; ẩn rồi thì màn Ghi hộp hết chỗ bỏ chấm ăn
+    của họ, nên phải báo để dọn TRƯỚC khi ẩn."""
+    ra = {e: {"hop": 0, "an": 0, "ngay": set(), "phieu": []} for e in nv}
+    if not nv:
+        return ra
+    hom_nay = getdate(nowdate())
+    ngay = {n.name: getdate(n.ngay) for n in frappe.get_all(
+        "SX Ngay San Xuat", filters={"ngay": (">=", hom_nay.replace(day=1))}, fields=["name", "ngay"])}
+    bang = {b.name: ngay.get(b.ngay_sx) for b in frappe.get_all(
+        "SX Bang Vao Hop", filters={"ngay_sx": ("in", list(ngay)), "docstatus": ("<", 2)},
+        fields=["name", "ngay_sx"])} if ngay else {}
+    if bang:
+        loc = {"parent": ("in", list(bang)), "parenttype": "SX Bang Vao Hop", "nhan_vien": ("in", list(nv))}
+        for r in frappe.get_all("SX Bang Vao Hop Item", filters=loc, fields=["parent", "nhan_vien"]):
+            ra[r.nhan_vien]["hop"] += 1
+            ra[r.nhan_vien]["ngay"].add(bang[r.parent])
+        for r in frappe.get_all("SX Bang Vao Hop An Ca", filters=loc,
+                                fields=["parent", "nhan_vien", "an_ca", "an_dem", "so_gio", "so_gio_2"]):
+            if cint(r.an_ca) or cint(r.an_dem) or flt(r.so_gio) > 0 or flt(r.so_gio_2) > 0:
+                ra[r.nhan_vien]["an"] += 1
+                ra[r.nhan_vien]["ngay"].add(bang[r.parent])
+    for p in frappe.get_all("SX Phieu Luong", filters={"employee": ("in", list(nv)), "thang": hom_nay.month,
+                                                       "nam": hom_nay.year, "docstatus": ("<", 2)},
+                            fields=["name", "employee", "docstatus", "luong_san_pham"]):
+        ra[p.employee]["phieu"].append(p)
+    for g in ra.values():
+        g["ngay"] = sorted(d for d in g["ngay"] if d)
+    return ra
+
+
+def bao_cao_an_ghi_hop(kq):
+    """Báo cáo chữ cho lệnh an_ghi_hop."""
+    tien = lambda x: f"{flt(x):,.0f}".replace(",", ".")
+    dong = ["ẨN CÔNG KHOÁN KHỎI BẢNG GHI HỘP (D235) — "
+            + ("ĐÃ GHI vào SX Settings" if kq["ghi"] else "CHƯA GHI GÌ" if kq["chay"] else "XEM TRƯỚC, chưa ghi gì")]
+    for e in kq["nguoi"]:
+        trang = "đã ẩn từ trước" if e["name"] in kq["da_an"] else "ĐÃ ẨN" if kq["ghi"] else "sẽ ẩn"
+        dong.append(f"  {e['go']} → {e.get('employee_name') or e['name']} ({e['name']}), tên trên màn Ghi hộp "
+                    f"\"{e.get('ten_hien_thi')}\": {trang}")
+    for m in kq["mo_ho"]:
+        dong.append(f"  ✗ \"{m['ten']}\": {len(m['nguoi'])} người trùng — " + "; ".join(
+            f"\"{e.get('ten_hien_thi')}\" = {e.get('employee_name')} ({e['name']})" for e in m["nguoi"])
+            + ". Gõ đúng tên đang hiện trên màn Ghi hộp, hoặc mã nhân viên.")
+    for t in kq["khong"]:
+        dong.append(f"  ✗ \"{t}\": không có trong danh sách công khoán của bảng ghi hộp (gõ đủ dấu, hoặc dùng mã "
+                    "nhân viên).")
+    for e in kq["nguoi"]:
+        g = kq["du_lieu"].get(e["name"]) or {}
+        co = [f"{g['hop']} dòng ghi hộp" if g.get("hop") else "",
+              f"{g['an']} ngày chấm ăn / làm theo giờ" if g.get("an") else "",
+              ", ".join(f"phiếu lương {p.name} ({'đã duyệt' if cint(p.docstatus) == 1 else 'nháp'}, lương SP "
+                        f"{tien(p.luong_san_pham)} đ)" for p in g.get("phieu") or [])]
+        co = [x for x in co if x]
+        if co:
+            ngay = ", ".join(d.strftime("%d/%m") for d in g.get("ngay") or [])
+            dong.append(f"  ⚠ {e.get('ten_hien_thi')}: tháng này đã có {', '.join(co)}"
+                        + (f" — ngày {ngay}" if ngay else "")
+                        + ". Phần đó VẪN tính lương khoán. Không muốn tính thì dọn TRƯỚC khi ẩn: màn Ghi hộp, "
+                          "từng ngày đó xoá dòng / bỏ chấm của họ (phiếu lương tự đồng bộ theo).")
+    if kq["mo_ho"] or kq["khong"]:
+        dong.append("CHƯA ẨN AI — sửa tên rồi chạy lại (còn một tên sai là không ghi gì, tránh ẩn nhầm người).")
+    elif kq["ghi"]:
+        dong.append(f"Đã ẩn {len(kq['se_an'])} người. QC tải lại app là màn Ghi hộp, mã quét, in thẻ QR không còn "
+                    "họ. Hiện lại: SX Settings → Công khoán ẩn khỏi bảng ghi hộp → xoá dòng.")
+    elif not kq["se_an"]:
+        dong.append("Không có ai mới để ẩn — đã ẩn từ trước.")
+    else:
+        dong.append("Xem xong, ghi thật: thêm 'chay': 1 vào --kwargs.")
+    return "\n".join(dong)
 
 
 def _any_sx_guard():
