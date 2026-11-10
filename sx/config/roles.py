@@ -80,14 +80,16 @@ SUPER_ROLES = {QUAN_LY, "System Manager", "Administrator"}
 VAI_APP_DESK = {QUAN_LY, ISO, QLSX, KHO_NL, MUA_HANG, KINH_DOANH, "System Manager"}
 
 
-def co_quyen_app_desk():
-    """has_permission của ô SX trên màn Apps (hooks.add_to_apps_screen): người dùng Desk (System User) giữ một vai
-    trong VAI_APP_DESK. Người dùng portal (Website User) không có Desk — họ vào /sx."""
-    if frappe.session.user == "Administrator":
+def co_quyen_app_desk(user=None):
+    """has_permission của ô SX trên màn Apps (hooks.add_to_apps_screen) và icon SX trên trang chủ Desk: người dùng
+    Desk (System User) giữ một vai trong VAI_APP_DESK. Người dùng portal (Website User) không có Desk — họ vào /sx.
+    `user` bỏ trống = người đang đăng nhập (Frappe gọi hook không truyền gì); patch D238 hỏi cho từng người."""
+    user = user or frappe.session.user
+    if user == "Administrator":
         return True
-    if not set(frappe.get_roles()) & VAI_APP_DESK:
+    if not set(frappe.get_roles(user)) & VAI_APP_DESK:
         return False
-    return frappe.get_cached_value("User", frappe.session.user, "user_type") == "System User"
+    return frappe.get_cached_value("User", user, "user_type") == "System User"
 
 # Tên vai trò hiện cho NGƯỜI ĐỌC (menu tài khoản trên header). Tên role của
 # Frappe là tiếng Anh / viết tắt không dấu — QC đứng giữa xưởng không cần biết

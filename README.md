@@ -327,6 +327,24 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Icon SX vào trang chủ của người đã tự sắp xếp lưới icon (D238)
+
+- **Hỏi** (10/11/2026): sau D237 vẫn không thấy icon SX. Site: Frappe **16.16.0**, ERPNext 16.15.1; dòng Desktop Icon
+  "SX" đã có trong DB, không ẩn, link /desk/sx.
+- **Vì sao**: Frappe 16.16 chỉ có kiểu lưới icon, và trang chủ /desk vẽ theo **Desktop Layout riêng của từng người**
+  nếu đã có (người từng kéo thả / sửa lưới; bố cục là bản chép danh sách icon lúc lưu) — chỉ người CHƯA có bố cục mới
+  dùng danh sách icon chuẩn. Icon chuẩn thêm sau (SX) không tự vào bố cục đã lưu.
+- **Sửa**: patch `sx.patches.d238_icon_sx_vao_bo_cuc` (chạy MỘT lần khi migrate, sau khi nạp icon): thêm icon SX vào
+  **cuối** bố cục đã lưu của người có quyền (`roles.co_quyen_app_desk` — người dùng Desk có vai SX, Administrator),
+  giữ nguyên mọi sắp xếp khác. Người không có quyền: không đụng (bố cục đã lưu không qua lọc quyền). Đã có icon SX thì
+  thôi; bố cục hỏng / rỗng bỏ qua. Ghi đúng khuôn Frappe tự lưu, không đổi `modified`. Sau đó bố cục là của người dùng.
+- **Cách tay** (không cần chờ cập nhật): ở trang chủ Desk bấm ảnh đại diện → **Reset Desktop Layout** — mất sắp xếp
+  riêng, lưới về mặc định có icon SX.
+- Test `test-workspace.py` (thêm vào cuối, idx đúng, giữ thứ tự cũ, Administrator, không quyền / Website User không
+  đụng, đã có không thêm, bố cục hỏng, khuôn ASCII, không đổi modified, chạy lại không ghi, thiếu icon / thiếu Desktop
+  Layout không làm gì, patch ở post_model_sync).
+- **Cập nhật**: `git pull` → `bench --site site1.local migrate` → `bench restart` → tải lại Desk (Ctrl+Shift+R).
+
 ## Icon SX trên trang chủ Desk — cả kiểu lưới icon (D237)
 
 - **Hỏi** (10/11/2026): sau D236 không thấy icon SX ngoài trang chủ Desk.

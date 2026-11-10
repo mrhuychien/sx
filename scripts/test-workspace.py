@@ -197,6 +197,99 @@ kiem("chỉ ô có trong schema Desktop Icon (v16.0.0 … 16.55) + ô hệ thố
      set(I) - {"doctype", "name", "owner", "creation", "modified", "modified_by", "docstatus"} <= O_ICON,
      set(I) - O_ICON)
 
+print("\n-- D238: icon SX vào bố cục trang chủ ĐÃ LƯU (Frappe 16.16: có bố cục là bỏ qua icon chuẩn mới) --")
+ROLES_CUA = {"ql@x": ["SX Quan Ly"], "kt@x": ["Accounts User"], "iso@x": ["ISO Manager"], "web@x": ["SX Quan Ly"],
+             "hu@x": ["SX Quan Ly"], "rong@x": ["SX Quan Ly"]}
+LOAI_CUA = {"ql@x": "System User", "kt@x": "System User", "iso@x": "System User", "web@x": "Website User",
+            "hu@x": "System User", "rong@x": "System User"}
+frappe.get_roles = lambda u=None: ROLES_CUA.get(u or frappe.session.user, [])
+frappe.get_cached_value = lambda dt, n, f: LOAI_CUA.get(n) if (dt, f) == ("User", "user_type") else None
+CU = [{"name": "ERPNext", "label": "ERPNext", "icon_type": "App", "idx": 3, "parent_icon": None},
+      {"name": "Accounting", "label": "Accounting", "icon_type": "Link", "idx": 9, "parent_icon": "ERPNext"},
+      {"name": "Kế toán", "label": "Kế toán", "icon_type": "Folder", "idx": 5, "parent_icon": None}]
+DB_ICON = {"SX": {"label": "SX", "link": "/desk/sx", "link_type": "External", "app": "sx", "icon_type": "App",
+                  "parent_icon": None, "idx": 50, "standard": 1, "logo_url": "/assets/sx/images/sx-logo.svg",
+                  "hidden": 0, "name": "SX", "restrict_removal": 0}}
+BO_CUC, GHI, BANG = {}, [], {"Desktop Layout": True}
+
+
+def dat_bo_cuc():
+    BO_CUC.clear()
+    BO_CUC.update({
+        "ql@x": json.dumps(CU),
+        "kt@x": json.dumps(CU),
+        "iso@x": json.dumps(CU + [dict(DB_ICON["SX"], idx=2)]),
+        "web@x": json.dumps(CU),
+        "hu@x": "{không phải json",
+        "rong@x": "{}",
+        "Administrator": json.dumps(CU),
+    })
+    GHI.clear()
+
+
+class _r(dict):
+    __getattr__ = dict.get
+
+
+frappe.db = types.SimpleNamespace(
+    table_exists=lambda dt: BANG.get(dt, False),
+    exists=lambda dt, n=None: dt == "Desktop Icon" and n in DB_ICON,
+    has_column=lambda dt, f: f in ("label", "link", "link_type", "app", "icon_type", "parent_icon", "idx", "standard",
+                                   "logo_url", "hidden", "name", "restrict_removal"),
+    get_value=lambda dt, n, f, as_dict=False: _r({k: DB_ICON[n].get(k) for k in f}),
+    set_value=lambda dt, n, f, v, update_modified=True: (GHI.append((n, f, update_modified)),
+                                                          BO_CUC.__setitem__(n, v)),
+    commit=lambda: None)
+frappe.get_all = lambda dt, fields=None, **k: [_r(name=u, user=u, layout=l) for u, l in BO_CUC.items()]
+P = importlib.util.spec_from_file_location("sx.patches.d238", "sx/patches/d238_icon_sx_vao_bo_cuc.py")
+PA = importlib.util.module_from_spec(P)
+P.loader.exec_module(PA)
+dat_bo_cuc()
+with open(os.devnull, "w") as _n:
+    _cu, sys.stdout = sys.stdout, _n
+    try:
+        PA.execute()
+    finally:
+        sys.stdout = _cu
+moi = json.loads(BO_CUC["ql@x"])
+kiem("quản lý SX (Desk) đã có bố cục: icon SX vào CUỐI hàng ngoài cùng (idx lớn nhất + 1, bỏ qua icon con)",
+     [x["name"] for x in moi] == ["ERPNext", "Accounting", "Kế toán", "SX"] and moi[-1]["idx"] == 6
+     and moi[-1]["link"] == "/desk/sx" and moi[-1]["parent_icon"] is None and moi[-1]["hidden"] == 0, moi[-1:])
+kiem("… sắp xếp cũ giữ nguyên từng icon", moi[:3] == CU)
+kiem("… Administrator cũng có", json.loads(BO_CUC["Administrator"])[-1]["name"] == "SX")
+kiem("… ghi đúng khuôn Frappe tự lưu (json.dumps mặc định — toàn ASCII, chèn thẳng vào HTML trang chủ)",
+     BO_CUC["ql@x"].isascii() and BO_CUC["ql@x"] == json.dumps(json.loads(BO_CUC["ql@x"])))
+kiem("người Desk KHÔNG có vai SX (kế toán): bố cục không đụng — bố cục đã lưu không qua lọc quyền",
+     BO_CUC["kt@x"] == json.dumps(CU))
+kiem("có vai SX nhưng là Website User: không đụng", BO_CUC["web@x"] == json.dumps(CU))
+kiem("đã có icon SX (tự thêm / tự dời): không thêm lần hai, không đổi chỗ",
+     json.loads(BO_CUC["iso@x"]) == CU + [dict(DB_ICON["SX"], idx=2)])
+kiem("bố cục hỏng / rỗng ({}): bỏ qua, không gãy migrate", BO_CUC["hu@x"] == "{không phải json"
+     and BO_CUC["rong@x"] == "{}")
+kiem("ghi thẳng ô layout, không đổi 'modified' (không phải người dùng sửa)",
+     sorted(n for n, _f, _u in GHI) == ["Administrator", "ql@x"] and all(f == "layout" and u is False
+                                                                         for _n, f, u in GHI), GHI)
+GHI.clear()
+with open(os.devnull, "w") as _n:
+    _cu, sys.stdout = sys.stdout, _n
+    try:
+        PA.execute()
+    finally:
+        sys.stdout = _cu
+kiem("chạy lại: không ghi gì thêm (đã có icon thì thôi)", GHI == [], GHI)
+dat_bo_cuc()
+DB_ICON_CU = DB_ICON.pop("SX")
+PA.execute()
+kiem("site chưa có dòng icon SX (chưa migrate D237): không làm gì", GHI == [])
+DB_ICON["SX"] = DB_ICON_CU
+BANG["Desktop Layout"] = False
+PA.execute()
+kiem("Frappe chưa có Desktop Layout (bản 16 cũ hơn): không làm gì", GHI == [])
+BANG["Desktop Layout"] = True
+kiem("patch đăng ký ở [post_model_sync] — chạy SAU khi migrate nạp icon SX",
+     open("sx/patches.txt").read().split("[post_model_sync]")[1].split().count("sx.patches.d238_icon_sx_vao_bo_cuc")
+     == 1)
+
 print()
 print("WORKSPACE-HỎNG ({})".format(hong) if hong else "WORKSPACE-OK")
 sys.exit(1 if hong else 0)
