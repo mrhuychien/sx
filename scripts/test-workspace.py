@@ -170,6 +170,33 @@ mod, ham = a.get("has_permission", "").rsplit(".", 1)
 kiem("has_permission trỏ hàm có thật", mod == "sx.config.roles" and callable(getattr(R, ham, None)), a.get("has_permission"))
 kiem("KHÔNG khai hook app_logo_url (Frappe dùng làm logo thanh điều hướng của cả Desk)", "app_logo_url" not in gan)
 
+print("\n-- D237: icon SX trên trang chủ Desk kiểu LƯỚI ICON (Desktop Icon) --")
+# Desk v16 kiểu lưới icon (bản 16 đầu luôn vậy; bản mới khi Desktop Settings → Desktop Page = Desktop Icons) không đọc
+# add_to_apps_screen lúc chạy: icon là dòng Desktop Icon, Frappe chỉ tự tạo LÚC CÀI APP. App cài từ trước → migrate
+# nạp tệp app ship ở <app>/desktop_icon/*.json (frappe.model.sync: mọi tệp trong thư mục đó; bộ dọn xoá icon chuẩn
+# của app không có tệp <scrub(tên)>.json).
+THU = "sx/desktop_icon"
+tep_icon = sorted(os.listdir(THU))
+kiem("thư mục icon chỉ có tệp .json (Frappe nạp MỌI tệp trong đó — __init__.py hay tệp lạ là migrate gãy)",
+     tep_icon and all(t.endswith(".json") for t in tep_icon), tep_icon)
+I = json.load(open(f"{THU}/sx.json", encoding="utf-8"))
+kiem("tên tệp = scrub(tên icon) — đúng đường bộ dọn tìm, không bị xoá ở lần migrate sau",
+     I["name"] == I["label"] and f"{scrub(I['name'].lower())}.json" == "sx.json", I["name"])
+kiem("icon loại App, nhãn = app_title, app = app_name (Frappe kiểm quyền icon App theo nhãn / app → has_permission)",
+     (I["doctype"], I["icon_type"], I["label"], I["app"]) == ("Desktop Icon", "App", ast.literal_eval(gan["app_title"]),
+                                                              ast.literal_eval(gan["app_name"])), I)
+kiem("bấm icon mở đúng trang chủ (External → link = route ô màn Apps), cùng logo",
+     (I["link_type"], I["link"], I["logo_url"]) == ("External", a.get("route"), a.get("logo")), I)
+kiem("icon chuẩn, không ẩn, không giới hạn vai riêng (quyền theo has_permission của app)",
+     (I["standard"], I["hidden"], I["roles"]) == (1, 0, []))
+kiem("modified đúng dạng, mới (tệp cũ hơn bản trên site thì migrate bỏ qua)",
+     datetime.fromisoformat(I["modified"]) >= datetime(2026, 11, 10))
+O_ICON = {"label", "standard", "link", "icon", "idx", "logo_url", "icon_type", "app", "link_to", "parent_icon", "hidden",
+          "link_type", "roles", "sidebar", "icon_image", "restrict_removal", "bg_color"}
+kiem("chỉ ô có trong schema Desktop Icon (v16.0.0 … 16.55) + ô hệ thống",
+     set(I) - {"doctype", "name", "owner", "creation", "modified", "modified_by", "docstatus"} <= O_ICON,
+     set(I) - O_ICON)
+
 print()
 print("WORKSPACE-HỎNG ({})".format(hong) if hong else "WORKSPACE-OK")
 sys.exit(1 if hong else 0)

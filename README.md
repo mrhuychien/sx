@@ -327,6 +327,25 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Icon SX trên trang chủ Desk — cả kiểu lưới icon (D237)
+
+- **Hỏi** (10/11/2026): sau D236 không thấy icon SX ngoài trang chủ Desk.
+- **Vì sao**: D236 chỉ khai ô màn Apps (`add_to_apps_screen`). Desk v16 có hai kiểu trang chủ:
+  - **Apps** (mặc định ở bản 16 mới): đọc `add_to_apps_screen` lúc chạy — cần `bench restart` sau khi pull thì hooks
+    mới có hiệu lực.
+  - **Lưới icon** (Desktop Icons — bản 16 đời đầu luôn là kiểu này; bản mới khi Desktop Settings → Desktop Page =
+    Desktop Icons): icon là dòng **Desktop Icon**, Frappe chỉ tự tạo **lúc cài app**. App SX cài từ trước nên không có
+    icon dù đã migrate.
+- **Sửa**: app ship icon `sx/desktop_icon/sx.json` — loại App, nhãn "SX", logo SX, bấm mở trang chủ /desk/sx. Migrate
+  tự nạp (bản mới chỉ nạp khi đang ở kiểu lưới icon — kiểu Apps đã có ô từ D236). Ai thấy: cùng `co_quyen_app_desk`
+  (Frappe kiểm quyền icon App bằng has_permission của app). Tên tệp đúng `scrub(tên).json` nên bộ dọn icon thừa của
+  Frappe không xoá.
+- Bản 16 đời đầu: người từng tự kéo thả sắp xếp lưới icon có thể không thấy icon chuẩn mới (Frappe chỉ ghép icon
+  chuẩn cho người chưa có bố cục riêng) — khi đó thêm icon SX vào lưới của mình bằng tay.
+- Test: `test-workspace.py` (thư mục chỉ có JSON, tên tệp đúng đường bộ dọn tìm, loại App + nhãn = app_title, mở đúng
+  route, logo, icon chuẩn không ẩn, chỉ ô có trong schema).
+- **Cập nhật**: `git pull` → `bench --site site1.local migrate` → `bench restart` → tải lại Desk (Ctrl+Shift+R).
+
 ## Trang chủ app SX trên Desk — mọi chức năng một chỗ (D236)
 
 - **Hỏi** (10/11/2026): khi vào app SX có trang chủ hiện toàn bộ link chức năng — trang chủ ở **Desk** (không phải
