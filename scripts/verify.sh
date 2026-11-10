@@ -331,6 +331,12 @@ python3 scripts/test-quyen.py > /tmp/sx-quyen.log 2>&1 \
   && tail -1 /tmp/sx-quyen.log \
   || { cat /tmp/sx-quyen.log; loi=1; }
 
+# D236: trang chủ app SX trên Desk (workspace "SX" + ô trên màn Apps). Tệp workspace nạp khi migrate KHÔNG qua
+# validate — card / shortcut lệch nhãn, DocType mới thiếu link, route lệch mẫu Desk v16 đều hỏng im lặng.
+python3 scripts/test-workspace.py > /tmp/sx-workspace.log 2>&1 \
+  && tail -1 /tmp/sx-workspace.log \
+  || { cat /tmp/sx-workspace.log; loi=1; }
+
 # D114: lô thành phẩm vào kho PHẢI có HSD. Hỏng thì im lặng — duyệt vẫn qua, lô
 # vẫn có số, chỉ là không ai biết hộp nào sắp hết hạn cho tới khi khách trả về.
 python3 scripts/test-hsd.py > /tmp/sx-hsd.log 2>&1 \

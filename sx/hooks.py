@@ -6,6 +6,20 @@ app_email = "mrhuychien@gmail.com"
 app_license = "MIT"
 required_apps = ["frappe", "erpnext"]
 
+# D236: ô SX trên màn Apps của Desk — bấm vào là tới TRANG CHỦ SX (workspace "SX", sx/sx/workspace/sx/sx.json): lối vào
+# portal /sx + mọi chức năng trên Desk. Route /desk/…: khớp mẫu Desk của Frappe v16 (frappe.apps.DESK_APP_PATTERN), nên
+# trang vào sau đăng nhập không đổi (vẫn /desk). Logo chỉ khai ở đây, KHÔNG khai hook app_logo_url (Frappe lấy hook đó
+# làm logo thanh điều hướng chung của cả Desk).
+add_to_apps_screen = [
+    {
+        "name": "sx",
+        "logo": "/assets/sx/images/sx-logo.svg",
+        "title": "Sản xuất",
+        "route": "/desk/sx",
+        "has_permission": "sx.config.roles.co_quyen_app_desk",
+    }
+]
+
 # D205: vá lỗi ERPNext trong tiến trình (sx/va_erpnext.py) — áp một lần mỗi tiến trình web / worker.
 # D210: sx.do_toc đo thời gian máy chủ + SQL CHỈ khi trình duyệt xin đo (?do=1 / X-Sx-Do) → header Server-Timing.
 before_request = ["sx.va_erpnext.va", "sx.do_toc.bat_dau"]

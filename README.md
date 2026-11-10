@@ -327,6 +327,34 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Trang chủ app SX trên Desk — mọi chức năng một chỗ (D236)
+
+- **Hỏi** (10/11/2026): khi vào app SX có trang chủ hiện toàn bộ link chức năng — trang chủ ở **Desk** (không phải
+  portal /sx).
+- **Vào**: màn Apps của Desk có ô **Sản xuất** (logo SX) → trang chủ **/desk/sx** (workspace "SX", tiêu đề "Sản
+  xuất"; gõ /app/sx cũng tới — Frappe v16 tự chuyển /app → /desk).
+- **Trang chủ**:
+  - Dải shortcut: **Mở portal sản xuất** (/sx), Phiếu ngày sản xuất, Bảng vào hộp, Phiếu nhập kho thành phẩm, Phiếu
+    lương, Vòng kiểm QC, Phiếu sự cố, Cài đặt SX.
+  - **Tất cả chức năng** — 10 nhóm, đủ **49 DocType** của app (module SX + QC, trừ bảng con), nhãn tiếng Việt: Sản
+    xuất hằng ngày · Kho thành phẩm · Lương khoán · QC chế biến · Xuất xưởng, lưu mẫu, truy xuất · Thiết bị, kiểm
+    nghiệm, PRP · ISO, hồ sơ, biên bản · Tài liệu · Sổ ghi theo dòng · Cài đặt, tài khoản.
+  - Mỗi người chỉ thấy link mình có quyền đọc (Frappe tự lọc); nhóm không còn link nào thì ẩn.
+- **Ai thấy**: vai SX có Desk — Quản lý SX, Trưởng Ban ISO, QLSX, thủ kho NL (Warehouse), Mua hàng, Kinh doanh — và
+  System Manager (`roles.VAI_APP_DESK`, một nguồn cho cả workspace lẫn ô trên màn Apps). QC, ghi sổ, thủ kho TP không
+  vào Desk — vẫn dùng portal /sx như cũ.
+- **Không đổi**: trang vào sau đăng nhập (route /desk/… khớp mẫu Desk của v16 nên vẫn vào /desk); logo thanh điều
+  hướng Desk (không khai hook `app_logo_url`); portal /sx.
+- Workspace **chuẩn của app** — `sx/sx/workspace/sx/sx.json`, nạp khi migrate. Sửa bố cục trên site (kéo thả, thêm
+  khối) thì Frappe bản mới lưu thành bản tuỳ biến riêng, cập nhật app không mất; workspace tên "SX" tự tạo trên site
+  trước đây (nếu có) được thay bằng bản này. Thêm DocType mới vào app thì thêm link vào tệp này (test báo nếu quên).
+- Test `test-workspace.py` (tệp đúng chỗ để migrate nạp, tên ASCII, ô bắt buộc v16, content là list; card / shortcut
+  khớp nhãn, không trùng, link_count; đủ mọi DocType, không lặp, không trỏ bảng con; vai workspace = ô màn Apps; ai
+  thấy ô SX; route khớp mẫu Desk, logo SVG, không khai app_logo_url). Kiểm thêm bằng `validate_fixtures.py` (repo
+  claude-skills): 0 lỗi.
+- **Cập nhật**: `git pull` → `bench --site site1.local migrate` → `bench restart` (hook màn Apps mới có hiệu lực) →
+  tải lại Desk. Portal không đổi (build giữ **sx-174**).
+
 ## Ẩn công khoán khỏi bảng ghi hộp — Hà, Lập, Phúc tính lương kiểu khác (D235)
 
 - **Hỏi** (10/11/2026): ẩn Hà, Lập, Phúc khỏi bảng ghi hộp — họ cũng là công khoán nhưng tính lương kiểu khác.

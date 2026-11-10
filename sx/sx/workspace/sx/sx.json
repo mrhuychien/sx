@@ -1,0 +1,730 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"sx-dau\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Sản xuất RVHG</b></span>\",\"col\":12}},{\"id\":\"sx-tat-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mở portal sản xuất\",\"col\":3}},{\"id\":\"sx-tat-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Phiếu ngày sản xuất\",\"col\":3}},{\"id\":\"sx-tat-3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Bảng vào hộp\",\"col\":3}},{\"id\":\"sx-tat-4\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Phiếu nhập kho thành phẩm\",\"col\":3}},{\"id\":\"sx-tat-5\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Phiếu lương\",\"col\":3}},{\"id\":\"sx-tat-6\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Vòng kiểm QC\",\"col\":3}},{\"id\":\"sx-tat-7\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Phiếu sự cố\",\"col\":3}},{\"id\":\"sx-tat-8\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Cài đặt SX\",\"col\":3}},{\"id\":\"sx-cach\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"sx-dau-2\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Tất cả chức năng</b></span>\",\"col\":12}},{\"id\":\"sx-the-1\",\"type\":\"card\",\"data\":{\"card_name\":\"Sản xuất hằng ngày\",\"col\":4}},{\"id\":\"sx-the-2\",\"type\":\"card\",\"data\":{\"card_name\":\"Kho thành phẩm\",\"col\":4}},{\"id\":\"sx-the-3\",\"type\":\"card\",\"data\":{\"card_name\":\"Lương khoán\",\"col\":4}},{\"id\":\"sx-the-4\",\"type\":\"card\",\"data\":{\"card_name\":\"QC chế biến\",\"col\":4}},{\"id\":\"sx-the-5\",\"type\":\"card\",\"data\":{\"card_name\":\"Xuất xưởng, lưu mẫu, truy xuất\",\"col\":4}},{\"id\":\"sx-the-6\",\"type\":\"card\",\"data\":{\"card_name\":\"Thiết bị, kiểm nghiệm, PRP\",\"col\":4}},{\"id\":\"sx-the-7\",\"type\":\"card\",\"data\":{\"card_name\":\"ISO, hồ sơ, biên bản\",\"col\":4}},{\"id\":\"sx-the-8\",\"type\":\"card\",\"data\":{\"card_name\":\"Tài liệu\",\"col\":4}},{\"id\":\"sx-the-9\",\"type\":\"card\",\"data\":{\"card_name\":\"Sổ ghi theo dòng\",\"col\":4}},{\"id\":\"sx-the-10\",\"type\":\"card\",\"data\":{\"card_name\":\"Cài đặt, tài khoản\",\"col\":4}}]",
+ "creation": "2026-11-10 12:00:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "factory",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "SX",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sản xuất hằng ngày",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Phiếu ngày sản xuất",
+   "link_count": 0,
+   "link_to": "SX Ngay San Xuat",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Phiếu xuất đậu",
+   "link_count": 0,
+   "link_to": "SX Xuat Dau",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Nhập bột vào kho BTP",
+   "link_count": 0,
+   "link_to": "SX Nhap Bot",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bảng vào hộp",
+   "link_count": 0,
+   "link_to": "SX Bang Vao Hop",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Kho thành phẩm",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Phiếu nhập kho thành phẩm",
+   "link_count": 0,
+   "link_to": "SX Phieu Nhap TP",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Kiểm kê kho",
+   "link_count": 0,
+   "link_to": "SX Kiem Ke",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sổ nợ BOM",
+   "link_count": 0,
+   "link_to": "SX No BOM",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sổ nợ vào hộp",
+   "link_count": 0,
+   "link_to": "SX No Vao Hop",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Lương khoán",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Phiếu lương",
+   "link_count": 0,
+   "link_to": "SX Phieu Luong",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Bảng đơn giá",
+   "link_count": 0,
+   "link_to": "SX Bang Don Gia",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cách làm (Tay / Máy)",
+   "link_count": 0,
+   "link_to": "SX Cach Lam",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sổ nợ đơn giá",
+   "link_count": 0,
+   "link_to": "SX No Don Gia",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "QC chế biến",
+   "link_count": 8,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Vòng kiểm QC (BM.08.01)",
+   "link_count": 0,
+   "link_to": "SX QC Round",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Phiếu sự cố (BM.08.02)",
+   "link_count": 0,
+   "link_to": "SX Su Co",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Công đoạn sản xuất (sự cố)",
+   "link_count": 0,
+   "link_to": "SX QC Cong Doan",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Thông tin QC theo ngày",
+   "link_count": 0,
+   "link_to": "SX QC Ngay",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Nhật ký cát rang (BM.08.03)",
+   "link_count": 0,
+   "link_to": "SX Nhat Ky Cat",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sổ giặt vải ủ (BM.08.05)",
+   "link_count": 0,
+   "link_to": "SX Giat Vai",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Danh mục vải ủ",
+   "link_count": 0,
+   "link_to": "SX Vai U",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Phiếu rework (BM.15.01)",
+   "link_count": 0,
+   "link_to": "SX Rework",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Xuất xưởng, lưu mẫu, truy xuất",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Kiểm tra xuất xưởng (BM.08.04)",
+   "link_count": 0,
+   "link_to": "SX Kiem Tra Xuat Xuong",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Lưu mẫu",
+   "link_count": 0,
+   "link_to": "SX QC Luu Mau",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Đợt huỷ mẫu lưu",
+   "link_count": 0,
+   "link_to": "SX QC Dot Huy Mau",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sản phẩm tự công bố",
+   "link_count": 0,
+   "link_to": "SX San Pham Cong Bo",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Diễn tập truy xuất (BM.02.04)",
+   "link_count": 0,
+   "link_to": "SX Dien Tap Truy Xuat",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Thiết bị, kiểm nghiệm, PRP",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Thiết bị đo (BM.06.01)",
+   "link_count": 0,
+   "link_to": "SX Thiet Bi Do",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Kiểm / hiệu chuẩn thiết bị (BM.06.02–04)",
+   "link_count": 0,
+   "link_to": "SX Kiem Thiet Bi",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Kiểm nghiệm (KH.KN.01)",
+   "link_count": 0,
+   "link_to": "SX Kiem Nghiem",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Trạm động vật gây hại",
+   "link_count": 0,
+   "link_to": "SX Tram Dong Vat",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Dấu hiệu động vật gây hại",
+   "link_count": 0,
+   "link_to": "SX Dau Hieu Dong Vat",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Việc định kỳ",
+   "link_count": 0,
+   "link_to": "SX Viec Dinh Ky",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "ISO, hồ sơ, biên bản",
+   "link_count": 7,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Chỉ tiêu ATTP",
+   "link_count": 0,
+   "link_to": "SX Chi Tieu ATTP",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Hành động khắc phục (BM.01.07)",
+   "link_count": 0,
+   "link_to": "SX Khac Phuc",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Biên bản",
+   "link_count": 0,
+   "link_to": "SX Bien Ban",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mẫu biên bản",
+   "link_count": 0,
+   "link_to": "SX Mau Bien Ban",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Danh mục hồ sơ đánh giá",
+   "link_count": 0,
+   "link_to": "SX Ho So Danh Muc",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Xuất báo cáo cho đoàn",
+   "link_count": 0,
+   "link_to": "SX Xuat Bao Cao",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Đánh giá nhà cung cấp (BM.07.01)",
+   "link_count": 0,
+   "link_to": "SX Danh Gia NCC",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tài liệu",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Tài liệu",
+   "link_count": 0,
+   "link_to": "SX Tai Lieu",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Đề nghị tài liệu (BM.01.01)",
+   "link_count": 0,
+   "link_to": "SX De Nghi Tai Lieu",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Đợt ban hành",
+   "link_count": 0,
+   "link_to": "SX Dot Ban Hanh",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Xác nhận đã đọc",
+   "link_count": 0,
+   "link_to": "SX Tai Lieu Doc",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Nơi nhận tài liệu",
+   "link_count": 0,
+   "link_to": "SX Noi Nhan",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sổ ghi theo dòng",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Định nghĩa sổ",
+   "link_count": 0,
+   "link_to": "SX So",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Dòng sổ",
+   "link_count": 0,
+   "link_to": "SX So Dong",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Xem xét sổ tháng",
+   "link_count": 0,
+   "link_to": "SX So Xem",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cài đặt, tài khoản",
+   "link_count": 3,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cài đặt SX",
+   "link_count": 0,
+   "link_to": "SX Settings",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Cài đặt QC (ngưỡng, khung giờ)",
+   "link_count": 0,
+   "link_to": "SX QC Setting",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mã đăng nhập QC",
+   "link_count": 0,
+   "link_to": "SX Ma Dang Nhap",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-11-10 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "SX",
+ "name": "SX",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [
+  {
+   "role": "SX Quan Ly"
+  },
+  {
+   "role": "ISO Manager"
+  },
+  {
+   "role": "Production Manager"
+  },
+  {
+   "role": "Warehouse"
+  },
+  {
+   "role": "Purchase User"
+  },
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "System Manager"
+  }
+ ],
+ "sequence_id": 40.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "Mở portal sản xuất",
+   "type": "URL",
+   "url": "/sx"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Phiếu ngày sản xuất",
+   "link_to": "SX Ngay San Xuat",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Bảng vào hộp",
+   "link_to": "SX Bang Vao Hop",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Phiếu nhập kho thành phẩm",
+   "link_to": "SX Phieu Nhap TP",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Phiếu lương",
+   "link_to": "SX Phieu Luong",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Vòng kiểm QC",
+   "link_to": "SX QC Round",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Phiếu sự cố",
+   "link_to": "SX Su Co",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "",
+   "label": "Cài đặt SX",
+   "link_to": "SX Settings",
+   "type": "DocType"
+  }
+ ],
+ "standard": 1,
+ "title": "Sản xuất",
+ "type": "Workspace"
+}

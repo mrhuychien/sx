@@ -74,6 +74,21 @@ VAI_MAC_DINH = {
 # Role "siêu quyền" — thấy mọi view/card
 SUPER_ROLES = {QUAN_LY, "System Manager", "Administrator"}
 
+# D236: trang chủ app SX trên DESK — workspace "SX" (sx/sx/workspace/sx/sx.json, khối "roles") và ô SX trên màn Apps
+# (hooks.add_to_apps_screen). Là các vai của app CÓ vào Desk (VAI_MAC_DINH = 1) + quản trị; vai không vào Desk dùng
+# portal /sx. Link trong trang chủ Frappe tự lọc theo quyền đọc DocType của từng người. test-workspace.py chốt khớp.
+VAI_APP_DESK = {QUAN_LY, ISO, QLSX, KHO_NL, MUA_HANG, KINH_DOANH, "System Manager"}
+
+
+def co_quyen_app_desk():
+    """has_permission của ô SX trên màn Apps (hooks.add_to_apps_screen): người dùng Desk (System User) giữ một vai
+    trong VAI_APP_DESK. Người dùng portal (Website User) không có Desk — họ vào /sx."""
+    if frappe.session.user == "Administrator":
+        return True
+    if not set(frappe.get_roles()) & VAI_APP_DESK:
+        return False
+    return frappe.get_cached_value("User", frappe.session.user, "user_type") == "System User"
+
 # Tên vai trò hiện cho NGƯỜI ĐỌC (menu tài khoản trên header). Tên role của
 # Frappe là tiếng Anh / viết tắt không dấu — QC đứng giữa xưởng không cần biết
 # "SX Vao Hop" là gì, họ cần đọc thấy "QC vào hộp".
