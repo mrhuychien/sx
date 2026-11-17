@@ -327,6 +327,48 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ghi hộp: tin "Copy sản lượng gửi nhóm" dễ đọc trên Zalo — tên, số in đậm; mỗi sản phẩm một dòng (D239)
+
+- **Hỏi** (17/11/2026): tin copy gửi nhóm Zalo — tên công nhân in đậm; mỗi sản phẩm một dòng, thụt đầu dòng, gạch đầu
+  dòng; giữa các công nhân có khoảng cách; chữ to dễ nhìn, số lượng in đậm.
+- **Nay**:
+  ```
+  SẢN LƯỢNG 17/11/2026
+
+  𝗔𝗻 · ăn ca + ăn đêm
+      - Bánh đậu xanh sen (M): 𝟭.𝟮𝟬𝟬
+      - Làm theo giờ: 𝟯 giờ
+
+  𝗕𝗶̀𝗻𝗵 · ăn ca ×2
+      - Bánh TT (T): 𝟯𝟬
+
+  Đ𝘂̛́𝗰
+      - Làm theo giờ: 𝟱,𝟱 giờ
+
+  — Tổng: 𝟭.𝟮𝟯𝟬 sản phẩm
+  — Suất ăn: ăn ca 𝟯 · ăn đêm 𝟭
+  ```
+  - Mỗi người một khối: tên **đậm** (kèm chấm ăn như D231), dưới là từng sản phẩm / dòng giờ một dòng — thụt 4 dấu
+    cách KHÔNG NGẮT (NBSP: dấu cách thường liền nhau có nơi hiển thị gộp làm một) + `- `; số **đậm**. Các khối cách
+    nhau một dòng trống; tiêu đề và phần tổng cũng cách một dòng trống. Tổng sản phẩm, tổng suất ăn: số đậm.
+  - Giữ nguyên: xếp tên A → Z, cách làm viết tắt (D232), giờ chỉ ghi tổng không ghi mức (D233), bỏ công nhật / công
+    khoán chung (D213), người chỉ có chấm ăn vẫn có khối (D231).
+- **In đậm thế nào**: tin copy là chữ trơn và Zalo không có cú pháp in đậm → dùng bộ chữ đậm có sẵn trong Unicode
+  (Mathematical Sans-Serif Bold — cách các bài đăng Facebook / Zalo vẫn làm; hàm `dam`). Chữ Việt: tách dấu, chữ gốc
+  đổi sang chữ đậm, dấu giữ nguyên; tên gõ dấu rời (Unicode tổ hợp) ra y như tên dựng sẵn. Giới hạn:
+  - **đ / Đ** và **chữ HOA có dấu** (Á, Ú, Ư…) giữ nét thường: đ không có bản đậm; dấu trên chữ hoa đậm đè lên đầu
+    chữ ("Út" đọc ra "Ưt" khi chụp thử). Nên "Đức" = Đ thường + "ức" đậm, "Út" = Ú thường + "t" đậm.
+  - Dấu trên chữ đậm đặt theo phông của từng máy — có máy dấu hơi lệch; máy rất cũ có thể hiện ô vuông thay chữ đậm.
+  - Ô tìm tin nhắn có thể không tìm ra tên in đậm (chữ đậm Unicode là ký tự khác chữ thường).
+- **Chữ to**: cỡ chữ không đi theo chữ copy (clipboard chỉ mang chữ trơn) — người gửi chọn trong Zalo trên điện thoại:
+  **giữ nút Gửi** rồi chọn cỡ chữ (giao diện tuỳ bản Zalo). Báo "Đã copy" nhắc việc này và đứng 6 giây (toast thường
+  3,5 giây — `toast(…, kind, thoiGian)`); ô chép tay (máy không cho copy) cũng nhắc.
+- Test `test-copy.mjs` (hàm `dam`: mã từng chữ, HOA / thường / số, đ / Đ, chữ HOA có dấu, dấu rời, tên đủ thanh đọc
+  ngược NFKC ra đúng tên gốc; khuôn tin đủ trường hợp; Chromium thật: clipboard giữ chữ đậm + NBSP + dòng trống, lời
+  nhắc còn sau 4,5 giây, máy chặn copy → ô chép tay đúng nguyên tin), `test-giocong.mjs`, `test-khoanchung.mjs` (soi
+  nội dung qua NFKC — số in đậm không lách được phép soi "không lộ mức giá").
+- Không đổi DocType: `git pull` → `bench restart` → tải lại trang (Ctrl+Shift+R). Build **sx-175**.
+
 ## Icon SX vào trang chủ của người đã tự sắp xếp lưới icon (D238)
 
 - **Hỏi** (10/11/2026): sau D237 vẫn không thấy icon SX. Site: Frappe **16.16.0**, ERPNext 16.15.1; dòng Desktop Icon

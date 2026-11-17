@@ -230,9 +230,12 @@ try {
   await p.click('#sx-vh-copy');
   await p.waitForTimeout(400);
   const clip = await p.evaluate(() => navigator.clipboard.readText());
-  kiem('copy gửi nhóm: giờ MỌI mức gộp một mục "Làm theo giờ: 6 giờ", không ghi mức 33.000 / 30.000 (tránh tị nạnh)',
-    clip.includes('An (Bánh đậu xanh sen: 100, Làm theo giờ: 6 giờ)') && clip.includes('Tổng: 100')
-    && !/33\.000|30\.000|đ\/giờ|mức/.test(clip), JSON.stringify(clip));
+  // Tin gửi nhóm in đậm tên / số bằng chữ đậm Unicode (D239) — đọc ngược về chữ thường (NFKC) rồi mới soi nội dung,
+  // kẻo mức giá in đậm lọt qua phép soi chữ thường.
+  const clipTron = clip.normalize('NFKC');
+  kiem('copy gửi nhóm: giờ MỌI mức gộp một dòng "Làm theo giờ: 6 giờ", không ghi mức 33.000 / 30.000 (tránh tị nạnh)',
+    clipTron.includes('An · ăn ca + ăn đêm\n    - Bánh đậu xanh sen: 100\n    - Làm theo giờ: 6 giờ\n') && clipTron.includes('Tổng: 100')
+    && !/33\.000|30\.000|đ\/giờ|mức/.test(clipTron), JSON.stringify(clip));
   await p.click('#vh .sx-vh-gio-del[data-gio="NV1"][data-muc="so_gio_2"]');
   await doi();
   g = await goi();

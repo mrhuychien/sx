@@ -27,7 +27,7 @@ const src = readFileSync(join(GOC, 'sx/public/sx/cards/vaohop.js'), 'utf8')
   .split('\n').filter((d) => !d.startsWith('import ')).join('\n');
 const tam = join(tmpdir(), `kc-${process.pid}.mjs`);
 writeFileSync(tam, `const formatNumber = (n) => Number(n).toLocaleString('vi-VN');\n${src}`);
-const { vanBanSanLuong } = await import(`file://${tam}`);
+const { vanBanSanLuong, dam } = await import(`file://${tam}`);
 rmSync(tam);
 console.log('-- văn bản gửi nhóm --');
 const vb = vanBanSanLuong([
@@ -36,9 +36,10 @@ const vb = vanBanSanLuong([
   { ten: '★ Công nhật', dong: [{ nhan_vien: 'CONG_NHAT', san_pham: 'TP-SEN', so_hop: 50 }] },
 ], '2026-10-13', () => 'Bánh sen');
 kiem('D213: KHÔNG có dòng công khoán chung (tin để từng công nhân đối chiếu số của mình), không có công nhật',
-  vb === 'SẢN LƯỢNG 13/10/2026\nAn (Bánh sen: 120)\n— Tổng: 120 sản phẩm', JSON.stringify(vb));
+  vb === `SẢN LƯỢNG 13/10/2026\n\n${dam('An')}\n${'\u00a0'.repeat(4)}- Bánh sen: ${dam('120')}\n\n`
+    + `— Tổng: ${dam('120')} sản phẩm`, JSON.stringify(vb));          // khuôn D239: tên / số đậm, dòng thụt
 kiem('… tổng chỉ cộng phần của người (không cộng công khoán chung / công nhật)',
-  vb.trim().endsWith('— Tổng: 120 sản phẩm'));
+  vb.normalize('NFKC').endsWith('— Tổng: 120 sản phẩm') && !/hoán chung|ông nhật/.test(vb.normalize('NFKC')));
 
 const Q = await import(`file://${join(GOC, 'sx/public/sx/lib/queue.js')}`);
 kiem('mất mạng: Ghi cho công khoán KHÔNG xếp hàng gửi sau (gửi lại muộn = có thể trả khoán cho số đã chấm bù)',
@@ -153,8 +154,8 @@ window.SAN_SANG = true;
   await p.waitForTimeout(400);
   const clip = await p.evaluate(() => navigator.clipboard.readText());
   kiem('D213: copy gửi nhóm KHÔNG có dòng công khoán chung; tổng chỉ phần người (120)',
-    !clip.includes('Công khoán chung') && clip.includes('An (Bánh đậu xanh sen: 120)') && clip.includes('Tổng: 120'),
-    JSON.stringify(clip));
+    !/hoán chung/.test(clip.normalize('NFKC')) && clip.normalize('NFKC').includes('An\n    - Bánh đậu xanh sen: 120\n')
+    && clip.normalize('NFKC').includes('Tổng: 120 sản phẩm'), JSON.stringify(clip));     // NFKC: đọc ngược chữ đậm D239
   // Chỉ còn dòng chung (xoá dòng của An) → không có gì của công nhân để gửi: báo, không chép tin rỗng.
   await p.click('#vh .sx-vh-row:not(.sx-vh-row-kc) .sx-vh-del');
   await p.waitForTimeout(250);

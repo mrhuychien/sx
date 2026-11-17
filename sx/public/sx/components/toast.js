@@ -14,12 +14,13 @@ function ensureWrap() {
   return wrap;
 }
 
-export function toast(message, kind = 'ok') {
+export function toast(message, kind = 'ok', thoiGian = 0) {
   const node = el('div', `sx-toast sx-toast-${kind}`, esc(message));
   ensureWrap().appendChild(node);
   setTimeout(() => node.classList.add('sx-toast-show'), 10);
-  // Lỗi, cảnh báo (vd thiết bị phải kiểm lại sau sửa chữa — W43) đứng lâu hơn để kịp đọc hết câu.
-  const ttl = kind === 'ok' ? 3500 : 6000;
+  // Lỗi, cảnh báo (vd thiết bị phải kiểm lại sau sửa chữa — W43) đứng lâu hơn để kịp đọc hết câu. Báo xong mà câu dài
+  // (vd lời nhắc chữ to khi copy tin gửi nhóm — D239) thì nơi gọi truyền `thoiGian` (ms).
+  const ttl = thoiGian || (kind === 'ok' ? 3500 : 6000);
   setTimeout(() => {
     node.classList.remove('sx-toast-show');
     setTimeout(() => node.remove(), 300);

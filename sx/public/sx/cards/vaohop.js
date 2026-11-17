@@ -720,7 +720,34 @@ function openCachLamPicker(ten, sp, onPick) {
 }
 
 // Copy sản lượng ra clipboard để dán vào nhóm chat — công nhân tự đối chiếu (D27).
-// Người có nhiều loại thì ghi tắt: "Khanh (Vào hộp 170: 29, Vào hộp 300: 50)".
+// D239: khuôn đọc trên điện thoại (nhóm Zalo) — mỗi người một khối: tên ĐẬM (kèm chấm ăn), dưới là từng sản phẩm một
+// dòng thụt vào, gạch đầu dòng, số ĐẬM; các khối cách nhau một dòng trống:
+//     𝗕𝗶̀𝗻𝗵 · ăn ca
+//         - Bánh sen (M): 𝟭𝟮𝟬
+//         - Làm theo giờ: 𝟯 giờ
+// (Trước D239 mỗi người một dòng: "Khanh (Vào hộp 170: 29, Vào hộp 300: 50)" — người làm nhiều loại là dòng dài, khó dò.)
+// Thụt đầu dòng bằng dấu cách KHÔNG NGẮT (NBSP): dấu cách thường liền nhau có nơi hiển thị gộp làm một (kiểu HTML).
+const THUT_DONG = '\u00a0'.repeat(4);
+
+/** Chữ ĐẬM cho tin dán vào Zalo (D239). Tin đi qua clipboard là chữ trơn và Zalo không có cú pháp in đậm (kiểu *…*)
+ *  → dùng bộ chữ đậm có sẵn trong Unicode (Mathematical Sans-Serif Bold: 𝗔–𝗭 𝗮–𝘇 𝟬–𝟵), cách các bài đăng Facebook /
+ *  Zalo vẫn làm. Chữ Việt: tách dấu từng chữ (NFD), đổi chữ gốc sang chữ đậm, GIỮ dấu kết hợp đi sau → "Bình" ra
+ *  "𝗕𝗶̀𝗻𝗵". Không đổi, giữ nguyên chữ thường:
+ *   · chữ HOA có dấu (Á, Ú, Ư…): dấu kết hợp đặt theo tầm chữ thường → trên chữ hoa đậm nó đè lên đầu chữ ("Út" đọc
+ *     ra "Ưt" — đã thấy khi chụp thử). Tên như "Út", "Ánh" vì thế có chữ đầu nét thường;
+ *   · đ / Đ (không tách được thành chữ gốc + dấu), dấu câu, khoảng trắng.
+ *  Tên gõ kiểu "Unicode tổ hợp" (dấu rời) được ghép lại trước (NFC) nên ra y như tên gõ dựng sẵn. Đọc ngược: NFKC. */
+export function dam(s) {
+  return Array.from(String(s ?? '').normalize('NFC'), (c) => {
+    const [goc, ...dau] = Array.from(c.normalize('NFD'));
+    const n = goc.codePointAt(0);
+    if (n >= 0x41 && n <= 0x5a) return dau.length ? c : String.fromCodePoint(0x1d5d4 + n - 0x41);   // A–Z → 𝗔–𝗭
+    if (n >= 0x61 && n <= 0x7a) return String.fromCodePoint(0x1d5ee + n - 0x61) + dau.join('');   // a–z → 𝗮–𝘇
+    if (n >= 0x30 && n <= 0x39) return String.fromCodePoint(0x1d7ec + n - 0x30);                  // 0–9 → 𝟬–𝟵
+    return c;
+  }).join('');
+}
+
 /** Văn bản sản lượng gửi nhóm chat. Hàm THUẦN — `tenSP(code)` truyền vào từ
  *  render(), nơi có danh mục mã hàng. (Trước đây hàm này gọi thẳng `tenSP` vốn chỉ
  *  sống TRONG render() → bấm nút là lỗi "tenSP is not defined", không copy gì.) */
@@ -741,21 +768,23 @@ export function vanBanSanLuong(nhomVao, ngay, tenSP, an = {}, tenNguoi = (ma) =>
   nhom.sort((a, b) => String(a.ten).localeCompare(String(b.ten), 'vi'));
   const d = (ngay || '').split('-');
   const tieuDe = d.length === 3 ? `SẢN LƯỢNG ${d[2]}/${d[1]}/${d[0]}` : 'SẢN LƯỢNG';
-  const dong = nhom.map((g) => {
+  const khoi = nhom.map((g) => {
     // D225 / D233: giờ của MỌI mức gộp một mục, KHÔNG ghi mức (33.000 hay 30.000) — tin cả nhóm đọc, tránh tị nạnh;
     // mức chỉ hiện ở màn ghi công / quản lý.
     const gio = g.dong.reduce((a, r) => a + (Number(r._gio) || 0), 0);
-    const ct = [...g.dong.filter((r) => !r._gio).map((r) => `${tenSP(r.san_pham) || '?'}${
-      r.cach_lam ? ` (${viTatCachLam(r.cach_lam)})` : ''}: ${formatNumber(r.so_hop)}`),          // D232
-    ...(gio ? [`Làm theo giờ: ${formatNumber(gio, 2)} giờ`] : [])].join(', ');
-    return [ct ? `${g.ten} (${ct})` : g.ten, nhanAn((an || {})[g.nv])].filter(Boolean).join(' · ');
+    const muc = [...g.dong.filter((r) => !r._gio).map((r) => `${tenSP(r.san_pham) || '?'}${
+      r.cach_lam ? ` (${viTatCachLam(r.cach_lam)})` : ''}: ${dam(formatNumber(r.so_hop))}`),     // D232
+    ...(gio ? [`Làm theo giờ: ${dam(formatNumber(gio, 2))} giờ`] : [])];
+    return [[dam(g.ten), nhanAn((an || {})[g.nv])].filter(Boolean).join(' · '),
+      ...muc.map((x) => `${THUT_DONG}- ${x}`)].join('\n');
   });
   const tong = nhom.reduce((a, g) => a + g.dong.reduce((x, r) => x + (Number(r.so_hop) || 0), 0), 0);
   const suat = (k) => nguoiAn.reduce((a, [, x]) => a + (Number(x[k]) || 0), 0);
   const ca = suat('an_ca');
   const dem = suat('an_dem');
-  return `${tieuDe}\n${dong.join('\n')}\n— Tổng: ${formatNumber(tong)} sản phẩm${
-    ca || dem ? `\n— Suất ăn: ăn ca ${formatNumber(ca)} · ăn đêm ${formatNumber(dem)}` : ''}`;
+  const cuoi = [`— Tổng: ${dam(formatNumber(tong))} sản phẩm`,
+    ...(ca || dem ? [`— Suất ăn: ăn ca ${dam(formatNumber(ca))} · ăn đêm ${dam(formatNumber(dem))}`] : [])];
+  return [tieuDe, ...khoi, cuoi.join('\n')].join('\n\n');        // D239: tiêu đề / từng người / tổng cách dòng trống
 }
 
 /** Cách làm viết tắt trong tin gửi nhóm (D232): chữ đầu mỗi từ, viết hoa — Tay → T, Máy (hay "máy") → M,
@@ -801,8 +830,12 @@ function chepKieuCu(text) {
   return ok;
 }
 
+// D239: cỡ chữ không đi theo chữ copy (clipboard chỉ mang chữ trơn) — chữ to là người gửi chọn trong Zalo: giữ nút
+// Gửi rồi chọn cỡ chữ (bản Zalo điện thoại). Toast đứng lâu hơn để kịp đọc lời nhắc.
+const NHAC_CHU_TO = 'Muốn chữ to: trong Zalo giữ nút Gửi rồi chọn cỡ chữ.';
+
 function chepVaoClipboard(text) {
-  const xong = () => toast('Đã copy — dán vào nhóm chat.');
+  const xong = () => toast(`Đã copy — dán vào nhóm Zalo. ${NHAC_CHU_TO}`, 'ok', 6000);
   const duPhong = () => (chepKieuCu(text) ? xong() : hienDeChepTay(text));
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(text).then(xong, duPhong);
@@ -814,8 +847,8 @@ function chepVaoClipboard(text) {
 function hienDeChepTay(text) {
   const m = openModal({ title: 'Copy sản lượng' });
   m.body.innerHTML = `
-    <div class="sx-modal-msg">Bấm giữ để chọn rồi copy:</div>
-    <textarea class="sx-textarea" id="sx-cp-text" rows="10" readonly></textarea>
+    <div class="sx-modal-msg">Bấm giữ để chọn rồi copy, dán vào nhóm Zalo. ${esc(NHAC_CHU_TO)}</div>
+    <textarea class="sx-textarea" id="sx-cp-text" rows="14" readonly></textarea>
   `;
   const ta = m.body.querySelector('#sx-cp-text');
   ta.value = text;
