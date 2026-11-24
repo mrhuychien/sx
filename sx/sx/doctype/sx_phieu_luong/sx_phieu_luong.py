@@ -15,7 +15,8 @@ Script), chỉ khác: tính ở SERVER lúc validate, nên gọi bằng API hay 
 ═══ QUY TẮC (giữ nguyên từ bảng lương hiện hành) ═══
   tiền ăn ngày   = ăn ca × đơn giá ăn ca + ăn đêm × đơn giá ăn đêm
   lương SP ngày  = Σ (số lượng × đơn giá) các dòng chi tiết của ngày — dòng làm theo giờ (D225): số giờ × đơn giá
-  thu nhập ngày  = lương SP ngày × HỆ SỐ + tiền ăn        (hệ số 1.2 nếu Chủ nhật / 1-1)
+  thu nhập ngày  = lương SP ngày × HỆ SỐ + tiền ăn        (hệ số 1.2 nếu Chủ nhật / ngày tính như Chủ nhật:
+                   SX Settings → "Ngày tính như Chủ nhật", mặc định 1/1, 27/7, 24/11 — D241)
   ngày công      = số ngày có ăn ca  +  0,5 × số ngày chỉ có ăn đêm
   chuyên cần     = ngưỡng thường nếu ngày công > 25 hoặc ≥ (ngày SX − 0,5)
                    ngày SX > 29 và thiếu < 1 công -> mức cao (tháng cao điểm cao hơn)
@@ -29,12 +30,19 @@ Mọi con số cấu hình nằm ở SX Settings, không hardcode: đổi mức 
 chuyện thường, mà sửa code để đổi một con số thì lần sau không ai dám đổi.
 """
 
+import re
+from datetime import date
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, flt, getdate
 
 from sx.utils import get_settings
+
+# D241: ngày công nhân đi làm được tính NHƯ đi làm Chủ nhật (lương SP ngày × hệ số). Trước D241 chỉ có 1/1 gõ cứng;
+# chủ xưởng thêm 27/7 và 24/11 (hỏi 24/11/2026). Danh sách ở SX Settings → "Ngày tính như Chủ nhật"; ô trống = mặc định.
+NGAY_NHU_CHU_NHAT = "01/01, 27/07, 24/11"
 
 
 def _cau_hinh():
@@ -50,6 +58,7 @@ def _cau_hinh():
         "an_ca": lay("tien_an_ca", 20000),
         "an_dem": lay("tien_an_dem", 10000),
         "he_so_le": lay("he_so_ngay_le", 1.2),
+        "ngay_he_so": doc_ngay_he_so(str(s.get("ngay_nhu_chu_nhat") or "").strip() or NGAY_NHU_CHU_NHAT),
         "cc_dat": lay("chuyen_can_dat", 200000),
         "cc_du": lay("chuyen_can_du", 300000),
         "cc_du_cao_diem": lay("chuyen_can_du_cao_diem", 1000000),
@@ -62,13 +71,37 @@ def _cau_hinh():
     }
 
 
-def _la_ngay_he_so(ngay):
-    """Ngày hưởng hệ số: Chủ nhật, và mùng 1 tháng 1.
+def doc_ngay_he_so(chuoi):
+    """Ô "Ngày tính như Chủ nhật" (SX Settings) → (mọi năm {(ngày, tháng)}, riêng năm {date}, mục sai [chuỗi]).
 
-    Giữ đúng quy tắc đang chạy. Ngày lễ khác chưa nằm trong quy tắc nào — thêm thì
-    phải hỏi bộ phận lương, không tự suy."""
+    Mỗi mục `dd/mm` = ngày đó MỌI năm, `dd/mm/yyyy` = riêng năm đó (ngày lễ âm lịch đổi ngày dương mỗi năm); dấu ngăn
+    ngày / - . đều được; các mục cách nhau dấu phẩy, chấm phẩy, khoảng trắng hay xuống dòng. Ngày không có thật (31/04,
+    30/02, 29/02/2027) là mục sai — SX Settings chặn lưu; lúc tính lương mục sai bị bỏ qua. 29/02 mọi năm: chỉ năm nhuận."""
+    hang_nam, rieng, sai = set(), set(), []
+    for muc in re.split(r"[,;\s]+", str(chuoi or "")):
+        if not muc:
+            continue
+        m = re.fullmatch(r"(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{4}))?", muc)
+        try:
+            if not m:
+                raise ValueError(muc)
+            ngay, thang = int(m[1]), int(m[2])
+            if m[3]:
+                rieng.add(date(int(m[3]), thang, ngay))
+            else:
+                date(2000, thang, ngay)          # ngày có thật không — năm 2000 nhuận nên 29/02 qua
+                hang_nam.add((ngay, thang))
+        except ValueError:
+            sai.append(muc)
+    return hang_nam, rieng, sai
+
+
+def _la_ngay_he_so(ngay, ngay_he_so=None):
+    """Ngày hưởng hệ số: Chủ nhật, và các ngày tính như Chủ nhật (`doc_ngay_he_so`; không truyền → mặc định
+    1/1, 27/7, 24/11). Trước D241: Chủ nhật và 1/1 gõ cứng — ngày khác do chủ xưởng / bộ phận lương quyết."""
     d = getdate(ngay)
-    return d.weekday() == 6 or (d.day == 1 and d.month == 1)
+    hang_nam, rieng, _sai = ngay_he_so or doc_ngay_he_so(NGAY_NHU_CHU_NHAT)
+    return d.weekday() == 6 or (d.day, d.month) in hang_nam or d in rieng
 
 
 class SXPhieuLuong(Document):
@@ -148,7 +181,7 @@ class SXPhieuLuong(Document):
             r.thu = THU[d.weekday()]
             r.tien_an = (cint(r.an_ca) * cf["an_ca"] + cint(r.an_dem) * cf["an_dem"])
             r.luong_sp = flt(sp_theo_ngay.get(str(d), 0))
-            r.he_so = cf["he_so_le"] if _la_ngay_he_so(d) else 1.0
+            r.he_so = cf["he_so_le"] if _la_ngay_he_so(d, cf["ngay_he_so"]) else 1.0
             r.thu_nhap_ngay = r.luong_sp * flt(r.he_so) + flt(r.tien_an)
         self.dong = sorted(self.dong, key=lambda r: getdate(r.ngay))
         for i, r in enumerate(self.dong, start=1):

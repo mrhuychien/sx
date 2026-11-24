@@ -38,3 +38,4 @@ sx.patches.d174_bien_ban
 sx.patches.d187_bo_phan_cu
 sx.patches.d202_dong_bo_lai_vao_hop
 sx.patches.d238_icon_sx_vao_bo_cuc
+sx.patches.d241_ngay_nhu_chu_nhat

@@ -36,6 +36,7 @@
   "don_gia_gio_2",
   "section_luong",
   "he_so_ngay_le",
+  "ngay_nhu_chu_nhat",
   "ngay_cong_chuan",
   "ho_tro_ngay_cong",
   "column_break_luong",
@@ -241,9 +242,16 @@
   {
    "fieldname": "he_so_ngay_le",
    "fieldtype": "Float",
-   "label": "Hệ số ngày Chủ nhật / 1-1",
+   "label": "Hệ số ngày Chủ nhật / ngày lễ",
    "default": "1.2",
-   "description": "Lương sản phẩm ngày đó nhân hệ số này. Tiền ăn KHÔNG nhân."
+   "description": "Lương sản phẩm (cả tiền làm theo giờ) của ngày Chủ nhật và các ngày ở ô \"Ngày tính như Chủ nhật\" nhân hệ số này. Tiền ăn KHÔNG nhân."
+  },
+  {
+   "fieldname": "ngay_nhu_chu_nhat",
+   "fieldtype": "Small Text",
+   "label": "Ngày tính như Chủ nhật",
+   "default": "01/01, 27/07, 24/11",
+   "description": "D241: công nhân đi làm ngày này được tính như đi làm Chủ nhật (lương sản phẩm nhân hệ số ở trên). Ghi dd/mm = ngày đó mọi năm, dd/mm/yyyy = riêng năm đó (vd ngày lễ âm lịch); cách nhau dấu phẩy. Chủ nhật luôn tính, không cần ghi. Bỏ trống = 01/01, 27/07, 24/11. Đổi danh sách chỉ áp cho phiếu lương chốt / lưu từ đó."
   },
   {
    "fieldname": "ngay_cong_chuan",
@@ -312,7 +320,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-11-10 12:00:00.000000",
+ "modified": "2026-11-24 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "SX",
  "name": "SX Settings",

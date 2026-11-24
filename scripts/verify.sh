@@ -214,6 +214,11 @@ node scripts/test-anh.mjs > /tmp/sx-anh.log 2>&1 \
 python3 scripts/test-luong.py > /tmp/sx-luong.log 2>&1 \
   && tail -1 /tmp/sx-luong.log \
   || { cat /tmp/sx-luong.log; loi=1; }
+# D241: ngày tính như Chủ nhật (SX Settings, mặc định 1/1, 27/7, 24/11) — 24/11 thứ Ba vẫn nhân hệ số; ô gõ sai bị
+# chặn lưu, ô trống về mặc định; patch tính lại đúng phiếu nháp cần tính, không đụng phiếu đã duyệt.
+python3 scripts/test-ngayle.py > /tmp/sx-ngayle.log 2>&1 \
+  && tail -1 /tmp/sx-ngayle.log \
+  || { cat /tmp/sx-ngayle.log; loi=1; }
 # D234: thẻ phiếu lương — từng ngày làm được gì, số lượng, đơn giá, thành tiền, cộng ngày. Chromium thật + CSS thật ở
 # màn 360px: đúng cột, dòng chưa có giá không đọc như "0 đồng", không phải kéo ngang, đầu cột dính khi cuộn.
 node scripts/test-phieuluong.mjs > /tmp/sx-phieuluong.log 2>&1 \

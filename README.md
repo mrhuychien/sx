@@ -327,6 +327,28 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ngày 27/7 và 24/11 tính như Chủ nhật — ô "Ngày tính như Chủ nhật" ở SX Settings (D241)
+
+- **Hỏi** (24/11/2026): ngày 24/11 và 27/7 công nhân đi làm được tính như đi làm Chủ nhật.
+- **Nay**: lương sản phẩm ngày (cả tiền làm theo giờ — D225) nhân **hệ số ngày Chủ nhật / ngày lễ** (SX Settings, mặc
+  định 1,2) vào: Chủ nhật, và các ngày ở ô mới **SX Settings → Ngày tính như Chủ nhật** = `01/01, 27/07, 24/11`
+  (trước D241 chỉ Chủ nhật và 1/1, gõ cứng). Tiền ăn không nhân — như Chủ nhật.
+  - Ghi `dd/mm` = ngày đó **mọi năm**; `dd/mm/yyyy` = **riêng năm đó** (ngày lễ âm lịch đổi ngày dương mỗi năm, vd Tết
+    `17/02/2026`); cách nhau dấu phẩy. Chủ nhật luôn tính, không cần ghi. Gõ sai (24/111, 31/04, năm 2 số) → SX
+    Settings không cho lưu, nói rõ mục sai. Ô trống = `01/01, 27/07, 24/11`.
+  - Thêm / bỏ ngày là sửa **cả danh sách** trong ô (ghi một ngày mới vào ô là danh sách chỉ còn ngày đó).
+  - Đổi danh sách áp cho phiếu lương khi phiếu được tính lại (chốt ngày, lưu phiếu). Phiếu đã duyệt giữ nguyên.
+- **Patch** `sx.patches.d241_ngay_nhu_chu_nhat` (một lần, khi migrate): ô đang trống thì điền `01/01, 27/07, 24/11`;
+  tính lại (lưu lại) **phiếu lương nháp** có ngày đi làm rơi vào ngày tính như Chủ nhật mà hệ số chưa đúng — vd 24/11 đã
+  chốt trước khi cập nhật. Phiếu đã duyệt / đã huỷ không đụng; phiếu lỗi khi lưu được in ra, không dừng migrate.
+- Chỉ **lương khoán** (phiếu lương sản lượng). **Lương công nhật không tính trong app SX**: dòng ★ Công nhật ở màn Ghi
+  hộp chỉ đếm số hộp (không gắn người, không đơn giá, không tiền — D101), nên hệ số cho công nhật phải áp ở nơi đang
+  tính lương công nhật.
+- Test `test-ngayle.py` (đọc ô: mọi năm / riêng năm, dấu ngăn, mục sai, 29/02; ngày hưởng hệ số; phiếu lương: 24/11 thứ
+  Ba nhân 1,2 cả tiền giờ, tiền ăn không nhân, ô trống / khoảng trắng về mặc định, danh sách riêng, hệ số 1,5; SX
+  Settings chặn lưu; patch: điền ô, chỉ phiếu nháp cần tính, phiếu lỗi không dừng; cấu hình). Kiểm đột biến 28/28.
+- **Cập nhật** (đổi DocType SX Settings): `git pull` → `bench --site site1.local migrate` → `bench restart`.
+
 ## Hoá đơn bán: mục "Kiểm tra phương tiện vận chuyển (BM.09.01)" thu gọn — bấm vào mới mở (D240)
 
 - **Hỏi** (24/11/2026): thu gọn phần Kiểm tra phương tiện vận chuyển (BM.09.01) trong Sales Invoice, bấm vào mới xổ ra.
