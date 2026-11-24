@@ -832,7 +832,7 @@
   "name": "Sales Invoice-custom_section_kiem_xe",
   "translatable": 0,
   "label": "Kiểm tra phương tiện vận chuyển (BM.09.01)",
-  "collapsible": 0
+  "collapsible": 1
  },
  {
   "doctype": "Custom Field",

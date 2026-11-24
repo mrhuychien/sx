@@ -327,6 +327,22 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Hoá đơn bán: mục "Kiểm tra phương tiện vận chuyển (BM.09.01)" thu gọn — bấm vào mới mở (D240)
+
+- **Hỏi** (24/11/2026): thu gọn phần Kiểm tra phương tiện vận chuyển (BM.09.01) trong Sales Invoice, bấm vào mới xổ ra.
+- **Nay**: Section Break `custom_section_kiem_xe` của Sales Invoice có `collapsible = 1` (fixtures Custom Field). Mở
+  hoá đơn: mục gập lại, chỉ còn dòng tiêu đề; bấm tiêu đề để mở / gập. Frappe 16 gập lại mỗi lần form vẽ lại (mở hoá
+  đơn, sau khi lưu) — kể cả khi đã ghi kiểm xe.
+- Không tự mở theo điều kiện (`collapsible_depends_on` trống). Frappe chỉ tự mở mục thu gọn khi trong mục có ô **bắt
+  buộc** còn trống (`layout.refresh_section_collapse`) — ô kiểm xe không đặt bắt buộc; bắt kiểm xe vẫn ở lúc Duyệt
+  (chưa kiểm → chặn, báo "Chưa kiểm xe (BM.09.01)…"). Thêm "bắt buộc" cho một ô kiểm xe là mục mở sẵn ở mọi hoá đơn mới.
+- Sau bảng hàng của Sales Invoice (ERPNext v16.15.1) là Section Break chuẩn `section_break_30` (phần tổng) → gập mục
+  kiểm xe chỉ ẩn các ô kiểm xe, không ẩn ô chuẩn nào.
+- Phiếu nhập mua (Purchase Receipt) giữ nguyên: mục kiểm xe vẫn mở sẵn.
+- Test `test-kiemxe.py` (mục thu gọn, không tự mở theo điều kiện, không ô nào trong mục bắt buộc).
+- **Cập nhật**: `git pull` → `bench --site site1.local migrate` (nạp lại fixtures) → tải lại trang hoá đơn
+  (Ctrl+Shift+R).
+
 ## Ghi hộp: tin "Copy sản lượng gửi nhóm" dễ đọc trên Zalo — tên, số in đậm; mỗi sản phẩm một dòng (D239)
 
 - **Hỏi** (17/11/2026): tin copy gửi nhóm Zalo — tên công nhân in đậm; mỗi sản phẩm một dòng, thụt đầu dòng, gạch đầu

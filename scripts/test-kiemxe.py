@@ -193,6 +193,19 @@ for dt in K.LOAI:
          and all(f["insert_after"] in co for f in o.values() if f["fieldname"].startswith(("custom_xe", "custom_cb_kiem")))
          and len({f["insert_after"] for f in o.values()}) == len(o))
 
+print("\n-- D240: hoá đơn bán — mục kiểm xe thu gọn, bấm vào tiêu đề mới mở --")
+si = {f["fieldname"]: f for f in cf if f["dt"] == "Sales Invoice"}
+sec = si["custom_section_kiem_xe"]
+kiem("Sales Invoice: mục \"Kiểm tra phương tiện vận chuyển (BM.09.01)\" thu gọn (collapsible), không tự mở theo điều "
+     "kiện (collapsible_depends_on trống)",
+     sec["fieldtype"] == "Section Break" and sec["label"] == "Kiểm tra phương tiện vận chuyển (BM.09.01)"
+     and sec["insert_after"] == "items" and sec.get("collapsible") == 1 and not sec.get("collapsible_depends_on"))
+# Frappe (layout.refresh_section_collapse) tự MỞ mục thu gọn khi trong mục có ô bắt buộc còn trống — ô kiểm xe mà
+# đặt reqd thì mục mở sẵn ở mọi hoá đơn mới; bắt kiểm xe nằm ở before_submit (chặn duyệt), không ở reqd.
+trong_muc = [f for f in si.values() if f["fieldname"].startswith(("custom_xe_", "custom_cb_kiem"))]
+kiem("… không ô nào trong mục là bắt buộc (Frappe tự mở mục có ô bắt buộc còn trống)",
+     len(trong_muc) == 22 and not any(f.get("reqd") for f in trong_muc), len(trong_muc))
+
 print("\n-- patch d165: chuyến đã ghi trước D165 → phiên bản 1 --")
 FR.get_app_path = lambda app, *p: os.path.join(app, *p)
 F.dang_ky("Custom Field", F.Document, ten_theo="name")      # như frappe: tạo trùng tên → DuplicateEntryError
