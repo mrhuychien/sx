@@ -327,6 +327,45 @@ bớt thì không huỷ, báo rõ mã, lô, còn bao nhiêu — phải huỷ ch�
 trong ngày ra **đúng mã lô cũ** (lô của phiếu đã huỷ không còn hàng thì được dùng lại),
 không thành `…-2`.
 
+## Ghi hộp: nút "Copy thay đổi" — chỉ gửi người đổi từ lần copy trước (D242)
+
+- **Hỏi** (25/11/2026): copy sản lượng gửi nhóm xong lại có thay đổi (một vài người) mà copy lại cả tin thì loãng —
+  thêm nút copy thay đổi, chỉ copy sản lượng của người được thay đổi.
+- **Nay**: cạnh *Copy sản lượng gửi nhóm* có nút **Copy thay đổi**. Tin:
+  ```
+  SẢN LƯỢNG 25/11/2026 — CẬP NHẬT
+
+  𝗔𝗻 · ăn ca + ăn đêm
+      - Bánh sen (M): 𝟭𝟰𝟬
+
+  𝗗𝘂̃𝗻𝗴
+      - Bỏ hết số đã gửi — không còn sản lượng, suất ăn
+
+  𝗘𝗺
+      - Bánh sen (T): 𝟭𝟬
+
+  — Tổng: 𝟭𝟴𝟬 sản phẩm
+  ```
+  - Chỉ người **đổi** so với lần copy trước: sửa số / thêm sản phẩm / đổi giờ / đổi chấm ăn → ghi NGUYÊN khối mới của
+    người đó (đọc là có đủ số mới, không phải ghép với tin cũ); người **mới có** → khối của họ; người **không còn gì**
+    (vd chấm nhầm người rồi chuyển sang người khác) → "Bỏ hết số đã gửi". Xếp theo tên, khuôn như tin đầy đủ (D239).
+  - Dòng **Tổng** chỉ khi tổng sản phẩm đổi; dòng **Suất ăn** chỉ khi suất ăn ca / ăn đêm đổi.
+  - Không có gì đổi → báo "Chưa có gì thay đổi so với lần copy lúc …", không chép.
+  - Copy (đầy đủ hay thay đổi) xong là **nhớ lại** — lần sau chỉ tính đổi từ lần này.
+- Dưới hai nút: "Đã copy lúc 17:05 — đổi từ đó: An, Dũng, Em." (quá 5 người thì "… (N người)"); nút ghi số người đổi:
+  **Copy thay đổi (3)**. Cập nhật mỗi lần lưu.
+- **Nhớ ở đâu**: trên **máy** đang dùng (bộ nhớ trình duyệt), theo **người dùng + ngày** — mỗi QC thấy và copy phần mình
+  ghi (D113) nên mỗi người một bản nhớ; giữ 14 ngày gần nhất. Copy ở máy này mà gửi thay đổi ở máy khác (hay đã dọn bộ
+  nhớ trình duyệt, cửa sổ ẩn danh) thì máy kia báo "Máy này chưa copy tin ngày … — bấm Copy sản lượng gửi nhóm trước".
+  Máy không cho chép mà hiện ô chép tay → vẫn tính là đã copy.
+- Hàm thuần `khoiSanLuong` (tin theo từng người — tin đầy đủ ghép từ đây, không đổi một ký tự), `thayDoi`,
+  `vanBanThayDoi`, `anhChup`.
+- Test `test-copydoi.mjs` (hàm thuần: sửa số, chỉ ăn ca / ăn đêm, chuyển người, bỏ người, người mới, bỏ hết, bản nhớ
+  thiếu số; Chromium thật: chưa copy, copy đầy đủ → nhớ, tải lại có dữ liệu mới → chỉ người đổi, bấm lại khi chưa đổi,
+  sửa ngay trên màn, người khác / ngày khác cùng máy, giữ 14 ngày, bản nhớ hỏng / thiếu / bị xoá, ô chép tay, bộ nhớ
+  bị chặn). Kiểm đột biến 34/34. `test-copy`, `test-giocong`, `test-khoanchung` giữ nguyên tin đầy đủ.
+- Không đổi DocType: `git pull` → `bench restart` → tải lại trang (Ctrl+Shift+R). Build **sx-176**.
+
 ## Ngày 27/7 và 24/11 tính như Chủ nhật — ô "Ngày tính như Chủ nhật" ở SX Settings (D241)
 
 - **Hỏi** (24/11/2026): ngày 24/11 và 27/7 công nhân đi làm được tính như đi làm Chủ nhật.

@@ -106,8 +106,10 @@ export async function render({ container, boot, call, ensureNgay }) {
     <div class="sx-vh-footer" id="sx-vh-an"></div>
     <div class="sx-vh-actions">
       <button type="button" class="sx-btn" id="sx-vh-copy">Copy sản lượng gửi nhóm</button>
+      <button type="button" class="sx-btn" id="sx-vh-copydoi">Copy thay đổi</button>
       <button type="button" class="sx-btn" id="sx-vh-inthe">In thẻ quét</button>
     </div>
+    <div class="sx-muted sx-vh-copy-tt" id="sx-vh-copy-tt" hidden></div>
   `;
   let timKiem = '';
   let xemHet = false;
@@ -156,7 +158,7 @@ export async function render({ container, boot, call, ensureNgay }) {
   const gioNguoi = (v) => MUC_GIO.reduce((a, m) => a + (Number((v || {})[m.k]) || 0), 0);
 
   // Lưới chưa/đã nhập đổi theo dữ liệu -> vẽ lại CÙNG LÚC với bảng, không để lệch
-  function paint() { veBang(); veNV(); }
+  function paint() { veBang(); veNV(); veCopy(); }
 
   function veBang() {
     // Danh sách bản ghi: TÊN + loại bên trái, SỐ bên phải, rồi ✎ và ✕.
@@ -321,11 +323,48 @@ export async function render({ container, boot, call, ensureNgay }) {
     e.target.disabled = false;
   });
 
+  // Tin gửi nhóm của ngày đang xem. D242: lần copy cuối (bản đã copy, từng người một khối) nhớ trên MÁY này theo
+  // người dùng + ngày — "Copy thay đổi" chỉ chép khối của người đổi từ lần đó.
+  const ngayTin = (boot.ngay_sx && boot.ngay_sx.ngay) || boot.ngay_xem;
+  const khoaGui = `${boot.user || ''}|${ngayTin || ''}`;
+  const tenHang = (code) => { const k = tenSPKhoan(code); return k && k !== code ? k : tenSP(code); };
+  const tenNguoi = (ma) => tenNgan[ma] || ma;
+  const khoiHienTai = () => khoiSanLuong(theoNguoi(), ngayTin, tenHang, anCa, tenNguoi);   // D231: kèm ăn
+  const nhoDaCopy = (k) => { ghiDaGui(khoaGui, anhChup(k)); veCopy(); };
+
   container.querySelector('#sx-vh-copy').addEventListener('click', () => {
-    copySanLuong(theoNguoi(), (boot.ngay_sx && boot.ngay_sx.ngay) || boot.ngay_xem,
-      (code) => { const k = tenSPKhoan(code); return k && k !== code ? k : tenSP(code); },
-      anCa, (ma) => tenNgan[ma] || ma);                       // D231: kèm ăn ca / ăn đêm
+    if (!coGiDeCopy(theoNguoi(), anCa)) {
+      toastErr('Chưa có sản lượng hay suất ăn nào của công nhân để copy.'); return;
+    }
+    const k = khoiHienTai();
+    chepVaoClipboard(vanBanTuKhoi(k), () => nhoDaCopy(k));
   });
+
+  container.querySelector('#sx-vh-copydoi').addEventListener('click', () => {
+    const dg = docDaGui(khoaGui);
+    if (!dg) {
+      toastErr(`Máy này chưa copy tin ngày ${nhanNgayTin(ngayTin)} — bấm "Copy sản lượng gửi nhóm" trước.`); return;
+    }
+    const k = khoiHienTai();
+    const vb = vanBanThayDoi(dg, k);
+    if (!vb) { toast(`Chưa có gì thay đổi so với lần copy ${lucCopy(dg.luc)}.`); return; }
+    chepVaoClipboard(vb, () => nhoDaCopy(k), 'Đã copy phần thay đổi');
+  });
+
+  // Dòng dưới hai nút copy: lần copy cuối trên máy này + ai đổi từ đó; nút "Copy thay đổi" kèm số người đổi.
+  function veCopy() {
+    const tt = container.querySelector('#sx-vh-copy-tt');
+    const nut = container.querySelector('#sx-vh-copydoi');
+    const dg = docDaGui(khoaGui);
+    if (!dg) { tt.hidden = true; nut.textContent = 'Copy thay đổi'; return; }
+    const t = thayDoi(dg, khoiHienTai());
+    const ten = [...t.doi, ...t.bo].map((x) => String(x.ten)).sort((a, b) => a.localeCompare(b, 'vi'));
+    nut.textContent = ten.length ? `Copy thay đổi (${ten.length})` : 'Copy thay đổi';
+    tt.hidden = false;
+    tt.textContent = `Đã copy ${lucCopy(dg.luc)} — ${ten.length
+      ? `đổi từ đó: ${ten.length > 5 ? `${ten.slice(0, 5).join(', ')}… (${ten.length} người)` : ten.join(', ')}`
+      : 'chưa có gì thay đổi'}.`;
+  }
 
   async function save() {
     try {
@@ -752,6 +791,13 @@ export function dam(s) {
  *  render(), nơi có danh mục mã hàng. (Trước đây hàm này gọi thẳng `tenSP` vốn chỉ
  *  sống TRONG render() → bấm nút là lỗi "tenSP is not defined", không copy gì.) */
 export function vanBanSanLuong(nhomVao, ngay, tenSP, an = {}, tenNguoi = (ma) => ma) {
+  return vanBanTuKhoi(khoiSanLuong(nhomVao, ngay, tenSP, an, tenNguoi));
+}
+
+/** Tin gửi nhóm tách theo NGƯỜI (D242) — hàm THUẦN, chung cho tin đầy đủ và tin thay đổi:
+ *  { tieuDe, khoi: [{ nv, ten, chu }] xếp theo tên, tong, ca, dem } — `chu` là khối của người đó ĐÚNG như trong tin,
+ *  tong / ca / dem là SỐ (tổng sản phẩm, suất ăn ca, suất ăn đêm). */
+export function khoiSanLuong(nhomVao, ngay, tenSP, an = {}, tenNguoi = (ma) => ma) {
   // Bỏ dòng CÔNG NHẬT và ★ CÔNG KHOÁN CHUNG (D213): tin gửi nhóm là để từng công nhân
   // khoán đối chiếu số của mình — hai dòng đó không phải một người; tổng tin cũng không cộng.
   const nhom = nhomVao
@@ -775,16 +821,92 @@ export function vanBanSanLuong(nhomVao, ngay, tenSP, an = {}, tenNguoi = (ma) =>
     const muc = [...g.dong.filter((r) => !r._gio).map((r) => `${tenSP(r.san_pham) || '?'}${
       r.cach_lam ? ` (${viTatCachLam(r.cach_lam)})` : ''}: ${dam(formatNumber(r.so_hop))}`),     // D232
     ...(gio ? [`Làm theo giờ: ${dam(formatNumber(gio, 2))} giờ`] : [])];
-    return [[dam(g.ten), nhanAn((an || {})[g.nv])].filter(Boolean).join(' · '),
-      ...muc.map((x) => `${THUT_DONG}- ${x}`)].join('\n');
+    return { nv: g.nv || g.ten, ten: g.ten, chu: [[dam(g.ten), nhanAn((an || {})[g.nv])].filter(Boolean).join(' · '),
+      ...muc.map((x) => `${THUT_DONG}- ${x}`)].join('\n') };
   });
   const tong = nhom.reduce((a, g) => a + g.dong.reduce((x, r) => x + (Number(r.so_hop) || 0), 0), 0);
   const suat = (k) => nguoiAn.reduce((a, [, x]) => a + (Number(x[k]) || 0), 0);
-  const ca = suat('an_ca');
-  const dem = suat('an_dem');
-  const cuoi = [`— Tổng: ${dam(formatNumber(tong))} sản phẩm`,
-    ...(ca || dem ? [`— Suất ăn: ăn ca ${dam(formatNumber(ca))} · ăn đêm ${dam(formatNumber(dem))}`] : [])];
-  return [tieuDe, ...khoi, cuoi.join('\n')].join('\n\n');        // D239: tiêu đề / từng người / tổng cách dòng trống
+  return { tieuDe, khoi, tong, ca: suat('an_ca'), dem: suat('an_dem') };
+}
+
+const dongTong = (tong) => `— Tổng: ${dam(formatNumber(tong))} sản phẩm`;
+const dongSuat = (ca, dem) => `— Suất ăn: ăn ca ${dam(formatNumber(ca))} · ăn đêm ${dam(formatNumber(dem))}`;
+
+/** Tin đầy đủ từ các khối: tiêu đề / từng người / tổng (+ suất ăn khi có chấm ăn) cách nhau dòng trống (D239). */
+export function vanBanTuKhoi(k) {
+  return [k.tieuDe, ...k.khoi.map((x) => x.chu),
+    [dongTong(k.tong), ...(k.ca || k.dem ? [dongSuat(k.ca, k.dem)] : [])].join('\n')].join('\n\n');
+}
+
+/** Bản nhớ lần copy (D242): { luc, khoi: { [nv]: { ten, chu } }, tong, ca, dem } — đủ để so lần sau. */
+export function anhChup(k, luc = Date.now()) {
+  return { luc, khoi: Object.fromEntries(k.khoi.map((x) => [x.nv, { ten: x.ten, chu: x.chu }])),
+    tong: k.tong, ca: k.ca, dem: k.dem };
+}
+
+/** So tin hiện tại (`hienTai` = khoiSanLuong) với lần copy trước (`daGui` = anhChup) — hàm THUẦN (D242).
+ *  → { doi: [{ nv, ten, chu, moi }], bo: [{ nv, ten }], tong, suat }: `doi` = người có khối khác đi hoặc mới có (moi),
+ *  `bo` = người có trong lần trước mà nay không còn khối; tong / suat = dòng tổng / suất ăn đổi số. */
+export function thayDoi(daGui, hienTai) {
+  const cu = (daGui && daGui.khoi) || {};
+  const coNay = new Set(hienTai.khoi.map((x) => x.nv));
+  const so = (v) => Number(v) || 0;
+  return {
+    doi: hienTai.khoi.filter((x) => !cu[x.nv] || cu[x.nv].chu !== x.chu).map((x) => ({ ...x, moi: !cu[x.nv] })),
+    bo: Object.entries(cu).filter(([nv]) => !coNay.has(nv)).map(([nv, x]) => ({ nv, ten: x.ten })),
+    tong: so(hienTai.tong) !== so((daGui || {}).tong),
+    suat: so(hienTai.ca) !== so((daGui || {}).ca) || so(hienTai.dem) !== so((daGui || {}).dem),
+  };
+}
+
+// Người có trong lần copy trước mà nay không còn gì (vd chấm nhầm người, đã chuyển sang người khác) — báo bỏ số cũ.
+const BO_SO_CU = 'Bỏ hết số đã gửi — không còn sản lượng, suất ăn';
+
+/** Tin "Copy thay đổi" (D242): chỉ khối của người ĐỔI so với lần copy trước — người sửa số / mới có ghi nguyên khối
+ *  MỚI của họ, người không còn gì ghi "bỏ số đã gửi"; dòng tổng / suất ăn chỉ khi đổi. Không có gì đổi → ''. */
+export function vanBanThayDoi(daGui, hienTai) {
+  const t = thayDoi(daGui, hienTai);
+  const khoi = [...t.doi, ...t.bo.map((x) => ({ ten: x.ten, chu: `${dam(x.ten)}\n${THUT_DONG}- ${BO_SO_CU}` }))]
+    .sort((a, b) => String(a.ten).localeCompare(String(b.ten), 'vi'));
+  const cuoi = [...(t.tong ? [dongTong(hienTai.tong)] : []), ...(t.suat ? [dongSuat(hienTai.ca, hienTai.dem)] : [])];
+  if (!khoi.length && !cuoi.length) return '';
+  return [`${hienTai.tieuDe} — CẬP NHẬT`, ...khoi.map((x) => x.chu), ...(cuoi.length ? [cuoi.join('\n')] : [])]
+    .join('\n\n');
+}
+
+// Lần copy cuối nhớ trên máy (localStorage, D242): { "user|ngày": anhChup } — giữ 14 ngày gần nhất. Bộ nhớ bị chặn /
+// đầy (trình duyệt ẩn danh…) thì thôi: "Copy thay đổi" báo chưa copy, copy đầy đủ vẫn chạy.
+const KHOA_DA_GUI = 'sx-vh-da-gui-nhom';
+const GIU_SO_NGAY = 14;
+
+function docTatCa() {
+  try { return JSON.parse(localStorage.getItem(KHOA_DA_GUI) || '{}') || {}; } catch (e) { return {}; }
+}
+
+export function docDaGui(khoa) {
+  const x = docTatCa()[khoa];
+  return x && x.khoi ? x : null;
+}
+
+export function ghiDaGui(khoa, anh) {
+  try {
+    const tat = { ...docTatCa(), [khoa]: anh };
+    const giu = Object.entries(tat).sort(([, a], [, b]) => ((b && b.luc) || 0) - ((a && a.luc) || 0)).slice(0, GIU_SO_NGAY);
+    localStorage.setItem(KHOA_DA_GUI, JSON.stringify(Object.fromEntries(giu)));
+  } catch (e) { /* bộ nhớ bị chặn / đầy: thôi */ }
+}
+
+/** "lúc 17:05" (hôm nay) / "24/11 lúc 17:05" (ngày khác) — giờ máy. */
+export function lucCopy(luc, bayGio = new Date()) {
+  const d = new Date(Number(luc) || 0);
+  const h = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return d.toDateString() === bayGio.toDateString() ? `lúc ${h}`
+    : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} lúc ${h}`;
+}
+
+function nhanNgayTin(ngay) {
+  const d = String(ngay || '').split('-');
+  return d.length === 3 ? `${d[2]}/${d[1]}` : 'này';
 }
 
 /** Cách làm viết tắt trong tin gửi nhóm (D232): chữ đầu mỗi từ, viết hoa — Tay → T, Máy (hay "máy") → M,
@@ -797,13 +919,6 @@ export function viTatCachLam(cl) {
 export function coGiDeCopy(nhom, an = {}) {
   return nhom.some((g) => g.dong.some((r) => !KHONG_NGUOI.includes(r.nhan_vien)))
     || Object.entries(an || {}).some(([ma, x]) => !KHONG_NGUOI.includes(ma) && !!nhanAn(x));
-}
-
-function copySanLuong(nhom, ngay, tenSP, an, tenNguoi) {
-  if (!coGiDeCopy(nhom, an)) {
-    toastErr('Chưa có sản lượng hay suất ăn nào của công nhân để copy.'); return;
-  }
-  chepVaoClipboard(vanBanSanLuong(nhom, ngay, tenSP, an, tenNguoi));
 }
 
 /** Chấm ăn của MỘT người: "ăn ca", "ăn ca ×2 + ăn đêm"… — rỗng khi không chấm. Dùng chung cho thẻ tên và tin
@@ -834,9 +949,15 @@ function chepKieuCu(text) {
 // Gửi rồi chọn cỡ chữ (bản Zalo điện thoại). Toast đứng lâu hơn để kịp đọc lời nhắc.
 const NHAC_CHU_TO = 'Muốn chữ to: trong Zalo giữ nút Gửi rồi chọn cỡ chữ.';
 
-function chepVaoClipboard(text) {
-  const xong = () => toast(`Đã copy — dán vào nhóm Zalo. ${NHAC_CHU_TO}`, 'ok', 6000);
-  const duPhong = () => (chepKieuCu(text) ? xong() : hienDeChepTay(text));
+// `daChep` (D242): gọi khi tin đã vào clipboard — hoặc đã bày ra ô chép tay (máy không cho chép): người dùng đang gửi
+// đúng tin này, nhớ làm lần copy cuối.
+function chepVaoClipboard(text, daChep = () => {}, nhan = 'Đã copy') {
+  const xong = () => { daChep(); toast(`${nhan} — dán vào nhóm Zalo. ${NHAC_CHU_TO}`, 'ok', 6000); };
+  const duPhong = () => {
+    if (chepKieuCu(text)) { xong(); return; }
+    daChep();
+    hienDeChepTay(text);
+  };
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(text).then(xong, duPhong);
     return;

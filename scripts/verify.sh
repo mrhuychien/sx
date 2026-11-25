@@ -230,6 +230,11 @@ node scripts/test-phieuluong.mjs > /tmp/sx-phieuluong.log 2>&1 \
 node scripts/test-copy.mjs > /tmp/sx-copy.log 2>&1 \
   && tail -1 /tmp/sx-copy.log \
   || { cat /tmp/sx-copy.log; loi=1; }
+# D242: "Copy thay đổi" — chỉ khối của người đổi từ lần copy trước (người bỏ hẳn cũng báo), dòng tổng / suất ăn chỉ khi
+# đổi; nhớ lần copy theo máy + người dùng + ngày (14 ngày), bộ nhớ hỏng / bị chặn thì copy đầy đủ vẫn chạy.
+node scripts/test-copydoi.mjs > /tmp/sx-copydoi.log 2>&1 \
+  && tail -1 /tmp/sx-copydoi.log \
+  || { cat /tmp/sx-copydoi.log; loi=1; }
 
 # D203: dòng ★ Công khoán chung (tiền khoán không gắn người) ở màn Ghi hộp + nút "Ghi cho công khoán"
 # ở thẻ Sổ nợ vào hộp — bấm thật trong Chromium, đọc lại lời gọi API (số, cách làm, ngày, mã giả).
